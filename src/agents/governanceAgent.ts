@@ -71,6 +71,8 @@ const NATS_STREAM = process.env.NATS_STREAM ?? "SWARM_JOBS";
 const SCOPE_ID = process.env.SCOPE_ID ?? "default";
 setLogContext({ agent_id: AGENT_ID, role: "governance" });
 
+let policyEngineLogged = false;
+
 /**
  * Resolve policy engine: OPA-WASM when OPA_WASM_PATH is set (and load succeeds), else YAML.
  */
@@ -78,8 +80,18 @@ async function getPolicyEngine(governance: GovernanceConfig, policyVersion: stri
   const wasmPath = process.env.OPA_WASM_PATH;
   if (wasmPath) {
     const opa = await createOPAPolicyEngine(wasmPath, governance, policyVersion);
-    if (opa) return opa;
+    if (opa) {
+      if (!policyEngineLogged) {
+        logger.info("policy engine: OPA-WASM", { wasmPath, policyVersion });
+        policyEngineLogged = true;
+      }
+      return opa;
+    }
     logger.warn("OPA_WASM_PATH set but load failed; using YAML engine", { wasmPath });
+  }
+  if (!policyEngineLogged) {
+    logger.info("policy engine: YAML", { policyVersion });
+    policyEngineLogged = true;
   }
   return createYamlPolicyEngine(governance, policyVersion);
 }
@@ -675,7 +687,7 @@ export async function commitDeterministicResult(
   }
 
   if (result.outcome === "approve" && result.actionPayload) {
-    const isMaster = result.reason === "master_override";
+    const isMaster = proposal.mode === "MASTER";
     recordProposal(proposed_action, "approved");
     const action: Action = {
       proposal_id,
