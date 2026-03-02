@@ -157,7 +157,64 @@ Modules **without** a dedicated test file (no direct import in tests):
 
 ---
 
-## 4. Recommendations
+## 4. Test policy for previously untested modules
+
+Policy for the modules listed in §3.2 (no dedicated test today). Goal: robust coverage without overengineering—tests where they prevent regressions and clarify contracts; skip or keep minimal where the cost outweighs the benefit.
+
+### 4.1 Principles
+
+- **Unit tests** for pure logic, branching, and I/O boundaries (with mocks). Prefer one focused suite per module; mock DB, fetch, and external services.
+- **Integration tests** only where behavior depends on real Postgres/NATS/S3 and the scenario is hard to mock faithfully. Keep integration suites small and env-gated (skip when vars unset).
+- **No tests** for one-off scripts, thin wrappers that only delegate, or code that is effectively exercised by existing integration/e2e. Document the decision instead of adding low-value tests.
+
+### 4.2 Tiers
+
+| Tier | Meaning | When to use |
+|------|--------|-------------|
+| **Must** | Add a unit (or integration) suite when touching the module. | Security, shared utilities, or core control flow. |
+| **Should** | Add tests when doing non-trivial changes or if the module has grown. | Business logic and agents that are on the main path. |
+| **Optional** | Tests welcome but not required for every change. | Infra, observability, or secondary agents. |
+| **Skip** | No dedicated suite; rely on integration/e2e or manual use. | Entrypoints, loadgen, or glue that only wires others. |
+
+### 4.3 Per-module assignment
+
+| Module | Tier | Test type | Notes |
+|--------|------|-----------|--------|
+| `errors.ts` | **Must** | Unit | Single export `toErrorString`; test Error, non-Error, null/undefined, and object with `message`/`code`. Prevents logging/security regressions. |
+| `auth.ts` | **Must** (if used at API boundary) | Unit | Token validation and rejection paths. Skip if unused. |
+| `agentLoop.ts` | **Must** | Unit | Mock NATS, runners, filters; assert job routing, filter application, and that runner is called with expected payload. Core control loop. |
+| `resolverAgent.ts` | **Must** | Unit | Mock MCP and context; test public entry and error handling. Frequently on the resolution path. |
+| `actionExecutor.ts` | **Should** | Unit | Mock state graph and transitions; test execute paths and idempotency where relevant. |
+| `decisionRecorder.ts` | **Should** | Unit | Mock DB; test record shape and persistence. |
+| `activationFilters.ts` | **Should** | Unit | Mock DB, contextWal, S3; test filter config load, `checkFilter` outcomes, and memory load/save. |
+| `readiness.ts` | **Should** | Unit | Mock dependencies; test that readiness reflects each check. |
+| `sgrsAdapter.ts` | **Should** | Unit | Mock semantic graph and finality; test mapping and error handling. |
+| `opaPolicyEngine.ts` | **Should** (if wired) | Unit | Mock WASM load/evaluate; test policy result mapping. Skip if OPA remains unwired. |
+| `watchdog.ts` | **Optional** | Unit | Mock timers/callbacks if logic is more than a thin wrapper. |
+| `hatchery.ts` | **Optional** | Unit | Mock lifecycle dependencies; add tests if logic grows beyond wiring. |
+| `agents/tunerAgent.ts` | **Optional** | Unit | Only if it contains non-trivial logic; otherwise skip. |
+| `agents/sharedTools.ts` | **Optional** | Unit | Only if shared logic is non-trivial and used by multiple agents. |
+| `db.ts` | **Skip** | — | Tested indirectly via other suites; optional pool behavior tests only if we change pooling. |
+| `feed.ts` | **Optional** | Integration | Only if feed API becomes critical; prefer e2e or manual. |
+| `swarm.ts` | **Skip** | — | Entrypoint; cover via e2e or smoke if needed, not a unit suite. |
+| `loadgen.ts` | **Skip** | — | Manual/script; no dedicated suite. |
+
+### 4.4 Test style (unit)
+
+- **Location**: `test/unit/<module>.test.ts` or `test/unit/agents/<agent>.test.ts`. Mirror `src/` layout.
+- **Mocks**: Use Vitest `vi.mock`, `vi.stubEnv`, `vi.stubGlobal`; avoid real DB/NATS/S3 in unit tests.
+- **Scope**: One describe per module or per public function group; test happy path plus one or two failure/edge cases (e.g. missing env, fetch failure, empty response).
+- **Size**: Prefer small, readable tests; avoid large setup. If a module needs many scenarios, split by behavior (e.g. `getEmbedding` vs `getEmbeddingBatch`).
+
+### 4.5 What we don’t require
+
+- Coverage targets or coverage gates (tracking is enough for now).
+- Tests for seed-data, demo-only code, or scripts under `scripts/` unless they encode critical logic.
+- Integration tests for every module that touches Postgres; unit tests with a mocked pool are enough for most logic.
+
+---
+
+## 5. Recommendations (general)
 
 1. **Coverage**: Add `@vitest/coverage-v8`, configure `coverage` in `vitest.config.ts`, and run `pnpm test -- --coverage` in CI. Track line/branch coverage for `src/` (excluding seed-data and scripts).
 2. **Linting**: Introduce ESLint (TypeScript + recommended) and Prettier; run in CI and optionally pre-commit.
@@ -167,6 +224,6 @@ Modules **without** a dedicated test file (no direct import in tests):
 
 ---
 
-## 5. Conclusion
+## 6. Conclusion
 
 The codebase is in good shape: strict TypeScript, a large and passing unit test suite, and clear module boundaries. The main gaps are no automated coverage reporting, no linting/formatting, and a set of untested modules (entrypoints, agent loop, resolver agent, auth/readiness, and small utilities like `errors.ts`). Addressing coverage and linting and adding the suggested unit tests would strengthen maintainability and regression safety.

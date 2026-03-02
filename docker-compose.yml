@@ -117,12 +117,15 @@ services:
       NLI_MODEL: ${NLI_MODEL:-}
 
   feed:
-    image: node:20-alpine
+    build:
+      context: .
+      dockerfile: Dockerfile.feed
+    image: swarm-feed
     working_dir: /app
     volumes:
       - .:/app
       - feed_node_modules:/app/node_modules
-    command: sh -c "corepack enable && pnpm install --frozen-lockfile && pnpm run feed"
+    # CMD in Dockerfile.feed: install + build:rust (sgrs-core for linux-musl) + feed
     ports:
       - "3002:3002"
     environment:
