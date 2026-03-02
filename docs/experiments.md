@@ -4,7 +4,7 @@
 
 The paper defines five experimental protocols designed to address open questions in the literature---particularly those identified by de la Chica Rodriguez and Vera Diaz (SECP). These experiments are **designed to be reproducible** using the reference implementation.
 
-Implementation status: protocols defined in paper; scripts to be implemented.
+**Implementation:** Seed scripts, drivers, result collection, and analysis are in place. Run via `./scripts/run-experiment.sh exp<N>` or batch with `./scripts/run-experiment-batch.sh`. See [docs/experiments/README.md](experiments/README.md) for per-experiment setup and result locations.
 
 | Experiment | GitHub Issue |
 |------------|--------------|

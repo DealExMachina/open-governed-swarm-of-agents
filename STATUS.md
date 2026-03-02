@@ -26,7 +26,7 @@ Native Rust addon (`sgrs-core/`) compiled via napi-rs. Pure math and determinist
 - Product lattice M = L x A: GovernanceLevel (MASTER <= MITL <= YOLO) x ConvergenceRank (4-dim partial order). Admissibility: GovernanceViolation/BothViolated -> Reject; ConvergenceViolation/Incomparable -> MASTER: Reject, others: Escalate.
 - 29 Rust tests. `governance.ts` and `governanceAgent.ts` delegate to Rust.
 
-**Totals**: 121 Rust tests, 288 TS tests pass (7 pre-existing failures in `factsToSemanticGraph` — unrelated `client.query` mock issue).
+**Totals**: 121 Rust tests, 305 TS tests pass (37 suites; 4 integration suites skipped without Docker).
 
 ## What this is
 
@@ -70,7 +70,7 @@ Governed agent swarm: event-driven agents (facts, drift, planner, status) consum
 - Migrations 002–010 applied via ensure-schema; Postgres + pgvector and tables `context_events`, `swarm_state`, `nodes`/`edges`, `scope_finality_decisions`, `convergence_history`, etc. present.
 - `loadFinalitySnapshot('default')` runs against real DB; Ollama (bge-m3) returns 1024-d embeddings.
 - Script `scripts/test-postgres-ollama.ts` (pnpm run test:postgres-ollama) exercises Postgres + Ollama.
-- **Unit tests**: 288 TS tests across 38+ suites (semanticGraph, finalityEvaluator, convergenceTracker, finalityDecisions, governanceAgent, policyEngine, policyVersions, combiningAlgorithms, finalityCertificates, obligationEnforcer, factsToSemanticGraph, embeddingPipeline, hitlFinalityRequest, activationFilters, agent tools, etc.).
+- **Unit tests**: 305 TS tests across 37 suites (semanticGraph, finalityEvaluator, convergenceTracker, finalityDecisions, governanceAgent, policyEngine, policyVersions, combiningAlgorithms, finalityCertificates, obligationEnforcer, factsToSemanticGraph, embeddingPipeline, hitlFinalityRequest, activationFilters, agent tools, etc.); 4 integration suites require Docker.
 - **Rust tests**: 121 tests in sgrs-core (57 convergence, 35 finality, 29 governance). Run with `cargo test --manifest-path sgrs-core/Cargo.toml`.
 - **Convergence benchmark**: `npx tsx scripts/benchmark-convergence.ts` — 7 scenarios (pure math, no Docker) for Lyapunov, monotonicity, plateau, divergence.
 
@@ -115,7 +115,7 @@ Every proposal decision written to the WAL includes `governance_path` when appli
 
 ## Experiments (Issues #12–#16)
 
-All five experiments have complete infrastructure: seed scripts, drivers, result collection, and analysis. Each has 6–16 existing result runs in `docs/experiments/`.
+All five experiments have complete infrastructure: seed scripts, drivers, result collection, and analysis. Results are written to `docs/experiments/<exp>/results/<timestamp>` (gitignored).
 
 | # | Issue | What it tests | Status |
 |---|-------|--------------|--------|
@@ -137,9 +137,8 @@ Run experiments: `./scripts/run-experiment.sh exp<N>` or `./scripts/run-experime
 
 ## Next steps (suggested order)
 
-1. **Merge PR #17**: V2 Rust engine with finality gates, governance kernel, and MASTER fix. All 121 Rust + 288 TS tests pass.
-2. **Re-run Experiments 4+5**: The MASTER fix changes governance behavior — re-collect results with the kernel-based evaluation.
-3. **E2E run**: With Postgres (ensure-schema or E2E subset), MinIO, NATS, and facts-worker up, run seed + bootstrap + `pnpm run swarm`; POST a doc; verify facts in S3 and nodes/edges in DB.
-4. **Resolutions -> goals**: When handling POST /context/resolution, optionally create or update goal nodes so finality sees higher goal completion.
-5. **HITL UX**: Feed UI and MITL server already support finality review; GET /finality-certificate/:scope_id exposes latest certificate for resolved scopes.
-6. **Observability**: GET /convergence and summary expose convergence state, policy version, and certificate summary.
+1. **E2E run**: With Postgres (ensure-schema or E2E subset), MinIO, NATS, and facts-worker up, run seed + bootstrap + `pnpm run swarm`; POST a doc; verify facts in S3 and nodes/edges in DB.
+2. **Re-run Experiments 4+5** (optional): After MASTER fix, re-collect results with the kernel-based evaluation for coverage-autonomy and governance correctness.
+3. **Resolutions -> goals**: When handling POST /context/resolution, optionally create or update goal nodes so finality sees higher goal completion.
+4. **HITL UX**: Feed UI and MITL server already support finality review; GET /finality-certificate/:scope_id exposes latest certificate for resolved scopes.
+5. **Observability**: GET /convergence and summary expose convergence state, policy version, and certificate summary.

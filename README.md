@@ -196,12 +196,12 @@ See [docs/demo.md](docs/demo.md) for the full walkthrough and [demo/DEMO.md](dem
 
 ## Validation
 
-**283 tests** across 38 suites (Vitest) cover convergence math, finality decision paths, governance rule evaluation, semantic graph monotonicity, state machine CAS, policy engine, finality certificates, agent tools, and Gate B/C/D. **7 convergence benchmark scenarios** validate the tracker with pure math (no Docker, no LLM). An **E2E pipeline** (`scripts/run-e2e.sh`) tests the full Docker stack from document ingestion through governance to semantic graph verification. **Governance path auditing** seeds three proposal modes (MASTER/MITL/YOLO) and verifies the audit trail.
+**305 tests** across 37 suites (Vitest) cover convergence math, finality decision paths, governance rule evaluation, semantic graph monotonicity, state machine CAS, policy engine, finality certificates, agent tools, and Gate B/C/D. **7 convergence benchmark scenarios** validate the tracker with pure math (no Docker, no LLM). An **E2E pipeline** (`scripts/run-e2e.sh`) tests the full Docker stack from document ingestion through governance to semantic graph verification. **Governance path auditing** seeds three proposal modes (MASTER/MITL/YOLO) and verifies the audit trail.
 
 **What's theoretical:** scalability beyond ~10 agents (architecture supports it, not stress-tested), multi-org OpenFGA isolation, long convergence runs over hundreds of epochs, adversarial robustness.
 
 ```bash
-pnpm run test                                  # 283 tests across 38 suites
+pnpm run test                                  # 305 tests across 37 suites
 npx tsx scripts/benchmark-convergence.ts       # 7 convergence scenarios
 ./scripts/run-e2e.sh                           # Full E2E pipeline
 ```
@@ -361,7 +361,7 @@ Set in `governance.yaml` (per-scope overrides supported):
 ## Tests
 
 ```bash
-pnpm run test          # 283 tests across 38 suites (Vitest); 4 integration suites (require Docker)
+pnpm run test          # 305 tests across 37 suites (Vitest); 4 integration suites (require Docker)
 pnpm run test:watch
 ```
 
