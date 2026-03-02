@@ -9,9 +9,6 @@ import { Agent } from "@mastra/core/agent";
 import { s3GetText } from "../s3.js";
 import { loadState } from "../stateGraph.js";
 import { loadPolicies, getGovernanceForScope } from "../governance.js";
-import type { GovernanceConfig } from "../governance.js";
-import { createYamlPolicyEngine, type PolicyEngine } from "../policyEngine.js";
-import { createOPAPolicyEngine } from "../opaPolicyEngine.js";
 import { evaluateKernel } from "../sgrsAdapter.js";
 import { getGovernancePolicyVersion } from "../policyVersions.js";
 import { persistDecisionRecord } from "../decisionRecorder.js";
@@ -70,31 +67,6 @@ const AGENT_ID = process.env.AGENT_ID ?? "governance-1";
 const NATS_STREAM = process.env.NATS_STREAM ?? "SWARM_JOBS";
 const SCOPE_ID = process.env.SCOPE_ID ?? "default";
 setLogContext({ agent_id: AGENT_ID, role: "governance" });
-
-let policyEngineLogged = false;
-
-/**
- * Resolve policy engine: OPA-WASM when OPA_WASM_PATH is set (and load succeeds), else YAML.
- */
-async function getPolicyEngine(governance: GovernanceConfig, policyVersion: string): Promise<PolicyEngine> {
-  const wasmPath = process.env.OPA_WASM_PATH;
-  if (wasmPath) {
-    const opa = await createOPAPolicyEngine(wasmPath, governance, policyVersion);
-    if (opa) {
-      if (!policyEngineLogged) {
-        logger.info("policy engine: OPA-WASM", { wasmPath, policyVersion });
-        policyEngineLogged = true;
-      }
-      return opa;
-    }
-    logger.warn("OPA_WASM_PATH set but load failed; using YAML engine", { wasmPath });
-  }
-  if (!policyEngineLogged) {
-    logger.info("policy engine: YAML", { policyVersion });
-    policyEngineLogged = true;
-  }
-  return createYamlPolicyEngine(governance, policyVersion);
-}
 
 export interface GovernanceAgentEnv {
   s3: S3Client;
@@ -304,17 +276,24 @@ function createGovernanceTools(proposal: Proposal, env: GovernanceAgentEnv) {
         return { allowed: false, reason: "missing_from_or_to" };
       }
       const policyVersion = getGovernancePolicyVersion(govPath);
-      const engine = await getPolicyEngine(governance, policyVersion);
-      const result = await engine.evaluate({
-        scope_id: SCOPE_ID,
-        from_state: from,
-        to_state: to,
-        drift_level: drift.level,
-        drift_types: drift.types,
-      });
+      const kernelResult = evaluateKernel(
+        { from_state: from, to_state: to, drift_level: drift.level, drift_types: drift.types, mode: governance.mode ?? "YOLO" },
+        governance,
+      );
+      const allowed = kernelResult.verdict !== "reject";
+      const record: import("../policyEngine.js").DecisionRecord = {
+        decision_id: randomUUID(),
+        timestamp: new Date().toISOString(),
+        policy_version: policyVersion,
+        result: allowed ? "allow" : "deny",
+        reason: kernelResult.reason,
+        obligations: [],
+        binding: "sgrs",
+        suggested_actions: kernelResult.suggested_actions,
+      };
       const scopeMode = governance.mode ?? "YOLO";
       try {
-        await persistDecisionRecord(result.record, {
+        await persistDecisionRecord(record, {
           governance_path: "processProposalWithAgent",
           scope_id: SCOPE_ID,
           scope_mode: scopeMode,
@@ -322,8 +301,8 @@ function createGovernanceTools(proposal: Proposal, env: GovernanceAgentEnv) {
       } catch (err) {
         logger.warn("persistDecisionRecord failed (checkTransition)", { error: String(err) });
       }
-      await executeObligations(result.record.obligations ?? []);
-      return { allowed: result.allowed, reason: result.record.reason };
+      await executeObligations(record.obligations ?? []);
+      return { allowed, reason: record.reason };
     },
   });
   const checkPolicyTool = createTool({
@@ -366,17 +345,24 @@ function createGovernanceTools(proposal: Proposal, env: GovernanceAgentEnv) {
         return { ok: false, error: "missing_from_or_to" };
       }
       const policyVersion = getGovernancePolicyVersion(govPath);
-      const engine = await getPolicyEngine(governance, policyVersion);
-      const policyResultTransition = await engine.evaluate({
-        scope_id: SCOPE_ID,
-        from_state: from,
-        to_state: to,
-        drift_level: drift.level,
-        drift_types: drift.types,
-      });
+      const kernelResult = evaluateKernel(
+        { from_state: from, to_state: to, drift_level: drift.level, drift_types: drift.types, mode: governance.mode ?? "YOLO" },
+        governance,
+      );
+      const transitionAllowed = kernelResult.verdict !== "reject";
+      const transitionRecord: import("../policyEngine.js").DecisionRecord = {
+        decision_id: randomUUID(),
+        timestamp: new Date().toISOString(),
+        policy_version: policyVersion,
+        result: transitionAllowed ? "allow" : "deny",
+        reason: kernelResult.reason,
+        obligations: [],
+        binding: "sgrs",
+        suggested_actions: kernelResult.suggested_actions,
+      };
       const scopeModeForPublish = governance.mode ?? "YOLO";
       try {
-        await persistDecisionRecord(policyResultTransition.record, {
+        await persistDecisionRecord(transitionRecord, {
           governance_path: "processProposalWithAgent",
           scope_id: SCOPE_ID,
           scope_mode: scopeModeForPublish,
@@ -384,9 +370,9 @@ function createGovernanceTools(proposal: Proposal, env: GovernanceAgentEnv) {
       } catch (err) {
         logger.warn("persistDecisionRecord failed (publishApproval)", { error: String(err) });
       }
-      await executeObligations(policyResultTransition.record.obligations ?? []);
-      if (!policyResultTransition.allowed) {
-        return { ok: false, error: policyResultTransition.record.reason };
+      await executeObligations(transitionRecord.obligations ?? []);
+      if (!transitionAllowed) {
+        return { ok: false, error: transitionRecord.reason };
       }
       const policyResult = await checkPermission(proposal.agent, "writer", proposal.target_node);
       if (!policyResult.allowed) {
@@ -537,8 +523,7 @@ export async function evaluateProposalDeterministic(
   const govPath = process.env.GOVERNANCE_PATH ?? join(process.cwd(), "governance.yaml");
   const governance = getGovernanceForScope(SCOPE_ID, loadPolicies(govPath));
 
-  // All modes (YOLO, MITL, MASTER) flow through the reduction kernel.
-  // MASTER no longer auto-approves — it is the most restrictive mode.
+  // All modes (YOLO, MITL, MASTER) flow through the sgrs reduction kernel.
   const policyVersion = getGovernancePolicyVersion(govPath);
   const kernelOutput = evaluateKernel(
     {
@@ -558,7 +543,7 @@ export async function evaluateProposalDeterministic(
     result: kernelOutput.verdict === "reject" ? "deny" : "allow",
     reason: kernelOutput.reason,
     obligations: [],
-    binding: "yaml",
+    binding: "sgrs",
     suggested_actions: kernelOutput.suggested_actions,
   };
 
@@ -572,9 +557,6 @@ export async function evaluateProposalDeterministic(
   }
 
   if (kernelOutput.verdict === "escalate") {
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/af5b746e-3a32-49ef-92b2-aa2d9876cfd3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'governanceAgent:evaluateProposal',message:'kernel-escalation',data:{from,to,drift_level:drift.level,drift_types:drift.types,reason:kernelOutput.reason,expectedEpoch},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
     if (kernelOutput.reason === "mitl_required") {
       return {
         outcome: "pending",

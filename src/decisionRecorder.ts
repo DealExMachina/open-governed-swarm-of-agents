@@ -33,7 +33,7 @@ export async function persistDecisionRecord(
       record.result,
       record.reason,
       JSON.stringify(record.obligations ?? []),
-      record.binding ?? "yaml",
+      record.binding ?? "sgrs",
       record.suggested_actions ? JSON.stringify(record.suggested_actions) : null,
       path,
       scopeId,
