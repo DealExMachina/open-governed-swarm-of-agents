@@ -14,7 +14,7 @@ and where assumptions begin.
 ```mermaid
 flowchart TB
   subgraph tested["Tested / validated"]
-    U[Unit tests Vitest 283]
+    U[Unit tests Vitest 305]
     BENCH[Convergence benchmark 7 scenarios]
     E2E[E2E pipeline run-e2e.sh manual]
   end
@@ -48,7 +48,7 @@ flowchart TB
 
 ## 2. Unit tests (Vitest)
 
-**283 tests across 38 files.** All run with `pnpm test` (no Docker, no network).
+**305 tests across 37 suites.** All run with `pnpm test` (no Docker, no network). Four integration suites are skipped unless Docker services are available.
 
 | Test file | Tests | Coverage area | Key assertions |
 |-----------|-------|--------------|----------------|
@@ -161,7 +161,7 @@ Queries `context_events` for governance decision records and checks:
 
 | Mode | Expected outcome | Verification |
 |------|-----------------|--------------|
-| **MASTER** | Approved with `governance_path: "processProposal"`, `reason: "master_override"` | At least one `proposal_approved` event matches |
+| **MASTER** | Approved with `governance_path: "processProposal"`, `reason: "policy_passed"` | At least one `proposal_approved` event matches |
 | **MITL** | Pending with `governance_path: "processProposal"` | At least one `proposal_pending_approval` event matches (warning if absent due to timing) |
 | **YOLO** | Rejected with reason containing "drift" | At least one `proposal_rejected` event matches (path may be `processProposal` or `oversight_acceptDeterministic` depending on LLM availability) |
 
