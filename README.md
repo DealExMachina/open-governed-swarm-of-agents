@@ -292,7 +292,7 @@ psql -h localhost -p 5433 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f migrations/01
 pnpm run ensure-bucket && pnpm run ensure-stream
 pnpm run seed:all
 pnpm run bootstrap-once
-pnpm run swarm:all       # starts 4 agents + governance + executor; check:services runs first
+pnpm run swarm           # hatchery (single process). Use swarm:start for preflight + hatchery.
 ```
 
 **Feed and summary:**
@@ -336,7 +336,7 @@ Set in `governance.yaml` (per-scope overrides supported):
 
 | Script | Purpose |
 |--------|---------|
-| `pnpm run swarm:all` | Start four agents + governance + executor. Runs preflight first. |
+| `pnpm run swarm` | Start hatchery (single process). `swarm:start` = preflight + hatchery. |
 | `pnpm run check:services` | Preflight (Postgres, S3, NATS, facts-worker). Supports `CHECK_SERVICES_MAX_WAIT_SEC`, `CHECK_FEED=1`. |
 | `pnpm run bootstrap-once` | Publish bootstrap job and append bootstrap WAL event. |
 | `pnpm run seed:all` | Seed context WAL from `seed-docs/`. |
@@ -384,7 +384,7 @@ pytest tests/ -v      # Python facts-worker unit + integration
 - **Embeddings:** Set `FACTS_SYNC_EMBED=1` + Ollama serving `bge-m3`. Claim nodes get 1024-d embeddings.
 - **Tuner agent:** `AGENT_ROLE=tuner pnpm run swarm` optimizes activation filter configs via LLM.
 - **Pressure-directed activation:** Set filter type to `pressure_directed` in agent config. Agents activate based on convergence pressure.
-- **Observability:** `docker compose up -d` includes Prometheus (9090), Grafana (3004, anonymous read), and an OTEL collector. Agents default to `OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318` when started via `pnpm run swarm:all`. The feed server on port 3002 serves an observability dashboard with live events, convergence, and service health. Grafana ships with a pre-provisioned "Swarm Governance" dashboard. If Grafana shows no data: (1) start the observability stack (`docker compose up -d otel-collector prometheus grafana`), (2) start the swarm with `pnpm run swarm:all`, (3) run some activity (e.g. demo), then open http://localhost:3004 and the Swarm Governance dashboard.
+- **Observability:** `docker compose up -d` includes Prometheus (9090), Grafana (3004, anonymous read), and an OTEL collector. Agents default to `OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318` when started via `pnpm run swarm`. The feed server on port 3002 serves an observability dashboard with live events, convergence, and service health. Grafana ships with a pre-provisioned "Swarm Governance" dashboard. If Grafana shows no data: (1) start the observability stack (`docker compose up -d otel-collector prometheus grafana`), (2) start the swarm with `pnpm run swarm`, (3) run some activity (e.g. demo), then open http://localhost:3004 and the Swarm Governance dashboard.
 - **Policy version and certificates:** Summary API (`GET /summary`) exposes `policy_version` (governance/finality config hashes) and `finality_certificate` when a scope has been resolved. MITL server exposes `GET /finality-certificate/:scope_id` for the latest signed certificate.
 - **OPA-WASM:** Build with `pnpm run build:opa` (requires OPA CLI); set `OPA_WASM_PATH` to use Rego policies instead of YAML. See `policies/README.md`.
 

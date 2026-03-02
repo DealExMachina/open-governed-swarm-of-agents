@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
-# Single-process agent hatchery: spawns all agent loops as in-process async tasks
-# with dynamic scaling, supervision, and heartbeat monitoring.
-# Replaces swarm-all.sh (6 background processes) with one orchestrated process.
+# Start the swarm: preflight (check-services, ensure-bucket, ensure-schema, ensure-stream,
+# optional bootstrap, purge-consumers) then run the single-process hatchery.
 set -e
 cd "$(dirname "$0")/.."
 if [ -f .env ]; then set -a; . ./.env; set +a; fi

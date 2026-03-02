@@ -30,7 +30,7 @@ This is the front door. For the full step-by-step walkthrough with commands, exp
 ```mermaid
 flowchart TD
   A[Docker: postgres, s3, nats, facts-worker] --> B[pnpm ensure-bucket, ensure-schema, ensure-stream]
-  B --> C[swarm:all]
+  B --> C[pnpm run swarm]
   C --> D[feed]
   D --> E[demo server]
   E --> F[Open :3003]
@@ -46,7 +46,7 @@ pnpm run ensure-bucket && pnpm run ensure-schema && pnpm run ensure-stream
 
 # 3. Start the swarm (agents + governance + executor)
 export GOVERNANCE_PATH="$(pwd)/demo/scenario/governance-demo.yaml"
-pnpm run swarm:all
+pnpm run swarm
 
 # 4. Start the feed server (port 3002)
 pnpm run feed

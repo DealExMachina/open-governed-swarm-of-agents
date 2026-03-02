@@ -6,7 +6,9 @@
  * Each scenario generates a sequence of FinalitySnapshots, runs them through
  * the convergence tracker, and checks the outcome against expectations.
  *
- * Usage: pnpm tsx scripts/benchmark-convergence.ts
+ * Usage:
+ *   pnpm tsx scripts/benchmark-convergence.ts
+ *   pnpm tsx scripts/benchmark-convergence.ts --runs=5   # run each scenario 5x, assert identical outcomes
  */
 
 import {
@@ -17,6 +19,7 @@ import {
   DEFAULT_CONVERGENCE_CONFIG,
   type ConvergencePoint,
   type ConvergenceConfig,
+  type ConvergenceState,
 } from "../src/convergenceTracker.js";
 import type { FinalitySnapshot } from "../src/finalityEvaluator.js";
 
@@ -375,20 +378,99 @@ function runScenario(scenario: Scenario): ScenarioResult {
   return { name: scenario.name, passed, details };
 }
 
+/** Comparable outcome for multi-run consistency check. */
+interface RunFingerprint {
+  passed: boolean;
+  convergence_rate: number;
+  is_plateaued: boolean;
+  is_monotonic: boolean;
+  trajectory_quality: number;
+  highest_pressure_dimension: string;
+  estimated_rounds: number | null;
+}
+
+function getRunFingerprint(scenario: Scenario): RunFingerprint {
+  const config: ConvergenceConfig = { ...DEFAULT_CONVERGENCE_CONFIG, beta: 3, tau: 3 };
+  const { points, expected } = scenario.run(config);
+  const state: ConvergenceState = analyzeConvergence(points, config);
+
+  const isConverging = state.convergence_rate > 0.001;
+  const hasEta = state.estimated_rounds !== null && state.estimated_rounds > 0;
+  let passed = true;
+  if (expected.should_converge !== isConverging) passed = false;
+  if (expected.should_plateau !== state.is_plateaued) passed = false;
+  if (expected.should_be_monotonic !== state.is_monotonic) passed = false;
+  if (expected.should_have_eta !== hasEta && !(state.estimated_rounds === 0 && !expected.should_have_eta)) passed = false;
+  if (expected.expected_highest_pressure && state.highest_pressure_dimension !== expected.expected_highest_pressure) passed = false;
+
+  return {
+    passed,
+    convergence_rate: state.convergence_rate,
+    is_plateaued: state.is_plateaued,
+    is_monotonic: state.is_monotonic,
+    trajectory_quality: state.trajectory_quality,
+    highest_pressure_dimension: state.highest_pressure_dimension,
+    estimated_rounds: state.estimated_rounds,
+  };
+}
+
+function fingerprintEqual(a: RunFingerprint, b: RunFingerprint): boolean {
+  return (
+    a.passed === b.passed &&
+    a.convergence_rate === b.convergence_rate &&
+    a.is_plateaued === b.is_plateaued &&
+    a.is_monotonic === b.is_monotonic &&
+    a.trajectory_quality === b.trajectory_quality &&
+    a.highest_pressure_dimension === b.highest_pressure_dimension &&
+    a.estimated_rounds === b.estimated_rounds
+  );
+}
+
+function parseRunsArg(): number {
+  const arg = process.argv.find((a) => a.startsWith("--runs="));
+  if (!arg) return 1;
+  const n = parseInt(arg.split("=")[1], 10);
+  return Number.isFinite(n) && n >= 1 ? n : 1;
+}
+
 // ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
 
 function main() {
+  const nRuns = parseRunsArg();
+
   console.log("╔══════════════════════════════════════════════════════════════╗");
   console.log("║          Convergence Tracker Benchmark                      ║");
   console.log("╚══════════════════════════════════════════════════════════════╝");
   console.log();
+  if (nRuns > 1) {
+    console.log(`Multi-run consistency check: ${nRuns} runs per scenario.`);
+    console.log();
+  }
 
   const results: ScenarioResult[] = [];
+  const consistencyFailures: Array<{ scenario: string; runIndex: number; field: string; a: unknown; b: unknown }> = [];
+
   for (const scenario of scenarios) {
     const result = runScenario(scenario);
     results.push(result);
+
+    if (nRuns > 1) {
+      const baseline = getRunFingerprint(scenario);
+      for (let r = 2; r <= nRuns; r++) {
+        const fp = getRunFingerprint(scenario);
+        if (!fingerprintEqual(baseline, fp)) {
+          if (fp.passed !== baseline.passed) consistencyFailures.push({ scenario: scenario.name, runIndex: r, field: "passed", a: baseline.passed, b: fp.passed });
+          if (fp.convergence_rate !== baseline.convergence_rate) consistencyFailures.push({ scenario: scenario.name, runIndex: r, field: "convergence_rate", a: baseline.convergence_rate, b: fp.convergence_rate });
+          if (fp.is_plateaued !== baseline.is_plateaued) consistencyFailures.push({ scenario: scenario.name, runIndex: r, field: "is_plateaued", a: baseline.is_plateaued, b: fp.is_plateaued });
+          if (fp.is_monotonic !== baseline.is_monotonic) consistencyFailures.push({ scenario: scenario.name, runIndex: r, field: "is_monotonic", a: baseline.is_monotonic, b: fp.is_monotonic });
+          if (fp.trajectory_quality !== baseline.trajectory_quality) consistencyFailures.push({ scenario: scenario.name, runIndex: r, field: "trajectory_quality", a: baseline.trajectory_quality, b: fp.trajectory_quality });
+          if (fp.highest_pressure_dimension !== baseline.highest_pressure_dimension) consistencyFailures.push({ scenario: scenario.name, runIndex: r, field: "highest_pressure_dimension", a: baseline.highest_pressure_dimension, b: fp.highest_pressure_dimension });
+          if (fp.estimated_rounds !== baseline.estimated_rounds) consistencyFailures.push({ scenario: scenario.name, runIndex: r, field: "estimated_rounds", a: baseline.estimated_rounds, b: fp.estimated_rounds });
+        }
+      }
+    }
   }
 
   // Print results table
@@ -429,6 +511,19 @@ function main() {
   const total = results.length;
   const allPassed = passed === total;
   console.log(`${allPassed ? "✅" : "❌"} ${passed}/${total} scenarios passed.`);
+
+  if (nRuns > 1) {
+    console.log("\n--- Multi-run consistency ---");
+    if (consistencyFailures.length === 0) {
+      console.log(`All ${scenarios.length} scenarios consistent over ${nRuns} runs.`);
+    } else {
+      console.log(`INCONSISTENT: ${consistencyFailures.length} difference(s) across ${nRuns} runs:`);
+      for (const f of consistencyFailures) {
+        console.log(`  ${f.scenario} run ${f.runIndex}: ${f.field} ${String(f.a)} vs ${String(f.b)}`);
+      }
+      process.exit(1);
+    }
+  }
 
   if (!allPassed) {
     console.log("\nFailed scenarios:");

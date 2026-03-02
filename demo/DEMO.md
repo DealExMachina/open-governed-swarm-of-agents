@@ -116,7 +116,7 @@ export GOVERNANCE_PATH="$(pwd)/demo/scenario/governance-demo.yaml"
 
 1. Docker: `docker compose up -d postgres s3 nats facts-worker`
 2. Schema and stream: `pnpm run ensure-bucket && pnpm run ensure-schema && pnpm run ensure-stream`
-3. Swarm (agents + governance + executor): `pnpm run swarm:all`
+3. Swarm (agents + governance + executor): `pnpm run swarm` or `pnpm run swarm:start` (hatchery)
 4. Feed server (required for demo): `pnpm run feed` — serves port 3002
 5. Demo UI (optional): `pnpm run demo` — serves port 3003
 

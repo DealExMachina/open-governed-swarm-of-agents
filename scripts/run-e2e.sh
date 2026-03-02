@@ -55,22 +55,12 @@ node --loader ts-node/esm scripts/ensure-pull-consumers.ts 2>/dev/null || true
 echo "[E2E] 5c. Seed governance E2E (state, drift, MASTER/MITL/YOLO proposals)..."
 node --loader ts-node/esm scripts/seed-governance-e2e.ts 2>/dev/null || true
 
-echo "[E2E] 6. Starting swarm (4 agents + governance + executor)..."
+echo "[E2E] 6. Starting swarm (hatchery)..."
 LOG_DIR="${LOG_DIR:-/tmp}"
 mkdir -p "$LOG_DIR"
-: > "$LOG_DIR/swarm-facts.log"
-: > "$LOG_DIR/swarm-drift.log"
-: > "$LOG_DIR/swarm-planner.log"
-: > "$LOG_DIR/swarm-status.log"
-: > "$LOG_DIR/swarm-governance.log"
-: > "$LOG_DIR/swarm-executor.log"
-( export AGENT_ROLE=facts AGENT_ID=facts-1; $RUNNER run swarm >> "$LOG_DIR/swarm-facts.log" 2>&1 ) &
-( export AGENT_ROLE=drift AGENT_ID=drift-1; $RUNNER run swarm >> "$LOG_DIR/swarm-drift.log" 2>&1 ) &
-( export AGENT_ROLE=planner AGENT_ID=planner-1; $RUNNER run swarm >> "$LOG_DIR/swarm-planner.log" 2>&1 ) &
-( export AGENT_ROLE=status AGENT_ID=status-1; $RUNNER run swarm >> "$LOG_DIR/swarm-status.log" 2>&1 ) &
-( export AGENT_ROLE=governance AGENT_ID=governance-1; $RUNNER run swarm >> "$LOG_DIR/swarm-governance.log" 2>&1 ) &
-( export AGENT_ROLE=executor; $RUNNER run swarm >> "$LOG_DIR/swarm-executor.log" 2>&1 ) &
-echo "[E2E] Swarm started. Waiting 50s for pipeline..."
+: > "$LOG_DIR/swarm-hatchery.log"
+( AGENT_ROLE=hatchery AGENT_ID=hatchery-e2e $RUNNER run swarm >> "$LOG_DIR/swarm-hatchery.log" 2>&1 ) &
+echo "[E2E] Hatchery started. Waiting 50s for pipeline..."
 sleep 50
 
 echo "[E2E] 7. Summary (after bootstrap)..."
@@ -95,4 +85,4 @@ PGPASSWORD="${POSTGRES_PASSWORD:-swarm}" psql -h localhost -p 5433 -U "${POSTGRE
 echo "[E2E] 12. Verify governance paths (auditable)..."
 node --loader ts-node/esm scripts/verify-governance-paths.ts
 
-echo "[E2E] Done. Logs: $LOG_DIR/swarm-*.log"
+echo "[E2E] Done. Logs: $LOG_DIR/swarm-hatchery.log"

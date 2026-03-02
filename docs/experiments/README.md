@@ -27,6 +27,26 @@ done
 bash scripts/run-experiment.sh exp5 --rounds=7
 ```
 
+## Multiple runs and various scenarios
+
+To check consistency across runs and across scenario variants:
+
+- **Multiple runs, one scenario:** run the same experiment config N times and aggregate (mean/std, gate frequencies, finality distribution). Use `run-experiment-batch.sh`:
+
+  ```bash
+  bash scripts/run-experiment-batch.sh exp1 3 --contradictions=3 --rounds=7 --resolve-at=5
+  ```
+
+  Results go to `docs/experiments/<exp_id>/results/<batch_ts>/run-1..run-N` and `summary.json`. The analysis script (`scripts/analyze-experiment.ts`) computes trajectory stats and gate satisfaction across runs.
+
+- **Multiple runs on various scenarios:** run several scenario configs (e.g. exp1 with different contradiction counts, exp3 with different patterns), each with N runs, and get a single summary. Use `run-scenarios-batch.sh`:
+
+  ```bash
+  bash scripts/run-scenarios-batch.sh [n_runs]
+  ```
+
+  Default `n_runs=2`. Scenarios (hardcoded): exp1 with contradictions=0, 1, 3, 5; exp3 with pattern=spike-and-drop, oscillating, stale. Output: `docs/experiments/_batch_<timestamp>/<label>/` (e.g. `exp1-contradictions0/`, `exp3-spike-and-drop/`) with run-1..run-N and `summary.json` per scenario. The script prints a short consistency summary (finality_state distribution, n_runs) per scenario; use each scenario’s `summary.json` for full mean/std and gate frequencies.
+
 ## Prerequisites
 
 - Docker stack: postgres, s3, nats, facts-worker (via `docker compose up -d`)

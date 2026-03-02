@@ -786,7 +786,7 @@ flowchart LR
 
 ## 10. Agent Hatchery: Dynamic Lifecycle Management
 
-The hatchery replaces `swarm-all.sh` (6 static background processes) with a single-process orchestrator that spawns agent loops as in-process async tasks.
+The hatchery is the default: a single-process orchestrator that spawns agent loops as in-process async tasks.
 
 ### Design
 
@@ -848,5 +848,5 @@ AGENT_ROLE=hatchery pnpm run swarm
 
 # Legacy mode (unchanged)
 AGENT_ROLE=facts pnpm run swarm
-./scripts/swarm-all.sh
+./scripts/swarm-hatchery.sh   # or: pnpm run swarm:start
 ```

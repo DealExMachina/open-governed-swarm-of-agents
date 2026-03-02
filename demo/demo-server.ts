@@ -10,7 +10,7 @@
  * Opens:  http://localhost:3003
  *
  * Prerequisites:
- *   docker compose up -d && npm run swarm:all   (in a separate terminal)
+ *   docker compose up -d && pnpm run swarm:start   (in a separate terminal)
  */
 
 import "dotenv/config";
@@ -701,7 +701,7 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
   </div>
   <p class="intro-how"><strong>Run All</strong> feeds all 5 documents at once. Agents process them concurrently on a shared state graph through governance. <strong>Step by Step</strong> feeds one at a time.</p>
   <div class="intro-prereq">
-    <strong>Prerequisite:</strong> run <code>pnpm run feed</code> (port 3002), then <code>npm run swarm:all</code> in another terminal.
+    <strong>Prerequisite:</strong> run <code>pnpm run feed</code> (port 3002), then <code>pnpm run swarm</code> in another terminal.
     Open the <a href="http://localhost:3002" target="_blank" rel="noopener">observability dashboard</a> in another tab to see live events and KPIs alongside this demo.
   </div>
   <div class="svc-status" id="svcStatus">
@@ -1257,14 +1257,14 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
         return;
       }
     } catch(e) {
-      showError('Could not reach the demo server or feed. Start the feed: pnpm run feed. Then run pnpm run swarm:all.');
+      showError('Could not reach the demo server or feed. Start the feed: pnpm run feed. Then run pnpm run swarm.');
       return;
     }
 
     var statusEl = document.getElementById('step-status-' + idx);
     if (statusEl) {
       statusEl.className = 'doc-card-status feeding';
-      statusEl.innerHTML = '<div class="pill-dot" style="background:var(--accent);animation:pulse 1s infinite"></div> Processing… waiting for agents (1–3 min). Ensure feed (3002) and <code>pnpm run swarm:all</code> are running.';
+      statusEl.innerHTML = '<div class="pill-dot" style="background:var(--accent);animation:pulse 1s infinite"></div> Processing… waiting for agents (1–3 min). Ensure feed (3002) and <code>pnpm run swarm</code> are running.';
     }
     setStatus('running', 'Step ' + (idx + 1) + ' — Processing…');
     stepStartTime = Date.now();
@@ -2263,7 +2263,7 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
     setStatus('error', 'Error');
     appendToStage(
       '<div class="stage-error"><strong>Something went wrong</strong>' + escHtml(msg) +
-      '<p style="margin:0.5rem 0 0">Ensure the feed server is running: <code>pnpm run feed</code>. Then run <code>pnpm run swarm:all</code> in another terminal so agents process documents. Refresh when both are up.</p></div>'
+      '<p style="margin:0.5rem 0 0">Ensure the feed server is running: <code>pnpm run feed</code>. Then run <code>pnpm run swarm</code> in another terminal so agents process documents. Refresh when both are up.</p></div>'
     );
   }
 
@@ -2275,7 +2275,7 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
       '<strong>Still processing — check these:</strong>' +
       '<ul style="margin:0.5rem 0 0 1.25rem;color:var(--text);font-size:0.875rem;line-height:1.7">' +
       '<li><strong>Feed server</strong> must be running (port 3002). Open <a href="http://localhost:3002" target="_blank" rel="noopener">http://localhost:3002</a> to confirm.</li>' +
-      '<li><strong>Swarm</strong> must be running: <code>pnpm run swarm:all</code> (agents + governance + executor).</li>' +
+      '<li><strong>Swarm</strong> must be running: <code>pnpm run swarm</code> (agents + governance + executor).</li>' +
       '<li>Facts extraction can take <strong>1–3 min</strong> per document (LLM call). Events will appear when agents finish.</li>' +
       '</ul>' +
       '<p style="margin:0.5rem 0 0;color:var(--muted)">If both are running, wait a bit longer or check swarm logs in <code>/tmp/swarm-*.log</code>.</p></div>'

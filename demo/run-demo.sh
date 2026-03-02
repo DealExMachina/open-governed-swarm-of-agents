@@ -10,7 +10,7 @@
 #
 # Prerequisites:
 #   - Docker services running (docker compose up -d)
-#   - Swarm started (npm run swarm:all in another terminal)
+#   - Swarm started (pnpm run swarm or pnpm run swarm:start in another terminal)
 #   - Feed running on port 3002
 # =============================================================================
 
@@ -157,8 +157,7 @@ check_services() {
   print_info "Checking feed at ${FEED_URL}..."
   if ! curl -s --max-time 5 "${CURL_AUTH[@]}" "${FEED_URL}/summary" > /dev/null 2>&1; then
     echo -e "  ${RED}Feed is not reachable at ${FEED_URL}.${RESET}"
-    echo "  Start it with: npm run swarm:all"
-    echo "  Or: docker compose up -d && npm run swarm:all"
+    echo "  Start feed: pnpm run feed. Start swarm: pnpm run swarm (or pnpm run swarm:start)."
     exit 1
   fi
   print_ok "Feed is reachable."

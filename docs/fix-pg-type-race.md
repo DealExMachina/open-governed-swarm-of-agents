@@ -2,7 +2,7 @@
 
 ## Why this should not happen
 
-- **Schema is applied once before any agent starts.** `scripts/swarm-all.sh` runs `ensure-schema` (single connection) before starting the four agents. Migrations `002_context_wal.sql` and `003_swarm_state.sql` / `007_swarm_state_scope.sql` already create `context_events` and `swarm_state`.
+- **Schema is applied once before any agent starts.** `scripts/swarm-hatchery.sh` (pnpm run swarm:start) runs `ensure-schema` before starting the hatchery. Migrations `002_context_wal.sql` and `003_swarm_state.sql` / `007_swarm_state_scope.sql` already create `context_events` and `swarm_state`.
 - **App code should not create these tables.** Having multiple processes run `CREATE TABLE IF NOT EXISTS` for the same table can race in PostgreSQL (composite type registration in `pg_type`), causing `duplicate key value violates unique constraint "pg_type_typname_nsp_index"`.
 
 ## Plan
@@ -14,7 +14,7 @@
    Replace `ensureContextTable` / `ensureStateTable` with "verify table exists; if not, throw a clear error" (no `CREATE TABLE` in app code). This removes the race by design.
 
 3. **Clear failure when schema missing**  
-   If someone runs an agent without running `ensure-schema` first, the app fails fast with a message like: "Table context_events does not exist. Run schema migrations first (e.g. `pnpm run ensure-schema` or start the stack with `pnpm run swarm:all`)."
+   If someone runs an agent without running `ensure-schema` first, the app fails fast with a message like: "Table context_events does not exist. Run schema migrations first (e.g. `pnpm run ensure-schema` or start the stack with `pnpm run swarm:start`)."
 
 4. **Tests and scripts**  
    Integration tests and scripts that need the schema either run migrations first (e.g. test setup) or rely on the test DB having been migrated. No in-app CREATE keeps tests consistent with production.

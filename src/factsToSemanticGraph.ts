@@ -318,18 +318,26 @@ export async function syncFactsToSemanticGraph(
       const str = typeof raw === "string" ? raw : String(raw);
       if (!str.trim()) continue;
 
-      // Skip if this contradiction matches a previously resolved one (token overlap)
-      const lowerStr = str.trim().toLowerCase();
-      let matchesResolved = resolvedContents.has(lowerStr);
-      if (!matchesResolved) {
-        const newWords = new Set(lowerStr.split(/\s+/).filter((w) => w.length > 3));
-        for (const resolved of resolvedContents) {
-          const resWords = new Set(resolved.split(/\s+/).filter((w: string) => w.length > 3));
-          let overlap = 0;
-          for (const w of newWords) if (resWords.has(w)) overlap++;
-          if (newWords.size > 0 && overlap / newWords.size >= 0.5) {
-            matchesResolved = true;
-            break;
+      // Skip if this contradiction matches a previously resolved one
+      // Try MCP embedding similarity first, fall back to token overlap
+      let matchesResolved = false;
+      try {
+        const { isResolvedViaService } = await import("./resolutionMcp.js");
+        matchesResolved = await isResolvedViaService(str.trim(), scopeId);
+      } catch {
+        // MCP unavailable: fall back to token overlap
+        const lowerStr = str.trim().toLowerCase();
+        matchesResolved = resolvedContents.has(lowerStr);
+        if (!matchesResolved) {
+          const newWords = new Set(lowerStr.split(/\s+/).filter((w) => w.length > 3));
+          for (const resolved of resolvedContents) {
+            const resWords = new Set(resolved.split(/\s+/).filter((w: string) => w.length > 3));
+            let overlap = 0;
+            for (const w of newWords) if (resWords.has(w)) overlap++;
+            if (newWords.size > 0 && overlap / newWords.size >= 0.5) {
+              matchesResolved = true;
+              break;
+            }
           }
         }
       }

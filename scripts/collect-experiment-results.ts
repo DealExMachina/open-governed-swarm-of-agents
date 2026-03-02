@@ -46,7 +46,10 @@ async function collectLoadMetrics(pool: Awaited<ReturnType<typeof getPool>>): Pr
     pool.query(
       "SELECT MIN(ts) as first_ts, MAX(ts) as last_ts FROM context_events WHERE data->>'type' = 'state_transition'",
     ),
-    pool.query("SELECT epoch, goal_score, lyapunov_v, created_at FROM convergence_history ORDER BY epoch"),
+    pool.query(
+      "SELECT epoch, goal_score, lyapunov_v, created_at FROM convergence_history WHERE scope_id = $1 ORDER BY epoch",
+      [process.env.SCOPE_ID ?? "default"],
+    ),
     pool.query(
       "SELECT scope_id, option, created_at FROM scope_finality_decisions ORDER BY created_at DESC LIMIT 1",
     ),

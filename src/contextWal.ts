@@ -14,7 +14,7 @@ export function _resetTableEnsured(): void {
 }
 
 const SCHEMA_REQUIRED_MSG =
-  "Table context_events does not exist. Run schema migrations first (e.g. pnpm run ensure-schema or pnpm run swarm:all).";
+  "Table context_events does not exist. Run schema migrations first (e.g. pnpm run ensure-schema or pnpm run swarm:start).";
 
 export async function ensureContextTable(pool?: pg.Pool): Promise<void> {
   if (_tableEnsured) return;
