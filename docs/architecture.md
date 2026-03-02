@@ -836,6 +836,7 @@ flowchart TD
 - `hatchery_events` table logs every spawn/drain/restart with lambda, mu, lag, pressure.
 - `GET /hatchery/snapshot` on the feed server (port 3002) returns live instance counts and estimator state.
 - Experiment scripts use `HATCHERY_{ROLE}_MIN` / `HATCHERY_{ROLE}_MAX` env vars to pin instance counts.
+- **sgrs-core (Rust native addon):** No built-in tracing in the crate. The Node adapter (`sgrsAdapter.ts`) records per-call latency to OpenTelemetry as `swarm.sgrs.call_ms` with attribute `operation` (e.g. `analyze_convergence`, `gates`, `kernel`, `dimension_scores`). Use this histogram in Prometheus/Grafana to assess scalability (call rate and p50/p99 latency).
 
 ### Usage
 
