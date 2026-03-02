@@ -126,10 +126,10 @@ run_single() {
   echo "[Load] Seeding exp2 graph (claims=$CLAIMS, rho=$RHO)..."
   node --loader ts-node/esm scripts/seed-exp2-graph.ts --claims="$CLAIMS" --rho="$RHO"
 
-  # Step 2: start hatchery
+  # Step 2: start hatchery (BOOTSTRAP=1 kicks off pipeline with initial jobs)
   if [ "$RUN_SWARM" = 1 ]; then
     echo "[Load] Starting hatchery..."
-    AGENT_ROLE=hatchery AGENT_ID=hatchery-load node --loader ts-node/esm src/swarm.ts \
+    BOOTSTRAP=1 AGENT_ROLE=hatchery AGENT_ID=hatchery-load node --loader ts-node/esm src/swarm.ts \
       >> "$LOG_DIR/swarm-load-hatchery.log" 2>&1 &
     HATCHERY_PID=$!
 

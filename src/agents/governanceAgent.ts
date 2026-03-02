@@ -9,7 +9,9 @@ import { Agent } from "@mastra/core/agent";
 import { s3GetText } from "../s3.js";
 import { loadState } from "../stateGraph.js";
 import { loadPolicies, getGovernanceForScope } from "../governance.js";
+import type { GovernanceConfig } from "../governance.js";
 import { createYamlPolicyEngine, type PolicyEngine } from "../policyEngine.js";
+import { createOPAPolicyEngine } from "../opaPolicyEngine.js";
 import { evaluateKernel } from "../sgrsAdapter.js";
 import { getGovernancePolicyVersion } from "../policyVersions.js";
 import { persistDecisionRecord } from "../decisionRecorder.js";
@@ -68,6 +70,19 @@ const AGENT_ID = process.env.AGENT_ID ?? "governance-1";
 const NATS_STREAM = process.env.NATS_STREAM ?? "SWARM_JOBS";
 const SCOPE_ID = process.env.SCOPE_ID ?? "default";
 setLogContext({ agent_id: AGENT_ID, role: "governance" });
+
+/**
+ * Resolve policy engine: OPA-WASM when OPA_WASM_PATH is set (and load succeeds), else YAML.
+ */
+async function getPolicyEngine(governance: GovernanceConfig, policyVersion: string): Promise<PolicyEngine> {
+  const wasmPath = process.env.OPA_WASM_PATH;
+  if (wasmPath) {
+    const opa = await createOPAPolicyEngine(wasmPath, governance, policyVersion);
+    if (opa) return opa;
+    logger.warn("OPA_WASM_PATH set but load failed; using YAML engine", { wasmPath });
+  }
+  return createYamlPolicyEngine(governance, policyVersion);
+}
 
 export interface GovernanceAgentEnv {
   s3: S3Client;
@@ -277,7 +292,7 @@ function createGovernanceTools(proposal: Proposal, env: GovernanceAgentEnv) {
         return { allowed: false, reason: "missing_from_or_to" };
       }
       const policyVersion = getGovernancePolicyVersion(govPath);
-      const engine = createYamlPolicyEngine(governance, policyVersion);
+      const engine = await getPolicyEngine(governance, policyVersion);
       const result = await engine.evaluate({
         scope_id: SCOPE_ID,
         from_state: from,
@@ -339,7 +354,7 @@ function createGovernanceTools(proposal: Proposal, env: GovernanceAgentEnv) {
         return { ok: false, error: "missing_from_or_to" };
       }
       const policyVersion = getGovernancePolicyVersion(govPath);
-      const engine = createYamlPolicyEngine(governance, policyVersion);
+      const engine = await getPolicyEngine(governance, policyVersion);
       const policyResultTransition = await engine.evaluate({
         scope_id: SCOPE_ID,
         from_state: from,
@@ -751,6 +766,7 @@ export async function runGovernanceAgentLoop(bus: EventBus, s3: S3Client, bucket
   const shouldStartMitl = opts.startMitl !== false;
 
   const { setMitlPublishFns, startMitlServer } = await import("../mitlServer.js");
+  const { startResolutionMcpServer } = await import("../resolutionMcp.js");
   const { startWatchdog } = await import("../watchdog.js");
   if (shouldStartMitl) {
     const mitlPort = parseInt(process.env.MITL_PORT ?? "3001", 10);
@@ -759,6 +775,8 @@ export async function runGovernanceAgentLoop(bus: EventBus, s3: S3Client, bucket
       (subj, data) => bus.publish(subj, data as Record<string, string>).then(() => {}),
     );
     startMitlServer(mitlPort);
+    const mcpPort = parseInt(process.env.RESOLUTION_MCP_PORT ?? "3005", 10);
+    startResolutionMcpServer(mcpPort, s3, bucket);
   }
 
   void runFinalityConsumerLoop(bus, signal);

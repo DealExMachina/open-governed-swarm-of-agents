@@ -376,7 +376,11 @@ Run with:
 
 ```bash
 pnpm tsx scripts/benchmark-convergence.ts
+# Multi-run consistency: run each scenario N times and assert identical outcomes
+pnpm tsx scripts/benchmark-convergence.ts --runs=5
 ```
+
+With `--runs=N` (N ≥ 2), each of the seven scenarios is executed N times. The harness compares outcomes (pass/fail, convergence_rate, is_plateaued, is_monotonic, trajectory_quality, etc.). If any run differs from the first, the run fails and reports which scenario and which field differed. Use this to verify determinism and regression-proof the tracker.
 
 | # | Scenario | Description | Expected outcome | What it validates |
 |---|----------|-------------|------------------|-------------------|

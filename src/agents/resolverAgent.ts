@@ -5,7 +5,7 @@ import { z } from "zod";
 import { setMaxListeners } from "events";
 import { getChatModelConfig } from "../modelConfig.js";
 import { logger } from "../logger.js";
-import { s3GetText, s3PutJson } from "../s3.js";
+import { s3GetText } from "../s3.js";
 import { getPool } from "../db.js";
 import { appendEdge, updateNodeStatus } from "../semanticGraph.js";
 
@@ -156,29 +156,41 @@ export async function runResolverAgent(
   let noise = 0;
   let confirmed = 0;
 
+  const mcpPort = parseInt(process.env.RESOLUTION_MCP_PORT ?? "3005", 10);
+
   for (const r of resolutionResults) {
     const contra = contradictions.find((c) => c.node_id === r.id);
     if (!contra) continue;
 
     if (r.judgment === "resolved" || r.judgment === "noise") {
-      await updateNodeStatus(contra.node_id, "resolved");
-      // Create a resolves edge from self to self (marks as resolved in graph queries)
+      // Use MCP server to mark resolved (handles graph update + embedding + S3 artifact)
       try {
-        await appendEdge({
-          scope_id: SCOPE_ID,
-          source_id: contra.node_id,
-          target_id: contra.node_id,
-          edge_type: "resolves",
-          weight: 1,
-          metadata: {
-            source: "resolver-agent",
+        const resp = await fetch(`http://127.0.0.1:${mcpPort}/mark-resolved`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            scope_id: SCOPE_ID,
+            node_id: contra.node_id,
             judgment: r.judgment,
             reason: r.reason,
-          },
-          created_by: "resolver-agent",
+          }),
         });
-      } catch {
-        // edge creation may fail if self-referencing is blocked
+        if (!resp.ok) throw new Error(await resp.text());
+      } catch (err) {
+        // Fallback: direct graph update if MCP unavailable
+        await updateNodeStatus(contra.node_id, "resolved");
+        try {
+          await appendEdge({
+            scope_id: SCOPE_ID,
+            source_id: contra.node_id,
+            target_id: contra.node_id,
+            edge_type: "resolves",
+            weight: 1,
+            metadata: { source: "resolver-agent", judgment: r.judgment, reason: r.reason },
+            created_by: "resolver-agent",
+          });
+        } catch { /* edge may fail */ }
+        logger.warn("resolver: MCP unavailable, used direct fallback", { error: String(err) });
       }
       if (r.judgment === "resolved") resolved++;
       else noise++;
@@ -188,37 +200,6 @@ export async function runResolverAgent(
     }
   }
 
-  // Write resolution artifact to S3 so facts-worker can avoid re-extracting resolved contradictions
-  const allResolved = resolutionResults
-    .filter((r) => r.judgment === "resolved" || r.judgment === "noise")
-    .map((r) => {
-      const c = contradictions.find((x) => x.node_id === r.id);
-      return { content: c?.content ?? "", judgment: r.judgment, reason: r.reason };
-    });
-
-  // Merge with existing resolutions (append-only)
-  let existingResolutions: Array<{ content: string; judgment: string; reason: string }> = [];
-  try {
-    const raw = await s3GetText(s3, bucket, "resolutions/latest.json");
-    if (raw) {
-      const parsed = JSON.parse(raw) as { resolved_contradictions?: Array<{ content: string; judgment: string; reason: string }> };
-      existingResolutions = parsed.resolved_contradictions ?? [];
-    }
-  } catch { /* no existing file */ }
-
-  const mergedContents = new Set(existingResolutions.map((r) => r.content));
-  for (const r of allResolved) {
-    if (!mergedContents.has(r.content)) {
-      existingResolutions.push(r);
-      mergedContents.add(r.content);
-    }
-  }
-
-  await s3PutJson(s3, bucket, "resolutions/latest.json", {
-    resolved_contradictions: existingResolutions,
-    updated_at: new Date().toISOString(),
-  });
-
-  logger.info("resolver: completed", { resolved, noise, confirmed, total: contradictions.length, s3_resolutions: existingResolutions.length });
+  logger.info("resolver: completed", { resolved, noise, confirmed, total: contradictions.length });
   return { resolved, noise, confirmed };
 }

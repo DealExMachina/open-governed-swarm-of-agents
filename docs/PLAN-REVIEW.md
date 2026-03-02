@@ -45,7 +45,7 @@ Short audit of STATUS.md and the design docs (governance-design.md, finality-des
 **3. ensure-schema not in package.json**
 
 - **STATUS.md** and **README** say "pnpm run ensure-schema" and "ensure-schema runs all in order".
-- **Reality:** There is no `ensure-schema` script in package.json. The script is `scripts/ensure-schema.ts`, run by `swarm-all.sh` via `node --loader ts-node/esm scripts/ensure-schema.ts`.
+- **Reality:** There is no `ensure-schema` script in package.json. The script is `scripts/ensure-schema.ts`, run by `swarm-hatchery.sh` (pnpm run swarm:start) via `node --loader ts-node/esm scripts/ensure-schema.ts`.
 - **Fix:** Add to package.json: `"ensure-schema": "node --loader ts-node/esm scripts/ensure-schema.ts"` so "pnpm run ensure-schema" works as documented. Optionally add `ensure-bucket` the same way.
 
 **4. Migration 011 fails on fresh Postgres**

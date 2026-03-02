@@ -3,8 +3,7 @@
  * config as data, and evaluates input to produce PolicyResult.
  * Requires policies to be compiled with: opa build -t wasm -e governance/result policies/
  *
- * NOTE: Not wired at runtime. The governance agent always uses createYamlPolicyEngine().
- * This module is available for optional use (e.g. via a future OPA_WASM_PATH env switch).
+ * Wired in governance agent when OPA_WASM_PATH is set; otherwise YAML engine is used.
  */
 
 import { readFileSync, existsSync } from "fs";

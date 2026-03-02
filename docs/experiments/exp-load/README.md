@@ -125,9 +125,9 @@ DEMO_DELAY_MS=2000 npm run seed:demo   # stress pace (2s between docs)
 For programmable injection (burst, repeat, custom delay), use loadgen:
 
 ```bash
-LOAD_INJECT_DELAY_MS=2000 pnpm tsx scripts/loadgen-inject.ts   # stress
-LOAD_BURST=1 pnpm tsx scripts/loadgen-inject.ts               # all 5 docs at once
-LOAD_REPEAT=3 pnpm tsx scripts/loadgen-inject.ts              # 3 batches
+LOAD_INJECT_DELAY_MS=2000 pnpm seed:loadgen   # stress
+LOAD_BURST=1 pnpm seed:loadgen               # all 5 docs at once
+LOAD_REPEAT=3 pnpm seed:loadgen              # 3 batches
 ```
 
-Run loadgen after the swarm is up. Add `seed:loadgen` to package.json if desired.
+Run loadgen after the swarm is up. Use `pnpm seed:loadgen`.

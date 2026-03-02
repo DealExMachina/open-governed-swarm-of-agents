@@ -33,7 +33,7 @@ export function _resetStateTableEnsured(): void {
 }
 
 const SCHEMA_REQUIRED_MSG =
-  "Table swarm_state does not exist. Run schema migrations first (e.g. pnpm run ensure-schema or pnpm run swarm:all).";
+  "Table swarm_state does not exist. Run schema migrations first (e.g. pnpm run ensure-schema or pnpm run swarm:start).";
 
 export async function ensureStateTable(pool?: pg.Pool): Promise<void> {
   if (_tableEnsured) return;

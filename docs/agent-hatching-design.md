@@ -2,7 +2,7 @@
 
 ## Context
 
-The swarm currently spawns agents via static bash backgrounding (`scripts/swarm-all.sh`): 6 fixed processes, no supervision, no health checks, no dynamic scaling. If an agent crashes, it stays dead. If load spikes, the single instance per role becomes a bottleneck. If load drops, all 6 processes still consume resources.
+The swarm previously used static bash backgrounding (legacy `scripts/swarm-all.sh`, removed): 6 fixed processes, no supervision, no health checks, no dynamic scaling. If an agent crashes, it stays dead. If load spikes, the single instance per role becomes a bottleneck. If load drops, all 6 processes still consume resources.
 
 The agent-hatching factory replaces this with a single-process orchestrator that spawns agent loops as in-process async tasks, monitors NATS consumer lag, estimates arrival/service rates using queueing theory (M/M/c), and dynamically scales instances per role. It draws on Erlang/OTP supervisor patterns for restart strategies and KEDA-style lag-based scaling for reactivity.
 
@@ -230,7 +230,7 @@ if (!process.env.AGENT_ROLE || process.env.AGENT_ROLE === "hatchery") {
 
 ### Step 7: `scripts/swarm-hatchery.sh` — Single-process replacement
 
-Copy `swarm-all.sh`, replace the 6 background processes with:
+The hatchery (`scripts/swarm-hatchery.sh`, `pnpm run swarm:start`) replaces the 6 background processes with:
 ```bash
 export AGENT_ROLE=hatchery
 export AGENT_ID=hatchery-1
@@ -287,7 +287,7 @@ Add ~40 lines covering: single-process architecture, M/M/c scaling formula, supe
 - `src/activationFilters.ts` — consumed as-is (loadFilterConfig for μ estimation)
 - `src/convergenceTracker.ts` — consumed as-is (pressure data for scaling priority)
 - `src/agentRegistry.ts` — consumed as-is (AGENT_SPECS for role enumeration)
-- `scripts/swarm-all.sh` — kept for backward compatibility (deprecated)
+- `scripts/swarm-all.sh` — removed; use `pnpm run swarm` or `pnpm run swarm:start`.
 
 ---
 
