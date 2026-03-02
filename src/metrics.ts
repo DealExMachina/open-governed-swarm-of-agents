@@ -12,6 +12,7 @@ let governanceLoopHistogram: ReturnType<ReturnType<typeof getMeter>["createHisto
 let llmTokensCounter: ReturnType<ReturnType<typeof getMeter>["createCounter"]> | null = null;
 let semanticGraphQueryHistogram: ReturnType<ReturnType<typeof getMeter>["createHistogram"]> | null = null;
 let pressureDirectedCounter: ReturnType<ReturnType<typeof getMeter>["createCounter"]> | null = null;
+let sgrsCallHistogram: ReturnType<ReturnType<typeof getMeter>["createHistogram"]> | null = null;
 
 function ensureInstruments() {
   const meter = getMeter();
@@ -61,6 +62,12 @@ function ensureInstruments() {
     pressureDirectedCounter = meter.createCounter("swarm.pressure_directed.activation", {
       description: "Pressure-directed activation filter evaluations by role, hit, and highest dimension",
       unit: "1",
+    });
+  }
+  if (sgrsCallHistogram == null) {
+    sgrsCallHistogram = meter.createHistogram("swarm.sgrs.call_ms", {
+      description: "sgrs-core (Rust native) call latency in milliseconds, by operation",
+      unit: "ms",
     });
   }
 }
@@ -148,6 +155,16 @@ export function recordGovernanceLoopMs(latencyMs: number): void {
   }
 }
 
+/** Record sgrs-core (Rust native addon) call latency for scalability observability. */
+export function recordSgrsCall(operation: string, durationMs: number): void {
+  try {
+    ensureInstruments();
+    sgrsCallHistogram?.record(durationMs, { operation });
+  } catch {
+    // no-op
+  }
+}
+
 /** Reset instruments (for tests). */
 export function _resetSwarmMetrics(): void {
   proposalCount = null;
@@ -158,4 +175,5 @@ export function _resetSwarmMetrics(): void {
   llmTokensCounter = null;
   semanticGraphQueryHistogram = null;
   pressureDirectedCounter = null;
+  sgrsCallHistogram = null;
 }

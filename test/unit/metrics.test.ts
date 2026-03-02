@@ -7,6 +7,7 @@ import {
   recordGovernanceLoopMs,
   recordPressureDirectedActivation,
   recordSemanticGraphQueryMs,
+  recordSgrsCall,
   _resetSwarmMetrics,
 } from "../../src/metrics.js";
 import { initTelemetry } from "../../src/telemetry.js";
@@ -48,5 +49,10 @@ describe("metrics", () => {
 
   it("recordSemanticGraphQueryMs does not throw", () => {
     expect(() => recordSemanticGraphQueryMs("loadFinalitySnapshot", 42)).not.toThrow();
+  });
+
+  it("recordSgrsCall does not throw", () => {
+    expect(() => recordSgrsCall("analyze_convergence", 2.5)).not.toThrow();
+    expect(() => recordSgrsCall("kernel", 0.1)).not.toThrow();
   });
 });

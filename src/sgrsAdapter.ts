@@ -40,6 +40,16 @@ import type {
 import type { FinalitySnapshot, GoalGradientConfig, QuiescenceConfig } from "./finalityEvaluator.js";
 import type { ConvergencePoint, ConvergenceConfig, ConvergenceState } from "./convergenceTracker.js";
 import type { GovernanceConfig, DriftInput, TransitionDecision, PolicyRule, TransitionRule } from "./governance.js";
+import { recordSgrsCall } from "./metrics.js";
+
+function timedSgrs<T>(operation: string, fn: () => T): T {
+  const start = performance.now();
+  try {
+    return fn();
+  } finally {
+    recordSgrsCall(operation, performance.now() - start);
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Input conversion: v1 TS → Rust DTOs
@@ -194,7 +204,7 @@ export function computeDimensionScores(
   snapshot: FinalitySnapshot,
   _config?: GoalGradientConfig,
 ): Record<string, number> {
-  const dto = rustComputeDimensionScores(toSnapshotDto(snapshot));
+  const dto = timedSgrs("dimension_scores", () => rustComputeDimensionScores(toSnapshotDto(snapshot)));
   return fromDimensionScoresDto(dto);
 }
 
@@ -203,14 +213,14 @@ export function computeLyapunovV(
   _targets?: unknown,
   weights?: GoalGradientConfig["weights"],
 ): number {
-  return rustComputeScalarV(toSnapshotDto(snapshot), toWeightsDto(weights));
+  return timedSgrs("scalar_v", () => rustComputeScalarV(toSnapshotDto(snapshot), toWeightsDto(weights)));
 }
 
 export function computePressure(
   snapshot: FinalitySnapshot,
   weights?: GoalGradientConfig["weights"],
 ): Record<string, number> {
-  const dto = rustComputePressure(toSnapshotDto(snapshot), toWeightsDto(weights));
+  const dto = timedSgrs("pressure", () => rustComputePressure(toSnapshotDto(snapshot), toWeightsDto(weights)));
   return fromDimensionScoresDto(dto);
 }
 
@@ -219,19 +229,21 @@ export function analyzeConvergence(
   config: ConvergenceConfig,
   autoThreshold: number = 0.92,
 ): ConvergenceState {
-  if (history.length === 0) {
-    return fromConvergenceOutputDto(
-      analyzeConvergenceBridge([], toConvergenceConfigDto(config), autoThreshold),
-      history,
+  return timedSgrs("analyze_convergence", () => {
+    if (history.length === 0) {
+      return fromConvergenceOutputDto(
+        analyzeConvergenceBridge([], toConvergenceConfigDto(config), autoThreshold),
+        history,
+      );
+    }
+    const pointDtos = history.map(toConvergencePointDto);
+    const outputDto = analyzeConvergenceBridge(
+      pointDtos,
+      toConvergenceConfigDto(config),
+      autoThreshold,
     );
-  }
-  const pointDtos = history.map(toConvergencePointDto);
-  const outputDto = analyzeConvergenceBridge(
-    pointDtos,
-    toConvergenceConfigDto(config),
-    autoThreshold,
-  );
-  return fromConvergenceOutputDto(outputDto, history);
+    return fromConvergenceOutputDto(outputDto, history);
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -242,7 +254,7 @@ export function computeGoalScore(
   snapshot: FinalitySnapshot,
   config?: GoalGradientConfig,
 ): number {
-  return rustComputeGoalScore(toSnapshotDto(snapshot), toWeightsDto(config?.weights));
+  return timedSgrs("goal_score", () => rustComputeGoalScore(toSnapshotDto(snapshot), toWeightsDto(config?.weights)));
 }
 
 export interface GateState {
@@ -264,11 +276,13 @@ export function evaluateGates(
     quiescence?: QuiescenceConfig;
   },
 ): GateState {
-  const dto = rustEvaluateGates(
-    toFinalitySnapshotFullDto(snapshot),
-    isMonotonic,
-    trajectoryQuality,
-    toGateConfigDto(config),
+  const dto = timedSgrs("gates", () =>
+    rustEvaluateGates(
+      toFinalitySnapshotFullDto(snapshot),
+      isMonotonic,
+      trajectoryQuality,
+      toGateConfigDto(config),
+    ),
   );
   return {
     a_monotonic: dto.aMonotonic,
@@ -285,14 +299,18 @@ export function evaluateConditions(
   mode: "all" | "any",
   snapshot: FinalitySnapshot,
 ): boolean {
-  return rustEvaluateConditions(conditions, mode, toFinalitySnapshotFullDto(snapshot));
+  return timedSgrs("conditions", () =>
+    rustEvaluateConditions(conditions, mode, toFinalitySnapshotFullDto(snapshot)),
+  );
 }
 
 export function evaluateOne(
   condition: string,
   snapshot: FinalitySnapshot,
 ): boolean {
-  const result = rustEvaluateSingleCondition(condition, toFinalitySnapshotFullDto(snapshot));
+  const result = timedSgrs("single_condition", () =>
+    rustEvaluateSingleCondition(condition, toFinalitySnapshotFullDto(snapshot)),
+  );
   return result.met;
 }
 
@@ -317,10 +335,12 @@ function toGovernanceRulesConfigDto(config: GovernanceConfig): GovernanceRulesCo
 }
 
 export function evaluateRules(drift: DriftInput, config: GovernanceConfig): string[] {
-  return rustEvaluateGovernanceRules(
-    drift.level,
-    drift.types,
-    toGovernanceRulesConfigDto(config),
+  return timedSgrs("governance_rules", () =>
+    rustEvaluateGovernanceRules(
+      drift.level,
+      drift.types,
+      toGovernanceRulesConfigDto(config),
+    ),
   );
 }
 
@@ -330,11 +350,13 @@ export function canTransition(
   drift: DriftInput,
   config: GovernanceConfig,
 ): TransitionDecision {
-  const dto = rustCanGovernanceTransition(
-    from,
-    to,
-    drift.level,
-    toGovernanceRulesConfigDto(config),
+  const dto = timedSgrs("can_transition", () =>
+    rustCanGovernanceTransition(
+      from,
+      to,
+      drift.level,
+      toGovernanceRulesConfigDto(config),
+    ),
   );
   return { allowed: dto.allowed, reason: dto.reason };
 }
@@ -380,7 +402,9 @@ export function evaluateKernel(
     currentLattice: input.current_lattice ? toLatticePointDto(input.current_lattice) : undefined,
     proposedLattice: input.proposed_lattice ? toLatticePointDto(input.proposed_lattice) : undefined,
   };
-  const output = rustEvaluateKernel(inputDto, toGovernanceRulesConfigDto(config));
+  const output = timedSgrs("kernel", () =>
+    rustEvaluateKernel(inputDto, toGovernanceRulesConfigDto(config)),
+  );
   return {
     verdict: output.verdict,
     reason: output.reason,

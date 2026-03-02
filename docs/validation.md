@@ -74,7 +74,7 @@ flowchart TB
 | `finalityCertificates.test.ts` | 4 | Finality certificates (JWS) | buildCertificatePayload, signCertificate compact JWS, verifyCertificate round-trip, invalid JWS throws |
 | `mitlServer.test.ts` | 9 | MITL pending queue operations | addPending + getPending round-trip, approvePending publishes + removes, not_found for unknown, rejectPending publishes rejection, finality_review blocks regular approve (use_finality_response), resolveFinalityPending publishes to swarm.actions.finality, defer with days |
 | `modelConfig.test.ts` | 18 | Model configuration resolution | Ollama base URL (null/blank/trimmed), default models (qwen3:8b, phi4-mini, mistral-small:22b, bge-m3), finality thresholds (defaults, env, clamping), getChatModelConfig (null/Ollama/OpenAI/preference), getOversightModelConfig (null/same/override) |
-| `metrics.test.ts` | 5 | OpenTelemetry metrics | recordProposal/PolicyViolation/AgentLatency/TaskResolutionTime/TaskCost do not throw |
+| `metrics.test.ts` | 6 | OpenTelemetry metrics | recordProposal/PolicyViolation/AgentLatency/GovernanceLoopMs/recordSgrsCall do not throw |
 | `telemetry.test.ts` | 5 | OpenTelemetry init/shutdown | initTelemetry idempotent, getTracer returns startSpan, getMeter returns createCounter/createHistogram, shutdownTelemetry resolves |
 | `agents/factsAgent.test.ts` | 4 | Facts agent pipeline | Reads WAL + S3, calls worker /extract, writes facts + drift + history to S3, handles no previous facts, runFactsPipelineDirect sequence, createFactsMastraAgent exposes tools |
 | `agents/factsAgent.mastra-openai.test.ts` | 1 | Mastra + OpenAI integration | Conditional: only runs when OPENAI_API_KEY set; verifies Agent.generate returns OK |
