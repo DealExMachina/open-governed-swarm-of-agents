@@ -13,3 +13,10 @@ schemas:
   #   evidence_types: [compliance_certificate]
   #   temporal_constraint:
   #     max_age_days: 365
+
+  # Exp 3 (Finality Robustness): stale evidence testing. Use with scope exp3_stale.
+  # Requires scope-to-schema mapping (not yet implemented); document for experiment replication.
+  exp3_stale:
+    evidence_types: [claim]
+    temporal_constraint:
+      max_age_days: 365

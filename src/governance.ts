@@ -48,6 +48,9 @@ export function loadPolicies(path: string): GovernanceConfig {
   if (!parsed.rules || !Array.isArray(parsed.rules)) {
     return { rules: [], transition_rules: parsed.transition_rules ?? [] };
   }
+  if (process.env.GOVERNANCE_MODE) {
+    parsed.mode = process.env.GOVERNANCE_MODE as ApprovalMode;
+  }
   return parsed;
 }
 

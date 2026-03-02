@@ -405,4 +405,66 @@ describe("analyzeConvergence", () => {
       expect(state.autocorrelation_lag1).toBeNull();
     });
   });
+
+  describe("intra/cross-epoch partitioning", () => {
+    it("computes alpha_intra from same-context_seq pairs only", () => {
+      const history: ConvergencePoint[] = [
+        makePoint({ epoch: 1, lyapunov_v: 0.5, goal_score: 0.5, context_seq: 1 }),
+        makePoint({ epoch: 2, lyapunov_v: 0.4, goal_score: 0.55, context_seq: 1 }),
+        makePoint({ epoch: 3, lyapunov_v: 0.8, goal_score: 0.3, context_seq: 2 }),
+        makePoint({ epoch: 4, lyapunov_v: 0.7, goal_score: 0.35, context_seq: 2 }),
+        makePoint({ epoch: 5, lyapunov_v: 0.6, goal_score: 0.4, context_seq: 2 }),
+      ];
+      const state = analyzeConvergence(history);
+      expect(state.alpha_intra).toBeGreaterThan(0);
+      expect(state.cross_epoch_count).toBe(1);
+      expect(state.cross_epoch_v_delta_avg).toBeGreaterThan(0);
+    });
+
+    it("reports zero cross_epoch_count when all points share context_seq", () => {
+      const history: ConvergencePoint[] = [
+        makePoint({ epoch: 1, lyapunov_v: 0.5, goal_score: 0.5, context_seq: 1 }),
+        makePoint({ epoch: 2, lyapunov_v: 0.4, goal_score: 0.55, context_seq: 1 }),
+        makePoint({ epoch: 3, lyapunov_v: 0.3, goal_score: 0.6, context_seq: 1 }),
+      ];
+      const state = analyzeConvergence(history);
+      expect(state.cross_epoch_count).toBe(0);
+      expect(state.alpha_intra).toBeGreaterThan(0);
+    });
+
+    it("detects stalled dimensions", () => {
+      const history: ConvergencePoint[] = [];
+      for (let i = 0; i < 6; i++) {
+        history.push(makePoint({
+          epoch: i + 1,
+          goal_score: 0.5,
+          lyapunov_v: 0.3,
+          dimension_scores: {
+            claim_confidence: 0.9,
+            contradiction_resolution: 0.5,
+            goal_completion: 0.0,
+            risk_score_inverse: 1.0,
+          },
+        }));
+      }
+      const state = analyzeConvergence(history);
+      expect(state.stalled_dimensions).toContain("goal_completion");
+      expect(state.stalled_dimensions).toContain("contradiction_resolution");
+      // All flat dimensions are detected as stalled (including those at target)
+      expect(state.stalled_dimensions.length).toBeGreaterThanOrEqual(2);
+    });
+
+    it("uses alpha_intra for ETA when available", () => {
+      const history: ConvergencePoint[] = [
+        makePoint({ epoch: 1, lyapunov_v: 0.5, goal_score: 0.5, context_seq: 1 }),
+        makePoint({ epoch: 2, lyapunov_v: 0.3, goal_score: 0.65, context_seq: 1 }),
+        makePoint({ epoch: 3, lyapunov_v: 0.8, goal_score: 0.3, context_seq: 2 }),
+        makePoint({ epoch: 4, lyapunov_v: 0.6, goal_score: 0.4, context_seq: 2 }),
+      ];
+      const state = analyzeConvergence(history);
+      expect(state.alpha_intra).toBeGreaterThan(0);
+      // Mixed alpha includes the cross-epoch spike (negative), so it should differ from alpha_intra
+      expect(state.convergence_rate).not.toEqual(state.alpha_intra);
+    });
+  });
 });

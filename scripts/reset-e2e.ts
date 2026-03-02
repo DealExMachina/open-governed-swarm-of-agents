@@ -1,15 +1,19 @@
 /**
- * Reset DB, S3, and NATS to a clean state for E2E.
+ * Reset DB, S3, NATS, and optionally telemetry to a clean state for E2E.
  * - Stops any running swarm processes (caller may run pkill before)
  * - Truncates Postgres: graph (edges, nodes), context, state, finality/decision tables, etc.
  *   Includes scope_finality_decisions so the next run can trigger HITL again.
  * - Empties S3 bucket (all objects)
  * - Deletes NATS JetStream stream so it is recreated fresh
+ * - If RESET_TELEMETRY=1: wipes Prometheus TSDB (Grafana dashboards start fresh)
  *
  * Run: node --loader ts-node/esm scripts/reset-e2e.ts
+ *      RESET_TELEMETRY=1 node --loader ts-node/esm scripts/reset-e2e.ts
  */
 import "dotenv/config";
 import { execSync } from "child_process";
+import { dirname } from "path";
+import { fileURLToPath } from "url";
 import pg from "pg";
 import { connect } from "nats";
 import { makeS3 } from "../src/s3.js";
@@ -113,21 +117,41 @@ function killSwarm(): void {
   }
 }
 
+function resetTelemetry(): void {
+  if (process.env.RESET_TELEMETRY !== "1") return;
+  try {
+    const repoRoot = dirname(dirname(fileURLToPath(import.meta.url)));
+    execSync("bash scripts/reset-telemetry.sh", {
+      cwd: repoRoot,
+      stdio: "inherit",
+    });
+  } catch {
+    console.warn("Telemetry reset failed (is docker compose running?)");
+  }
+}
+
 async function main(): Promise<void> {
-  console.log("Reset E2E: clean DB, S3, NATS...");
+  const withTelemetry = process.env.RESET_TELEMETRY === "1";
+  console.log("Reset E2E: clean DB, S3, NATS" + (withTelemetry ? ", Prometheus" : "") + "...");
   killSwarm();
   await new Promise((r) => setTimeout(r, 1500));
 
   await truncateDb();
 
   if (process.env.S3_ENDPOINT && process.env.S3_ACCESS_KEY) {
-    const s3 = makeS3();
-    await emptyS3(s3);
+    try {
+      const s3 = makeS3();
+      await emptyS3(s3);
+    } catch (e) {
+      console.warn("S3 unreachable, skipping bucket empty:", (e as Error).message);
+    }
   } else {
     console.log("S3 env not set, skipping bucket empty");
   }
 
   await deleteNatsStream();
+
+  resetTelemetry();
 
   console.log("Done. Run migrations and seed:all then swarm for a fresh E2E.");
 }

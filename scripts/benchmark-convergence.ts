@@ -442,4 +442,106 @@ function main() {
   }
 }
 
-main();
+// ---------------------------------------------------------------------------
+// Sensitivity sweep for trajectory quality Q constants
+// ---------------------------------------------------------------------------
+
+interface SensitivityResult {
+  constant: string;
+  baseValue: number;
+  testedValue: number;
+  scenarioName: string;
+  baseQ: number;
+  testedQ: number;
+  baseGateC: boolean;
+  testedGateC: boolean;
+  flipped: boolean;
+}
+
+function runSensitivitySweep(): void {
+  const GATE_C_THRESHOLD = 0.7;
+  const constants: Array<{ key: keyof typeof DEFAULT_CONVERGENCE_CONFIG; name: string; base: number }> = [
+    { key: "q_direction_penalty", name: "direction_penalty", base: DEFAULT_CONVERGENCE_CONFIG.q_direction_penalty },
+    { key: "q_max_directions", name: "max_directions", base: DEFAULT_CONVERGENCE_CONFIG.q_max_directions },
+    { key: "q_autocorr_threshold", name: "autocorr_threshold", base: DEFAULT_CONVERGENCE_CONFIG.q_autocorr_threshold },
+    { key: "q_oscillation_cap", name: "oscillation_cap", base: DEFAULT_CONVERGENCE_CONFIG.q_oscillation_cap },
+    { key: "q_spike_drop_cap", name: "spike_drop_cap", base: DEFAULT_CONVERGENCE_CONFIG.q_spike_drop_cap },
+  ];
+  const variations = [0.8, 1.0, 1.2]; // -20%, base, +20%
+
+  console.log("\n╔══════════════════════════════════════════════════════════════╗");
+  console.log("║          Trajectory Quality Q — Sensitivity Analysis        ║");
+  console.log("╚══════════════════════════════════════════════════════════════╝\n");
+
+  const results: SensitivityResult[] = [];
+
+  for (const c of constants) {
+    for (const mult of variations) {
+      if (mult === 1.0) continue;
+      const testedValue = c.base * mult;
+      const overrideConfig: ConvergenceConfig = {
+        ...DEFAULT_CONVERGENCE_CONFIG,
+        [c.key]: testedValue,
+      };
+
+      for (const scenario of scenarios) {
+        const baseRun = scenario.run(DEFAULT_CONVERGENCE_CONFIG);
+        const baseState = analyzeConvergence(baseRun.points, DEFAULT_CONVERGENCE_CONFIG);
+        const testedState = analyzeConvergence(baseRun.points, overrideConfig);
+
+        const baseGateC = baseState.trajectory_quality >= GATE_C_THRESHOLD;
+        const testedGateC = testedState.trajectory_quality >= GATE_C_THRESHOLD;
+
+        results.push({
+          constant: c.name,
+          baseValue: c.base,
+          testedValue,
+          scenarioName: scenario.name,
+          baseQ: baseState.trajectory_quality,
+          testedQ: testedState.trajectory_quality,
+          baseGateC,
+          testedGateC,
+          flipped: baseGateC !== testedGateC,
+        });
+      }
+    }
+  }
+
+  // Print sensitivity matrix
+  const flipped = results.filter((r) => r.flipped);
+  const total = results.length;
+
+  console.log(`Tested ${constants.length} constants x ${variations.length - 1} variations x ${scenarios.length} scenarios = ${total} evaluations\n`);
+
+  console.log("Constant             | Variation | Flipped Gate C decisions");
+  console.log("---------------------|-----------|-------------------------");
+  for (const c of constants) {
+    const cResults = results.filter((r) => r.constant === c.name);
+    const cFlipped = cResults.filter((r) => r.flipped);
+    const flipPct = (cFlipped.length / cResults.length * 100).toFixed(0);
+    console.log(`${c.name.padEnd(20)} | +/-20%    | ${cFlipped.length}/${cResults.length} (${flipPct}%)`);
+    for (const f of cFlipped) {
+      const dir = f.testedValue > f.baseValue ? "+20%" : "-20%";
+      console.log(`  ${f.scenarioName.padEnd(26)} ${dir.padEnd(6)} Q: ${f.baseQ.toFixed(2)} -> ${f.testedQ.toFixed(2)}  GateC: ${f.baseGateC} -> ${f.testedGateC}`);
+    }
+  }
+
+  console.log(`\nTotal gate flips: ${flipped.length}/${total} (${(flipped.length / total * 100).toFixed(1)}%)`);
+
+  if (flipped.length === 0) {
+    console.log("All Q constants are robust to +/-20% variation across all scenarios.");
+  } else {
+    console.log("\nSensitive constants (flip Gate C outcome on +/-20% variation):");
+    const sensitive = [...new Set(flipped.map((f) => f.constant))];
+    for (const s of sensitive) {
+      const count = flipped.filter((f) => f.constant === s).length;
+      console.log(`  - ${s}: ${count} scenario(s) affected`);
+    }
+  }
+}
+
+if (process.argv.includes("--sensitivity")) {
+  runSensitivitySweep();
+} else {
+  main();
+}

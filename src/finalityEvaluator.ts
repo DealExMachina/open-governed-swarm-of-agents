@@ -332,6 +332,38 @@ async function emitFinalityCertificate(scopeId: string): Promise<void> {
   }
 }
 
+/** Record gate state for Exp 1/3. No-op if convergence table or columns missing. */
+async function recordGateStateIfAvailable(
+  scopeId: string,
+  epoch: number,
+  snapshot: FinalitySnapshot,
+  convergence: { is_monotonic: boolean; trajectory_quality: number },
+  config: FinalityConfig,
+  finalityState: string,
+): Promise<void> {
+  try {
+    const { updateConvergenceGateState } = await import("./convergenceTracker.js");
+    const gateB = (snapshot.contradiction_mass ?? 0) === 0 && (snapshot.evidence_coverage ?? 1) >= 0.99;
+    await updateConvergenceGateState(scopeId, epoch, {
+      gate_a_monotonic: convergence.is_monotonic,
+      gate_b_evidence: gateB,
+      gate_c_trajectory_ok: convergence.trajectory_quality >= 0.7,
+      gate_d_quiescent: isQuiescent(snapshot, config.quiescence),
+      gate_e_has_content: snapshot.claims_active_count > 0 || snapshot.goals_completion_ratio < 1,
+      finality_state: finalityState,
+      unresolved_contradictions: snapshot.contradictions_unresolved_count,
+      trajectory_quality: convergence.trajectory_quality,
+    });
+  } catch (err) {
+    try {
+      const { logger } = await import("./logger.js");
+      logger.warn("recordGateStateIfAvailable failed", { scopeId, epoch, finalityState, error: String(err) });
+    } catch {
+      /* logger unavailable */
+    }
+  }
+}
+
 export async function evaluateFinality(scopeId: string): Promise<FinalityResult | null> {
   // Human-approved finality: skip re-HITL and treat as RESOLVED
   try {
@@ -369,9 +401,19 @@ export async function evaluateFinality(scopeId: string): Promise<FinalityResult 
     const pressure = computePressure(snapshot, config.goal_gradient?.weights);
     const dimensionScores = computeDimensionScores(snapshot, config.goal_gradient);
 
-    // Record this evaluation cycle
-    const epoch = snapshot.scope_idle_cycles ?? 0; // best available epoch proxy
-    await recordConvergencePoint(scopeId, epoch, goalScore, lyapunovV, dimensionScores, pressure);
+    // Record this evaluation cycle — use swarm_state.epoch as round number
+    let epoch = 0;
+    try {
+      const { loadState } = await import("./stateGraph.js");
+      const st = await loadState(scopeId);
+      epoch = st?.epoch ?? 0;
+    } catch { /* state table may not exist */ }
+    let contextSeq: number | null = null;
+    try {
+      const { getLatestPipelineWalSeqForFacts } = await import("./contextWal.js");
+      contextSeq = await getLatestPipelineWalSeqForFacts();
+    } catch { /* WAL table may not exist */ }
+    await recordConvergencePoint(scopeId, epoch, goalScore, lyapunovV, dimensionScores, pressure, undefined, contextSeq);
 
     // Analyze convergence state
     const convConfig = {
@@ -396,16 +438,31 @@ export async function evaluateFinality(scopeId: string): Promise<FinalityResult 
 
     // Divergence detection: V is increasing → system moving away from finality
     if (convergence.convergence_rate < divergenceRate && convergence.history.length >= 3) {
+      await recordGateStateIfAvailable(scopeId, epoch, snapshot, convergence, config, "ESCALATED");
       return { kind: "status", status: "ESCALATED" };
     }
-  } catch {
-    // convergence_history table may not exist yet; proceed without convergence data
+  } catch (err) {
+    try {
+      const { logger } = await import("./logger.js");
+      logger.warn("convergence tracking unavailable in evaluateFinality", { scopeId, error: String(err) });
+    } catch {
+      /* logger unavailable */
+    }
   }
 
   // Gate E: minimum content — do not auto-resolve or trigger HITL when there's no meaningful content.
   // When all dimensions are 1.0 only because there are zero claims/goals/risks, the score is vacuously high.
   const hasContent = snapshot.claims_active_count > 0 || snapshot.goals_completion_ratio < 1;
+  let epoch = 0;
+  try {
+    const { loadState } = await import("./stateGraph.js");
+    const st = await loadState(scopeId);
+    epoch = st?.epoch ?? 0;
+  } catch { /* state table may not exist */ }
   if (!hasContent) {
+    if (convergenceData) {
+      await recordGateStateIfAvailable(scopeId, epoch, snapshot, convergenceData, config, "ACTIVE");
+    }
     return { kind: "status", status: "ACTIVE" };
   }
 
@@ -417,10 +474,14 @@ export async function evaluateFinality(scopeId: string): Promise<FinalityResult 
   if (resolvedRule?.conditions?.length) {
     const conditions = resolvedRule.conditions.map(conditionToString);
     const allMet = resolvedRule.mode === "all" && conditions.every((c) => evaluateOne(c, snapshot));
-    const isMonotonic = convergenceData?.is_monotonic ?? true; // default to true if no convergence data
-    const trajectoryOk = (convergenceData?.trajectory_quality ?? 1) >= 0.7;
-    const quiescent = isQuiescent(snapshot, config.quiescence);
+    const gatesDisabled = process.env.FINALITY_GATES_DISABLED === "1";
+    const isMonotonic = gatesDisabled || (convergenceData?.is_monotonic ?? true);
+    const trajectoryOk = gatesDisabled || ((convergenceData?.trajectory_quality ?? 1) >= 0.7);
+    const quiescent = gatesDisabled || isQuiescent(snapshot, config.quiescence);
     if (allMet && goalScore >= auto && isMonotonic && trajectoryOk && quiescent) {
+      if (convergenceData) {
+        await recordGateStateIfAvailable(scopeId, epoch, snapshot, convergenceData, config, "RESOLVED");
+      }
       await emitSessionFinalized(scopeId);
       await emitFinalityCertificate(scopeId);
       return { kind: "status", status: "RESOLVED" };
@@ -429,6 +490,9 @@ export async function evaluateFinality(scopeId: string): Promise<FinalityResult 
 
   // Path B: near <= goalScore < auto -> HITL review (payload built in hitlFinalityRequest)
   if (goalScore >= near && goalScore < auto) {
+    if (convergenceData) {
+      await recordGateStateIfAvailable(scopeId, epoch, snapshot, convergenceData, config, "HITL");
+    }
     const dimension_breakdown = buildDimensionBreakdown(snapshot, config.goal_gradient);
     const blockers = buildBlockers(snapshot);
     const request: FinalityReviewRequest = {
@@ -462,10 +526,16 @@ export async function evaluateFinality(scopeId: string): Promise<FinalityResult 
         ? conditions.every((c) => evaluateOne(c, snapshot))
         : conditions.some((c) => evaluateOne(c, snapshot));
     if (matched) {
+      if (convergenceData) {
+        await recordGateStateIfAvailable(scopeId, epoch, snapshot, convergenceData, config, status);
+      }
       return { kind: "status", status: status as CaseStatus };
     }
   }
 
+  if (convergenceData) {
+    await recordGateStateIfAvailable(scopeId, epoch, snapshot, convergenceData, config, "ACTIVE");
+  }
   return null; // ACTIVE
 }
 
