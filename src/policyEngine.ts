@@ -35,6 +35,12 @@ export interface DecisionRecord {
   binding: string;
   /** Optional: suggested actions from policy rules (e.g. open_investigation). */
   suggested_actions?: string[];
+  /** Governance path for Exp 4 (set by caller, not policy engine). */
+  governance_path?: string;
+  /** Scope at decision time. */
+  scope_id?: string;
+  /** Scope mode (YOLO | MITL | MASTER) at decision time. */
+  scope_mode?: string;
 }
 
 /** Result of a policy evaluation. */

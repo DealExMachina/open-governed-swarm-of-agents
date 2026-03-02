@@ -14,10 +14,15 @@
  * All analysis functions are pure (no side effects). DB persistence is separated.
  */
 
-import { sampleCorrelation } from "simple-statistics";
 import type { FinalitySnapshot, GoalGradientConfig, CoordinationSignal } from "./finalityEvaluator.js";
 import { getPool } from "./db.js";
 import pg from "pg";
+import {
+  computeDimensionScores as rustComputeDimensionScores,
+  computeLyapunovV as rustComputeLyapunovV,
+  computePressure as rustComputePressure,
+  analyzeConvergence as rustAnalyzeConvergence,
+} from "./sgrsAdapter.js";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -30,14 +35,23 @@ export interface ConvergencePoint {
   dimension_scores: Record<string, number>;
   pressure: Record<string, number>;
   created_at: string;
+  context_seq?: number | null;
 }
 
 export interface ConvergenceState {
   /** Recent history (oldest first). */
   history: ConvergencePoint[];
-  /** Convergence rate α: >0 = converging, <0 = diverging, 0 = stalled. */
+  /** Convergence rate α (mixed): >0 = converging, <0 = diverging, 0 = stalled. Retained for backward compatibility. */
   convergence_rate: number;
-  /** Estimated rounds to reach auto-threshold. null if diverging or insufficient data. */
+  /** Intra-epoch α: convergence rate computed only between points with the same context_seq. */
+  alpha_intra: number;
+  /** Number of evidence injection boundaries (context_seq changes) in the history window. */
+  cross_epoch_count: number;
+  /** Average V(t) delta at evidence injection boundaries (positive = V increased = new contradictions). */
+  cross_epoch_v_delta_avg: number;
+  /** Dimensions where intra-epoch score has not improved in the last 5 evaluations. */
+  stalled_dimensions: string[];
+  /** Estimated rounds to reach auto-threshold using alpha_intra. null if not converging or insufficient data. */
   estimated_rounds: number | null;
   /** Goal score has been non-decreasing for β consecutive rounds. */
   is_monotonic: boolean;
@@ -70,6 +84,16 @@ export interface ConvergenceConfig {
   history_depth: number;
   /** Convergence rate below this triggers divergence alert (default -0.05). */
   divergence_rate: number;
+  /** Trajectory quality: penalty per direction change (default 0.12). */
+  q_direction_penalty: number;
+  /** Trajectory quality: max direction changes before capping (default 5). */
+  q_max_directions: number;
+  /** Trajectory quality: autocorrelation threshold for oscillation (default -0.3). */
+  q_autocorr_threshold: number;
+  /** Trajectory quality: cap when oscillation detected (default 0.65). */
+  q_oscillation_cap: number;
+  /** Trajectory quality: cap on spike-and-drop (default 0.85). */
+  q_spike_drop_cap: number;
 }
 
 /** Targets for each dimension — the values that constitute "perfect finality". */
@@ -87,6 +111,11 @@ export const DEFAULT_CONVERGENCE_CONFIG: ConvergenceConfig = {
   plateau_threshold: 0.01,
   history_depth: 20,
   divergence_rate: -0.05,
+  q_direction_penalty: 0.12,
+  q_max_directions: 5,
+  q_autocorr_threshold: -0.3,
+  q_oscillation_cap: 0.65,
+  q_spike_drop_cap: 0.85,
 };
 
 export const DEFAULT_FINALITY_TARGETS: FinalityTargets = {
@@ -108,20 +137,7 @@ export function computeDimensionScores(
   snapshot: FinalitySnapshot,
   config?: GoalGradientConfig,
 ): Record<string, number> {
-  const claimScore = Math.min(snapshot.claims_active_avg_confidence / 0.85, 1);
-  const contraScore =
-    snapshot.contradictions_total_count === 0
-      ? 1
-      : 1 - snapshot.contradictions_unresolved_count / snapshot.contradictions_total_count;
-  const goalScore = snapshot.goals_completion_ratio;
-  const riskScore = 1 - Math.min(snapshot.scope_risk_score, 1);
-
-  return {
-    claim_confidence: claimScore,
-    contradiction_resolution: contraScore,
-    goal_completion: goalScore,
-    risk_score_inverse: riskScore,
-  };
+  return rustComputeDimensionScores(snapshot, config);
 }
 
 /**
@@ -134,21 +150,7 @@ export function computeLyapunovV(
   targets: FinalityTargets = DEFAULT_FINALITY_TARGETS,
   weights?: GoalGradientConfig["weights"],
 ): number {
-  const w = weights ?? {
-    claim_confidence: 0.3,
-    contradiction_resolution: 0.3,
-    goal_completion: 0.25,
-    risk_score_inverse: 0.15,
-  };
-  const dims = computeDimensionScores(snapshot);
-
-  const v =
-    w.claim_confidence * (targets.claim_confidence - dims.claim_confidence) ** 2 +
-    w.contradiction_resolution * (targets.contradiction_resolution - dims.contradiction_resolution) ** 2 +
-    w.goal_completion * (targets.goal_completion - dims.goal_completion) ** 2 +
-    w.risk_score_inverse * (targets.risk_inverse - dims.risk_score_inverse) ** 2;
-
-  return Math.max(0, v);
+  return rustComputeLyapunovV(snapshot, targets, weights);
 }
 
 /**
@@ -159,20 +161,7 @@ export function computePressure(
   snapshot: FinalitySnapshot,
   weights?: GoalGradientConfig["weights"],
 ): Record<string, number> {
-  const w = weights ?? {
-    claim_confidence: 0.3,
-    contradiction_resolution: 0.3,
-    goal_completion: 0.25,
-    risk_score_inverse: 0.15,
-  };
-  const dims = computeDimensionScores(snapshot);
-
-  return {
-    claim_confidence: w.claim_confidence * Math.max(0, 1 - dims.claim_confidence),
-    contradiction_resolution: w.contradiction_resolution * Math.max(0, 1 - dims.contradiction_resolution),
-    goal_completion: w.goal_completion * Math.max(0, 1 - dims.goal_completion),
-    risk_score_inverse: w.risk_score_inverse * Math.max(0, 1 - dims.risk_score_inverse),
-  };
+  return rustComputePressure(snapshot, weights);
 }
 
 /**
@@ -185,178 +174,24 @@ export function analyzeConvergence(
   config: ConvergenceConfig = DEFAULT_CONVERGENCE_CONFIG,
   autoThreshold: number = 0.92,
 ): ConvergenceState {
-  const empty: ConvergenceState = {
-    history,
-    convergence_rate: 0,
-    estimated_rounds: null,
-    is_monotonic: false,
-    is_plateaued: false,
-    plateau_rounds: 0,
-    highest_pressure_dimension: "",
-    coordination_signal: null,
-    oscillation_detected: false,
-    trajectory_quality: 1,
-    autocorrelation_lag1: null,
-  };
-
-  if (history.length === 0) return empty;
-
-  const latest = history[history.length - 1];
-
-  // --- Highest pressure dimension ---
-  let maxPressure = -1;
-  let highestDim = "";
-  for (const [dim, p] of Object.entries(latest.pressure)) {
-    if (p > maxPressure) {
-      maxPressure = p;
-      highestDim = dim;
-    }
-  }
-
-  if (history.length === 1) {
-    return {
-      ...empty,
-      highest_pressure_dimension: highestDim,
-      coordination_signal: {
-        signal_type: "convergence",
-        value: undefined,
-        metadata: { highest_pressure_dimension: highestDim },
-      },
-    };
-  }
-
-  // --- Gate C: oscillation and trajectory quality (last N points) ---
-  const windowSize = Math.min(history.length, 10);
-  const scores = history.slice(-windowSize).map((p) => p.goal_score);
-  let directionChanges = 0;
-  for (let i = 1; i < scores.length; i++) {
-    const d = scores[i] - scores[i - 1];
-    if (i >= 2) {
-      const dPrev = scores[i - 1] - scores[i - 2];
-      if ((d > 0.001 && dPrev < -0.001) || (d < -0.001 && dPrev > 0.001)) directionChanges++;
-    }
-  }
-  let autocorrelationLag1: number | null = null;
-  if (scores.length >= 4) {
-    const lagged = scores.slice(1);
-    const current = scores.slice(0, -1);
-    const corr = sampleCorrelation(current, lagged);
-    autocorrelationLag1 = Number.isFinite(corr) ? corr : null;
-  }
-  const oscillationDetected =
-    directionChanges >= 2 ||
-    (autocorrelationLag1 !== null && autocorrelationLag1 < -0.3);
-  // Trajectory quality: 1 minus penalty for direction changes and oscillation
-  let trajectoryQuality = 1 - 0.12 * Math.min(directionChanges, 5);
-  if (oscillationDetected && autocorrelationLag1 !== null && autocorrelationLag1 < -0.3) {
-    trajectoryQuality = Math.min(trajectoryQuality, 0.65);
-  }
-  // Spike-and-drop: if latest score is well below max in window, reduce quality
-  const maxScore = Math.max(...scores);
-  if (scores.length >= 3 && maxScore - scores[scores.length - 1] > 0.05) {
-    trajectoryQuality = Math.min(trajectoryQuality, 0.85);
-  }
-  trajectoryQuality = Math.max(0, Math.min(1, trajectoryQuality));
-
-  // --- Convergence rate: α = -ln(V(t) / V(t-1)) averaged over recent pairs ---
-  const alphas: number[] = [];
-  const recentCount = Math.min(history.length, 5);
-  for (let i = history.length - recentCount; i < history.length; i++) {
-    if (i === 0) continue;
-    const vPrev = history[i - 1].lyapunov_v;
-    const vCurr = history[i].lyapunov_v;
-    if (vPrev > 1e-10) {
-      // Clamp ratio to avoid log(0) — if V reaches 0, that's perfect convergence
-      const ratio = Math.max(vCurr / vPrev, 1e-10);
-      alphas.push(-Math.log(ratio));
-    }
-  }
-  const avgAlpha = alphas.length > 0
-    ? alphas.reduce((a, b) => a + b, 0) / alphas.length
-    : 0;
-
-  // --- Estimated rounds to auto-threshold ---
-  // V at auto-threshold: we need goalScore >= autoThreshold.
-  // Approximate: V_target ≈ (1 - autoThreshold)² × totalWeight  (rough upper bound)
-  // More precise: use the actual V formula with dimension scores all at their threshold-matching values.
-  // For simplicity, we use a small epsilon target.
-  const currentV = latest.lyapunov_v;
-  const vEpsilon = 0.005; // V value below which we consider finality achievable
-  let estimatedRounds: number | null = null;
-  if (avgAlpha > 0.001 && currentV > vEpsilon) {
-    estimatedRounds = Math.ceil(-Math.log(vEpsilon / currentV) / avgAlpha);
-    // Sanity cap
-    if (estimatedRounds > 1000) estimatedRounds = null;
-  } else if (currentV <= vEpsilon) {
-    estimatedRounds = 0;
-  }
-
-  // --- Monotonicity gate: score non-decreasing for β consecutive rounds ---
-  let isMonotonic = false;
-  if (history.length >= config.beta) {
-    const window = history.slice(-config.beta);
-    isMonotonic = true;
-    for (let i = 1; i < window.length; i++) {
-      if (window[i].goal_score < window[i - 1].goal_score - 0.001) {
-        isMonotonic = false;
-        break;
-      }
-    }
-  }
-
-  // --- Plateau detection (MACI): EMA of progress ratio ---
-  let plateauRounds = 0;
-  if (history.length >= 2) {
-    let ema = 0;
-    let consecutivePlateau = 0;
-
-    for (let i = 1; i < history.length; i++) {
-      const delta = Math.max(0, history[i].goal_score - history[i - 1].goal_score);
-      const remainingGap = Math.max(autoThreshold - history[i].goal_score, 0.001);
-      const progressRatio = delta / remainingGap;
-
-      ema = config.ema_alpha * progressRatio + (1 - config.ema_alpha) * ema;
-
-      if (ema < config.plateau_threshold) {
-        consecutivePlateau++;
-      } else {
-        consecutivePlateau = 0;
-      }
-    }
-    plateauRounds = consecutivePlateau;
-  }
-
-  const isPlateaued = plateauRounds >= config.tau;
-
-  const coordination_signal: CoordinationSignal = {
-    signal_type: "convergence",
-    value: estimatedRounds ?? undefined,
-    metadata: {
-      highest_pressure_dimension: highestDim,
-      oscillation_detected: oscillationDetected,
-      trajectory_quality: trajectoryQuality,
-      autocorrelation_lag1: autocorrelationLag1 ?? undefined,
-    },
-  };
-
-  return {
-    history,
-    convergence_rate: avgAlpha,
-    estimated_rounds: estimatedRounds,
-    is_monotonic: isMonotonic,
-    is_plateaued: isPlateaued,
-    plateau_rounds: plateauRounds,
-    highest_pressure_dimension: highestDim,
-    coordination_signal,
-    oscillation_detected: oscillationDetected,
-    trajectory_quality: trajectoryQuality,
-    autocorrelation_lag1: autocorrelationLag1,
-  };
+  return rustAnalyzeConvergence(history, config, autoThreshold);
 }
 
 // ---------------------------------------------------------------------------
 // DB persistence
 // ---------------------------------------------------------------------------
+
+/** Gate state for experiment recording (Exp 1, Exp 3). */
+export interface ConvergenceGateState {
+  gate_a_monotonic?: boolean;
+  gate_b_evidence?: boolean;
+  gate_c_trajectory_ok?: boolean;
+  gate_d_quiescent?: boolean;
+  gate_e_has_content?: boolean;
+  finality_state?: string;
+  unresolved_contradictions?: number;
+  trajectory_quality?: number;
+}
 
 /**
  * Append a convergence point to the history table.
@@ -369,12 +204,51 @@ export async function recordConvergencePoint(
   dimensionScores: Record<string, number>,
   pressure: Record<string, number>,
   pool?: pg.Pool,
+  contextSeq?: number | null,
 ): Promise<void> {
   const p = pool ?? getPool();
   await p.query(
-    `INSERT INTO convergence_history (scope_id, epoch, goal_score, lyapunov_v, dimension_scores, pressure)
-     VALUES ($1, $2, $3, $4, $5::jsonb, $6::jsonb)`,
-    [scopeId, epoch, goalScore, lyapunovV, JSON.stringify(dimensionScores), JSON.stringify(pressure)],
+    `INSERT INTO convergence_history (scope_id, epoch, goal_score, lyapunov_v, dimension_scores, pressure, context_seq)
+     VALUES ($1, $2, $3, $4, $5::jsonb, $6::jsonb, $7)`,
+    [scopeId, epoch, goalScore, lyapunovV, JSON.stringify(dimensionScores), JSON.stringify(pressure), contextSeq ?? null],
+  );
+}
+
+/**
+ * Update the most recent convergence row with gate state (Exp 1, Exp 3).
+ * Call after getConvergenceState when gate values are known.
+ */
+export async function updateConvergenceGateState(
+  scopeId: string,
+  epoch: number,
+  gates: ConvergenceGateState,
+  pool?: pg.Pool,
+): Promise<void> {
+  const p = pool ?? getPool();
+  await p.query(
+    `UPDATE convergence_history SET
+       gate_a_monotonic = COALESCE($3, gate_a_monotonic),
+       gate_b_evidence = COALESCE($4, gate_b_evidence),
+       gate_c_trajectory_ok = COALESCE($5, gate_c_trajectory_ok),
+       gate_d_quiescent = COALESCE($6, gate_d_quiescent),
+       gate_e_has_content = COALESCE($7, gate_e_has_content),
+       finality_state = COALESCE($8, finality_state),
+       unresolved_contradictions = COALESCE($9, unresolved_contradictions),
+       trajectory_quality = COALESCE($10, trajectory_quality)
+     WHERE scope_id = $1 AND epoch = $2
+       AND id = (SELECT id FROM convergence_history WHERE scope_id = $1 AND epoch = $2 ORDER BY created_at DESC LIMIT 1)`,
+    [
+      scopeId,
+      epoch,
+      gates.gate_a_monotonic ?? null,
+      gates.gate_b_evidence ?? null,
+      gates.gate_c_trajectory_ok ?? null,
+      gates.gate_d_quiescent ?? null,
+      gates.gate_e_has_content ?? null,
+      gates.finality_state ?? null,
+      gates.unresolved_contradictions ?? null,
+      gates.trajectory_quality ?? null,
+    ],
   );
 }
 
@@ -388,7 +262,7 @@ export async function loadConvergenceHistory(
 ): Promise<ConvergencePoint[]> {
   const p = pool ?? getPool();
   const res = await p.query(
-    `SELECT epoch, goal_score, lyapunov_v, dimension_scores, pressure, created_at
+    `SELECT epoch, goal_score, lyapunov_v, dimension_scores, pressure, created_at, context_seq
      FROM convergence_history
      WHERE scope_id = $1
      ORDER BY created_at DESC
@@ -403,6 +277,7 @@ export async function loadConvergenceHistory(
     dimension_scores: (r.dimension_scores as Record<string, number>) ?? {},
     pressure: (r.pressure as Record<string, number>) ?? {},
     created_at: String(r.created_at),
+    context_seq: r.context_seq != null ? Number(r.context_seq) : null,
   }));
 }
 

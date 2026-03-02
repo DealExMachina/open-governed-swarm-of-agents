@@ -23,6 +23,7 @@ vi.mock("../../src/semanticGraph.js", () => ({
 // Mock convergence tracker for convergence-gate tests
 const mockRecordConvergencePoint = vi.fn().mockResolvedValue(undefined);
 const mockGetConvergenceState = vi.fn().mockRejectedValue(new Error("no table"));
+const mockUpdateConvergenceGateState = vi.fn().mockResolvedValue(undefined);
 vi.mock("../../src/convergenceTracker.js", () => ({
   computeLyapunovV: vi.fn(() => 0.01),
   computePressure: vi.fn(() => ({
@@ -33,6 +34,7 @@ vi.mock("../../src/convergenceTracker.js", () => ({
   })),
   recordConvergencePoint: (...args: unknown[]) => mockRecordConvergencePoint(...args),
   getConvergenceState: (...args: unknown[]) => mockGetConvergenceState(...args),
+  updateConvergenceGateState: (...args: unknown[]) => mockUpdateConvergenceGateState(...args),
   DEFAULT_CONVERGENCE_CONFIG: {
     beta: 3, tau: 3, ema_alpha: 0.3, plateau_threshold: 0.01,
     history_depth: 20, divergence_rate: -0.05,

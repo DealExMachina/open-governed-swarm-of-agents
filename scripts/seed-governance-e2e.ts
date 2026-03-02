@@ -58,8 +58,9 @@ async function ensureState(pool: pg.Pool): Promise<void> {
 }
 
 async function ensureDrift(s3: Awaited<ReturnType<typeof makeS3>>): Promise<void> {
-  await s3PutJson(s3, BUCKET, "drift/latest.json", { level: "high", types: [] });
-  console.log("Drift set to high (blocks DriftChecked -> ContextIngested per governance.yaml)");
+  const driftLevel = process.env.SEED_DRIFT_LEVEL ?? "high";
+  await s3PutJson(s3, BUCKET, "drift/latest.json", { level: driftLevel, types: ["contradiction"] });
+  console.log(`Drift set to ${driftLevel} (${driftLevel === "high" ? "blocks" : "flags"} DriftChecked -> ContextIngested per governance.yaml)`);
 }
 
 function proposal(

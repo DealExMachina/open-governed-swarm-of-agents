@@ -354,6 +354,20 @@ export async function queryEdges(opts: QueryEdgesOptions): Promise<SemanticEdge[
  * Single-query aggregation for finality evaluation. Returns scope-level aggregates.
  */
 export async function loadFinalitySnapshot(scopeId: string): Promise<FinalitySnapshot> {
+  const startMs = Date.now();
+  try {
+    return await loadFinalitySnapshotImpl(scopeId);
+  } finally {
+    try {
+      const { recordSemanticGraphQueryMs } = await import("./metrics.js");
+      recordSemanticGraphQueryMs("loadFinalitySnapshot", Date.now() - startMs);
+    } catch {
+      /* no-op */
+    }
+  }
+}
+
+async function loadFinalitySnapshotImpl(scopeId: string): Promise<FinalitySnapshot> {
   const p = getPool();
   const nodeRes = await p.query(
     `SELECT
@@ -601,8 +615,21 @@ async function matchGoalsWithLLM(
   });
 
   if (!res.ok) throw new Error(`LLM ${res.status}`);
-  const data = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
+  const data = (await res.json()) as {
+    choices?: Array<{ message?: { content?: string } }>;
+    usage?: { prompt_tokens?: number; completion_tokens?: number };
+  };
   const text = data.choices?.[0]?.message?.content ?? "";
+  const usage = data.usage;
+  if (usage) {
+    try {
+      const { recordLLMTokens } = await import("./metrics.js");
+      recordLLMTokens("resolution", "input", usage.prompt_tokens ?? 0, config?.id);
+      recordLLMTokens("resolution", "output", usage.completion_tokens ?? 0, config?.id);
+    } catch {
+      /* no-op */
+    }
+  }
 
   const jsonMatch = text.match(/\[[\s\S]*\]/);
   if (!jsonMatch) throw new Error("No JSON array in LLM response");

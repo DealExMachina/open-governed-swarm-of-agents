@@ -5,6 +5,8 @@ import {
   recordAgentLatency,
   recordAgentError,
   recordGovernanceLoopMs,
+  recordPressureDirectedActivation,
+  recordSemanticGraphQueryMs,
   _resetSwarmMetrics,
 } from "../../src/metrics.js";
 import { initTelemetry } from "../../src/telemetry.js";
@@ -37,5 +39,14 @@ describe("metrics", () => {
 
   it("recordGovernanceLoopMs does not throw", () => {
     expect(() => recordGovernanceLoopMs(150)).not.toThrow();
+  });
+
+  it("recordPressureDirectedActivation does not throw", () => {
+    expect(() => recordPressureDirectedActivation("facts", true, "claim_confidence")).not.toThrow();
+    expect(() => recordPressureDirectedActivation("drift", false, "unknown")).not.toThrow();
+  });
+
+  it("recordSemanticGraphQueryMs does not throw", () => {
+    expect(() => recordSemanticGraphQueryMs("loadFinalitySnapshot", 42)).not.toThrow();
   });
 });

@@ -1,6 +1,6 @@
 # Validation and Test Coverage
 
-> Back to [README](../README.md) | See also [STATUS.md](../STATUS.md)
+> Back to [README](../README.md) | See also [STATUS.md](../STATUS.md), [experiments.md](experiments.md)
 
 This document provides an honest accounting of what is tested, what is validated
 mathematically, and what remains theoretical or unverified. The goal is
@@ -270,3 +270,21 @@ validation** and represent known gaps:
 
 10. **Migration rollback untested.** Migrations are applied forward only. There
     are no down migrations and no tests for schema rollback.
+
+---
+
+## 8. Proposed experiments
+
+The paper (Section 9) defines five experimental protocols designed to address
+open questions---particularly those identified by SECP. These experiments are
+**defined** in the paper but **implementation scripts** remain to be built:
+
+| Experiment | Goal | Issue |
+|------------|------|-------|
+| 1. Convergence dynamics | Multi-iteration V(t) trajectories, varying contradiction density | [#12](https://github.com/DealExMachina/swarm-of-governed-agents/issues/12) |
+| 2. Scalability | Vary claims, contradictions, agents; measure rounds, tokens, audit events | [#13](https://github.com/DealExMachina/swarm-of-governed-agents/issues/13) |
+| 3. Finality robustness | Adversarial evidence (spike-and-drop, oscillation, stale) | [#14](https://github.com/DealExMachina/swarm-of-governed-agents/issues/14) |
+| 4. Multi-level governance | L1/L2/L3 escalation, decision distribution | [#15](https://github.com/DealExMachina/swarm-of-governed-agents/issues/15) |
+| 5. Coverage-autonomy trade-off | YOLO vs MITL vs MASTER on identical document set | [#16](https://github.com/DealExMachina/swarm-of-governed-agents/issues/16) |
+
+See [experiments.md](experiments.md) for full protocol details.

@@ -27,3 +27,13 @@ publication/*.blg
 publication/*.log
 publication/*.out
 publication/*.synctex.gz
+
+# Experiment results (generated)
+docs/experiments/*/results/
+
+# Rust / sgrs-core build artifacts
+sgrs-core/target/
+sgrs-core/*.node
+sgrs-core/index.js
+sgrs-core/index.d.ts
+sgrs-core/node_modules/
