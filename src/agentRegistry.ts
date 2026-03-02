@@ -1,9 +1,9 @@
 import type { Node } from "./stateGraph.js";
 
-export type AgentRole = "facts" | "drift" | "planner" | "status" | "tuner";
+export type AgentRole = "facts" | "drift" | "resolver" | "planner" | "status" | "tuner";
 
 /** Legacy job type for executor and backward compatibility. */
-export type JobType = "extract_facts" | "check_drift" | "plan_actions" | "summarize_status" | "optimize_filters";
+export type JobType = "extract_facts" | "check_drift" | "resolve_contradictions" | "plan_actions" | "summarize_status" | "optimize_filters";
 
 export interface AgentSpec {
   role: AgentRole;
@@ -52,6 +52,16 @@ export const AGENT_SPECS: AgentSpec[] = [
     proposesAdvance: true,
     advancesTo: "ContextIngested",
     resultEventType: "actions_planned",
+  },
+  {
+    role: "resolver",
+    capabilities: ["resolve_contradictions"],
+    jobType: "resolve_contradictions",
+    requiresNode: null,
+    targetNode: "DriftChecked",
+    proposesAdvance: false,
+    advancesTo: null,
+    resultEventType: "contradictions_resolved",
   },
   {
     role: "status",

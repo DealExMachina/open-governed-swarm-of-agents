@@ -67,16 +67,13 @@ export function getGovernanceForScope(scopeId: string, config: GovernanceConfig)
   };
 }
 
+import {
+  evaluateRules as rustEvaluateRules,
+  canTransition as rustCanTransition,
+} from "./sgrsAdapter.js";
+
 export function evaluateRules(drift: DriftInput, config: GovernanceConfig): string[] {
-  const actions: string[] = [];
-  for (const rule of config.rules) {
-    const levelMatch = rule.when.drift_level.includes(drift.level);
-    const typeMatch = drift.types.includes(rule.when.drift_type);
-    if (levelMatch && typeMatch) {
-      actions.push(rule.action);
-    }
-  }
-  return actions;
+  return rustEvaluateRules(drift, config);
 }
 
 export function canTransition(
@@ -85,13 +82,5 @@ export function canTransition(
   drift: DriftInput,
   config: GovernanceConfig,
 ): TransitionDecision {
-  const tRules = config.transition_rules ?? [];
-  for (const rule of tRules) {
-    if (rule.from === from && rule.to === to) {
-      if (rule.block_when.drift_level.includes(drift.level)) {
-        return { allowed: false, reason: rule.reason };
-      }
-    }
-  }
-  return { allowed: true, reason: "no blocking rule" };
+  return rustCanTransition(from, to, drift, config);
 }

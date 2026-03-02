@@ -61,6 +61,16 @@ function createFactsTools(
       drift: z.record(z.unknown()),
     }),
     execute: async ({ context }) => {
+      // Read resolved contradictions from S3 so facts-worker avoids re-extracting them
+      let resolvedContradictions: string[] = [];
+      try {
+        const resRaw = await s3GetText(s3, bucket, "resolutions/latest.json");
+        if (resRaw) {
+          const parsed = JSON.parse(resRaw) as { resolved_contradictions?: Array<{ content: string }> };
+          resolvedContradictions = (parsed.resolved_contradictions ?? []).map((r) => r.content);
+        }
+      } catch { /* no resolutions yet */ }
+
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), FACTS_WORKER_TIMEOUT_MS);
       try {
@@ -70,6 +80,7 @@ function createFactsTools(
           body: JSON.stringify({
             context: context.context,
             previous_facts: context.previous_facts,
+            resolved_contradictions: resolvedContradictions,
           }),
           signal: controller.signal,
         });

@@ -48,7 +48,7 @@ describe("loadHatcheryConfig", () => {
   it("includes all expected roles", () => {
     const cfg = loadHatcheryConfig();
     const roles = Object.keys(cfg.roles).sort();
-    expect(roles).toEqual(["drift", "executor", "facts", "governance", "planner", "status", "tuner"]);
+    expect(roles).toEqual(["drift", "executor", "facts", "governance", "planner", "resolver", "status", "tuner"]);
   });
 
   it("per-role heartbeat timeouts are calibrated to agent latency", () => {

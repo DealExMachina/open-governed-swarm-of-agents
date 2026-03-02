@@ -94,6 +94,14 @@ const DEFAULT_FILTERS: Record<string, Omit<FilterConfig, "updatedAt">> = {
     version: 0,
     updatedBy: "system",
   },
+  resolver: {
+    agentRole: "resolver",
+    type: "hash_delta",
+    params: { field: "drift/latest.json", sensitivity: "structural", cooldownMs: 10000 },
+    stats: { activations: 0, productive: 0, wasted: 0, avgLatencyMs: 0, lastActivatedAt: null },
+    version: 0,
+    updatedBy: "system",
+  },
   planner: {
     agentRole: "planner",
     type: "hash_delta",

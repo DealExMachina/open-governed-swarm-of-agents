@@ -29,6 +29,7 @@ export interface HatcheryConfig {
 export const ROLE_TO_DIMENSIONS: Record<string, string[]> = {
   facts: ["claim_confidence"],
   drift: ["contradiction_resolution"],
+  resolver: ["contradiction_resolution"],
   planner: ["goal_completion"],
   status: ["risk_inverse"],
   governance: ["claim_confidence", "contradiction_resolution", "goal_completion", "risk_inverse"],
@@ -49,6 +50,11 @@ const DEFAULT_ROLE_CONFIGS: Record<string, RoleScalingConfig> = {
   },
   planner: {
     minInstances: 1, maxInstances: 4, subject: "swarm.events.>", category: "worker",
+    targetUtilization: 0.75, lagThreshold: 50, activationLagThreshold: 10,
+    heartbeatTimeoutMs: 90_000, drainGracePeriodMs: 70_000,
+  },
+  resolver: {
+    minInstances: 1, maxInstances: 2, subject: "swarm.events.>", category: "worker",
     targetUtilization: 0.75, lagThreshold: 50, activationLagThreshold: 10,
     heartbeatTimeoutMs: 90_000, drainGracePeriodMs: 70_000,
   },
