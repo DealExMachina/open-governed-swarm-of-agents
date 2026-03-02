@@ -41,7 +41,7 @@ Governed agent swarm: event-driven agents (facts, drift, planner, status) consum
 - Governance rules (`governance.yaml`), **policy engine** (YAML default; OPA-WASM when `OPA_WASM_PATH` is set—build with `pnpm run build:opa`), **decision records** persisted to `decision_records` with policy version hash, **obligation enforcer** (executeObligations after each decision), **combining algorithms** (denyOverrides, firstApplicable). OpenFGA policy checks. MITL server (approve/reject/options, **GET /finality-certificate/:scope_id**).
 - Facts agent: readContext -> facts-worker `/extract` -> writeFacts to S3. Direct pipeline and optional Mastra orchestration.
 - Feed server (port 3002): observability dashboard + API. Summary (policy_version, finality_certificate, convergence with trajectory_quality/oscillation_detected), POST context/docs, POST context/resolution, **GET /convergence?scope=** for convergence state. HTML dashboard shows KPIs, service health, convergence bars, live SSE events, and links to Grafana/Prometheus.
-- Docker Compose: Postgres (pgvector image), MinIO, NATS, facts-worker, OpenFGA, feed, otel-collector, Prometheus, Grafana.
+- Docker Compose: Postgres (pgvector image), MinIO, NATS, facts-worker, OpenFGA, feed, otel-collector, Prometheus, Grafana. Grafana dashboards: **Swarm Governance** (proposals, agent latency, governance loop) and **SGRS Core** (sgrs-core Rust call latency and rate by operation).
 
 **Finality and semantic layer**
 

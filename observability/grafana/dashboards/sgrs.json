@@ -1,0 +1,126 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "title": "SGRS call latency (avg ms) by operation",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": { "unit": "ms", "color": { "mode": "palette-classic" }, "custom": { "lineWidth": 2, "fillOpacity": 10 } },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "expr": "rate(swarm_swarm_sgrs_call_ms_sum[5m]) / rate(swarm_swarm_sgrs_call_ms_count[5m])",
+          "legendFormat": "{{operation}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "SGRS call rate (calls/s) by operation",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": { "unit": "reqps", "color": { "mode": "palette-classic" }, "custom": { "lineWidth": 2, "fillOpacity": 10 } },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "expr": "rate(swarm_swarm_sgrs_call_ms_count[5m])",
+          "legendFormat": "{{operation}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "SGRS latency p50 / p95 / p99 by operation",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": { "unit": "ms", "color": { "mode": "palette-classic" }, "custom": { "lineWidth": 2, "fillOpacity": 5 } },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(swarm_swarm_sgrs_call_ms_bucket[5m])) by (le, operation))",
+          "legendFormat": "p50 {{operation}}",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(swarm_swarm_sgrs_call_ms_bucket[5m])) by (le, operation))",
+          "legendFormat": "p95 {{operation}}",
+          "refId": "B"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(swarm_swarm_sgrs_call_ms_bucket[5m])) by (le, operation))",
+          "legendFormat": "p99 {{operation}}",
+          "refId": "C"
+        }
+      ]
+    },
+    {
+      "title": "SGRS total calls by operation (1h)",
+      "type": "bargauge",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" }, "min": 0 },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "expr": "increase(swarm_swarm_sgrs_call_ms_count[1h])",
+          "legendFormat": "{{operation}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "SGRS avg latency (current) by operation",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 16 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": { "unit": "ms", "color": { "mode": "thresholds" }, "thresholds": { "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 5 }, { "color": "red", "value": 50 }] } },
+        "overrides": []
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "orientation": "auto", "textMode": "value_and_name", "colorMode": "value", "graphMode": "area", "justifyMode": "auto" },
+      "targets": [
+        {
+          "expr": "sum(rate(swarm_swarm_sgrs_call_ms_sum[5m])) by (operation) / sum(rate(swarm_swarm_sgrs_call_ms_count[5m])) by (operation)",
+          "legendFormat": "{{operation}}",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["swarm", "sgrs", "rust"],
+  "templating": {
+    "list": [
+      {
+        "current": { "selected": true, "text": "Prometheus", "value": "prometheus" },
+        "hide": 0,
+        "includeAll": false,
+        "name": "DS_PROMETHEUS",
+        "query": "prometheus",
+        "type": "datasource"
+      }
+    ]
+  },
+  "time": { "from": "now-30m", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "SGRS Core (Rust native)",
+  "uid": "sgrs-core",
+  "version": 1
+}
