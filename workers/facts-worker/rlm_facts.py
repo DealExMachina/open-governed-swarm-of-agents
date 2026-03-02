@@ -22,7 +22,7 @@ def _get_model_info() -> Tuple[str, str]:
     return os.getenv("OPENAI_MODEL", "gpt-4o-mini"), "openai"
 
 
-def _call_llm(prompt_context: str, prompt_previous: str) -> str:
+def _call_llm(prompt_context: str, prompt_previous: str, resolved_contradictions: Optional[List[str]] = None) -> str:
     """Call an OpenAI-compatible chat/completions endpoint. Uses Ollama when OLLAMA_BASE_URL is set."""
     from openai import OpenAI
 
@@ -42,13 +42,22 @@ def _call_llm(prompt_context: str, prompt_previous: str) -> str:
         )
         model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 
+    resolved_section = ""
+    if resolved_contradictions:
+        resolved_list = "\n".join(f"  - {c}" for c in resolved_contradictions[:20])
+        resolved_section = f"""
+
+Previously resolved contradictions (DO NOT re-extract these; they have been addressed):
+{resolved_list}
+"""
+
     user_content = f"""Context (recent events as JSON):
 {prompt_context}
 
 Previous facts (JSON):
 {prompt_previous}
-
-Extract structured facts. Reply with a single JSON object only (no markdown, no explanation) with these keys: entities (list of strings), claims (list), risks (list), assumptions (list), contradictions (list), goals (list), confidence (float 0-1)."""
+{resolved_section}
+Extract structured facts. Reply with a single JSON object only (no markdown, no explanation) with these keys: entities (list of strings), claims (list), risks (list), assumptions (list), contradictions (list), goals (list), confidence (float 0-1). Only include contradictions that are genuinely NEW and unresolved. Do not include contradictions listed above as resolved."""
     resp = client.chat.completions.create(
         model=model,
         messages=[{"role": "user", "content": user_content}],
@@ -359,6 +368,7 @@ def _to_string_list(val: Any) -> List[str]:
 def extract_facts_and_drift(
     context: List[Dict[str, Any]],
     previous_facts: Optional[Dict[str, Any]],
+    resolved_contradictions: Optional[List[str]] = None,
 ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     context_limited = _truncate_context_for_prompt(context, EXTRACTION_CONTEXT_MAX_CHARS)
 
@@ -369,7 +379,7 @@ def extract_facts_and_drift(
     gliner_entities: List[str] = _extract_entities_gliner(context_limited)
 
     # LLM extraction (OpenAI API or Ollama)
-    facts_json_str = _call_llm(prompt_context, prompt_previous)
+    facts_json_str = _call_llm(prompt_context, prompt_previous, resolved_contradictions)
 
     # Parse JSON (strip optional markdown code fence)
     raw = facts_json_str.strip()

@@ -18,6 +18,7 @@ import { logger } from "./logger.js";
 import { recordAgentLatency, recordAgentError } from "./metrics.js";
 import { runFactsAgent } from "./agents/factsAgent.js";
 import { runDriftAgent } from "./agents/driftAgent.js";
+import { runResolverAgent } from "./agents/resolverAgent.js";
 import { runPlannerAgent } from "./agents/plannerAgent.js";
 import { runStatusAgent } from "./agents/statusAgent.js";
 import type { AgentSpec } from "./agentRegistry.js";
@@ -25,6 +26,7 @@ import type { AgentSpec } from "./agentRegistry.js";
 const JOB_RUNNERS: Record<string, (s3: S3Client, bucket: string, payload: Record<string, unknown>) => Promise<unknown>> = {
   extract_facts: runFactsAgent,
   check_drift: runDriftAgent,
+  resolve_contradictions: runResolverAgent,
   plan_actions: runPlannerAgent,
   summarize_status: runStatusAgent,
 };

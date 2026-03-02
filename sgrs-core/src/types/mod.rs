@@ -72,6 +72,24 @@ impl GovernanceLevel {
             Self::Yolo => 2,
         }
     }
+
+    /// Parse from string (case-insensitive).
+    pub fn from_str(s: &str) -> Self {
+        match s.to_uppercase().as_str() {
+            "MASTER" => Self::Master,
+            "MITL" => Self::Mitl,
+            "YOLO" => Self::Yolo,
+            _ => Self::Master, // most restrictive default
+        }
+    }
+
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Master => "MASTER",
+            Self::Mitl => "MITL",
+            Self::Yolo => "YOLO",
+        }
+    }
 }
 
 impl PartialOrd for GovernanceLevel {

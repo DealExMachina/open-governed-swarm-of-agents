@@ -10,6 +10,7 @@ import { s3GetText } from "../s3.js";
 import { loadState } from "../stateGraph.js";
 import { loadPolicies, getGovernanceForScope } from "../governance.js";
 import { createYamlPolicyEngine, type PolicyEngine } from "../policyEngine.js";
+import { evaluateKernel } from "../sgrsAdapter.js";
 import { getGovernancePolicyVersion } from "../policyVersions.js";
 import { persistDecisionRecord } from "../decisionRecorder.js";
 import { executeObligations } from "../obligationEnforcer.js";
@@ -509,44 +510,56 @@ export async function evaluateProposalDeterministic(
   const govPath = process.env.GOVERNANCE_PATH ?? join(process.cwd(), "governance.yaml");
   const governance = getGovernanceForScope(SCOPE_ID, loadPolicies(govPath));
 
-  if (mode === "MASTER") {
-    const policyVersion = getGovernancePolicyVersion(govPath);
-    const record: import("../policyEngine.js").DecisionRecord = {
-      decision_id: randomUUID(),
-      timestamp: new Date().toISOString(),
-      policy_version: policyVersion,
-      result: "allow",
-      reason: "master_override",
-      obligations: [],
-      binding: "yaml",
-    };
+  // All modes (YOLO, MITL, MASTER) flow through the reduction kernel.
+  // MASTER no longer auto-approves — it is the most restrictive mode.
+  const policyVersion = getGovernancePolicyVersion(govPath);
+  const kernelOutput = evaluateKernel(
+    {
+      from_state: from,
+      to_state: to,
+      drift_level: drift.level,
+      drift_types: drift.types,
+      mode: mode ?? "YOLO",
+    },
+    governance,
+  );
+
+  const record: import("../policyEngine.js").DecisionRecord = {
+    decision_id: randomUUID(),
+    timestamp: new Date().toISOString(),
+    policy_version: policyVersion,
+    result: kernelOutput.verdict === "reject" ? "deny" : "allow",
+    reason: kernelOutput.reason,
+    obligations: [],
+    binding: "yaml",
+    suggested_actions: kernelOutput.suggested_actions,
+  };
+
+  if (kernelOutput.verdict === "reject") {
     return {
-      outcome: "approve",
-      reason: "master_override",
+      outcome: "reject",
+      reason: kernelOutput.reason,
       record,
       actionPayload: { expectedEpoch, runId: state.runId, from, to },
     };
   }
 
-  const policyVersion = getGovernancePolicyVersion(govPath);
-  const engine: PolicyEngine = createYamlPolicyEngine(governance, policyVersion);
-  const policyContext = {
-    scope_id: SCOPE_ID,
-    from_state: from,
-    to_state: to,
-    drift_level: drift.level,
-    drift_types: drift.types,
-  };
-  const policyResult = await engine.evaluate(policyContext);
-  await executeObligations(policyResult.record.obligations ?? []);
-  if (!policyResult.allowed) {
+  if (kernelOutput.verdict === "escalate") {
     // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/af5b746e-3a32-49ef-92b2-aa2d9876cfd3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'governanceAgent:evaluateProposal',message:'drift-block-escalated-to-HITL',data:{from,to,drift_level:drift.level,drift_types:drift.types,reason:policyResult.record.reason,expectedEpoch},timestamp:Date.now()})}).catch(()=>{});
+    fetch('http://127.0.0.1:7243/ingest/af5b746e-3a32-49ef-92b2-aa2d9876cfd3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'governanceAgent:evaluateProposal',message:'kernel-escalation',data:{from,to,drift_level:drift.level,drift_types:drift.types,reason:kernelOutput.reason,expectedEpoch},timestamp:Date.now()})}).catch(()=>{});
     // #endregion
+    if (kernelOutput.reason === "mitl_required") {
+      return {
+        outcome: "pending",
+        reason: "mitl_required",
+        record,
+        actionPayload: { expectedEpoch, runId: state.runId, from, to },
+      };
+    }
     return {
       outcome: "pending",
-      reason: policyResult.record.reason,
-      record: policyResult.record,
+      reason: kernelOutput.reason,
+      record,
       actionPayload: {
         expectedEpoch,
         runId: state.runId,
@@ -555,26 +568,18 @@ export async function evaluateProposalDeterministic(
         type: "governance_review",
         drift_level: drift.level,
         drift_types: drift.types,
-        block_reason: policyResult.record.reason,
+        block_reason: kernelOutput.reason,
       },
     };
   }
 
+  // Kernel accepted — still need ACL check
   const permissionResult = await checkPermission(agent, "writer", target_node);
   if (!permissionResult.allowed) {
     return {
       outcome: "reject",
       reason: permissionResult.error ?? "policy_denied",
-      record: policyResult.record,
-      actionPayload: { expectedEpoch, runId: state.runId, from, to },
-    };
-  }
-
-  if (mode === "MITL") {
-    return {
-      outcome: "pending",
-      reason: "mitl_required",
-      record: policyResult.record,
+      record,
       actionPayload: { expectedEpoch, runId: state.runId, from, to },
     };
   }
@@ -582,7 +587,7 @@ export async function evaluateProposalDeterministic(
   return {
     outcome: "approve",
     reason: "policy_passed",
-    record: policyResult.record,
+    record,
     actionPayload: { expectedEpoch, runId: state.runId, from, to },
   };
 }

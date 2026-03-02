@@ -36,6 +36,7 @@ _busy = False
 class ExtractReq(BaseModel):
     context: List[Dict[str, Any]]
     previous_facts: Optional[Dict[str, Any]] = None
+    resolved_contradictions: Optional[List[str]] = None
 
 
 @app.get("/health")
@@ -68,7 +69,7 @@ def extract(req: ExtractReq):
     global _busy
     _busy = True
     try:
-        facts, drift = extract_facts_and_drift(req.context, req.previous_facts)
+        facts, drift = extract_facts_and_drift(req.context, req.previous_facts, req.resolved_contradictions)
         return {"facts": facts, "drift": drift}
     except Exception as e:
         msg = str(e)

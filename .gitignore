@@ -17,6 +17,8 @@ venv/
 # IDE and OS
 .idea/
 .vscode/
+.cursor/
+.claude/
 .DS_Store
 *.log
 
@@ -37,3 +39,4 @@ sgrs-core/*.node
 sgrs-core/index.js
 sgrs-core/index.d.ts
 sgrs-core/node_modules/
+sgrs-core/package-lock.json

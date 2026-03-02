@@ -2,6 +2,10 @@ import { readFileSync } from "fs";
 import { join } from "path";
 import { parse as parseYaml } from "yaml";
 import { getFinalityThresholds } from "./modelConfig.js";
+import {
+  computeGoalScore as rustComputeGoalScore,
+  evaluateOne as rustEvaluateOne,
+} from "./sgrsAdapter.js";
 
 /** Severity/materiality for contradiction mass (Gate B). */
 export type ContradictionSeverity = "low" | "medium" | "high" | "material";
@@ -164,53 +168,7 @@ function parseCondition(condition: string): { key: string; op: string; value: nu
 }
 
 function evaluateOne(condition: string, snapshot: FinalitySnapshot): boolean {
-  const { key, op, value } = parseCondition(condition);
-  let actual: number;
-  switch (key) {
-    case "claims.active.min_confidence":
-      actual = snapshot.claims_active_min_confidence;
-      break;
-    case "contradictions.unresolved_count":
-      actual = snapshot.contradictions_unresolved_count;
-      break;
-    case "risks.critical.active_count":
-      actual = snapshot.risks_critical_active_count;
-      break;
-    case "goals.completion_ratio":
-      actual = snapshot.goals_completion_ratio;
-      break;
-    case "scope.risk_score":
-      actual = snapshot.scope_risk_score;
-      break;
-    case "scope.idle_cycles":
-      actual = snapshot.scope_idle_cycles ?? 0;
-      break;
-    case "scope.last_delta_age_ms":
-      actual = snapshot.scope_last_delta_age_ms ?? 0;
-      break;
-    case "scope.last_active_age_ms":
-      actual = snapshot.scope_last_active_age_ms ?? 0;
-      break;
-    case "assessments.critical_unaddressed_count":
-      actual = snapshot.assessments_critical_unaddressed_count ?? 0;
-      break;
-    default:
-      return false;
-  }
-  switch (op) {
-    case ">=":
-      return actual >= value;
-    case "<=":
-      return actual <= value;
-    case ">":
-      return actual > value;
-    case "<":
-      return actual < value;
-    case "==":
-      return actual === value;
-    default:
-      return actual >= value;
-  }
+  return rustEvaluateOne(condition, snapshot);
 }
 
 /**
@@ -218,22 +176,7 @@ function evaluateOne(condition: string, snapshot: FinalitySnapshot): boolean {
  * Formula: claim_confidence * w1 + contradiction_resolution * w2 + goal_completion * w3 + risk_inverse * w4.
  */
 export function computeGoalScore(snapshot: FinalitySnapshot, config?: GoalGradientConfig): number {
-  const w = config?.weights ?? {
-    claim_confidence: 0.3,
-    contradiction_resolution: 0.3,
-    goal_completion: 0.25,
-    risk_score_inverse: 0.15,
-  };
-  const clampedRatio = (val: number, target: number) => Math.min(val / target, 1);
-  const claimPart = clampedRatio(snapshot.claims_active_avg_confidence, 0.85) * (w.claim_confidence ?? 0.3);
-  const contradictionPart =
-    (snapshot.contradictions_total_count === 0
-      ? 1
-      : 1 - snapshot.contradictions_unresolved_count / snapshot.contradictions_total_count) *
-    (w.contradiction_resolution ?? 0.3);
-  const goalPart = snapshot.goals_completion_ratio * (w.goal_completion ?? 0.25);
-  const riskPart = (1 - Math.min(snapshot.scope_risk_score, 1)) * (w.risk_score_inverse ?? 0.15);
-  return Math.min(1, Math.max(0, claimPart + contradictionPart + goalPart + riskPart));
+  return rustComputeGoalScore(snapshot, config);
 }
 
 /**
