@@ -9,6 +9,9 @@ let policyViolationCount: ReturnType<ReturnType<typeof getMeter>["createCounter"
 let agentLatencyHistogram: ReturnType<ReturnType<typeof getMeter>["createHistogram"]> | null = null;
 let agentErrorCount: ReturnType<ReturnType<typeof getMeter>["createCounter"]> | null = null;
 let governanceLoopHistogram: ReturnType<ReturnType<typeof getMeter>["createHistogram"]> | null = null;
+let llmTokensCounter: ReturnType<ReturnType<typeof getMeter>["createCounter"]> | null = null;
+let semanticGraphQueryHistogram: ReturnType<ReturnType<typeof getMeter>["createHistogram"]> | null = null;
+let pressureDirectedCounter: ReturnType<ReturnType<typeof getMeter>["createCounter"]> | null = null;
 
 function ensureInstruments() {
   const meter = getMeter();
@@ -41,6 +44,62 @@ function ensureInstruments() {
       description: "Governance proposal handling latency",
       unit: "ms",
     });
+  }
+  if (llmTokensCounter == null) {
+    llmTokensCounter = meter.createCounter("swarm.llm.tokens", {
+      description: "LLM token consumption by role and direction",
+      unit: "1",
+    });
+  }
+  if (semanticGraphQueryHistogram == null) {
+    semanticGraphQueryHistogram = meter.createHistogram("swarm.semantic_graph.query_ms", {
+      description: "Semantic graph query latency in milliseconds",
+      unit: "ms",
+    });
+  }
+  if (pressureDirectedCounter == null) {
+    pressureDirectedCounter = meter.createCounter("swarm.pressure_directed.activation", {
+      description: "Pressure-directed activation filter evaluations by role, hit, and highest dimension",
+      unit: "1",
+    });
+  }
+}
+
+/** Record pressure-directed activation filter outcome for Exp 1, Exp 4. */
+export function recordPressureDirectedActivation(
+  role: string,
+  hit: boolean,
+  highestPressureDimension: string,
+): void {
+  try {
+    ensureInstruments();
+    pressureDirectedCounter?.add(1, {
+      role,
+      hit: String(hit),
+      highest_pressure_dimension: highestPressureDimension,
+    });
+  } catch {
+    // no-op
+  }
+}
+
+/** Record semantic graph query latency for Exp 2. */
+export function recordSemanticGraphQueryMs(queryType: string, ms: number): void {
+  try {
+    ensureInstruments();
+    semanticGraphQueryHistogram?.record(ms, { query_type: queryType });
+  } catch {
+    // no-op
+  }
+}
+
+/** Record LLM token usage for Exp 2, Exp 4. */
+export function recordLLMTokens(role: string, direction: "input" | "output", count: number, model?: string): void {
+  try {
+    ensureInstruments();
+    llmTokensCounter?.add(count, { role, direction, model: model ?? "default" });
+  } catch {
+    // no-op
   }
 }
 
@@ -96,4 +155,7 @@ export function _resetSwarmMetrics(): void {
   agentLatencyHistogram = null;
   agentErrorCount = null;
   governanceLoopHistogram = null;
+  llmTokensCounter = null;
+  semanticGraphQueryHistogram = null;
+  pressureDirectedCounter = null;
 }

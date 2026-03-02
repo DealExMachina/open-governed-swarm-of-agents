@@ -299,9 +299,41 @@ export async function syncFactsToSemanticGraph(
     const existingContras = await queryNodesByCreator(scopeId, FACTS_SYNC_SOURCE, "contradiction", client);
     const matchedContraIds = new Set<string>();
 
+    // Load resolved contradictions to skip re-creating them
+    let resolvedContents = new Set<string>();
+    try {
+      const resolvedContras = await client.query(
+        `SELECT content FROM nodes WHERE scope_id = $1 AND type = 'contradiction' AND status = 'resolved'
+         AND superseded_at IS NULL LIMIT 50`,
+        [scopeId],
+      );
+      resolvedContents = new Set(
+        resolvedContras.rows.map((r: { content: string }) => r.content.toLowerCase().trim()),
+      );
+    } catch {
+      // resolved query may fail in tests or if schema differs
+    }
+
     for (const raw of contradictions) {
       const str = typeof raw === "string" ? raw : String(raw);
       if (!str.trim()) continue;
+
+      // Skip if this contradiction matches a previously resolved one (token overlap)
+      const lowerStr = str.trim().toLowerCase();
+      let matchesResolved = resolvedContents.has(lowerStr);
+      if (!matchesResolved) {
+        const newWords = new Set(lowerStr.split(/\s+/).filter((w) => w.length > 3));
+        for (const resolved of resolvedContents) {
+          const resWords = new Set(resolved.split(/\s+/).filter((w: string) => w.length > 3));
+          let overlap = 0;
+          for (const w of newWords) if (resWords.has(w)) overlap++;
+          if (newWords.size > 0 && overlap / newWords.size >= 0.5) {
+            matchesResolved = true;
+            break;
+          }
+        }
+      }
+      if (matchesResolved) continue;
 
       // Always create/upsert a contradiction node so it's counted in finality
       const existingContra = matchExistingNode(existingContras, str.trim());

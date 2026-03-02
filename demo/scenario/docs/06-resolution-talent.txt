@@ -1,0 +1,22 @@
+PROJECT HORIZON -- TALENT RETENTION RESOLUTION
+
+Prepared by: HR Advisory Team
+Date: 2025-11-10
+Classification: CONFIDENTIAL
+
+RESOLUTION SUMMARY
+
+The talent concentration risk identified in the technical due diligence has been addressed. Retention packages have been signed with Dr. Yuki Tanaka (CTO) and both senior engineers. All three have agreed to 24-month retention agreements effective from deal close, with structured knowledge transfer milestones.
+
+KEY OUTCOMES
+
+1. Dr. Tanaka's departure to Nexion GmbH has been rescinded. A retention bonus of EUR 800K over 24 months was agreed.
+2. The two senior engineers have withdrawn resignation notices. Retention packages totaling EUR 1.0M were approved.
+3. A formal 90-day knowledge transfer plan has been initiated, covering all core PCO modules.
+4. A succession candidate (Dr. Elena Fischer, Principal Engineer) has been identified and fast-tracked into an architecture lead role.
+
+This resolves the critical talent risk. The initial assessment that talent concentration was a "low risk" concern was incorrect, but the remediation has been completed successfully.
+
+IMPACT ON VALUATION
+
+The total retention cost (EUR 1.8M) has been factored into the revised valuation. No further talent-related adjustments are required.

@@ -1,6 +1,7 @@
 /**
  * XACML-inspired combining algorithms for policy results.
  * Used when multiple policies or engines contribute to a single decision.
+ * Currently only exercised by tests; production uses a single YAML engine per evaluation.
  */
 
 import type { PolicyResult, DecisionRecord } from "./policyEngine.js";

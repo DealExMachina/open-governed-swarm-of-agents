@@ -287,7 +287,7 @@ describe("governanceAgent", () => {
       expect(actionCalls).toHaveLength(0);
     });
 
-    it("returns approve with master_override and actionPayload when mode is MASTER", async () => {
+    it("returns approve with policy_passed and actionPayload when mode is MASTER (no blocking rule)", async () => {
       mockLoadState.mockResolvedValue({
         runId: "r1",
         lastNode: "ContextIngested",
@@ -311,13 +311,40 @@ describe("governanceAgent", () => {
       };
       const result = await evaluateProposalDeterministic(proposal, env);
       expect(result.outcome).toBe("approve");
-      expect(result.reason).toBe("master_override");
+      expect(result.reason).toBe("policy_passed");
       expect(result.actionPayload).toEqual({
         expectedEpoch: 1,
         runId: "r1",
         from: "ContextIngested",
         to: "FactsExtracted",
       });
+    });
+
+    it("returns reject when MASTER mode and critical drift blocks transition", async () => {
+      mockLoadState.mockResolvedValue({
+        runId: "r1",
+        lastNode: "DriftChecked",
+        updatedAt: "",
+        epoch: 5,
+      });
+      const s3 = createMockS3("critical");
+      const env: GovernanceAgentEnv = {
+        s3,
+        bucket: "b",
+        getPublishAction: () => publishAction,
+        getPublishRejection: () => publishRejection,
+      };
+      const proposal: Proposal = {
+        proposal_id: "p-master-blocked",
+        agent: "planner-1",
+        proposed_action: "advance_state",
+        target_node: "ContextIngested",
+        payload: { expectedEpoch: 5, from: "DriftChecked", to: "ContextIngested" },
+        mode: "MASTER",
+      };
+      const result = await evaluateProposalDeterministic(proposal, env);
+      expect(result.outcome).toBe("reject");
+      expect(result.reason).toContain("Critical drift");
     });
 
     it("returns pending with governance_review when canTransition blocks (critical drift)", async () => {

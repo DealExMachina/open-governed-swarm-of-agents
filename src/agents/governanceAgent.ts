@@ -1,4 +1,5 @@
 import "dotenv/config";
+import { randomUUID } from "crypto";
 import { setMaxListeners } from "events";
 import { join } from "path";
 import type { S3Client } from "@aws-sdk/client-s3";
@@ -9,6 +10,7 @@ import { s3GetText } from "../s3.js";
 import { loadState } from "../stateGraph.js";
 import { loadPolicies, getGovernanceForScope } from "../governance.js";
 import { createYamlPolicyEngine, type PolicyEngine } from "../policyEngine.js";
+import { evaluateKernel } from "../sgrsAdapter.js";
 import { getGovernancePolicyVersion } from "../policyVersions.js";
 import { persistDecisionRecord } from "../decisionRecorder.js";
 import { executeObligations } from "../obligationEnforcer.js";
@@ -27,6 +29,8 @@ import { makeReadGovernanceRulesTool } from "./sharedTools.js";
 export interface DeterministicResult {
   outcome: "approve" | "reject" | "pending" | "ignore";
   reason: string;
+  /** Policy engine record for audit; present when policy was evaluated. Persisted at commit. */
+  record?: import("../policyEngine.js").DecisionRecord;
   actionPayload?: {
     expectedEpoch: number;
     runId: string;
@@ -82,12 +86,14 @@ Use checkTransition to see if the proposed transition is allowed given drift (e.
 You must reject if checkTransition or checkPolicy fails. If all checks pass, call publishApproval with a brief reason; otherwise call publishRejection with the reason.
 Call exactly one of: publishApproval(reason) or publishRejection(reason). End with a one-sentence rationale.`;
 
-const OVERSIGHT_AGENT_INSTRUCTIONS = `You are the oversight agent. You have a proposal and the result of a deterministic governance check (outcome and reason).
+const OVERSIGHT_AGENT_INSTRUCTIONS = `You are the oversight agent. You review a governance proposal and its deterministic check result.
 You must choose exactly one option:
-1. acceptDeterministic - Accept the deterministic result as-is (approve, reject, or pending will be applied accordingly).
-2. escalateToLLM - Send to the full governance LLM for richer reasoning before a final decision.
-3. escalateToHuman - Send to human-in-the-loop (MITL) for manual approval.
-Call exactly one of these three tools. Do not invent or override the deterministic outcome; you only route to one of the three paths.`;
+1. acceptDeterministic - Accept the deterministic result as-is (approve, reject, or pending will be applied accordingly). Use when the deterministic result is clearly correct and no additional review is needed.
+2. escalateToLLM - Send to the full governance LLM for richer reasoning before a final decision. Use when the deterministic result is technically correct but the context suggests nuance that rules may miss (e.g., obligations were triggered, drift is medium, or the proposal involves financial or legal claims).
+3. escalateToHuman - Send to human-in-the-loop (MITL) for manual approval. Use when the proposal involves critical risk factors (talent departure, IP disputes, material financial discrepancies), when obligations include open_investigation or halt_and_review, or when the deterministic result seems insufficient given the severity of the context.
+
+IMPORTANT: If the deterministic result includes obligations (e.g., open_investigation, request_source_refresh), this signals that the policy engine detected a concern but still allowed the transition. Consider whether the concern warrants human review (escalateToHuman) or deeper LLM analysis (escalateToLLM) rather than silently accepting.
+Call exactly one of these three tools.`;
 
 function createOversightTools(
   proposal: Proposal,
@@ -178,7 +184,9 @@ export async function runOversightAgent(
     tools,
   });
   const summary = `${deterministicResult.outcome}: ${deterministicResult.reason}`;
-  const prompt = `Proposal: proposal_id=${proposal.proposal_id} agent=${proposal.agent} target_node=${proposal.target_node} payload=${JSON.stringify(proposal.payload)}. Deterministic result: ${summary}. Choose one: acceptDeterministic, escalateToLLM, or escalateToHuman. Call the corresponding tool.`;
+  const obligations = deterministicResult.record?.obligations ?? [];
+  const obligationStr = obligations.length > 0 ? ` Obligations triggered: ${obligations.join(", ")}.` : " No obligations triggered.";
+  const prompt = `Proposal: proposal_id=${proposal.proposal_id} agent=${proposal.agent} target_node=${proposal.target_node} payload=${JSON.stringify(proposal.payload)}. Deterministic result: ${summary}.${obligationStr} Choose one: acceptDeterministic, escalateToLLM, or escalateToHuman. Call the corresponding tool.`;
   const LLM_TIMEOUT_MS = 30000;
   const abortController = new AbortController();
   const timeoutId = setTimeout(() => abortController.abort(), LLM_TIMEOUT_MS);
@@ -277,10 +285,15 @@ function createGovernanceTools(proposal: Proposal, env: GovernanceAgentEnv) {
         drift_level: drift.level,
         drift_types: drift.types,
       });
+      const scopeMode = governance.mode ?? "YOLO";
       try {
-        await persistDecisionRecord(result.record);
-      } catch {
-        // table may not exist or DB unavailable
+        await persistDecisionRecord(result.record, {
+          governance_path: "processProposalWithAgent",
+          scope_id: SCOPE_ID,
+          scope_mode: scopeMode,
+        });
+      } catch (err) {
+        logger.warn("persistDecisionRecord failed (checkTransition)", { error: String(err) });
       }
       await executeObligations(result.record.obligations ?? []);
       return { allowed: result.allowed, reason: result.record.reason };
@@ -334,10 +347,15 @@ function createGovernanceTools(proposal: Proposal, env: GovernanceAgentEnv) {
         drift_level: drift.level,
         drift_types: drift.types,
       });
+      const scopeModeForPublish = governance.mode ?? "YOLO";
       try {
-        await persistDecisionRecord(policyResultTransition.record);
-      } catch {
-        // table may not exist or DB unavailable
+        await persistDecisionRecord(policyResultTransition.record, {
+          governance_path: "processProposalWithAgent",
+          scope_id: SCOPE_ID,
+          scope_mode: scopeModeForPublish,
+        });
+      } catch (err) {
+        logger.warn("persistDecisionRecord failed (publishApproval)", { error: String(err) });
       }
       await executeObligations(policyResultTransition.record.obligations ?? []);
       if (!policyResultTransition.allowed) {
@@ -492,37 +510,56 @@ export async function evaluateProposalDeterministic(
   const govPath = process.env.GOVERNANCE_PATH ?? join(process.cwd(), "governance.yaml");
   const governance = getGovernanceForScope(SCOPE_ID, loadPolicies(govPath));
 
-  if (mode === "MASTER") {
+  // All modes (YOLO, MITL, MASTER) flow through the reduction kernel.
+  // MASTER no longer auto-approves — it is the most restrictive mode.
+  const policyVersion = getGovernancePolicyVersion(govPath);
+  const kernelOutput = evaluateKernel(
+    {
+      from_state: from,
+      to_state: to,
+      drift_level: drift.level,
+      drift_types: drift.types,
+      mode: mode ?? "YOLO",
+    },
+    governance,
+  );
+
+  const record: import("../policyEngine.js").DecisionRecord = {
+    decision_id: randomUUID(),
+    timestamp: new Date().toISOString(),
+    policy_version: policyVersion,
+    result: kernelOutput.verdict === "reject" ? "deny" : "allow",
+    reason: kernelOutput.reason,
+    obligations: [],
+    binding: "yaml",
+    suggested_actions: kernelOutput.suggested_actions,
+  };
+
+  if (kernelOutput.verdict === "reject") {
     return {
-      outcome: "approve",
-      reason: "master_override",
+      outcome: "reject",
+      reason: kernelOutput.reason,
+      record,
       actionPayload: { expectedEpoch, runId: state.runId, from, to },
     };
   }
 
-  const policyVersion = getGovernancePolicyVersion(govPath);
-  const engine: PolicyEngine = createYamlPolicyEngine(governance, policyVersion);
-  const policyContext = {
-    scope_id: SCOPE_ID,
-    from_state: from,
-    to_state: to,
-    drift_level: drift.level,
-    drift_types: drift.types,
-  };
-  const policyResult = await engine.evaluate(policyContext);
-  try {
-    await persistDecisionRecord(policyResult.record);
-  } catch {
-    // table may not exist or DB unavailable
-  }
-  await executeObligations(policyResult.record.obligations ?? []);
-  if (!policyResult.allowed) {
+  if (kernelOutput.verdict === "escalate") {
     // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/af5b746e-3a32-49ef-92b2-aa2d9876cfd3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'governanceAgent:evaluateProposal',message:'drift-block-escalated-to-HITL',data:{from,to,drift_level:drift.level,drift_types:drift.types,reason:policyResult.record.reason,expectedEpoch},timestamp:Date.now()})}).catch(()=>{});
+    fetch('http://127.0.0.1:7243/ingest/af5b746e-3a32-49ef-92b2-aa2d9876cfd3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'governanceAgent:evaluateProposal',message:'kernel-escalation',data:{from,to,drift_level:drift.level,drift_types:drift.types,reason:kernelOutput.reason,expectedEpoch},timestamp:Date.now()})}).catch(()=>{});
     // #endregion
+    if (kernelOutput.reason === "mitl_required") {
+      return {
+        outcome: "pending",
+        reason: "mitl_required",
+        record,
+        actionPayload: { expectedEpoch, runId: state.runId, from, to },
+      };
+    }
     return {
       outcome: "pending",
-      reason: policyResult.record.reason,
+      reason: kernelOutput.reason,
+      record,
       actionPayload: {
         expectedEpoch,
         runId: state.runId,
@@ -531,24 +568,18 @@ export async function evaluateProposalDeterministic(
         type: "governance_review",
         drift_level: drift.level,
         drift_types: drift.types,
-        block_reason: policyResult.record.reason,
+        block_reason: kernelOutput.reason,
       },
     };
   }
 
+  // Kernel accepted — still need ACL check
   const permissionResult = await checkPermission(agent, "writer", target_node);
   if (!permissionResult.allowed) {
     return {
       outcome: "reject",
       reason: permissionResult.error ?? "policy_denied",
-      actionPayload: { expectedEpoch, runId: state.runId, from, to },
-    };
-  }
-
-  if (mode === "MITL") {
-    return {
-      outcome: "pending",
-      reason: "mitl_required",
+      record,
       actionPayload: { expectedEpoch, runId: state.runId, from, to },
     };
   }
@@ -556,6 +587,7 @@ export async function evaluateProposalDeterministic(
   return {
     outcome: "approve",
     reason: "policy_passed",
+    record,
     actionPayload: { expectedEpoch, runId: state.runId, from, to },
   };
 }
@@ -575,6 +607,20 @@ export async function commitDeterministicResult(
   if (result.outcome === "ignore") {
     logger.debug("ignoring non advance_state proposal", { proposal_id });
     return;
+  }
+
+  const govPath = process.env.GOVERNANCE_PATH ?? join(process.cwd(), "governance.yaml");
+  const scopeMode = getGovernanceForScope(SCOPE_ID, loadPolicies(govPath)).mode ?? "YOLO";
+  if (result.record) {
+    try {
+      await persistDecisionRecord(result.record, {
+        governance_path: path,
+        scope_id: SCOPE_ID,
+        scope_mode: scopeMode,
+      });
+    } catch (err) {
+      logger.warn("persistDecisionRecord failed (commitDeterministicResult)", { error: String(err), governance_path: path });
+    }
   }
 
   if (result.outcome === "reject") {

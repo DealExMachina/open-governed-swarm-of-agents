@@ -94,6 +94,14 @@ const DEFAULT_FILTERS: Record<string, Omit<FilterConfig, "updatedAt">> = {
     version: 0,
     updatedBy: "system",
   },
+  resolver: {
+    agentRole: "resolver",
+    type: "hash_delta",
+    params: { field: "drift/latest.json", sensitivity: "structural", cooldownMs: 10000 },
+    stats: { activations: 0, productive: 0, wasted: 0, avgLatencyMs: 0, lastActivatedAt: null },
+    version: 0,
+    updatedBy: "system",
+  },
   planner: {
     agentRole: "planner",
     type: "hash_delta",
@@ -291,6 +299,9 @@ export async function checkFilter(
       };
     }
     case "pressure_directed": {
+      if (process.env.PRESSURE_ROUTING_DISABLED === "1") {
+        return { shouldActivate: true, reason: "pressure_routing_disabled", context: {} };
+      }
       // Stigmergic pressure routing: activate only if this agent's dimension has high pressure.
       // Params: scopeId (string), pressureThreshold (number, default 0.05), cooldownMs (number).
       const scopeId = (config.params.scopeId as string) ?? "default";
@@ -303,6 +314,10 @@ export async function checkFilter(
         const { loadConvergenceHistory } = await import("./convergenceTracker.js");
         const history = await loadConvergenceHistory(scopeId, 1);
         if (history.length === 0) {
+          try {
+            const { recordPressureDirectedActivation } = await import("./metrics.js");
+            recordPressureDirectedActivation(config.agentRole, true, "unknown");
+          } catch { /* no-op */ }
           return { shouldActivate: true, reason: "no_convergence_history_yet", context: {} };
         }
         const latest = history[history.length - 1];
@@ -315,14 +330,28 @@ export async function checkFilter(
         const dims = roleToDim[config.agentRole] ?? [];
         const agentPressure = dims.reduce((sum, d) => sum + (latest.pressure[d] ?? 0), 0);
         const maxPressure = Math.max(...Object.values(latest.pressure), 0);
+        const entries = Object.entries(latest.pressure);
+        const highestDim = entries.length > 0
+          ? entries.reduce((a, b) => (b[1] > a[1] ? b : a), ["unknown", 0])[0]
+          : "unknown";
         // Activate if agent's pressure is the highest (or within 80% of highest) and above threshold
         const isHighPressure = agentPressure >= maxPressure * 0.8 && agentPressure >= pressureThreshold;
         const reason = isHighPressure
           ? `activated (pressure=${agentPressure.toFixed(3)}, max=${maxPressure.toFixed(3)})`
           : `low_pressure (${agentPressure.toFixed(3)} < threshold or not highest)`;
+        try {
+          const { recordPressureDirectedActivation } = await import("./metrics.js");
+          recordPressureDirectedActivation(config.agentRole, isHighPressure, highestDim);
+        } catch {
+          /* no-op */
+        }
         return { shouldActivate: isHighPressure, reason, context: { agentPressure, maxPressure, dims } };
       } catch {
         // convergence_history table may not exist; fall back to allow activation
+        try {
+          const { recordPressureDirectedActivation } = await import("./metrics.js");
+          recordPressureDirectedActivation(config.agentRole, true, "unknown");
+        } catch { /* no-op */ }
         return { shouldActivate: true, reason: "convergence_unavailable_fallback", context: {} };
       }
     }
