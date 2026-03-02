@@ -31,7 +31,7 @@ export interface DecisionRecord {
   result: "allow" | "deny";
   reason: string;
   obligations: Obligation[];
-  /** Engine that produced this decision (e.g. "yaml" | "opa"). */
+  /** Engine that produced this decision (e.g. "sgrs" | "yaml"). */
   binding: string;
   /** Optional: suggested actions from policy rules (e.g. open_investigation). */
   suggested_actions?: string[];
@@ -50,7 +50,7 @@ export interface PolicyResult {
 }
 
 /**
- * Policy engine interface. Implementations: current YAML (default), OPA-WASM (Phase 1).
+ * Policy engine interface. Primary implementation: sgrs Rust kernel.
  */
 export interface PolicyEngine {
   evaluate(input: PolicyContext): Promise<PolicyResult>;

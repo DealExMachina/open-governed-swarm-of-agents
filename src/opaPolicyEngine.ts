@@ -7,27 +7,42 @@
  */
 
 import { readFileSync, existsSync } from "fs";
+import { resolve, isAbsolute } from "path";
 import { loadPolicy } from "@open-policy-agent/opa-wasm";
 import type { PolicyEngine, PolicyContext, PolicyResult, DecisionRecord } from "./policyEngine.js";
 import type { GovernanceConfig } from "./governance.js";
+import { logger } from "./logger.js";
 
 let cachedPolicy: Awaited<ReturnType<typeof loadPolicy>> | null = null;
 let cachedWasmPath: string | null = null;
+
+/**
+ * Resolve WASM path: if relative, resolve against process.cwd() so it works from any startup dir.
+ */
+function resolveWasmPath(wasmPath: string): string {
+  if (!wasmPath) return wasmPath;
+  return isAbsolute(wasmPath) ? wasmPath : resolve(process.cwd(), wasmPath);
+}
 
 /**
  * Load OPA policy from a WASM file. Returns null if file missing or load fails.
  * Caches the loaded policy per path.
  */
 export async function loadOPAPolicy(wasmPath: string): Promise<Awaited<ReturnType<typeof loadPolicy>> | null> {
-  if (cachedPolicy && cachedWasmPath === wasmPath) return cachedPolicy;
-  if (!existsSync(wasmPath)) return null;
+  const resolved = resolveWasmPath(wasmPath);
+  if (cachedPolicy && cachedWasmPath === resolved) return cachedPolicy;
+  if (!existsSync(resolved)) {
+    logger.warn("OPA WASM file not found", { wasmPath, resolved, cwd: process.cwd() });
+    return null;
+  }
   try {
-    const wasm = readFileSync(wasmPath);
+    const wasm = readFileSync(resolved);
     const policy = await loadPolicy(wasm);
     cachedPolicy = policy;
-    cachedWasmPath = wasmPath;
+    cachedWasmPath = resolved;
     return policy;
-  } catch {
+  } catch (err) {
+    logger.warn("OPA WASM load failed", { wasmPath, resolved, error: String(err) });
     return null;
   }
 }

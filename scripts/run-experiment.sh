@@ -145,12 +145,55 @@ case "$EXP_ID" in
     for mode in YOLO MITL MASTER; do
       echo ""
       echo "[Exp] ═══ Exp5 run: GOVERNANCE_MODE=$mode ═══"
-      # Reset between modes
+
+      # ── Stop previous hatchery + simulate-mitl ──
+      if [ -n "$HATCHERY_PID" ]; then
+        echo "[Exp] Stopping previous hatchery (pid $HATCHERY_PID)..."
+        kill "$HATCHERY_PID" 2>/dev/null || true
+        wait "$HATCHERY_PID" 2>/dev/null || true
+        HATCHERY_PID=""
+      fi
+      if [ -n "$SIM_PID" ]; then
+        kill "$SIM_PID" 2>/dev/null || true
+        wait "$SIM_PID" 2>/dev/null || true
+        SIM_PID=""
+      fi
+
+      # ── Reset DB/NATS (hatchery already stopped, safe to reset) ──
       node --loader ts-node/esm scripts/reset-e2e.ts 2>/dev/null || true
       node --loader ts-node/esm scripts/ensure-schema.ts 2>/dev/null
       node --loader ts-node/esm scripts/ensure-stream.ts 2>/dev/null
 
+      # ── Start fresh hatchery WITH correct GOVERNANCE_MODE ──
       export GOVERNANCE_MODE="$mode"
+      if [ "$RUN_SWARM" = 1 ]; then
+        echo "[Exp] Starting hatchery for mode=$mode..."
+        : > "$LOG_DIR/swarm-exp-hatchery.log"
+        GOVERNANCE_MODE="$mode" AGENT_ROLE=hatchery AGENT_ID=hatchery-exp \
+          node --loader ts-node/esm src/swarm.ts \
+          >> "$LOG_DIR/swarm-exp-hatchery.log" 2>&1 &
+        HATCHERY_PID=$!
+        echo "[Exp] Hatchery pid: $HATCHERY_PID"
+
+        echo "[Exp] Waiting for MITL server health..."
+        MITL_PORT="${MITL_PORT:-3001}"
+        for i in $(seq 1 30); do
+          if curl -sf "http://127.0.0.1:${MITL_PORT}/health" >/dev/null 2>&1; then
+            echo "[Exp] MITL server healthy."
+            break
+          fi
+          if [ "$i" = 30 ]; then
+            echo "[Exp] MITL server not ready after 30s. Check $LOG_DIR/swarm-exp-hatchery.log"
+            exit 1
+          fi
+          sleep 1
+        done
+
+        echo "[Exp] Starting simulate-mitl (with finality auto-approve)..."
+        node --loader ts-node/esm scripts/simulate-mitl-approve.ts --finality-option=approve_finality &
+        SIM_PID=$!
+      fi
+
       run_single_experiment "demo" "" "exp5-$mode"
 
       echo "[Exp] Collecting exp5-$mode results..."
