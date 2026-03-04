@@ -7,6 +7,7 @@
 #   exp3  --pattern=spike-and-drop --rounds=5
 #   exp4  --rounds=7 --resolve-at=5
 #   exp5  (runs 3 times: YOLO, MITL, MASTER)
+#   exp6  --rounds=7 (full pipeline with resolver agent — Assumption #3)
 #   noisy --corpus=docs-noisy (ambiguous/hedging documents)
 #   financial --rounds=8 (financial consolidation with dual temporality)
 #
@@ -101,6 +102,7 @@ if [ "$RUN_SWARM" = 1 ]; then
   done
 
   # For exp4/exp5/noisy, start simulate-mitl with finality handling
+  # NOTE: exp6 intentionally omitted — needs full convergence trajectory without auto-approve
   if [ "$EXP_ID" = "exp4" ] || [ "$EXP_ID" = "exp5" ] || [ "$EXP_ID" = "noisy" ]; then
     echo "[Exp] Starting simulate-mitl (with finality auto-approve)..."
     node --loader ts-node/esm scripts/simulate-mitl-approve.ts --finality-option=approve_finality &
@@ -141,6 +143,12 @@ case "$EXP_ID" in
     ;;
   exp4)
     run_single_experiment "demo" "" "exp4-governance"
+    ;;
+  exp6)
+    ROUNDS="${ROUNDS:-7}"
+    [ -z "$RESOLVE_AT" ] && RESOLVE_OPT="--resolve-at=5,6,7"
+    echo "[Exp] Exp6: full pipeline with resolver agent (Assumption #3: monotonic progress)"
+    run_single_experiment "exp6" "" "exp6-full-pipeline"
     ;;
   demo-baseline)
     ROUNDS="${ROUNDS:-7}"
@@ -220,7 +228,7 @@ case "$EXP_ID" in
     exit 0
     ;;
   *)
-    echo "[Exp] Unknown experiment: $EXP_ID. Use exp1, exp2, exp3, exp4, exp5, noisy, financial, demo-baseline."
+    echo "[Exp] Unknown experiment: $EXP_ID. Use exp1, exp2, exp3, exp4, exp5, exp6, noisy, financial, demo-baseline."
     exit 1
     ;;
 esac

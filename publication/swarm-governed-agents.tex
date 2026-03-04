@@ -240,14 +240,13 @@ A point $m = (\ell, \mathbf{a}) \in \mathcal{M}$ encodes both the governance reg
 Given the current lattice point $m = (\ell, \mathbf{a})$ and a proposed point $m' = (\ell', \mathbf{a}')$, the \emph{admissibility result} is:
 \[
 \mathrm{Adm}(m, m') = \begin{cases}
-  \textsc{Admissible}           & \text{if } m' \leq_{\mathcal{M}} m \\
+  \textsc{Admissible}           & \text{if } \ell' \leq_{\mathcal{L}} \ell \;\wedge\; \mathbf{a}' \leq_{\mathcal{A}} \mathbf{a} \\
   \textsc{GovernanceViolation}  & \text{if } \ell' \not\leq_{\mathcal{L}} \ell \;\wedge\; \mathbf{a}' \leq_{\mathcal{A}} \mathbf{a} \\
   \textsc{ConvergenceViolation} & \text{if } \ell' \leq_{\mathcal{L}} \ell \;\wedge\; \mathbf{a}' \not\leq_{\mathcal{A}} \mathbf{a} \\
-  \textsc{Incomparable}         & \text{if } \ell' \not\leq_{\mathcal{L}} \ell \;\wedge\; \mathbf{a}' \not\leq_{\mathcal{A}} \mathbf{a} \\
-  \textsc{BothViolated}         & \text{otherwise (both components regress)}
+  \textsc{BothViolated}         & \text{if } \ell' \not\leq_{\mathcal{L}} \ell \;\wedge\; \mathbf{a}' \not\leq_{\mathcal{A}} \mathbf{a}
 \end{cases}
 \]
-Only \textsc{Admissible} transitions preserve descent in~$\mathcal{M}$.
+The four cases are exhaustive and mutually exclusive (the classification is a $2 \times 2$ grid on $\{\ell' \leq \ell, \ell' \not\leq \ell\} \times \{\mathbf{a}' \leq \mathbf{a}, \mathbf{a}' \not\leq \mathbf{a}\}$). Only \textsc{Admissible} transitions preserve descent in~$\mathcal{M}$.
 \end{definition}
 
 \subsection{Reduction Kernel}
@@ -275,7 +274,7 @@ where $\mathcal{P}$ is the proposal space, $\mathcal{G}$ is the current graph st
   \item \textbf{Lattice admissibility.} Compute $\mathrm{Adm}(m, m')$ (Definition~\ref{def:admissibility}) between the current and proposed lattice points:
   \begin{itemize}
     \item $\textsc{GovernanceViolation}$ or $\textsc{BothViolated} \implies \textsc{Reject}$.
-    \item $\textsc{ConvergenceViolation}$ or $\textsc{Incomparable}$: $\ell = \textsc{Master} \implies \textsc{Reject}$; otherwise $\textsc{Escalate}$.
+    \item $\textsc{ConvergenceViolation}$ or $\textsc{BothViolated}$: $\ell = \textsc{Master} \implies \textsc{Reject}$; otherwise $\textsc{Escalate}$.
   \end{itemize}
 
   \item \textbf{Mode routing.} If policy and lattice checks pass:
@@ -294,7 +293,9 @@ Within a single evidence epoch (no exogenous document injection), if the governa
 \end{theorem}
 
 \begin{proof}[Proof sketch]
-Each approved transition satisfies $m_{t+1} \leq_{\mathcal{M}} m_t$ by the admissibility check (Definition~\ref{def:admissibility}). Since $\mathcal{L}$ is finite and $\mathcal{A}$ is bounded in $[0,1]^k$ with granularity $\epsilon > 0$ (determined by the discrete evaluation intervals), the product $\mathcal{M}$ admits no infinite strictly descending chain. Strict descent follows from the requirement that at least one convergence dimension makes progress (Proposition~\ref{prop:monotonic}), and the governance level component $\ell$ is non-increasing. Thus the sequence terminates.
+Each approved transition satisfies $m_{t+1} \leq_{\mathcal{M}} m_t$ by the admissibility check (Definition~\ref{def:admissibility}). $\mathcal{L}$ is finite (3 elements). $\mathcal{A} = (\mathbb{R}_{\geq 0})^k$ is \emph{not} well-founded under the standard real ordering; the argument depends on a \textbf{discretization assumption}: the implementation evaluates convergence dimensions at discrete intervals with minimum step size $\epsilon > 0$, so the effective rank space is $\mathcal{A}_\epsilon = (\epsilon\mathbb{Z}_{\geq 0} \cap [0,1])^k$, which is finite and therefore well-founded. Under this assumption, $\mathcal{M}_\epsilon = \mathcal{L} \times \mathcal{A}_\epsilon$ admits no infinite strictly descending chain. Strict descent requires that at least one convergence dimension makes progress (Proposition~\ref{prop:monotonic}); when no agent makes progress, the sequence terminates trivially at a fixed point (the stalled regime). Thus the sequence terminates in either case.
+
+\emph{Caveat:} The discretization step $\epsilon$ is an implementation parameter, not a mathematical property of the domain. If the convergence evaluator uses continuous-valued scores without rounding, the well-foundedness argument does not apply. A rigorous proof would require either formalizing the discretization or replacing the descent argument with a different termination measure.
 \end{proof}
 
 \subsection{Convergence and Finality}
@@ -477,9 +478,6 @@ Every governance evaluation produces an immutable \texttt{DecisionRecord} persis
 
 The \texttt{policy\_version} is a content hash of the governance and finality configuration files at evaluation time, binding each decision to the exact rule set that produced it. This enables post-hoc queries such as: ``Was this decision made under the pre-amendment or post-amendment compliance rules?''
 
-\paragraph{Obligation Enforcement.}
-Policy rules may attach \emph{obligations}---mandatory post-decision actions (e.g., \texttt{dual\_review}, \texttt{compliance\_notification}). An obligation enforcer with a registry-based handler architecture executes these after each decision, ensuring that procedural requirements (notifications, secondary reviews, audit entries) are not merely recommended but enforced as part of the governance pipeline.
-
 \subsection{Three-Tier Governance Routing}
 \label{sec:three-tier}
 
@@ -593,13 +591,15 @@ The implementation tracks both regimes by tagging each convergence point with th
 Under the conditions of Proposition~\ref{prop:monotonic}, if every governance cycle within an evidence epoch produces at least one approved transition making strict progress on some dimension, then $V(t) \to 0$ within that epoch in at most $K$ cycles, where $K$ is bounded by the product of the number of claims, contradictions, goals, and risk factors in the graph at the epoch boundary.
 \end{corollary}
 
+\paragraph{Empirical status of the corollary.} The precondition---``every governance cycle produces strict progress on some dimension''---was \emph{not satisfied} in any experiment. In Exp.~1, the \texttt{goal\_completion} dimension was permanently stalled at 0.00 (no goal-resolution agent exists), and $V(t)$ never reached 0. The corollary is therefore formally correct but practically vacuous under the current agent ensemble. Satisfying it requires either an autonomous resolver agent that closes the convergence loop, or relaxing the precondition to require progress on at least one \emph{non-stalled} dimension.
+
 \paragraph{Perpetual lifecycle.} In realistic deployments, the system alternates between intra-epoch convergence and cross-epoch evidence shocks. The resulting $V(t)$ trajectory is a \emph{sawtooth}: decreasing within each epoch, spiking at evidence boundaries, then re-converging. This models the operational reality described in Section~\ref{sec:perpetual-finality}, where finality is a checkpoint, not a terminal state.
 
 \paragraph{Connection to lattice-based termination.} Proposition~\ref{prop:monotonic} establishes intra-epoch progress on the scalar $V(t)$. The Epoch Termination Theorem (Theorem~\ref{thm:termination}) strengthens this by proving that the product lattice $\mathcal{M} = \mathcal{L} \times \mathcal{A}$ (Definition~\ref{def:product-lattice}) provides a well-founded descent domain for the reduction kernel. Since $\mathcal{L}$ is finite (three governance levels) and $\mathcal{A} = (\mathbb{R}_{\geq 0})^k$ admits only finitely many admissible transitions within a bounded evidence epoch (the convergence rank can decrease at most finitely many times before reaching a fixed point), the combined ordering bounds the total number of governance-approved transitions per epoch.
 
 This yields a two-level convergence guarantee: (i)~within each evidence epoch, each admissible transition either preserves or decreases the lattice point in $\mathcal{M}$, and only finitely many such transitions are possible before the system reaches a fixed point (Theorem~\ref{thm:termination}); (ii)~each such transition satisfies the monotonicity constraints of Proposition~\ref{prop:monotonic}, ensuring $V(t)$ is non-increasing. Together, these guarantee that the system reaches a stable governance configuration within each epoch in finite time.
 
-The connection to rewriting theory \cite{baader1998} is direct: each governance-approved transition is a rewrite step, the well-founded ordering on $\mathcal{M}$ serves as the termination measure, and Newman's Lemma \cite{newman1942} provides the bridge from local confluence (adjacent governance decisions do not conflict) to global confluence (all governance evaluation orders produce the same final state). This framing also parallels Denning's lattice model \cite{denning1976}, where information flow is bounded by a lattice ordering---here, governance permission flow is bounded by $\mathcal{L}$, and convergence progress is bounded by $\mathcal{A}$.
+The connection to rewriting theory \cite{baader1998} is structural: each governance-approved transition is a rewrite step, and the well-founded ordering on $\mathcal{M}$ serves as the termination measure. Newman's Lemma \cite{newman1942} would bridge local confluence to global confluence, but \emph{local confluence is not established}: the current system guarantees that each individual governance evaluation is deterministic (the kernel $\mathcal{K}$ is a function), but it does not prove that two admissible transitions applied in either order yield joinable states. The system therefore provides \emph{partial confluence}---certified compatible transitions commute---but full Church--Rosser confluence remains unproven and may be unrealistic in a governed multi-agent setting where proposals are dynamically generated. This framing also parallels Denning's lattice model \cite{denning1976}, where information flow is bounded by a lattice ordering---here, governance permission flow is bounded by $\mathcal{L}$, and convergence progress is bounded by $\mathcal{A}$.
 
 Note that intra-epoch convergence does \emph{not} hold when agents fail to make progress (the stalled regime, $\alpha_{\text{intra}} \approx 0$). Stalled-dimension detection identifies dimensions where the per-dimension score has not improved in the last 5 intra-epoch evaluations. Plateau detection (Gate~C) and human-in-the-loop routing provide operational safeguards for this case. The proposition also does not address adversarial agents---a limitation addressed by the threat model (Section~\ref{sec:problem-setting}).
 
@@ -745,15 +745,7 @@ The shared context graph enables this directly. When a scope reaches RESOLVED:
 
 Bitemporal state is what makes this work without information loss. Prior facts are never deleted. When a new document supersedes a previous claim (e.g., restated financials), the old node receives a $\texttt{superseded\_at}$ timestamp; the new node carries its own $\texttt{valid\_from}$. The full temporal history is preserved: an auditor can reconstruct what the graph looked like at any prior finality point, compare it to the current state, and see exactly which new information triggered the re-evaluation.
 
-This architecture models the operational reality of regulated knowledge work:
-
-\begin{itemize}
-  \item In M\&A due diligence, the initial close produces one finality certificate. Post-merger integration monitoring ingests quarterly reports that may introduce new contradictions---producing a new convergence cycle and a new certificate each quarter.
-  \item In ongoing KYC/AML, an initial customer risk assessment reaches finality. Periodic reviews (annual for standard risk, quarterly for high risk) re-inject updated information, triggering re-convergence against the same graph.
-  \item In pharmaceutical regulation, an initial marketing authorization reaches finality. Post-market pharmacovigilance data feeds continuously into the context graph, potentially re-opening finality when adverse events contradict prior safety claims.
-\end{itemize}
-
-The system does not merely \emph{support} this lifecycle; it is the natural operating mode. The three-node cycle (ContextIngested $\rightarrow$ FactsExtracted $\rightarrow$ DriftChecked) runs indefinitely, and finality evaluation runs after every governance decision. What changes between cycles is the graph's content, not its structure.
+This architecture models the operational reality of regulated knowledge work: M\&A post-merger monitoring, ongoing KYC/AML reviews, and pharmacovigilance surveillance all follow this pattern---initial finality followed by periodic re-convergence on the same graph as new evidence arrives. The three-node cycle runs indefinitely; what changes between cycles is the graph's content, not its structure.
 
 %% ============================================================
 \section{Agent Architecture}
@@ -780,7 +772,7 @@ Implements the three-tier governance routing described in Section~\ref{sec:three
 Implements approved actions via atomic state transitions with epoch CAS. Records in append-only Context WAL. Updates semantic graph with monotonic upserts. Handles both deterministic execution and LLM-backed execution (with fallback).
 
 \paragraph{Tuner Agent.}
-Periodically optimizes activation filter parameters (cooldown intervals, sensitivity thresholds, minimum event counts) based on accumulated statistics: activation count, productive vs.\ wasted activations, average latency. Filter configurations are versioned and snapshotted to S3 for audit. This creates a closed optimization loop: filter stats reveal whether agents are being activated productively, and the tuner adjusts parameters to minimize wasted LLM invocations.
+Periodically optimizes activation filter parameters based on accumulated statistics (activation count, productive vs.\ wasted invocations). Filter configurations are versioned for audit.
 
 \medskip
 \textbf{Activation filters.} Each agent's activation is gated by a deterministic filter stored in Postgres with four types: \texttt{sequence\_delta} (new WAL events), \texttt{hash\_delta} (artifact content changed), \texttt{timer} (time elapsed), and \texttt{pressure\_directed} (convergence pressure exceeds threshold for the agent's dimension). Filters prevent redundant agent invocations, reducing LLM token consumption. A \texttt{pressure\_directed} filter consults the latest convergence history and activates the agent only if its associated dimension (e.g., \texttt{contradiction\_resolution} for the drift agent) has the highest or near-highest pressure---implementing stigmergic routing at the activation layer.
@@ -821,11 +813,7 @@ LLM-free fallback & No & No & No & N/A & Yes (Tier 1) \\
 \label{tab:comparison}
 \end{table}
 
-The comparison reveals two orthogonal innovation axes. Existing agent frameworks (AutoGen, CrewAI, LangGraph) \emph{wire agents into topologies} where coordination is embedded in code; neither addresses formal convergence, governance auditability, or protocol adaptability. SECP \cite{delachica2026} addresses the protocol-level question---how to aggregate heterogeneous evaluator judgments with non-compensable objection rights and governed self-modification---but lacks shared persistent state, formal convergence tracking, or cryptographic finality. Our system addresses the state-level question---how agents reason over shared context and converge formally---but uses a scalar convergence metric and does not support protocol self-modification.
-
-The complementarity is precise: SECP's non-scalar coordination with coverage--autonomy navigation could replace or augment our scalar governance function $\Pi$, while our Lyapunov convergence tracking and bitemporal audit infrastructure could provide the multi-iteration foundation that SECP's single-shot design currently lacks. Neither system alone addresses all requirements of governed multi-agent coordination in regulated environments; a synthesis would.
-
-This distinction matters for enterprise adoption: when business requirements change (new compliance rules, additional risk factors, different approval workflows), our system requires YAML edits. Existing frameworks require code changes, testing, and redeployment.
+The table reveals two orthogonal gaps. Existing agent frameworks wire agents into topologies with no formal convergence, auditability, or protocol adaptability. SECP addresses protocol-level coordination (non-scalar aggregation, governed self-modification, Byzantine fault model) but lacks shared persistent state or formal convergence tracking. Our system addresses state-level coordination but uses a scalar finality criterion and does not support protocol self-modification. The complementarity between our approach and SECP is analyzed in Section~\ref{sec:discussion}.
 
 %% ============================================================
 \section{Validation: Project Horizon}
@@ -930,10 +918,6 @@ The following experiments are designed to address the open questions identified 
   \item Repeat each condition 10 times with different random seeds to estimate variability.
 \end{enumerate}
 
-\paragraph{Expected outcomes.} Three characteristic $V(t)$ trajectory shapes should emerge: (i) exponential decay when contradictions are low ($c \leq 1$), (ii) plateau-then-resolution when contradictions are moderate ($c = 3$) and require multi-round deliberation, and (iii) escalation when contradiction density is high ($c = 5$) and exceeds autonomous resolution capacity. The re-opening dynamics should show that $V(t)$ rises sharply on new contradictions and re-converges from the prior graph state rather than from scratch.
-
-\paragraph{Metrics.} Rounds to first RESOLVED, rounds to re-RESOLVED after re-opening, $V(t)$ monotonicity violation count, oscillation frequency (Gate~C trigger rate), ESCALATED rate.
-
 \subsection{Experiment 2: Scalability}
 
 \paragraph{Objective.} Provide the first empirical data on how governed agent coordination scales, addressing SECP's open question on scaling beyond small module sets.
@@ -947,10 +931,6 @@ The following experiments are designed to address the open questions identified 
   \item Measure: rounds to convergence $k$, wall-clock time, total LLM token consumption, audit event count, semantic graph query latency.
 \end{enumerate}
 
-\paragraph{Expected outcomes.} Convergence time $k$ should grow sub-linearly with $|\mathcal{N}|$ (claims are processed in batches) but linearly or super-linearly with $\rho$ (each contradiction requires resolution). Pressure-directed activation should demonstrate its value at scale: agents routed to the bottleneck dimension should reduce convergence time compared to round-robin activation. The scaling bottleneck is hypothesized to be contradiction resolution, not claim extraction.
-
-\paragraph{Metrics.} $k$ vs.\ $|\mathcal{N}|$, $k$ vs.\ $\rho$, $k$ vs.\ $|\mathcal{A}|$, LLM tokens per convergence round, pressure-directed activation hit rate (fraction of activations targeting the true bottleneck dimension).
-
 \subsection{Experiment 3: Finality Robustness Under Adversarial Evidence}
 
 \paragraph{Objective.} Validate that the five-gate mechanism prevents false finality under evidence patterns designed to exploit threshold-based systems.
@@ -962,10 +942,6 @@ The following experiments are designed to address the open questions identified 
   \item \textbf{Stale evidence:} Allow evidence to age past \texttt{max\_age\_days} during a slow convergence process.
   \item \textbf{Empty-scope finality:} Initialize a scope with zero claims and zero goals, then add a single high-confidence claim.
 \end{enumerate}
-
-\paragraph{Expected outcomes.} Gate~A (monotonicity) should block premature finality in the spike-and-drop scenario by resetting the consecutive-non-decreasing counter. Gate~C (oscillation detection) should flag the alternating pattern via negative lag-1 autocorrelation. Gate~B (evidence freshness) should block finality on stale data. Gate~E (minimum content) should prevent the empty-scope degenerate case.
-
-\paragraph{Metrics.} False finality rate (RESOLVED with unresolved contradictions), per-gate trigger frequency, trajectory quality score $Q$ distribution, time in ESCALATED state.
 
 \subsection{Experiment 4: Multi-Level Governance}
 
@@ -980,10 +956,6 @@ The following experiments are designed to address the open questions identified 
 
 Run the Project Horizon M\&A scenario with per-scope governance level overrides: financial claims at L2, patent disputes at L3, technical assessments at L1.
 
-\paragraph{Expected outcomes.} The majority of decisions ($>$80\%) should be resolved at L1 (deterministic, zero LLM tokens). L2 decisions should cluster around financial contradictions. L3 decisions should be rare but gate-blocking: finality cannot be declared until all L3 issues are resolved by human review. The certificate chain should record the governance level of each decision, enabling per-level audit.
-
-\paragraph{Metrics.} Decision distribution across levels, escalation frequency, time-to-finality per level, L3 blocking duration, LLM token consumption per level.
-
 \subsection{Experiment 5: Coverage--Autonomy Trade-off}
 
 \paragraph{Objective.} Empirically map the coverage--autonomy trade-off identified by SECP \cite{delachica2026}, using governance modes as the control variable.
@@ -996,11 +968,7 @@ Run the Project Horizon M\&A scenario with per-scope governance level overrides:
   \item Define autonomy $\Omega(\Pi)$ as the fraction of governance decisions where a single agent's objection (drift signal) blocked or escalated a proposal.
 \end{enumerate}
 
-\paragraph{Expected outcomes.} YOLO should produce maximum coverage but minimum autonomy (all objections are compensable by governance approval). MASTER ($\ell = \textsc{Master}$) should produce minimum coverage but maximum autonomy: proposals are evaluated through the full reduction kernel, and any policy violation or lattice incomparability produces a rejection rather than an escalation. MITL should occupy an intermediate position. This maps to SECP's coverage--autonomy spectrum: scalar aggregation ($\sim$YOLO) achieved coverage of 6/6; hard veto ($\sim$MASTER) restricts coverage to only fully admissible proposals; SECP non-scalar ($\sim$MITL) achieved 2--3/6.
-
-Additionally, the Lyapunov convergence rate $\alpha$ should differ characteristically across modes: $\alpha_{\text{YOLO}} > \alpha_{\text{MITL}} > \alpha_{\text{MASTER}}$, reflecting the cost of increased evaluator autonomy on convergence speed.
-
-\paragraph{Metrics.} $\Delta(\Pi)$ per mode, $\Omega(\Pi)$ per mode, $\alpha$ per mode, time-to-finality per mode, human escalation rate (MITL only).
+\paragraph{Expected outcomes.} YOLO should maximize coverage, MASTER should maximize evaluator autonomy (policy violations and lattice incomparability produce rejections), and MITL should occupy an intermediate position. The Lyapunov convergence rate should differ: $\alpha_{\text{YOLO}} > \alpha_{\text{MITL}} \geq \alpha_{\text{MASTER}}$.
 
 %% ============================================================
 \section{Experimental Results}
@@ -1176,6 +1144,7 @@ The experimental results identify four specific research directions, ordered by 
 
 %% ============================================================
 \section{Enterprise and Regulatory Fitness}
+\label{sec:enterprise}
 %% ============================================================
 
 Regulated environments---financial services, healthcare, defense, critical infrastructure---impose requirements that go beyond functional correctness. This section maps the architecture's capabilities to specific regulatory demands, showing that the mechanisms described above are not merely useful but structurally necessary for enterprise deployment.
@@ -1202,88 +1171,9 @@ The policy-version hashes are critical: they bind the finality decision to the e
 
 This addresses requirements in MiFID~II (best execution record-keeping), SOX (management sign-off chains), and EMIR (trade repository reporting), where demonstrating \emph{which rules governed a decision} is as important as demonstrating the decision itself.
 
-\subsection{Policy Change Management}
+\subsection{Summary of Remaining Regulatory Mappings}
 
-Every \texttt{DecisionRecord} (Section~\ref{sec:declarative-governance}) embeds a \texttt{policy\_version} computed as a content hash of the governance and finality configuration files. This creates an immutable link between each governance decision and the rule version that produced it, without requiring a separate version-control system.
-
-When an auditor asks ``Was this decision made under the pre-amendment or post-amendment compliance rules?'', the answer is a database query on \texttt{decision\_records.policy\_version}. When a policy is updated, all subsequent decisions carry the new hash. Historical decisions retain the old hash. No retrospective rewriting is possible.
-
-This addresses GDPR Article~25 (data protection by design, requiring demonstrable compliance measures), the change control requirements of ISO~27001 Annex~A, and the policy versioning demands of PCI-DSS Requirement~6.
-
-\subsection{Perpetual Compliance: Regulatory Lifecycle Mapping}
-
-Most regulated processes are not one-shot: they require ongoing monitoring, periodic reassessment, and event-triggered re-evaluation. The perpetual finality lifecycle (Section~\ref{sec:perpetual-finality}) maps directly to these requirements:
-
-\begin{itemize}
-  \item \textbf{KYC/AML ongoing monitoring.} The 5th Anti-Money Laundering Directive requires continuous due diligence---not point-in-time checks. Customer risk profiles must be refreshed annually (standard risk) or quarterly (high risk). Each review cycle ingests new data (transaction patterns, sanctions list updates, adverse media), re-opens convergence, and produces a new finality certificate. The chain of certificates constitutes the monitoring record that regulators inspect.
-
-  \item \textbf{IFRS~9 Expected Credit Loss.} Impairment models must be recalibrated as macroeconomic conditions evolve. Each recalibration is a new convergence cycle over the same graph, with updated economic indicators contradicting or confirming prior forward-looking estimates. The bitemporal graph preserves the temporal evolution of credit risk assessments; the certificate chain traces model updates.
-
-  \item \textbf{Basel~III/IV risk-weighted assets.} Quarterly recalculation of capital adequacy ingests new exposure data. Contradictions between prior and current risk factor values trigger drift detection and governance review before the new calculation is finalized. Each quarterly finality certificate binds to the policy rules (including regulatory buffers) in effect at that point.
-
-  \item \textbf{Post-market pharmacovigilance.} After a drug's marketing authorization (initial finality), adverse event reports continuously feed the context graph. A severe safety signal creates contradictions against prior efficacy claims, driving $V(t)$ upward and triggering re-convergence. The system may transition to ESCALATED, routing to human review with full context of what changed and why.
-
-  \item \textbf{Sanctions screening.} Daily list updates from OFAC, EU, and UN require re-screening of previously cleared entities. Each update is new context that may contradict prior clearances. A name match creates a contradiction edge; the system re-converges, and a new certificate is issued only when the match is either resolved (false positive) or escalated (true positive requiring action).
-
-  \item \textbf{Post-merger integration.} The M\&A close produces one finality certificate. Quarterly integration reports introduce new operational and financial data. The graph absorbs these, drift detection identifies discrepancies from the original due-diligence conclusions, and the system tracks whether pre-close assumptions still hold---producing a running audit trail of integration risk.
-\end{itemize}
-
-In each case, the operational model is the same: a shared context graph that accumulates knowledge over time, a convergence mechanism that produces formal checkpoints, and a certificate chain that provides auditors with a timestamped, policy-versioned, cryptographically signed record of every decision point. No separate ``monitoring system'' is needed; the same architecture that performs initial analysis performs ongoing surveillance.
-
-\subsection{Evidence Freshness and Completeness}
-
-An evidence schema (Section~\ref{sec:shared-context}) declares, per domain, which evidence types are required and how long each remains valid (\texttt{max\_age\_days}). Gate~B of the finality evaluator blocks auto-resolution when:
-
-\begin{itemize}
-  \item A required evidence type is absent from the graph (incomplete coverage).
-  \item Present evidence has exceeded its maximum valid age (stale evidence).
-\end{itemize}
-
-This maps directly to ongoing monitoring requirements in AML regulations (5th Anti-Money Laundering Directive: continuous due diligence, not point-in-time checks), certification freshness in ISO~27001 (controls must be periodically re-validated), and KYC review cycles in financial services (customer risk profiles must be refreshed within regulatory timelines).
-
-\subsection{Separation of Duties}
-
-OpenFGA (Section~\ref{sec:openfga}) enforces relationship-based access control across four dimensions: document read access, transition proposal rights, approval authority, and policy modification permissions. The three governance modes (YOLO, MITL, MASTER) map to organizational risk appetite:
-
-\begin{itemize}
-  \item \textbf{YOLO} for internal, low-sensitivity workflows where speed matters and audit trail suffices.
-  \item \textbf{MITL} for standard compliance workflows where every state transition requires human sign-off (SOX Section~302/404 segregation of duties).
-  \item \textbf{MASTER} for highest-sensitivity scenarios (e.g., sanctions screening) where every proposal is evaluated through the full reduction kernel and any policy violation or lattice incomparability produces a deterministic rejection.
-\end{itemize}
-
-Per-scope overrides enable fine-grained control: within a single M\&A due-diligence process, financial claims can require MITL while technical assessments operate in YOLO mode. This granularity is required by PCI-DSS Requirement~6 (role-based access to payment data) and SOX (segregation between preparers and approvers of financial statements).
-
-\subsection{Operational Resilience}
-
-Agent failures do not cascade. When one agent is slow or fails, others continue operating. The disagreement metric $V(t)$ rises, triggering escalation rules or human routing. The three-node cycle with epoch CAS ensures atomic transitions even under concurrent agent execution.
-
-Three resilience mechanisms ensure continuous governance:
-
-\begin{itemize}
-  \item \textbf{Circuit breaker:} LLM failures trigger automatic fallback to Tier~1 deterministic evaluation (3 consecutive failures, 60-second cooldown). Governance never stalls due to LLM unavailability.
-  \item \textbf{Message deduplication:} A \texttt{processed\_messages} table with atomic check-and-mark ensures exactly-once processing of proposals, preventing duplicate governance decisions under message replay.
-  \item \textbf{Graceful degradation:} Convergence tracking, embedding pipeline, obligation enforcement, and finality certificate issuance each degrade gracefully when their backing services are unavailable. The system continues at reduced capability rather than halting.
-\end{itemize}
-
-\subsection{Governance Agility}
-
-When business needs change, update the YAML governance rules. The change is auditable (the next decision record carries a new policy-version hash), testable (new rules can be evaluated against the existing event log in a dry-run mode), and live immediately. No code recompilation, no redeployment. The native Rust reduction kernel parses updated YAML at startup and evaluates all governance decisions deterministically---policy teams modify human-readable configuration files rather than writing code. Because the kernel is compiled as a Node.js addon via napi-rs, rule changes take effect on process restart without rebuilding the governance engine itself.
-
-%% ============================================================
-\section{The Reasoning Agent Paradigm}
-%% ============================================================
-
-The emergence of reasoning-capable LLM agents---systems that can plan, hypothesize, and revise conclusions based on new evidence---fundamentally changes the coordination problem. In the DAG paradigm, agents are execution units: they receive inputs and produce outputs in a predefined sequence. In the reasoning paradigm, agents are \emph{epistemic actors}: they maintain beliefs, generate hypotheses, and update them as evidence accumulates.
-
-This shift has three implications for coordination:
-
-\textbf{Contradiction is information, not failure.} When two reasoning agents disagree about a fact (e.g., conflicting revenue figures from different documents), this disagreement is valuable signal. A governance-based system can track contradictions explicitly in the semantic graph, route them to investigation, and declare finality only when they are resolved---or escalated to human judgment with full context.
-
-\textbf{Coordination must be emergent, not hardcoded.} Reasoning agents discover new information that may invalidate the planned execution path. A governance-based system allows agents to propose new directions based on what they find, evaluated by declarative rules rather than predetermined sequences. The three-node cycle (ContextIngested $\rightarrow$ FactsExtracted $\rightarrow$ DriftChecked) provides structure without rigidity.
-
-\textbf{Finality requires formal guarantees.} When agents reason and revise, the system may never converge without formal mechanisms. Lyapunov-based convergence tracking provides mathematical guarantees that the system either reaches consensus or explicitly routes to human review---it cannot cycle indefinitely.
-
-Our system is designed for this paradigm: agents reason independently over shared context, governance rules coordinate their outputs, and formal mechanisms ensure convergence. As LLM agents become more capable (chain-of-thought reasoning, tool use, multi-step planning), the governance-based coordination model becomes more relevant, not less.
+Several additional enterprise concerns---policy change management (each \texttt{DecisionRecord} binds to a content-hashed \texttt{policy\_version}), ongoing compliance lifecycle (the perpetual finality mechanism produces certificate chains for KYC/AML, IFRS~9, Basel~III, and pharmacovigilance monitoring), evidence freshness (Gate~B enforces per-domain staleness limits), separation of duties (OpenFGA + governance modes map to SOX/PCI-DSS segregation requirements), operational resilience (circuit breaker, message deduplication, graceful degradation), and governance agility (YAML rule changes are auditable and require no recompilation)---are addressed by mechanisms described in Sections~\ref{sec:declarative-governance}--\ref{sec:perpetual-finality} and are not re-derived here. These mappings are assertion-based: they follow from the architectural properties established above but have not been validated in production regulatory contexts.
 
 %% ============================================================
 \section{Scope and Boundaries}
@@ -1347,9 +1237,25 @@ This section states the principal limitations and the research directions requir
 
 \textbf{Scalar finality criterion.} While the v2 product lattice $\mathcal{M} = \mathcal{L} \times \mathcal{A}$ tracks convergence per-dimension during governance evaluation (the reduction kernel rejects transitions that regress any single dimension), the finality evaluator's ultimate resolution decision still relies on a scalar goal score and aggregate gate predicates. This partially addresses the scalar aggregation that SECP \cite{delachica2026} criticizes: governance decisions are now lattice-aware, but the final ``is the scope resolved?'' question remains scalar. Extending the finality gates to require per-dimension satisfaction (each convergence rank component below its threshold) would complete the transition to fully non-scalar convergence.
 
-\textbf{Static governance rules.} The governance function $\Pi$ (Definition~\ref{def:governance}) and the lattice ordering on $\mathcal{M}$ are fixed within a deployment. Unlike SECP's self-modifying coordination protocols, our system does not adapt its governance rules or lattice structure based on observed outcomes. Integrating governed protocol modification \cite{delachica2026} with the product lattice framework is a natural extension: each protocol modification would be evaluated by its effect on the lattice point $(l, a) \in \mathcal{M}$, with the reduction kernel preventing modifications that would violate the well-founded descent property required by Theorem~\ref{thm:termination}.
+\textbf{Static governance rules.} The governance function (the reduction kernel $\mathcal{K}$, Definition~\ref{def:kernel}) and the lattice ordering on $\mathcal{M}$ are fixed within a deployment. Unlike SECP's self-modifying coordination protocols, our system does not adapt its governance rules or lattice structure based on observed outcomes. Integrating governed protocol modification \cite{delachica2026} with the product lattice framework is a natural extension: each protocol modification would be evaluated by its effect on the lattice point $(l, a) \in \mathcal{M}$, with the reduction kernel preventing modifications that would violate the well-founded descent property required by Theorem~\ref{thm:termination}.
 
 \textbf{Coverage--autonomy trade-off.} The coverage--autonomy trade-off identified by \cite{delachica2026} manifests in the governance lattice $\mathcal{L}$ (Definition~\ref{def:gov-lattice}): the lattice ordering $\textsc{Master} \leq \textsc{Mitl} \leq \textsc{Yolo}$ provides a qualitative ranking of governance strictness, and the reduction kernel implements distinct acceptance/rejection/escalation routing per level. However, the trade-off is not yet formalized quantitatively. Defining evaluator autonomy as a measurable quantity (e.g., the probability that a single agent's objection blocks finality, parameterized by $\ell \in \mathcal{L}$) and mapping it against coverage across governance configurations would provide a principled basis for mode selection.
+
+\subsection{Unproven Formal Assumptions}
+
+The following assumptions underpin the paper's formal claims but are not proven or empirically verified. They are stated explicitly to prevent over-interpretation of the theoretical results.
+
+\begin{enumerate}
+  \item \textbf{Discretization of $\mathcal{A}$.} The Epoch Termination Theorem (Theorem~\ref{thm:termination}) requires $\mathcal{M}$ to be well-founded. $\mathcal{L}$ is finite (3 elements), but $\mathcal{A} = (\mathbb{R}_{\geq 0})^k$ is not well-founded under the standard real ordering. The proof assumes a discretization with minimum step $\epsilon > 0$, making $\mathcal{A}_\epsilon$ finite. This is an implementation-dependent assumption: if the convergence evaluator uses continuous-valued scores without rounding, the well-foundedness argument does not apply. The theorem should be understood as holding for the discrete implementation, not for the mathematical abstraction.
+
+  \item \textbf{Local confluence.} The connection to rewriting theory invokes Newman's Lemma, which requires local confluence as a precondition. Local confluence---that any two admissible transitions from the same state produce joinable results---is neither proven nor tested. The system provides kernel determinism (each proposal evaluation is deterministic) but not commutativity of independent transitions. The claimed ``partial confluence'' is a weaker property: only transitions certified compatible by the kernel are guaranteed to commute. Full confluence remains an open question.
+
+  \item \textbf{Monotonic progress precondition.} Proposition~\ref{prop:monotonic} and its corollary require that ``at least one convergence dimension makes strict progress'' per cycle. This precondition was never satisfied in the experiments: the \texttt{goal\_completion} dimension was permanently stalled at 0.00 because no goal-resolution agent exists. The proposition is therefore correct but its applicability depends on the agent ensemble being complete---a non-trivial requirement that the paper does not address.
+
+  \item \textbf{Tier 2/3 governance routing.} The three-tier governance architecture is implemented and instrumented, but only Tier~1 (deterministic evaluation) was exercised in all experiments. The oversight LLM (Tier~2) consistently agreed with the deterministic result. No experiment triggered Tier~3 (full LLM governance). The three-tier architecture is therefore validated as implemented but not as exercised: the system's behavior under genuine Tier~2/3 disagreement is unknown.
+
+  \item \textbf{Cooperative agent model.} All formal guarantees assume cooperative agents (Threat Model, Section~\ref{sec:problem-setting}). The monotonic confidence ratchet provides partial robustness against downward manipulation, but no defense exists against upward inflation (an adversarial agent that inflates confidence scores can drive $V(t)$ toward 0 without genuine resolution). Byzantine fault tolerance remains entirely unaddressed.
+\end{enumerate}
 
 \subsection{Future Work: Research Directions}
 

@@ -16,6 +16,7 @@
 
 import type { FinalitySnapshot, GoalGradientConfig, CoordinationSignal } from "./finalityEvaluator.js";
 import { getPool } from "./db.js";
+import { logger } from "./logger.js";
 import pg from "pg";
 import {
   computeDimensionScores as rustComputeDimensionScores,
@@ -195,6 +196,11 @@ export interface ConvergenceGateState {
 
 /**
  * Append a convergence point to the history table.
+ *
+ * When CONVERGENCE_INSTRUMENTATION=1, also logs per-dimension step sizes
+ * (|d_i(t) - d_i(t-1)|) to support the Assumption #1 (discretization)
+ * experiment. The log line is JSON-structured for post-processing by
+ * scripts/analyze-discretization.ts.
  */
 export async function recordConvergencePoint(
   scopeId: string,
@@ -212,6 +218,58 @@ export async function recordConvergencePoint(
      VALUES ($1, $2, $3, $4, $5::jsonb, $6::jsonb, $7)`,
     [scopeId, epoch, goalScore, lyapunovV, JSON.stringify(dimensionScores), JSON.stringify(pressure), contextSeq ?? null],
   );
+
+  // ── Dimension step instrumentation (Assumption #1: discretization) ──
+  // Enabled by default; set CONVERGENCE_INSTRUMENTATION=0 to disable.
+  if (process.env.CONVERGENCE_INSTRUMENTATION !== "0") {
+    try {
+      const prev = await p.query(
+        `SELECT dimension_scores, lyapunov_v, epoch FROM convergence_history
+         WHERE scope_id = $1 AND id < (SELECT MAX(id) FROM convergence_history WHERE scope_id = $1)
+         ORDER BY id DESC LIMIT 1`,
+        [scopeId],
+      );
+      if (prev.rows.length > 0) {
+        const prevScores = prev.rows[0].dimension_scores as Record<string, number>;
+        const prevV = Number(prev.rows[0].lyapunov_v);
+        const deltas: Record<string, number> = {};
+        const absDelta: Record<string, number> = {};
+        for (const dim of Object.keys(dimensionScores)) {
+          const d = dimensionScores[dim] - (prevScores[dim] ?? 0);
+          deltas[dim] = d;
+          absDelta[dim] = Math.abs(d);
+        }
+        const vDelta = lyapunovV - prevV;
+        logger.info("convergence:step", {
+          scope_id: scopeId,
+          epoch,
+          context_seq: contextSeq ?? null,
+          goal_score: goalScore,
+          lyapunov_v: lyapunovV,
+          v_delta: vDelta,
+          dimensions: dimensionScores,
+          deltas,
+          abs_deltas: absDelta,
+          min_nonzero_step: Math.min(
+            ...Object.values(absDelta).filter((v) => v > 0),
+            Infinity,
+          ),
+        });
+      } else {
+        logger.info("convergence:step", {
+          scope_id: scopeId,
+          epoch,
+          context_seq: contextSeq ?? null,
+          goal_score: goalScore,
+          lyapunov_v: lyapunovV,
+          dimensions: dimensionScores,
+          note: "first_point",
+        });
+      }
+    } catch {
+      // Instrumentation must never break the critical path
+    }
+  }
 }
 
 /**

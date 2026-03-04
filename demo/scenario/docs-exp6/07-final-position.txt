@@ -1,0 +1,33 @@
+PROJECT ATLAS — CONSOLIDATED POSITION PAPER
+
+Prepared by: Deal Team
+Date: 2025-11-05
+Classification: CONFIDENTIAL
+
+SUMMARY OF RESOLVED ISSUES
+
+After five rounds of due diligence, the following contradictions have been resolved:
+
+1. FINANCIALS (RESOLVED): Revenue reconciled to EUR 76M, growth to 31% YoY, gross margin to 64%. All parties agree on these figures. The initial self-reported numbers were materially overstated, but the external audit also understated certain line items.
+
+2. CLIENT COUNT (RESOLVED): Agreed at 108 active paying clients with signed contracts.
+
+3. CYBERSECURITY (SUBSTANTIALLY RESOLVED): Critical and high-severity vulnerabilities remediated. Encryption standards upgraded. Incident response capability established. Residual risk is LOW.
+
+4. REGULATORY (RESOLVED): ISO 13485 confirmed valid for current codebase. CE marking transition to MDR on track. GDPR compliance confirmed.
+
+5. BREACH DISCLOSURE (RESOLVED): Documentation confirms timely disclosure to legal team. The omission from the initial assessment was procedural, not intentional.
+
+REMAINING OPEN ITEMS
+
+- CTO key person risk: retention package under negotiation
+- 2 remaining high-severity security patches pending November maintenance window
+- CE marking MDR transition completion (March 2026)
+
+RECOMMENDATION
+
+Proceed to definitive agreement negotiation at EUR 560M, subject to CTO retention agreement and November security patch completion.
+
+GOAL STATUS
+
+All primary due diligence goals are substantially complete. The revenue validation, regulatory confirmation, cybersecurity assessment, and competitive analysis objectives have been met.
