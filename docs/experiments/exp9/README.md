@@ -136,7 +136,7 @@ All 8 proposals × 10 evaluations = 80 total evaluations, all deterministic.
 | Contradiction resolution | Yes | Yes | Set-once, irreversible |
 | Node insertion | Yes | Yes | Content-matched upsert |
 | Goal/risk upsert | Yes | Yes | Content-matched |
-| Stale marking | **No** | Yes | Last-writer-wins on payload content |
+| Stale marking (claims) | **No** | Yes | Last-writer-wins on payload content (goals/risks protected) |
 | Governance kernel | Yes | Yes | Pure deterministic function |
 
 ## Success Criteria
@@ -162,6 +162,16 @@ All 8 proposals × 10 evaluations = 80 total evaluations, all deterministic.
 - This is a stronger property than partial confluence alone
 - Combined with Exp 8's finding (cycle-based re-extraction as Byzantine defense),
   the system has practical convergence guarantees beyond what the theory proves
+
+### Goal-aware stale protection (applied fix)
+- Exp 9 identified that stale marking of goal nodes caused goal_completion
+  to be permanently stuck at 0.00 across all experiments
+- **Fix:** Goals and risks are now protected from stale marking in
+  `syncFactsToSemanticGraph` -- they are accumulative across documents
+  (a goal from doc 1 remains valid when doc 2 is extracted)
+- Stale marking still applies to claims and contradictions (last-writer-wins)
+- This narrows the non-commutativity surface: stale marking only affects
+  claims and contradictions, not the goal_completion dimension
 
 ### Recommendations for the paper
 1. Formalize the "eventual consistency via complete re-extraction" property

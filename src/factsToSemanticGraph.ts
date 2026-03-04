@@ -273,6 +273,11 @@ export async function syncFactsToSemanticGraph(
     // --- Mark stale nodes as "irrelevant" (not deleted — CRDT append-only) ---
     // Only stale nodes that are "active" AND created by facts-sync. Never stale
     // nodes that were resolved/in_progress by human resolution or other sources.
+    //
+    // Goals and risks are PROTECTED from stale marking: they are accumulative
+    // across documents (a goal from doc 1 is still valid when doc 2 is extracted).
+    // Staling goals caused goal_completion to be permanently stuck at 0.00 in all
+    // experiments — see Exp 9 (confluence) and the paper Section 8 corollary.
     const STALEABLE_STATUSES = new Set(["active"]);
     const PROTECTED_CREATORS = new Set(["resolution"]);
     for (const node of existingClaims) {
@@ -281,18 +286,8 @@ export async function syncFactsToSemanticGraph(
         nodesStaled++;
       }
     }
-    for (const node of existingGoals) {
-      if (!matchedGoalIds.has(node.node_id) && STALEABLE_STATUSES.has(node.status) && !PROTECTED_CREATORS.has(node.created_by ?? "")) {
-        await updateNodeStatus(node.node_id, "irrelevant", client);
-        nodesStaled++;
-      }
-    }
-    for (const node of existingRisks) {
-      if (!matchedRiskIds.has(node.node_id) && STALEABLE_STATUSES.has(node.status) && !PROTECTED_CREATORS.has(node.created_by ?? "")) {
-        await updateNodeStatus(node.node_id, "irrelevant", client);
-        nodesStaled++;
-      }
-    }
+    // Goals: skip stale marking — goals accumulate across extractions.
+    // Risks: skip stale marking — risks accumulate across extractions.
 
     // --- Contradictions: create nodes AND edges ---
     // Load existing contradiction nodes to avoid duplicates

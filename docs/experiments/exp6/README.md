@@ -6,10 +6,11 @@ Validate **Assumption #3 (Monotonic Progress)** from the publication's
 "Unproven Formal Assumptions" section.
 
 Corollary 1 requires that every convergence cycle produces strict progress
-(Delta > 0) on at least one dimension. In Experiments 1-5, `goal_completion`
-was permanently stuck at 0.00 because the **resolver agent** was never
-enabled — contradictions were never resolved by an agent (only by manual
-`--resolve-at` injection in the driver).
+(Delta > 0) on at least one dimension. In early Experiments 1-5 runs,
+`goal_completion` was stuck at 0.00 due to stale marking of goal nodes
+(identified in Exp 9). With goal-aware stale protection applied, goals
+persist across extraction cycles and can be resolved by the resolver agent
+or driver injection.
 
 Exp 6 runs the full agent pipeline including the resolver, on a corpus
 specifically designed with **resolvable contradictions**: documents that

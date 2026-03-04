@@ -221,15 +221,16 @@ async function injectResolution(batch: number = 3): Promise<{ edgesResolved: num
   const nodesResolved = nodeRes.rowCount ?? 0;
 
   // 3. Mark goal nodes as resolved (goal_completion dimension needs this)
-  //    When contradictions are being resolved, related goals are progressing too.
+  //    Resolve goals in any non-terminal status (active OR irrelevant) so that
+  //    goals staled by earlier extraction cycles can still be resolved.
   const goalRes = await pool.query(
     `UPDATE nodes SET status = 'resolved', updated_at = now(), version = version + 1,
        source_ref = source_ref || '{"resolved_by":"experiment-driver"}'::jsonb
-     WHERE scope_id = $1 AND type = 'goal' AND status = 'active'
+     WHERE scope_id = $1 AND type = 'goal' AND status IN ('active', 'irrelevant')
        AND superseded_at IS NULL AND (valid_to IS NULL OR valid_to > now())
        AND node_id IN (
          SELECT node_id FROM nodes
-         WHERE scope_id = $1 AND type = 'goal' AND status = 'active'
+         WHERE scope_id = $1 AND type = 'goal' AND status IN ('active', 'irrelevant')
            AND superseded_at IS NULL
          LIMIT $2
        )`,
