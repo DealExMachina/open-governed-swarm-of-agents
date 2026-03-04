@@ -8,7 +8,7 @@ The experiment driver injects M&A due diligence documents one at a time through 
 
 **Independent variable:** Contradiction density c in {0, 1, 3, 5} -- controlled by selecting how many contradicting documents to include from the M&A corpus.
 
-**Dependent variables:** V(t) trajectory, alpha(t) convergence rate, gate satisfaction per round, rounds to RESOLVED.
+**Dependent variables:** V(t) trajectory, alpha(t) convergence rate, gate satisfaction per round, rounds to RESOLVED, per-dimension scores (claim_confidence, contradiction_resolution, goal_completion, risk_score_inverse).
 
 **Resolution injection:** At round 5 (configurable), the driver injects "resolves" edges for unresolved contradictions, simulating human or agent-driven resolution. This should produce a visible V(t) drop.
 
@@ -43,7 +43,7 @@ bash scripts/run-experiment.sh exp1 --contradictions=5 --rounds=7 --resolve-at=5
 
 Results collected to `docs/experiments/exp1/results/<timestamp>/`:
 
-- `convergence_history.json` -- one row per evaluation cycle: epoch (from swarm_state), goal_score, lyapunov_v, pressure, gate columns (A-E), finality_state, trajectory_quality, unresolved_contradictions
+- `convergence_history.json` -- one row per evaluation cycle: epoch (from swarm_state), goal_score, lyapunov_v, dimension_scores (claim_confidence, contradiction_resolution, goal_completion, risk_score_inverse), pressure, gate columns (A-E), finality_state, trajectory_quality, unresolved_contradictions
 - `decision_records.json` -- governance decisions with governance_path, scope_id, scope_mode
 - `context_events_sample.json` -- pipeline events
 - `metadata.json` -- run parameters and counts
@@ -55,6 +55,10 @@ OTEL metrics: `swarm.agent.latency_ms`, `swarm.pressure_directed.activation`, `s
 - **c=0 (no contradictions):** V(t) should decrease monotonically as claims accumulate. Goal score rises toward RESOLVED threshold. Expected shape: exponential decay.
 - **c=1-3 (moderate contradictions):** V(t) decreases initially as claims arrive, then rises when contradicting documents appear (V increases = divergence). After resolution injection at round 5, V should drop sharply. Expected shape: plateau-then-resolution.
 - **c=5 (heavy contradictions):** V(t) may oscillate or remain high until resolution. Gate C (trajectory quality) should detect oscillation. Expected shape: oscillation-then-escalation or resolution.
+
+## Notes
+
+**Goal completion:** Goals extracted by the facts-worker are protected from stale marking (they are accumulative across documents). At the resolution round, the driver marks active goal nodes as resolved, advancing the goal_completion dimension. This should be visible in `dimension_scores.goal_completion` in the convergence history. Earlier versions of the codebase staled goal nodes, causing goal_completion to be permanently stuck at 0.00 (see Exp 9 for the root cause analysis).
 
 ## Replication
 

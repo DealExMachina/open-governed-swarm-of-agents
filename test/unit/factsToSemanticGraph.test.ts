@@ -153,6 +153,30 @@ describe("factsToSemanticGraph", () => {
       expect(result.nodesStaled).toBe(1);
     });
 
+    it("does not stale goal nodes (goals are accumulative across extractions)", async () => {
+      queryNodesByCreator.mockImplementation(async (_s: string, _c: string, type?: string) => {
+        if (type === "goal") return [
+          makeNode({ node_id: "goal-1", type: "goal", content: "Goal A" }),
+          makeNode({ node_id: "goal-2", type: "goal", content: "Goal B" }),
+        ];
+        return [];
+      });
+      const { syncFactsToSemanticGraph } = await import("../../src/factsToSemanticGraph.js");
+      const result = await syncFactsToSemanticGraph("scope-1", {
+        claims: [],
+        goals: ["Goal A"],
+      });
+
+      const statusCalls = updateNodeStatus.mock.calls.map(
+        (c: unknown[]) => [c[0], c[1]],
+      );
+      const goalStaled = statusCalls.some(
+        ([id, status]: [string, string]) => id === "goal-2" && status === "irrelevant",
+      );
+      expect(goalStaled).toBe(false);
+      expect(result.nodesStaled).toBe(0);
+    });
+
     it("does not re-create contradiction when resolves edge exists (irreversible resolution)", async () => {
       queryNodesByCreator.mockResolvedValue([]);
       appendNode
