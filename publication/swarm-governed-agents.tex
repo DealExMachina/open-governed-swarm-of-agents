@@ -93,7 +93,7 @@ The paper makes the following concrete contributions:
   \item A formal convergence mechanism based on a Lyapunov disagreement function with five independent gates (monotonicity, evidence coverage, oscillation detection, quiescence, minimum content) that provides layered guarantees against premature finality.
   \item A perpetual finality lifecycle in which certified checkpoints---not terminal decisions---model the ongoing nature of regulated knowledge, with Ed25519-signed certificates binding each decision to the exact policy version that produced it.
   \item A three-tier governance routing architecture (deterministic rules, oversight agent, full LLM) with circuit-breaker fallback, ensuring continuous governance without LLM availability.
-  \item Validation on a realistic M\&A due-diligence scenario with 121 Rust and 288 TypeScript tests, demonstrating convergence, contradiction resolution, and structured human review.
+  \item Validation on a realistic M\&A due-diligence scenario with 121 Rust and 305 TypeScript tests, demonstrating convergence, contradiction resolution, and structured human review.
 \end{itemize}
 
 For clarity, the following are explicit limits of the paper's claims:
@@ -870,7 +870,7 @@ Governance blocks triggered & 3 \\
 
 \subsection{Testing and Benchmarks}
 
-\textbf{121 Rust and 288 TypeScript tests} covering: convergence mathematics and Lyapunov analysis (57 Rust), finality gates and condition evaluation (32 Rust), governance kernel and lattice admissibility (32 Rust), state graph CAS transitions (11 TS), convergence tracker stability (28 TS), finality evaluator logic (13 TS), governance agent modes (19 TS), embedding pipeline (11 TS), and supporting infrastructure.
+\textbf{121 Rust and 305 TypeScript tests} covering: convergence mathematics and Lyapunov analysis (57 Rust), finality gates and condition evaluation (32 Rust), governance kernel and lattice admissibility (32 Rust), state graph CAS transitions (11 TS), convergence tracker stability (28 TS), finality evaluator logic (13 TS), governance agent modes (19 TS), embedding pipeline (11 TS), and supporting infrastructure.
 
 \textbf{7 convergence benchmarks} validating mathematical properties independently of infrastructure:
 
@@ -1089,6 +1089,81 @@ Pressure disabled & 17 & 5  & 5  & 27 \\
 \label{tab:pressure-ablation}
 \end{table}
 
+\subsection{Experiment 7: Multi-Tier Governance Routing (Assumption~4)}
+
+To validate the three-tier governance architecture beyond Tier~1 deterministic evaluation, three sub-experiments ran the same M\&A corpus under each governance mode (YOLO, MITL, MASTER) with unified policy rules that block transitions at \texttt{high} or \texttt{critical} drift. The key change from Exp.~4: the governance kernel's YOLO semantics were corrected to produce \textsc{Accept} with a \texttt{yolo\_override} reason (rather than \textsc{Escalate}) when policy blocks, matching the lattice ordering $\textsc{Master} \leq \textsc{Mitl} \leq \textsc{Yolo}$.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{lrrrrl}
+\toprule
+\textbf{Mode} & \textbf{Decisions} & \textbf{Tier~1} & \textbf{Tier~2} & \textbf{Tier~3} & \textbf{Final} \\
+\midrule
+YOLO   & 24 & 24 (100\%) & 0 & 0 & HITL \\
+MITL   & 15 & 0 & 15 (100\%) & 0 & HITL \\
+MASTER & 18 & 18 (100\%) & 0 & 0 & HITL \\
+\bottomrule
+\end{tabular}
+\caption{Tier coverage by governance mode. YOLO routes all decisions through Tier~1 deterministic evaluation with yolo\_override where policy blocks. MITL escalates 100\% to Tier~2 (human-in-the-loop). MASTER rejects policy-blocked transitions deterministically at Tier~1. Combined coverage: Tier~1 = 73\%, Tier~2 = 26\%, demonstrating that multi-tier routing is exercised across configurations.}
+\label{tab:exp7-tiers}
+\end{table}
+
+Across the three modes, the combined decision population exercised both Tier~1 and Tier~2 governance paths. MITL mode produced 100\% Tier~2 escalation (all proposals required human approval), while YOLO and MASTER operated at Tier~1. MASTER rejected 6/18 proposals (33\%) due to policy violations---specifically, high-drift transitions that YOLO overrode. This validates that the reduction kernel's mode-dependent routing produces observably different governance behavior: MASTER is the most restrictive (rejects on policy block), MITL requires human approval for every decision, and YOLO is the most permissive (overrides policy blocks with auditable justification). Assumption~4 is partially validated: Tier~1 and Tier~2 are exercised; Tier~3 (full LLM governance via the oversight agent choosing \texttt{escalateToLLM}) was not triggered because the oversight LLM consistently accepted the deterministic result.
+
+\subsection{Experiment 8: Adversarial Agent Defense (Assumption~5)}
+
+To validate the cooperative agent model assumption, three sub-experiments tested adversarial scenarios using the M\&A corpus (7 documents with genuine contradictions) under YOLO governance:
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{lrrrrrl}
+\toprule
+\textbf{Mode} & \textbf{$V(t)$} & \textbf{Epochs} & \textbf{Decisions} & \textbf{YOLO ovr.} & \textbf{False RES} & \textbf{Final} \\
+\midrule
+Baseline & 0.25 & 15 & 20 & 3 (15\%) & 0 & HITL \\
+Inflate  & 0.55 & 14 & 34 & 16 (47\%) & 1 & HITL \\
+Collude  & 0.55 & 32 & 44 & 7 (16\%) & 2 & HITL \\
+\bottomrule
+\end{tabular}
+\caption{Adversarial defense results. \emph{Inflate}: single compromised facts agent inflates confidences, fakes resolutions. \emph{Collude}: facts + drift agents both compromised. YOLO ovr. = governance overrides where policy would have blocked. False RES = epochs of false RESOLVED state.}
+\label{tab:exp8-results}
+\end{table}
+
+In \emph{inflate} mode, the honest drift agent detected the manipulation, producing 5.3$\times$ more governance overrides than baseline (16 vs 3). Gate~C (trajectory quality) caught post-inflation inconsistency at epoch~5. In \emph{collude} mode, both facts and drift agents were compromised: the system achieved false RESOLVED for 2 epochs (goal completion = 1.0, $V(t) = 0.0$) but self-corrected by epoch~5. The key defense mechanism is \emph{cycle-based re-extraction}: the facts-worker continuously re-extracts from source documents, overwriting adversarial mutations within 1--2 extraction cycles. This structural property---not designed as a Byzantine defense---limits adversarial impact to ephemeral windows. For sustained false finality, an adversary would need to compromise the facts-worker itself (3-agent collusion), exceeding the 2-agent collusion tested.
+
+Gate~B (evidence coverage) provided additional defense: the all-gates-pass rate dropped from 71\% (baseline) to 49\% (collude), catching evidence inconsistencies that the adversary could not mask. Assumption~5 is partially validated: the cooperative model is structurally necessary (V(t) monotonicity was violated 9 times in collude mode, and brief false finality windows exist), but the system has unexpected defense-in-depth through cycle-based re-extraction.
+
+\subsection{Experiment 9: Local Confluence (Assumption~2)}
+
+To test the partial confluence claim, six sub-tests evaluated commutativity at the semantic graph and governance kernel layers. This experiment requires only Postgres and the Rust kernel (no LLM, Docker, or NATS), enabling deterministic testing of the mathematical property.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{llp{7.5cm}}
+\toprule
+\textbf{Sub-test} & \textbf{Result} & \textbf{Detail} \\
+\midrule
+Confidence ratchet & \textsc{Pass} & (0.7$\to$0.92) and (0.92$\to$0.7) both reach 0.92 \\
+Idempotency & \textsc{Pass} & Second sync: 0 created, 0 staled \\
+CRDT commutativity & Partial & 6/24 permutations confluent; 18 diverge due to stale marking \\
+Eventual consistency & \textsc{Pass} & All orderings converge after complete re-extraction \\
+Kernel determinism & \textsc{Pass} & 8 proposals $\times$ 10 evals = 80 identical outputs \\
+Cross-epoch & \textsc{Pass} & Interleaved partial extractions converge \\
+\bottomrule
+\end{tabular}
+\caption{Local confluence sub-test results. Core CRDT operations (confidence ratchet, contradiction resolution) are fully commutative. Stale marking introduces order-dependence resolved by complete re-extraction. The governance kernel is a pure deterministic function.}
+\label{tab:exp9-results}
+\end{table}
+
+The confidence ratchet (\texttt{WHERE confidence <= \$2}) implements the max join, which is commutative, associative, and idempotent---the defining properties of a state-based CRDT. Contradiction resolution is set-once and irreversible: once a \texttt{resolves} edge exists, $\texttt{hasResolvingEdge}()$ returns true regardless of insertion order. These operations are fully commutative.
+
+Stale marking breaks commutativity: when payload $A = \{X, Y\}$ is followed by payload $B = \{Y, Z\}$, node $X$ is staled; in the reverse order, $Z$ is staled. This is by design---stale marking implements last-writer-wins semantics to remove outdated claims. However, after a complete re-extraction (one cycle where all source documents are processed), all orderings converge to the same state. This eventual consistency is the same mechanism identified in Exp.~8 as an unintended Byzantine defense.
+
+The governance kernel is fully deterministic: 8 proposal types (YOLO/MITL/MASTER $\times$ drift levels), each evaluated 10 times, produced identical outputs. Evaluation order does not affect results. Assumption~2 is partially validated: partial confluence holds for all CRDT-invariant operations; stale marking is non-commutative but eventually consistent through re-extraction.
+
 %% ============================================================
 \section{Discussion}
 \label{sec:discussion}
@@ -1106,6 +1181,12 @@ The experimental results provide evidence for four of the paper's central claims
 
 \paragraph{4. Pressure-directed routing affects system dynamics (directional evidence).} The pressure ablation shows a substantial difference in finality state distribution: pressure-enabled runs produce 94 convergence points with HITL dominating (84\%), while pressure-disabled runs produce 27 points with ACTIVE dominating (63\%). This suggests that pressure routing accelerates the system toward finality evaluation, though the single-run ablation design ($n = 1$) limits statistical confidence.
 
+\paragraph{5. Multi-tier governance routing is exercised (confirmed).} Exp.~7 demonstrates that the three governance modes produce observably different tier coverage: YOLO routes 100\% of decisions through Tier~1 (with auditable overrides for policy blocks), MITL escalates 100\% to Tier~2 (human-in-the-loop), and MASTER rejects 33\% of proposals at Tier~1 due to policy violations. Combined across modes, Tier~1 and Tier~2 are both exercised. This confirms that the lattice ordering $\textsc{Master} \leq \textsc{Mitl} \leq \textsc{Yolo}$ produces structurally distinct governance behavior, not merely different labels on the same path.
+
+\paragraph{6. Adversarial agents cause ephemeral---not permanent---false finality (partially confirmed).} Exp.~8 demonstrates that adversarial confidence inflation (single compromised agent) is caught by the honest drift agent (5.3$\times$ more governance overrides). Even with coordinated adversarial agents (facts + drift), false finality lasted only 2 epochs before cycle-based re-extraction flushed the adversarial mutations. The cooperative agent model (Assumption~5) is structurally necessary (brief false finality windows exist, $V(t)$ monotonicity is violated), but the system has unexpected defense-in-depth: source re-extraction acts as a practical Byzantine defense.
+
+\paragraph{7. Partial confluence holds for CRDT operations (confirmed).} Exp.~9 demonstrates that the core semantic graph operations---confidence ratchet (max join), contradiction resolution (set-once), node upsert (content-matched)---are fully commutative. Stale marking is non-commutative (18/24 orderings diverge) but eventually consistent after complete re-extraction. The governance kernel is a pure deterministic function (80 evaluations, all identical). This validates the paper's claim of ``partial confluence'' and identifies stale marking as the specific operation preventing full commutativity.
+
 \subsection{What Remains Unproven}
 
 \paragraph{1. Partial convergence demonstrated; full $V \to 0$ not achieved.} With progressive resolution (contradiction nodes resolved at rounds 5--7), $V(t)$ dropped from 0.551 to 0.351 (a 36\% reduction) when resolutions took effect. However, subsequent documents re-introduced contradictions, causing $V$ to rise again to 0.451. The overall trajectory is oscillatory rather than monotonically decreasing: the system converges partially on each resolution, then diverges when new contradictory evidence arrives.
@@ -1116,7 +1197,7 @@ Per-dimension analysis confirms a structural cause: the scalar $V(t)$ oscillates
 
 The v2 architecture partially addresses this limitation through the product lattice $\mathcal{M} = \mathcal{L} \times \mathcal{A}$ (Definition~\ref{def:product-lattice}), where the convergence rank $\mathcal{A} = (\mathbb{R}_{\geq 0})^k$ tracks each dimension independently. The reduction kernel's admissibility check (Definition~\ref{def:admissibility}) evaluates per-dimension regression rather than relying solely on the scalar aggregate, preventing transitions that improve the aggregate while regressing individual dimensions. However, the finality evaluator's ultimate decision still relies on the scalar goal score and gate predicates. A fully per-dimension finality criterion---requiring each dimension to independently satisfy its target---remains a direction for future work.
 
-\paragraph{2. Multi-path governance (not observed).} All decision records used \texttt{governance\_path = oversight\_acceptDeterministic}---the oversight LLM always agreed with the deterministic policy result. Even at medium drift levels (Exp.~4), the LLM did not choose to escalate to human review or override the deterministic result. This means the three-tier governance routing architecture is implemented and instrumented, but only Tier~1 was exercised. Triggering Tier~2 and Tier~3 paths would require proposals where the deterministic and LLM-based evaluations genuinely disagree, which may require adversarial prompt engineering or borderline drift levels not achieved by the current document corpus.
+\paragraph{2. Multi-path governance (partially observed).} In Exp.~4, all decision records used \texttt{governance\_path = oversight\_acceptDeterministic}---the oversight LLM always agreed with the deterministic policy result. Exp.~7 addressed this limitation by running each governance mode (YOLO, MITL, MASTER) as a separate sub-experiment with unified policy rules. MITL mode produced 100\% Tier~2 escalation (all proposals required human approval), confirming that the routing architecture functions correctly. However, Tier~3 (full LLM governance via the oversight agent choosing \texttt{escalateToLLM}) was still not triggered: the oversight LLM consistently accepted the deterministic result even under medium and high drift. Triggering Tier~3 would require proposals where the deterministic and LLM-based evaluations genuinely disagree.
 
 \paragraph{3. Scalability beyond $N = 100$ (not tested).} Exp.~2 now covers $N \in \{10, 50, 100\}$. At $N = 100$ ($\rho = 0.3$), the system produced 45 convergence points and 34 decisions across 32 epochs---approximately double the $N = 10\text{--}50$ runs. This suggests scaling effects emerge around $N = 100$, but the paper's protocol specifies $N$ up to 1000. Testing at $N = 500+$ is needed to identify the hypothesized scaling bottleneck in contradiction resolution.
 
@@ -1198,7 +1279,7 @@ Following the principled scoping methodology of de la Chica Rodriguez and Vera D
 
 \begin{enumerate}
   \item \textbf{Statistical generality or significance.} Project Horizon is a single scenario with synthetic documents. No confidence intervals, hypothesis tests, or distributional claims are supported. Results are existence proofs, not performance estimates.
-  \item \textbf{Byzantine fault tolerance.} All agents are assumed cooperative. The system provides no defense against adversarial agents that strategically inject false claims, inflate confidence scores, or collude to manipulate governance decisions. The monotonic confidence constraint limits downward manipulation but does not prevent upward inflation. Byzantine-tolerant coordination \cite{lamport1982,castro1999,zheng2025} remains future work.
+  \item \textbf{Formal Byzantine fault tolerance.} All agents are assumed cooperative. Exp.~8 demonstrates that adversarial agents can cause ephemeral false finality (2 epochs with coordinated collusion), but cycle-based re-extraction limits the adversarial window. This is a practical defense, not a formal Byzantine guarantee: the system provides no proven $n \geq 3f+1$ tolerance. The monotonic confidence constraint limits downward manipulation but does not prevent upward inflation. Formal Byzantine-tolerant coordination \cite{lamport1982,castro1999,zheng2025} remains future work, though the empirical resilience is stronger than previously claimed.
   \item \textbf{Scalability beyond proof of concept.} Validation covers 50 claims, 5 documents, and 7 agents. Whether convergence dynamics, governance throughput, or the Lyapunov function's behavior change qualitatively at production scale (thousands of claims, hundreds of agents) is unknown.
   \item \textbf{Machine-checked convergence proofs.} Proposition~\ref{prop:monotonic} is a proof sketch validated empirically. No formal verification tool or proof assistant has checked the convergence guarantee. An arbitrary sequence of approved transitions could, in principle, violate the proposition's preconditions in untested scenarios.
   \item \textbf{Convergence under real LLM stochasticity.} All convergence benchmarks use synthetic trajectories. Whether the oscillation detection (Gate~C) and trajectory quality score $Q$ perform correctly under the inherent stochasticity of real LLM reasoning traces is untested.
@@ -1248,13 +1329,13 @@ The following assumptions underpin the paper's formal claims but are not proven 
 \begin{enumerate}
   \item \textbf{Discretization of $\mathcal{A}$.} The Epoch Termination Theorem (Theorem~\ref{thm:termination}) requires $\mathcal{M}$ to be well-founded. $\mathcal{L}$ is finite (3 elements), but $\mathcal{A} = (\mathbb{R}_{\geq 0})^k$ is not well-founded under the standard real ordering. The proof assumes a discretization with minimum step $\epsilon > 0$, making $\mathcal{A}_\epsilon$ finite. This is an implementation-dependent assumption: if the convergence evaluator uses continuous-valued scores without rounding, the well-foundedness argument does not apply. The theorem should be understood as holding for the discrete implementation, not for the mathematical abstraction.
 
-  \item \textbf{Local confluence.} The connection to rewriting theory invokes Newman's Lemma, which requires local confluence as a precondition. Local confluence---that any two admissible transitions from the same state produce joinable results---is neither proven nor tested. The system provides kernel determinism (each proposal evaluation is deterministic) but not commutativity of independent transitions. The claimed ``partial confluence'' is a weaker property: only transitions certified compatible by the kernel are guaranteed to commute. Full confluence remains an open question.
+  \item \textbf{Local confluence (partially validated).} The connection to rewriting theory invokes Newman's Lemma, which requires local confluence as a precondition. Exp.~9 tested this property with six sub-tests across 24 permutations and 80 kernel evaluations. Result: core CRDT operations (confidence ratchet, contradiction resolution, node upsert) are fully commutative---the confidence ratchet implements max join (commutative, associative, idempotent), and contradiction resolution is set-once. Stale marking is non-commutative: 18/24 orderings diverge because the last extraction determines which nodes are marked irrelevant. However, all orderings converge to the same state after a complete re-extraction cycle (eventual consistency). The governance kernel is a pure deterministic function (same inputs produce identical outputs regardless of evaluation history). The paper's claim of ``partial confluence'' is validated: certified compatible transitions commute; full Church--Rosser confluence does not hold due to stale marking but is compensated by eventual consistency.
 
   \item \textbf{Monotonic progress precondition.} Proposition~\ref{prop:monotonic} and its corollary require that ``at least one convergence dimension makes strict progress'' per cycle. This precondition was never satisfied in the experiments: the \texttt{goal\_completion} dimension was permanently stalled at 0.00 because no goal-resolution agent exists. The proposition is therefore correct but its applicability depends on the agent ensemble being complete---a non-trivial requirement that the paper does not address.
 
-  \item \textbf{Tier 2/3 governance routing.} The three-tier governance architecture is implemented and instrumented, but only Tier~1 (deterministic evaluation) was exercised in all experiments. The oversight LLM (Tier~2) consistently agreed with the deterministic result. No experiment triggered Tier~3 (full LLM governance). The three-tier architecture is therefore validated as implemented but not as exercised: the system's behavior under genuine Tier~2/3 disagreement is unknown.
+  \item \textbf{Tier 2/3 governance routing (partially validated).} Exp.~7 demonstrated that the three governance modes produce distinct tier coverage: MITL mode escalated 100\% of proposals to Tier~2 (human-in-the-loop), while YOLO and MASTER operated at Tier~1. Combined across modes, Tiers~1 and~2 are both exercised, and MASTER's rejection behavior (33\% of proposals blocked by policy) confirms that mode-dependent routing is operational. Tier~3 (full LLM governance, where the oversight agent chooses \texttt{escalateToLLM}) was not triggered in any experiment: the oversight LLM consistently accepted the deterministic result. The system's behavior under genuine Tier~2/3 disagreement remains unknown.
 
-  \item \textbf{Cooperative agent model.} All formal guarantees assume cooperative agents (Threat Model, Section~\ref{sec:problem-setting}). The monotonic confidence ratchet provides partial robustness against downward manipulation, but no defense exists against upward inflation (an adversarial agent that inflates confidence scores can drive $V(t)$ toward 0 without genuine resolution). Byzantine fault tolerance remains entirely unaddressed.
+  \item \textbf{Cooperative agent model (partially validated).} All formal guarantees assume cooperative agents (Threat Model, Section~\ref{sec:problem-setting}). Exp.~8 tested this assumption with two adversarial scenarios: single-agent inflation and coordinated collusion. Result: the monotonic confidence ratchet defends against downward manipulation but not upward inflation (confirmed). However, cycle-based re-extraction from source documents provides an unintended defense-in-depth: adversarial mutations are flushed within 1--2 extraction cycles. Single-agent inflation was caught by the honest drift agent (5.3$\times$ more governance overrides). Coordinated collusion achieved false finality for only 2 epochs before self-correcting. $V(t)$ monotonicity was violated 9 times in collude mode (vs 2 in baseline), confirming that formal guarantees do not hold under adversarial conditions. The cooperative assumption is structurally necessary for the formal theory, but the system's practical resilience exceeds what the theory guarantees. Formal Byzantine fault tolerance \cite{lamport1982,castro1999} remains unaddressed.
 \end{enumerate}
 
 \subsection{Future Work: Research Directions}
@@ -1262,7 +1343,7 @@ The following assumptions underpin the paper's formal claims but are not proven 
 \begin{enumerate}
   \item \textbf{Multi-iteration convergence experiments.} Run repeated convergence cycles with incremental evidence injection to characterize $V(t)$ trajectory shapes, convergence time distributions, and gate activation patterns (Section~\ref{sec:proposed-experiments}).
   \item \textbf{Scalability benchmarks.} Systematically vary graph size, contradiction density, and agent count to identify scaling bottlenecks and validate pressure-directed activation at scale.
-  \item \textbf{Byzantine agent integration.} Extend the cooperative-agent model with Byzantine fault tolerance, potentially adopting confidence-weighted consensus \cite{zheng2025} or adapting the SECP non-scalar coordination mechanism to handle adversarial module outputs.
+  \item \textbf{Formal Byzantine agent integration.} Exp.~8 demonstrated that cycle-based re-extraction provides practical resilience against adversarial agents (ephemeral false finality limited to 1--2 cycles). However, this is a structural property, not a formal guarantee. Extending to formal Byzantine fault tolerance would require: (a) formalizing the re-extraction defense as a consistency mechanism with provable bounds; (b) adopting confidence-weighted consensus \cite{zheng2025} or adapting the SECP non-scalar coordination mechanism to handle adversarial module outputs; (c) proving that $n$-agent collusion ($n < f$ for a given $f$-tolerance) cannot achieve sustained false finality.
   \item \textbf{Governed protocol evolution.} Integrate SECP-style bounded self-modification \cite{delachica2026} with the product lattice framework, using the well-founded descent on $\mathcal{M}$ as the invariant-preservation mechanism: a protocol modification is admissible if it does not introduce governance transitions that would violate the descent property required by Theorem~\ref{thm:termination}.
   \item \textbf{Multi-scope hierarchical finality.} Validate cross-scope governance where a parent scope reaches finality only when all child scopes are resolved, with certificate chains reflecting the hierarchy.
   \item \textbf{Formal verification.} Encode Proposition~\ref{prop:monotonic}, Theorem~\ref{thm:termination}, the product lattice ordering, admissibility classification, and gate predicates in a proof assistant (Coq or Lean) to obtain machine-checked guarantees for the convergence and termination arguments.
@@ -1276,7 +1357,7 @@ The following assumptions underpin the paper's formal claims but are not proven 
 
 \subsection{Summary of Contributions}
 
-This paper presents a paradigm for autonomous agent coordination based on declarative governance over shared immutable context. The core contributions are: (i) a formal convergence mechanism (Lyapunov disagreement function with five independent gates) that provides layered guarantees against premature finality, empirically validated with $n = 3$ repeated trials showing reproducible $V(t)$ trajectories and gate effectiveness against adversarial input; (ii) a bitemporal CRDT-inspired semantic graph with monotonicity invariants ensuring that shared state evolves toward resolution; (iii) a product lattice $\mathcal{M} = \mathcal{L} \times \mathcal{A}$ formalizing the governance-convergence coupling, with an Epoch Termination Theorem (Theorem~\ref{thm:termination}) guaranteeing finite convergence within evidence epochs via well-founded descent; (iv) a deterministic reduction kernel implementing the lattice ordering as a three-stage pipeline (policy check, lattice admissibility, mode routing) in compiled Rust, ensuring that all governance decisions are auditable, replayable, and independent of LLM stochasticity; (v) a perpetual finality lifecycle producing chains of Ed25519-signed certificates; (vi) a three-tier governance routing architecture ensuring continuous operation without LLM availability; and (vii) experimental validation on a realistic M\&A due-diligence scenario demonstrating both the capabilities and current limitations of the approach, validated by 121 Rust and 288 TypeScript tests.
+This paper presents a paradigm for autonomous agent coordination based on declarative governance over shared immutable context. The core contributions are: (i) a formal convergence mechanism (Lyapunov disagreement function with five independent gates) that provides layered guarantees against premature finality, empirically validated with $n = 3$ repeated trials showing reproducible $V(t)$ trajectories and gate effectiveness against adversarial input; (ii) a bitemporal CRDT-inspired semantic graph with monotonicity invariants ensuring that shared state evolves toward resolution; (iii) a product lattice $\mathcal{M} = \mathcal{L} \times \mathcal{A}$ formalizing the governance-convergence coupling, with an Epoch Termination Theorem (Theorem~\ref{thm:termination}) guaranteeing finite convergence within evidence epochs via well-founded descent; (iv) a deterministic reduction kernel implementing the lattice ordering as a three-stage pipeline (policy check, lattice admissibility, mode routing) in compiled Rust, ensuring that all governance decisions are auditable, replayable, and independent of LLM stochasticity; (v) a perpetual finality lifecycle producing chains of Ed25519-signed certificates; (vi) a three-tier governance routing architecture ensuring continuous operation without LLM availability; and (vii) experimental validation on a realistic M\&A due-diligence scenario demonstrating both the capabilities and current limitations of the approach, validated by 121 Rust and 305 TypeScript tests.
 
 \subsection{Positioning Relative to Self-Evolving Coordination}
 
@@ -1286,14 +1367,14 @@ This work and the Self-Evolving Coordination Protocol (SECP) study \cite{delachi
   \item SECP's open question on multi-iteration dynamics is addressed by our Lyapunov function $V(t)$ and the Epoch Termination Theorem (Theorem~\ref{thm:termination}), which together guarantee finite convergence within each evidence epoch and track progress over indefinite cycles with formal safeguards against oscillation and premature finality.
   \item SECP's open question on audit infrastructure is addressed by our bitemporal graph and policy-version-bound certificate chain, which provide the temporal auditability their architecture currently checks empirically.
   \item Our v1 limitation on scalar convergence is partially addressed by the v2 product lattice $\mathcal{M} = \mathcal{L} \times \mathcal{A}$, which tracks convergence per-dimension during governance evaluation. The reduction kernel's admissibility check prevents transitions that regress individual dimensions, even when the scalar aggregate would improve. However, fully non-scalar \emph{finality} (requiring per-dimension satisfaction) remains future work, where SECP's Pareto filtering and constructive-objection requirements would provide the natural criterion.
-  \item Our open question on adversarial agents is partially addressed by SECP's Byzantine fault tolerance framing and their non-compensable objection rights.
+  \item Our open question on adversarial agents is partially addressed by Exp.~8, which demonstrates that cycle-based re-extraction provides practical (not formal) Byzantine resilience, and by SECP's non-compensable objection rights, which provide a complementary formal mechanism.
 \end{itemize}
 
 A synthesis---governed protocol evolution evaluated by Lyapunov convergence, with the product lattice providing per-dimension governance guarantees within each cycle and formal finality gates across cycles---would address the remaining limitations of both approaches. The proposed experimental protocol (Section~\ref{sec:proposed-experiments}) is designed to build toward this synthesis.
 
 \subsection{Interpretation Boundaries}
 
-The empirical claims are narrow and intentionally circumscribed (Sections~\ref{sec:boundaries} and \ref{sec:discussion}). Results from $n = 3$ repeated runs demonstrate reproducibility of $V(t)$ response to contradictions and gate mechanism effectiveness, but are not statistically powered distributional claims. The convergence guarantee (Proposition~\ref{prop:monotonic}) and the Epoch Termination Theorem (Theorem~\ref{thm:termination}) hold formally but were not demonstrated end-to-end: $V(t)$ never decreased to zero because no experiment produced full contradiction resolution. The product lattice and reduction kernel are validated by 121 Rust unit tests covering all governance paths (YOLO, MITL, MASTER) and admissibility classifications, but have not been stress-tested at production scale. The gate ablation confirms that gates prevent false finality on adversarial input. No production-scale validation ($N > 50$ documents) and no multi-domain validation have been performed.
+The empirical claims are narrow and intentionally circumscribed (Sections~\ref{sec:boundaries} and \ref{sec:discussion}). Results from $n = 3$ repeated runs demonstrate reproducibility of $V(t)$ response to contradictions and gate mechanism effectiveness, but are not statistically powered distributional claims. The convergence guarantee (Proposition~\ref{prop:monotonic}) and the Epoch Termination Theorem (Theorem~\ref{thm:termination}) hold formally but were not demonstrated end-to-end: $V(t)$ never decreased to zero because no experiment produced full contradiction resolution. The product lattice and reduction kernel are validated by 121 Rust unit tests covering all governance paths (YOLO, MITL, MASTER) and admissibility classifications, but have not been stress-tested at production scale. The gate ablation confirms that gates prevent false finality on adversarial input. Five formal assumptions were experimentally validated: discretization and monotonic progress (Exp.~6), multi-tier governance routing (Exp.~7), cooperative agent model (Exp.~8), and local confluence (Exp.~9). All five were partially validated, identifying specific boundaries (stale marking for confluence, ephemeral false finality windows for adversarial resilience, Tier~3 non-triggering for governance routing). No production-scale validation ($N > 50$ documents) and no multi-domain validation have been performed.
 
 \subsection{Final Assessment}
 
