@@ -52,6 +52,7 @@ export interface DeterministicResult {
  */
 export type GovernancePath =
   | "processProposal"
+  | "processProposal_yoloOverride"
   | "processProposal_mitlEscalation"
   | "processProposal_masterReject"
   | "oversight_acceptDeterministic"
@@ -538,13 +539,19 @@ export async function evaluateProposalDeterministic(
     governance,
   );
 
+  // YOLO overrides: promote suggested_actions to obligations so the oversight
+  // agent sees them and can decide whether to escalate to Tier 3.
+  const isYoloOverride = kernelOutput.reason.startsWith("yolo_override:");
+  const obligations: import("../policyEngine.js").Obligation[] = isYoloOverride
+    ? kernelOutput.suggested_actions.map((a: string) => ({ type: a }))
+    : [];
   const record: import("../policyEngine.js").DecisionRecord = {
     decision_id: randomUUID(),
     timestamp: new Date().toISOString(),
     policy_version: policyVersion,
     result: kernelOutput.verdict === "reject" ? "deny" : "allow",
     reason: kernelOutput.reason,
-    obligations: [],
+    obligations,
     binding: "sgrs",
     suggested_actions: kernelOutput.suggested_actions,
   };
@@ -597,7 +604,7 @@ export async function evaluateProposalDeterministic(
 
   return {
     outcome: "approve",
-    reason: "policy_passed",
+    reason: kernelOutput.reason,
     record,
     actionPayload: { expectedEpoch, runId: state.runId, from, to },
   };
@@ -699,7 +706,9 @@ export async function processProposal(
   const result = await evaluateProposalDeterministic(proposal, env);
   // Derive governance path from the kernel's verdict for accurate tier tracking.
   let path: GovernancePath = "processProposal";
-  if (result.outcome === "pending" && result.reason === "mitl_required") {
+  if (result.reason?.startsWith("yolo_override:")) {
+    path = "processProposal_yoloOverride";
+  } else if (result.outcome === "pending" && result.reason === "mitl_required") {
     path = "processProposal_mitlEscalation";
   } else if (result.outcome === "reject" && proposal.mode === "MASTER") {
     path = "processProposal_masterReject";

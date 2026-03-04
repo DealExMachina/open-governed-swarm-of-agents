@@ -206,11 +206,15 @@ fn kernel_yolo_allowed() {
 }
 
 #[test]
-fn kernel_yolo_blocked_escalates() {
+fn kernel_yolo_blocked_accepts_with_override() {
+    // YOLO is the most permissive mode: accepts even when policy blocks,
+    // but logs the override reason and adds blocked_transition to suggested_actions.
     let input = kernel_input("DriftChecked", "ContextIngested", DriftLevel::Critical, GovernanceLevel::Yolo);
     let output = evaluate_kernel(&input, &sample_rules(), &sample_transition_rules());
-    assert_eq!(output.verdict, ReductionVerdict::Escalate);
+    assert_eq!(output.verdict, ReductionVerdict::Accept);
+    assert!(output.reason.starts_with("yolo_override:"));
     assert!(output.reason.contains("Critical drift"));
+    assert!(output.suggested_actions.iter().any(|a| a.contains("blocked_transition_overridden")));
 }
 
 #[test]
@@ -292,13 +296,15 @@ fn kernel_lattice_convergence_violation_master_rejects() {
 }
 
 #[test]
-fn kernel_lattice_convergence_violation_yolo_escalates() {
+fn kernel_lattice_convergence_violation_yolo_accepts_with_override() {
+    // YOLO accepts even on convergence violations (with yolo_override reason)
     let mut input = kernel_input("A", "B", DriftLevel::None, GovernanceLevel::Yolo);
     input.current_lattice = Some(make_lattice(GovernanceLevel::Yolo, [0.8, 0.8, 0.8, 0.8], 1));
     input.proposed_lattice = Some(make_lattice(GovernanceLevel::Yolo, [0.5, 0.5, 0.5, 0.5], 1));
     let output = evaluate_kernel(&input, &[], &[]);
-    assert_eq!(output.verdict, ReductionVerdict::Escalate);
-    assert_eq!(output.reason, "convergence_violation");
+    assert_eq!(output.verdict, ReductionVerdict::Accept);
+    assert!(output.reason.starts_with("yolo_override:"));
+    assert!(output.reason.contains("convergence_violation"));
 }
 
 #[test]
@@ -313,13 +319,15 @@ fn kernel_lattice_incomparable_master_rejects() {
 }
 
 #[test]
-fn kernel_lattice_incomparable_yolo_escalates() {
+fn kernel_lattice_incomparable_yolo_accepts_with_override() {
+    // YOLO accepts on lattice incomparability (with yolo_override reason)
     let mut input = kernel_input("A", "B", DriftLevel::None, GovernanceLevel::Yolo);
     input.current_lattice = Some(make_lattice(GovernanceLevel::Yolo, [0.8, 0.5, 0.6, 0.5], 1));
     input.proposed_lattice = Some(make_lattice(GovernanceLevel::Yolo, [0.5, 0.8, 0.6, 0.5], 1));
     let output = evaluate_kernel(&input, &[], &[]);
-    assert_eq!(output.verdict, ReductionVerdict::Escalate);
-    assert_eq!(output.reason, "lattice_incomparable");
+    assert_eq!(output.verdict, ReductionVerdict::Accept);
+    assert!(output.reason.starts_with("yolo_override:"));
+    assert!(output.reason.contains("lattice_incomparable"));
 }
 
 #[test]

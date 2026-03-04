@@ -26,6 +26,7 @@ interface DecisionRecord {
 
 const TIER_MAP: Record<string, { tier: number; label: string }> = {
   "processProposal":                   { tier: 1, label: "Tier 1: Deterministic (direct)" },
+  "processProposal_yoloOverride":      { tier: 1, label: "Tier 1: Deterministic (YOLO override)" },
   "oversight_acceptDeterministic":      { tier: 1, label: "Tier 1: Deterministic (oversight accepted)" },
   "processProposal_mitlEscalation":    { tier: 2, label: "Tier 2: MITL (kernel → human/auto-approve)" },
   "oversight_escalateToHuman":          { tier: 2, label: "Tier 2: MITL (oversight → human)" },

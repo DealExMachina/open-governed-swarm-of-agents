@@ -33,5 +33,5 @@ transition_rules:
   - from: DriftChecked
     to: ContextIngested
     block_when:
-      drift_level: [critical]
-    reason: "Critical drift blocks cycle reset — requires human override"
+      drift_level: [high, critical]
+    reason: "High/critical drift blocks cycle reset — requires human override or LLM review"

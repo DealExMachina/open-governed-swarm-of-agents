@@ -153,11 +153,12 @@ describe("governance", () => {
       expect(decision.allowed).toBe(false);
     });
 
-    it("allows DriftChecked -> ContextIngested when drift is high (only critical blocks)", () => {
+    it("blocks DriftChecked -> ContextIngested when drift is high (high+critical block)", () => {
       const realConfig = loadPolicies(GOVERNANCE_PATH);
       const drift: DriftInput = { level: "high", types: ["contradiction"] };
       const decision = canTransition("DriftChecked", "ContextIngested", drift, realConfig);
-      expect(decision.allowed).toBe(true);
+      expect(decision.allowed).toBe(false);
+      expect(decision.reason).toContain("drift blocks cycle reset");
     });
   });
 });
