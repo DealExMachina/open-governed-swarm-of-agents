@@ -26,7 +26,7 @@ The reduction layer resembles classical rewriting systems, where:
 - Transitions correspond to rewrite rules.
 - Termination is established via well-founded orderings.
 
-The use of a well-founded structural potential Psi parallels recursive path orderings, multiset orderings, and lexicographic descent techniques.
+The use of a well-founded structural potential (in the paper: Lyapunov disagreement function V(t) and product lattice M = L x A as descent domain) parallels recursive path orderings, multiset orderings, and lexicographic descent techniques. When the rank component A is continuous, well-foundedness of the descent domain may require a discretization assumption (e.g. minimum step size or finite effective rank space); the termination argument then holds for the discretized ordering.
 
 Unlike classical rewriting:
 
@@ -137,6 +137,8 @@ It requires:
 - Well-founded global rank.
 - Not strictly monotone local descent.
 
+Convergence is stated *within an evidence epoch* (no new context injection). When new context arrives (e.g. new documents, regulatory updates), the potential may spike upward; the guarantee is that it then decreases again as the system re-converges. Intra-epoch: non-increasing; cross-epoch: sawtooth. This distinction is architectural: the domain supplies epoch boundaries, and the framework guarantees monotonic descent between them.
+
 If the domain cannot supply a well-founded structural rank, termination cannot be guaranteed in any system. This is not a limitation of the framework but of the domain structure.
 
 ### Objection 3: "Agents can still game admissible transitions."
@@ -231,8 +233,8 @@ Its contribution is a disciplined architectural stratification with provable pro
 
 ## 4. Open Directions
 
-Three paths forward, in order of increasing ambition:
+Status of the original paths:
 
-1. **Full submission draft structure.** Elevate this framing into Abstract, Introduction, Model, Results, Discussion -- a self-contained paper.
-2. **Explicit citations mapping.** Ground each related work section with precise references: Newman's Lemma, Knuth--Bendix completion, Kozen's mu-calculus, Denning's lattice model, etc.
-3. **Tier-1 theoretical strengthening.** Harden the critical section to survive review at a top venue -- tighten the partial confluence claim, formalize the adversarial model, and address the gap between structural and strategic guarantees.
+1. **Full submission draft structure.** Done. The paper has Abstract, Introduction, Model, Results, Discussion and is self-contained.
+2. **Explicit citations mapping.** Done. Related work is grounded with precise references (Newman's Lemma, Baader, Kozen's mu-calculus, Denning's lattice model, Davey--Priestley, SECP, etc.).
+3. **Tier-1 theoretical strengthening.** Remains the main open direction. Harden the critical section to survive review at a top venue: tighten the partial confluence claim, formalize the adversarial model, and address the gap between structural and strategic guarantees. For concrete gaps (liveness for Proposition 1, convergence rate vs progress indicator, trajectory-quality heuristic, dimension-weight justification, connection between gates and V(t), intra-epoch conditioning), see `theory-work-2.md`.
