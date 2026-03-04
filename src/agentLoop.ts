@@ -11,6 +11,8 @@ import { loadState, transitions } from "./stateGraph.js";
 import { getSpec } from "./agentRegistry.js";
 import { loadFilterConfig, loadAgentMemory, saveAgentMemory, checkFilter, recordActivation } from "./activationFilters.js";
 import { checkPermission } from "./policy.js";
+import { loadPolicies, getGovernanceForScope } from "./governance.js";
+import { join } from "path";
 import { isProcessed, markProcessed } from "./messageDedup.js";
 import { createSwarmEvent } from "./events.js";
 import { toErrorString } from "./errors.js";
@@ -141,6 +143,10 @@ export async function runAgentLoop(opts: AgentLoopOptions): Promise<void> {
         const stateBefore = await loadState(scopeId);
         if (stateBefore) {
           const to = transitions[stateBefore.lastNode];
+          // Read governance mode from config (env GOVERNANCE_MODE overrides YAML).
+          const govPath = process.env.GOVERNANCE_PATH ?? join(process.cwd(), "governance.yaml");
+          const govConfig = getGovernanceForScope(scopeId, loadPolicies(govPath));
+          const effectiveMode = (govConfig.mode ?? "YOLO") as "YOLO" | "MITL" | "MASTER";
           const proposal = {
             proposal_id: randomUUID(),
             agent: agentId,
@@ -152,10 +158,10 @@ export async function runAgentLoop(opts: AgentLoopOptions): Promise<void> {
               from: stateBefore.lastNode,
               to,
             },
-            mode: "YOLO" as const,
+            mode: effectiveMode,
           };
           await bus.publish(`swarm.proposals.${s.jobType}`, proposal as unknown as Record<string, string>);
-          logger.info("proposal emitted", { proposal_id: proposal.proposal_id, job_type: s.jobType });
+          logger.info("proposal emitted", { proposal_id: proposal.proposal_id, job_type: s.jobType, mode: effectiveMode });
         }
       }
       await markProcessed(consumer, msg.id);

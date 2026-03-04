@@ -36,7 +36,7 @@ function createWriteDriftTool(s3: S3Client, bucket: string) {
     id: "writeDrift",
     description: "Write drift analysis to storage (drift/latest.json and drift/history). Include references (sources) with type, doc, excerpt when citing a drift finding.",
     inputSchema: z.object({
-      level: z.enum(["none", "low", "medium", "high"]),
+      level: z.enum(["none", "low", "medium", "high", "critical"]),
       types: z.array(z.string()),
       notes: z.array(z.string()).optional(),
       reasoning: z.string().optional(),
