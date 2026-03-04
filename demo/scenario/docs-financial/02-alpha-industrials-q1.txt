@@ -1,0 +1,34 @@
+ALPHA INDUSTRIALS -- Q1 2025 MANAGEMENT ACCOUNTS
+
+Prepared by: Alpha Industrials Finance Department
+Date: 2025-04-14
+Valid period: Q1 2025 (January 1 -- March 31, 2025)
+Classification: CONFIDENTIAL -- SUBSIDIARY REPORTING
+
+REVENUE
+
+Total revenue for Q1 2025: EUR 61.3M. This figure includes EUR 3.1M in services rendered to Beta Services under the group framework agreement (Project Catalyst) recognized on a percentage-of-completion basis. Revenue from external customers: EUR 58.2M.
+
+We note that the group framework agreement with Beta Services has been invoiced at EUR 3.1M, reflecting the full contract value for Q1 deliverables. However, Beta Services has indicated they intend to dispute approximately EUR 0.8M of this amount, arguing that certain deliverables under Project Catalyst Phase 2 were not completed to specification by March 31. This dispute is ongoing and has not been reflected in our revenue recognition as of this report date.
+
+ORDER BOOK
+
+New orders received in Q1: EUR 72.4M, of which EUR 14.8M relates to a single contract with Nordstern GmbH signed March 28. This contract includes a performance guarantee clause that could reduce recognized revenue by up to EUR 3.7M if delivery milestones are missed in Q2 and Q3. We consider milestone completion "probable" based on current production schedules, but acknowledge that supply chain constraints in specialty alloys could introduce delays.
+
+GROSS MARGIN
+
+Gross margin for Q1: 38.4%, down from 40.1% in Q4 2024. The decline reflects higher input costs for titanium alloy (+14% quarter-on-quarter) partially offset by operational efficiency gains. Management expects margin recovery in Q2 as hedging contracts take effect.
+
+HEADCOUNT
+
+Total FTEs: 512 (including 47 temporary contract workers). The consolidated report may show a different figure as the group uses a different methodology for counting contract workers.
+
+CAPEX
+
+Q1 capital expenditure: EUR 4.2M, primarily for the Augsburg line expansion. EUR 1.8M of this is funded through a state subsidy that has been approved but not yet disbursed. We have recognized the subsidy receivable; if the disbursement is delayed beyond Q3 2025, this treatment may need to be revisited.
+
+RISK ITEMS
+
+- Nordstern GmbH performance guarantee: potential EUR 3.7M revenue adjustment
+- Beta Services inter-company dispute: EUR 0.8M at risk
+- Titanium supply chain: cost pressure ongoing

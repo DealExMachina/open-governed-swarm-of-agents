@@ -1,0 +1,59 @@
+ERNST & YOUNG -- INTERIM REVIEW OBSERVATIONS (H1 2025)
+MERIDIAN HOLDINGS GROUP
+
+Prepared by: EY Assurance, Frankfurt Office
+Date: 2025-08-14
+Valid period: H1 2025 (January 1 -- June 30, 2025)
+Classification: CONFIDENTIAL -- AUDIT COMMITTEE ONLY
+
+SCOPE AND LIMITATIONS
+
+This letter summarizes observations from our limited-scope interim review of Meridian Holdings' H1 2025 consolidated financial statements. This is not an audit opinion. Our procedures were limited to inquiry, analytical procedures, and selected substantive testing. Certain subsidiary-level records were available only in summary form.
+
+OBSERVATION 1: REVENUE RECOGNITION CONSISTENCY
+
+We identified inconsistencies in revenue recognition methodology across the three subsidiaries that are not fully resolved by the consolidation process.
+
+Gamma Digital recognizes professional services revenue on a percentage-of-completion basis, while the Group CFO office consolidation adjusts this to a milestone-delivery basis. The difference for Q1 alone was EUR 1.6M to EUR 2.8M depending on the contracts affected. The restated Q1 figure in the Q2 comparative (EUR 125.8M) appears to use an intermediate methodology that is not clearly documented.
+
+Beta Services recognizes revenue on unsigned change orders where performance obligations have been substantially satisfied. While not impermissible under IFRS 15, this is an area of significant judgment. We note that EUR 1.9M in Q1 revenue from the BfS engagement was recognized on this basis. The change orders were subsequently signed in Q2, which retrospectively validates the Q1 treatment -- but the practice itself merits closer policy guidance to prevent future restatement risk.
+
+Alpha Industrials' restatement of Q1 figures (May 22 report) was appropriate. However, we observe that the original April 14 figures included the disputed EUR 0.8M inter-company charge for approximately four weeks before correction. During this period, the Group CFO consolidated Q1 summary (April 18) incorporated these figures. The group should consider whether its consolidation timeline allows sufficient space for inter-company dispute resolution before releasing board-level summaries.
+
+OBSERVATION 2: INTER-COMPANY ELIMINATION AND CLASSIFICATION
+
+The Group reports inter-company eliminations of EUR 4.0M (Q1 restated) and EUR 5.1M (Q2). Our testing indicates the actual volume of inter-company transactions is higher than reflected in the elimination entries:
+
+- Alpha to Beta (Project Catalyst): EUR 2.3M (per restated figures, agreed)
+- Beta to Gamma (Vanguard migration): EUR 2.3M (per Beta's records, agreed)
+- Meridian Holdings to Gamma (capital injection): EUR 5.0M (classified as equity at subsidiary level, loan at group level -- not currently eliminated as an inter-company transaction due to the classification disagreement)
+
+If the EUR 5.0M is treated as an inter-company loan (the group-level treatment), it should be eliminated on consolidation. This would reduce the consolidated balance sheet by EUR 5.0M and may affect certain covenant calculations under the group's revolving credit facility. We recommend the Group resolve the classification before the year-end audit.
+
+OBSERVATION 3: GROSS MARGIN COMPARABILITY
+
+Consolidated gross margin moved from 41.7% (Q1 original) to 40.6% (Q1 restated) to 42.8% (Q2 preliminary). We note that the comparability of these figures is affected by:
+
+- Different treatment of restructuring costs at Beta Services (COGS vs. operating expense)
+- Different treatment of hosting costs at Gamma Digital (capitalized vs. expensed)
+- The Nordstern provision booking and partial release at Alpha Industrials
+
+Under a fully standardized methodology, we estimate Q1 gross margin at approximately 39% to 41% and Q2 at approximately 41% to 43%. The range width reflects genuine uncertainty about the correct classification of approximately EUR 3M to EUR 4M in costs across the group.
+
+OBSERVATION 4: CONTINGENT LIABILITIES
+
+Three contingent items merit disclosure or provision assessment:
+
+a) Alpha Industrials -- Nordstern performance guarantee: remaining exposure EUR 2.5M (after EUR 1.2M provision in Q1 and EUR 0.6M release in Q2; net provision EUR 0.6M). The Q2 report states EUR 0.6M remaining provision, which implies EUR 0.6M release in Q2. The underlying exposure of EUR 3.7M has not changed; only the probability assessment has been revised. We consider the current provision level potentially inadequate if Q3 milestone delays materialize.
+
+b) Alpha Industrials -- Augsburg state subsidy: EUR 1.8M contingent receivable pending environmental certification. The September 2025 deadline is approaching. If certification is not obtained, the receivable should be written off and the related capex re-evaluated.
+
+c) Gamma Digital -- Daimler Truck renewal at 12% discount: while not a contingent liability per se, the discount suggests pricing pressure that may affect ARR sustainability assumptions used in impairment testing and goodwill allocation.
+
+OBSERVATION 5: HEADCOUNT AND CONTRACTOR METHODOLOGY
+
+The group reported 1,247 FTEs in the original Q1 summary and 1,271 in the restated methodology, a difference of 24 attributable to contractor counting. This is not material in itself but indicates that the current HR reporting framework does not produce consistent figures across subsidiaries. We recommend standardization before year-end.
+
+OVERALL ASSESSMENT
+
+No matters came to our attention that would cause us to believe the H1 2025 financial statements are materially misstated. However, the observations above -- particularly regarding revenue recognition consistency, inter-company classification, and the evolving Q1 comparative figures -- suggest that the year-end audit will require more extensive substantive procedures than in prior years. We recommend the Group address observations 1 through 3 before year-end close.

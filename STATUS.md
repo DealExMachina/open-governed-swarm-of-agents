@@ -128,7 +128,13 @@ All five experiments have complete infrastructure: seed scripts, drivers, result
 | 4 | #15 | Multi-level governance bounded (MASTER/MITL/YOLO correctness) | Infrastructure complete — **MASTER fix in PR #17 directly impacts this** |
 | 5 | #16 | Coverage-autonomy trade-off mapping | Infrastructure complete — **MASTER fix changes the autonomy curve** |
 
-Run experiments: `./scripts/run-experiment.sh exp<N>` or `./scripts/run-experiment-batch.sh`. Analyze: `npx tsx scripts/analyze-experiment.ts`.
+**Additional scenarios (no auto-approve, for comparable V(t) trajectories):**
+- **financial** — Financial consolidation (8 docs): dual temporality, restatements, auditor/management response. Run: `./scripts/run-experiment.sh financial --rounds=8`. See [docs/experiments/financial/README.md](docs/experiments/financial/README.md).
+- **demo-baseline** — M&A (Project Horizon, 7 docs) without HITL auto-approve; baseline for comparison. Run: `./scripts/run-experiment.sh demo-baseline --rounds=7`.
+
+**Consistency check:** [docs/experiments/COMPARISON-financial-vs-ma.md](docs/experiments/COMPARISON-financial-vs-ma.md) confirms financial and M&A show the same convergence behaviour (baseline V ~ 0.25, spike to ~0.55 on contradiction, Gates A/B fail, recovery).
+
+Run experiments: `./scripts/run-experiment.sh exp<N>`, `financial`, or `demo-baseline`. Analyze: `npx tsx scripts/analyze-experiment.ts`.
 
 ## Not yet done / optional
 - **Resolutions as goal completion**: when user posts a resolution, optionally mark one or more goals as `resolved` in the semantic graph (e.g. by convention or a small heuristic) so `goals_completion_ratio` increases.
