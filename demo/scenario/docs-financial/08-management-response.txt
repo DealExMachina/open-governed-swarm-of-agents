@@ -1,0 +1,58 @@
+MERIDIAN HOLDINGS -- MANAGEMENT RESPONSE TO EY INTERIM REVIEW OBSERVATIONS
+
+Prepared by: Group CFO, with input from subsidiary finance directors
+Date: 2025-08-28
+Valid period: Applicable to H1 2025 and forward-looking
+Classification: CONFIDENTIAL -- AUDIT COMMITTEE
+
+PREAMBLE
+
+Management appreciates the thoroughness of EY's interim review and acknowledges the observations raised. This response addresses each observation and outlines remediation actions where appropriate.
+
+RESPONSE TO OBSERVATION 1: REVENUE RECOGNITION
+
+Management accepts that revenue recognition methodology differs across subsidiaries. This is a legacy of the group's acquisition-led growth -- Alpha Industrials and Beta Services were acquired in 2022 and 2023 respectively, and accounting policy harmonization has been gradual.
+
+Regarding the specific items:
+
+Gamma Digital methodology: We will adopt the milestone-delivery basis at group consolidation level effective Q3 2025. However, we note that Gamma Digital's local percentage-of-completion method produces higher revenue in growth periods and lower revenue in contraction periods. For H1 2025 retrospective comparison, we estimate the impact at EUR 1.2M (our estimate) versus EY's range of EUR 1.6M to EUR 2.8M. The difference in estimates stems from our inclusion of two contracts that we believe should remain on percentage-of-completion even under the harmonized policy, as the performance obligations are continuous in nature. We acknowledge this is a judgment area and will work with EY to reach agreement before year-end.
+
+Beta Services unsigned change orders: We accept EY's characterization of this practice as "an area of significant judgment." Going forward, we will require dual sign-off (subsidiary CFO and Group CFO) for revenue recognition on unsigned change orders exceeding EUR 500K. We note for the record that the Q1 BfS change orders were subsequently validated by Q2 signing, supporting the original judgment.
+
+Alpha Industrials consolidation timing: We accept that the April 18 consolidated report included figures that were later restated. The root cause was a compressed reporting timeline -- Alpha's figures were received April 14 and the group report was issued April 18, leaving insufficient time for the inter-company dispute with Beta to be surfaced and resolved. Effective Q3, we are extending the subsidiary reporting deadline by 3 business days and introducing a mandatory inter-company confirmation step.
+
+RESPONSE TO OBSERVATION 2: INTER-COMPANY CLASSIFICATION
+
+The EUR 5.0M Gamma Digital capital injection is, in management's view, equity rather than debt. The board approved this as a capital contribution on February 28, 2025, and the resolution specifically describes it as an equity injection. The group-level treatment as a loan reflects a conservative classification applied by the group treasury team without consulting the legal documentation.
+
+We will reclassify this as equity at the group level in Q3, which will align subsidiary and group treatment. This change has no P&L impact but will affect the group balance sheet presentation. We do not believe it affects covenant calculations, as the relevant covenant definitions exclude inter-company items -- but we will confirm this with our banking group.
+
+We acknowledge EY's point that a EUR 5.0M elimination would be required under the loan treatment. Under the equity treatment, no elimination is required on the income statement, but a consolidation adjustment is needed for the balance sheet. Either way, the H1 figures as presented are directionally correct but require a line-item adjustment.
+
+RESPONSE TO OBSERVATION 3: GROSS MARGIN
+
+Management accepts that gross margin comparability is impaired by classification inconsistencies. We note that EY's estimated range (39-41% for Q1, 41-43% for Q2) is broadly consistent with our internal analysis. The precise figure depends on approximately EUR 3-4M in costs whose classification is genuinely ambiguous.
+
+We will establish a group classification policy for the three specific cost categories identified (restructuring, hosting infrastructure, performance provisions) effective Q3 2025. For the FY 2025 annual report, we intend to present margins on both the "as-reported" and "standardized" bases to ensure transparency.
+
+RESPONSE TO OBSERVATION 4: CONTINGENT LIABILITIES
+
+a) Nordstern provision: Management has reassessed the provision in light of July production data. Two of three Q3 milestones are on track; one faces a 4-6 week delay. We maintain the EUR 0.6M provision as appropriate based on current probability estimates (approximately 20% of full exposure). We acknowledge EY's view that this may be inadequate but note that the provision was increased from zero to EUR 1.2M and then partially released based on actual milestone delivery, not optimistic assumptions.
+
+b) Augsburg subsidy: Environmental certification is in progress. Preliminary assessment received August 20 is positive but identifies two remediation items with estimated cost of EUR 150K. We are confident of meeting the September deadline. If certification is delayed, we agree the receivable should be reclassified.
+
+c) Daimler Truck discount: We do not consider a 12% renewal discount indicative of broader pricing pressure. Enterprise renewals in the current market commonly involve 8-15% discounts as clients renegotiate post-initial-commitment. Gamma Digital's NRR of 118% (which includes the Daimler renewal) remains best-in-class. However, we will include sensitivity analysis on ARR-dependent valuations in the year-end impairment testing as EY suggests.
+
+RESPONSE TO OBSERVATION 5: HEADCOUNT
+
+Accepted. Standardized contractor counting methodology will be implemented in Q3 as part of the group HR system migration to Workday. The 24-person variance is immaterial but symptomatic of a broader data quality issue that we are addressing.
+
+FORWARD-LOOKING MATTERS
+
+We wish to note that Q3 2025 will include the impact of a significant new contract with Airbus Defence & Space awarded to Alpha Industrials (EUR 18.5M over 3 years, signed July 30, 2025). Revenue recognition on this contract will follow the harmonized milestone-delivery methodology. We mention this to signal that the group revenue mix is shifting further toward manufacturing, which will affect consolidated margin trends.
+
+Additionally, Gamma Digital is in late-stage negotiations for an acqui-hire of a 15-person AI/ML team. If completed, this would add approximately EUR 2.5M in annualized personnel costs but is expected to accelerate the Vanguard platform roadmap by 6-9 months. The transaction has not yet been approved by the Meridian Holdings board.
+
+CONCLUSION
+
+Management is committed to addressing each of EY's observations before year-end. The core financial position of the group is sound: H1 2025 revenue of EUR 260M (approximate, pending final Q1 restatement) and EBITDA margin improving sequentially. The observations relate primarily to presentation consistency and classification rather than to the economic substance of the group's performance.

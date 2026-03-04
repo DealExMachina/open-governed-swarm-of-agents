@@ -167,9 +167,9 @@ This prototype runs one swarm with four agents against one scope. The architectu
 
 ---
 
-## Demo: Project Horizon
+## Demo and experiments
 
-A governed agent swarm processes an M&A due diligence package in real time. Five documents, multiple contradictions, one human decision at the right moment.
+**Project Horizon (M&A)** — A governed agent swarm processes an M&A due diligence package in real time. Five documents, multiple contradictions, one human decision at the right moment.
 
 **Scenario:** A pharmaceutical buyer evaluates NovaTech AG. Documents arrive over time revealing an ARR overstatement (EUR 50M claimed vs EUR 38M actual), a CTO departure, a patent infringement suit, and finally a legal review with a recommended acquisition path.
 
@@ -191,6 +191,8 @@ pnpm run demo              # Demo UI on port 3003
 The demo UI includes one-click **Reset state** and **Restart** buttons, a service readiness check that gates the start, and a full-screen **HITL modal** that pauses the demo when human decisions are required (governance interventions and finality review).
 
 See [docs/demo.md](docs/demo.md) for the full walkthrough and [demo/DEMO.md](demo/DEMO.md) for the complete step-by-step guide.
+
+**Financial consolidation** — A second scenario (`demo/scenario/docs-financial/`, 8 documents) exercises dual temporality: holding-company consolidation with subsidiary reports, restatements, auditor review, and management response. Contradictions and ambiguity are designed to trigger V(t) spikes and gate behaviour comparable to the M&A case. Run with `./scripts/run-experiment.sh financial --rounds=8`. See [docs/experiments/financial/README.md](docs/experiments/financial/README.md) and [docs/experiments/COMPARISON-financial-vs-ma.md](docs/experiments/COMPARISON-financial-vs-ma.md) for protocol and consistency check vs M&A.
 
 ---
 
@@ -404,7 +406,7 @@ For current status, verified functionality, and next steps, see **STATUS.md**.
 - [docs/finality-design.md](docs/finality-design.md) -- finality gates B/C/D, certificates, evidence coverage, implementation status
 - [docs/governance-design.md](docs/governance-design.md) -- policy stack, OPA-WASM, obligations, combining algorithms
 - [docs/validation.md](docs/validation.md) -- test methodology, what's proven vs theoretical, known gaps
-- [docs/experiments.md](docs/experiments.md) -- experimental protocols, convergence/sgrs benchmarks, load (exp-load)
+- [docs/experiments.md](docs/experiments.md) -- experimental protocols, convergence/sgrs benchmarks, load (exp-load); [docs/experiments/README.md](docs/experiments/README.md) -- experiment table and quick start; financial vs M&A comparison in [COMPARISON-financial-vs-ma.md](docs/experiments/COMPARISON-financial-vs-ma.md)
 - [docs/demo.md](docs/demo.md) -- Project Horizon M&A demo walkthrough and explainability
 
 ---

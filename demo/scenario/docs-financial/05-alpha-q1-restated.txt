@@ -1,0 +1,40 @@
+ALPHA INDUSTRIALS -- Q1 2025 RESTATED FIGURES
+
+Prepared by: Alpha Industrials Finance Department
+Date: 2025-05-22
+Valid period: Q1 2025 (January 1 -- March 31, 2025) -- RESTATED
+Classification: CONFIDENTIAL -- REPLACES REPORT DATED 2025-04-14
+
+RESTATEMENT NOTICE
+
+This report supersedes Alpha Industrials' Q1 2025 Management Accounts dated April 14, 2025. Restatement is required due to three adjustments identified during the group reconciliation process and preliminary auditor review.
+
+ADJUSTMENT 1: INTER-COMPANY REVENUE
+
+Following review of the Project Catalyst dispute with Beta Services, and consistent with group policy on contested inter-company charges, we have reduced inter-company revenue by EUR 0.8M. Restated inter-company revenue: EUR 2.3M (previously EUR 3.1M). The disputed amount remains under negotiation but is no longer recognized in Q1.
+
+Restated total revenue: EUR 60.5M (previously EUR 61.3M)
+Restated external revenue: EUR 58.2M (unchanged)
+
+ADJUSTMENT 2: NORDSTERN PERFORMANCE GUARANTEE
+
+Following consultation with the group risk committee, the performance guarantee provision for the Nordstern GmbH contract has been increased. We now provision EUR 1.2M (previously zero) against the EUR 3.7M contingent liability, reflecting a revised probability assessment of 30% that certain Q2 milestones will be missed due to confirmed supply chain delays in specialty alloys.
+
+Impact on Q1 gross profit: EUR (1.2M)
+Restated gross margin: 36.5% (previously 38.4%)
+
+ADJUSTMENT 3: SUBSIDY RECOGNITION
+
+The EUR 1.8M Augsburg state subsidy receivable has been reclassified. The disbursement approval letter, upon closer review, contains a condition requiring completion of environmental certification by September 2025. The receivable is now classified as contingent rather than confirmed. This affects the balance sheet (reduces receivables by EUR 1.8M) but does not affect revenue or EBITDA.
+
+RESTATED SUMMARY
+
+Total revenue: EUR 60.5M (was EUR 61.3M)
+External revenue: EUR 58.2M (unchanged)
+Gross profit: EUR 21.0M (was EUR 22.5M)
+Gross margin: 36.5% (was 38.4%)
+Headcount: 512 FTEs (unchanged)
+
+IMPLICATION FOR GROUP CONSOLIDATED
+
+The consolidated Q1 revenue of EUR 127.4M as reported by the Group CFO office should be adjusted downward. The net impact of this restatement on consolidated figures depends on whether the inter-company elimination was already correctly applied in the April 18 consolidated report. We believe the group report used Alpha's original EUR 3.1M inter-company figure, which would mean the elimination was overstated by EUR 0.8M, partially offsetting the revenue reduction at the consolidated level. This requires clarification from the Group CFO office.

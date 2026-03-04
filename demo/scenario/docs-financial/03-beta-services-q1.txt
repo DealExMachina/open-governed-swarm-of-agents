@@ -1,0 +1,34 @@
+BETA SERVICES -- Q1 2025 FINANCIAL REPORT
+
+Prepared by: Beta Services Controller
+Date: 2025-04-15
+Valid period: Q1 2025 (January 1 -- March 31, 2025)
+Classification: CONFIDENTIAL -- SUBSIDIARY REPORTING
+
+REVENUE OVERVIEW
+
+Beta Services reports Q1 2025 revenue of EUR 43.9M. This represents a 9% increase from Q1 2024 (EUR 40.3M), driven by expansion in regulatory compliance advisory and the ramp-up of three new enterprise engagements.
+
+INTER-COMPANY TRANSACTIONS
+
+Revenue includes EUR 2.3M from services provided to Gamma Digital (data migration support for the Vanguard platform re-architecture). We have recognized this at the contractual rate. Gamma Digital's finance team has confirmed receipt of all deliverables.
+
+Regarding the Project Catalyst charges from Alpha Industrials: we have recorded EUR 2.3M in costs against this engagement, not the EUR 3.1M invoiced by Alpha. The difference of EUR 0.8M relates to Phase 2 deliverables that, in our assessment, were not completed to specification by quarter-end. We have formally notified Alpha Industrials and the Group CFO office of this dispute. Until resolution, our cost of revenue reflects the EUR 2.3M we consider substantiated.
+
+This creates a EUR 0.8M mismatch in inter-company eliminations that the consolidated report should address but may not have fully captured, since our dispute notification was sent April 16 -- after the Group CFO received Alpha's figures.
+
+GROSS MARGIN
+
+Reported gross margin: 44.2%. This is calculated after excluding EUR 1.4M in restructuring costs related to the Berlin office consolidation. Including these costs, adjusted gross margin is 40.9%. We note that the Group CFO's consolidation methodology has historically treated restructuring costs as operating expenses rather than COGS, but the classification is not entirely consistent across quarters.
+
+NOTABLE CLIENT MATTERS
+
+The engagement with Bundesamt fur Sicherheit (BfS) generated EUR 5.8M in Q1 revenue. However, EUR 1.9M of this relates to change orders that are approved but unsigned as of March 31. Revenue recognition on unsigned change orders is permissible under our reading of IFRS 15.47 where performance obligations have been satisfied, but this treatment is aggressive and the external auditors flagged a similar pattern in the FY 2024 review as an area of judgment.
+
+HEADCOUNT
+
+Total FTEs: 389. This excludes 62 independent contractors who account for approximately 22% of billable hours. The group headcount figure of 1,247 may or may not include these individuals depending on which reporting date was used for the contractor census.
+
+CASH POSITION
+
+Beta Services standalone cash: EUR 18.4M. Approximately EUR 3.2M is restricted under escrow arrangements related to the BfS engagement completion guarantee.
