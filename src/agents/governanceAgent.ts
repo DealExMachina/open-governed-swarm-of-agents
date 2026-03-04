@@ -52,6 +52,8 @@ export interface DeterministicResult {
  */
 export type GovernancePath =
   | "processProposal"
+  | "processProposal_mitlEscalation"
+  | "processProposal_masterReject"
   | "oversight_acceptDeterministic"
   | "oversight_escalateToLLM"
   | "oversight_escalateToHuman"
@@ -695,7 +697,14 @@ export async function processProposal(
   env: GovernanceAgentEnv,
 ): Promise<void> {
   const result = await evaluateProposalDeterministic(proposal, env);
-  await commitDeterministicResult(proposal, result, env);
+  // Derive governance path from the kernel's verdict for accurate tier tracking.
+  let path: GovernancePath = "processProposal";
+  if (result.outcome === "pending" && result.reason === "mitl_required") {
+    path = "processProposal_mitlEscalation";
+  } else if (result.outcome === "reject" && proposal.mode === "MASTER") {
+    path = "processProposal_masterReject";
+  }
+  await commitDeterministicResult(proposal, result, env, path);
 }
 
 /**
