@@ -127,6 +127,26 @@ The paper defines five experimental protocols designed to address open questions
 
 ---
 
+## Experiment 9: Local Confluence (exp9)
+
+**Goal:** Validate Assumption #2 (local confluence) by testing whether CRDT-inspired semantic graph operations commute and whether the governance kernel is deterministic.
+
+**Protocol:**
+
+- Six sub-tests, no LLM or Docker required (Postgres + Rust kernel only):
+  1. **CRDT commutativity**: Apply 4 synthetic M&A due diligence payloads in all 24 permutations. Compare finality snapshots — if all identical, operations are fully commutative
+  2. **Eventual consistency**: Apply payloads in different orders, then apply a canonical "complete re-extraction" payload. All orderings must converge to identical state
+  3. **Monotonic confidence ratchet**: Apply confidence 0.7 then 0.92 vs 0.92 then 0.7 for same claim. Both must reach 0.92 (max semantics)
+  4. **Idempotency**: Apply same payload twice — graph must be unchanged after second application
+  5. **Governance kernel determinism**: Evaluate 8 proposal types (YOLO/MITL/MASTER × drift levels) 10 times each. All evaluations must produce identical output
+  6. **Cross-epoch convergence**: Interleaved partial extractions followed by complete extraction must converge
+
+**Expected outcome:** Partial confluence validated — core CRDT operations (confidence ratchet, contradiction irreversibility, idempotency) are fully commutative. Stale marking introduces order-dependence for intermediate states, but the system is eventually consistent after complete re-extraction. This matches the paper's claim that "only certified compatible transitions are guaranteed to commute."
+
+**Run:** `./scripts/run-experiment.sh exp9`. Results: `docs/experiments/exp9/results/<timestamp>`. See [docs/experiments/exp9/README.md](experiments/exp9/README.md).
+
+---
+
 ## Noisy corpus (noisy)
 
 **Goal:** Test behaviour on ambiguous/hedging documents (noisy corpus) as noted in the paper's internal validity and future work.

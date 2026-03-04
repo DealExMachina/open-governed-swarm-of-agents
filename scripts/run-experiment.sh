@@ -10,6 +10,7 @@
 #   exp6  --rounds=7 (full pipeline with resolver agent — Assumption #3)
 #   exp7  (runs 3 times: YOLO, MITL, MASTER with lowered escalation threshold)
 #   exp8  (runs 3 times: baseline, inflate, collude — adversarial agent defense)
+#   exp9  (local confluence — no LLM/Docker needed, Postgres only)
 #   noisy --corpus=docs-noisy (ambiguous/hedging documents)
 #   financial --rounds=8 (financial consolidation with dual temporality)
 #
@@ -295,6 +296,16 @@ case "$EXP_ID" in
     echo "[Exp] Exp8 complete. Analyzing adversarial defense..."
     node --loader ts-node/esm scripts/analyze-adversarial-defense.ts "docs/experiments/exp8/results/" 2>/dev/null || true
     echo "[Exp] Done. See docs/experiments/exp8/results/"
+    exit 0
+    ;;
+  exp9)
+    echo "[Exp] Exp9: local confluence — validating Assumption #2 (commutativity of CRDT operations)"
+    echo "[Exp] This experiment requires only Postgres (no Docker/LLM/NATS needed)."
+    # Ensure schema exists
+    node --loader ts-node/esm scripts/ensure-schema.ts 2>/dev/null
+    # Run the confluence driver
+    node --loader ts-node/esm scripts/drive-exp9-confluence.ts "${EXTRA_ARGS[@]}"
+    echo "[Exp] Done. See docs/experiments/exp9/results/"
     exit 0
     ;;
   demo-baseline)
