@@ -9,6 +9,7 @@
 #   exp5  (runs 3 times: YOLO, MITL, MASTER)
 #   exp6  --rounds=7 (full pipeline with resolver agent — Assumption #3)
 #   exp7  (runs 3 times: YOLO, MITL, MASTER with lowered escalation threshold)
+#   exp8  (runs 3 times: baseline, inflate, collude — adversarial agent defense)
 #   noisy --corpus=docs-noisy (ambiguous/hedging documents)
 #   financial --rounds=8 (financial consolidation with dual temporality)
 #
@@ -224,6 +225,78 @@ case "$EXP_ID" in
     echo "[Exp] Done. See docs/experiments/exp7/results/"
     exit 0
     ;;
+  exp8)
+    ROUNDS="${ROUNDS:-7}"
+    echo "[Exp] Exp8: adversarial agent defense — validating Assumption #5 (cooperative model)"
+    echo "[Exp] Running 3 sub-experiments: baseline, inflate, collude"
+    for adv_mode in baseline inflate collude; do
+      echo ""
+      echo "[Exp] ═══ Exp8 run: adversarial_mode=$adv_mode ═══"
+
+      # ── Stop previous hatchery + simulate-mitl ──
+      if [ -n "$HATCHERY_PID" ]; then
+        echo "[Exp] Stopping previous hatchery (pid $HATCHERY_PID)..."
+        kill "$HATCHERY_PID" 2>/dev/null || true
+        wait "$HATCHERY_PID" 2>/dev/null || true
+        HATCHERY_PID=""
+      fi
+      if [ -n "$SIM_PID" ]; then
+        kill "$SIM_PID" 2>/dev/null || true
+        wait "$SIM_PID" 2>/dev/null || true
+        SIM_PID=""
+      fi
+
+      # ── Reset DB/NATS ──
+      node --loader ts-node/esm scripts/reset-e2e.ts 2>/dev/null || true
+      node --loader ts-node/esm scripts/ensure-schema.ts 2>/dev/null
+      node --loader ts-node/esm scripts/ensure-stream.ts 2>/dev/null
+
+      # ── Start hatchery (YOLO mode — most permissive, so adversarial has best chance) ──
+      export GOVERNANCE_MODE="YOLO"
+      if [ "$RUN_SWARM" = 1 ]; then
+        echo "[Exp] Starting hatchery for adversarial mode=$adv_mode (YOLO governance)..."
+        : > "$LOG_DIR/swarm-exp-hatchery.log"
+        GOVERNANCE_MODE="YOLO" \
+          AGENT_ROLE=hatchery AGENT_ID=hatchery-exp \
+          node --loader ts-node/esm src/swarm.ts \
+          >> "$LOG_DIR/swarm-exp-hatchery.log" 2>&1 &
+        HATCHERY_PID=$!
+        echo "[Exp] Hatchery pid: $HATCHERY_PID"
+
+        echo "[Exp] Waiting for MITL server health..."
+        MITL_PORT="${MITL_PORT:-3001}"
+        for i in $(seq 1 30); do
+          if curl -sf "http://127.0.0.1:${MITL_PORT}/health" >/dev/null 2>&1; then
+            echo "[Exp] MITL server healthy."
+            break
+          fi
+          if [ "$i" = 30 ]; then
+            echo "[Exp] MITL server not ready after 30s. Check $LOG_DIR/swarm-exp-hatchery.log"
+            exit 1
+          fi
+          sleep 1
+        done
+      fi
+
+      # ── Drive with adversarial injection ──
+      echo "[Exp] Driving exp8-$adv_mode with adversarial mode=$adv_mode..."
+      node --loader ts-node/esm scripts/drive-exp8-adversarial.ts \
+        --mode="$adv_mode" \
+        --rounds="$ROUNDS" \
+        --interval="$INTERVAL" \
+        "${EXTRA_ARGS[@]}"
+
+      echo "[Exp] Collecting exp8-$adv_mode results..."
+      ADVERSARIAL_MODE="$adv_mode" \
+        node --loader ts-node/esm scripts/collect-experiment-results.ts "exp8" 2>/dev/null || true
+    done
+    unset GOVERNANCE_MODE
+    echo ""
+    echo "[Exp] Exp8 complete. Analyzing adversarial defense..."
+    node --loader ts-node/esm scripts/analyze-adversarial-defense.ts "docs/experiments/exp8/results/" 2>/dev/null || true
+    echo "[Exp] Done. See docs/experiments/exp8/results/"
+    exit 0
+    ;;
   demo-baseline)
     ROUNDS="${ROUNDS:-7}"
     [ -z "$RESOLVE_AT" ] && RESOLVE_OPT="--resolve-at=5,6,7"
@@ -302,7 +375,7 @@ case "$EXP_ID" in
     exit 0
     ;;
   *)
-    echo "[Exp] Unknown experiment: $EXP_ID. Use exp1, exp2, exp3, exp4, exp5, exp6, exp7, noisy, financial, demo-baseline."
+    echo "[Exp] Unknown experiment: $EXP_ID. Use exp1, exp2, exp3, exp4, exp5, exp6, exp7, exp8, noisy, financial, demo-baseline."
     exit 1
     ;;
 esac
