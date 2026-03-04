@@ -17,6 +17,8 @@ Back to [README.md](../README.md).
 7. [Governance agent](#7-governance-agent)
 8. [Activation filters](#8-activation-filters)
 9. [Database schema](#9-database-schema)
+10. [Rust core (sgrs-core)](#10-rust-core-sgrs-core)
+11. [Agent Hatchery](#11-agent-hatchery)
 
 ---
 
@@ -421,7 +423,7 @@ flowchart TD
   O3 --> PEND
 ```
 
-Quick checks (in order): proposed_action != advance_state → IGNORE; epoch mismatch → REJECT; policy engine (transition) → PENDING if denied; checkPermission denied → REJECT. The **policy engine** (`src/policyEngine.ts`) is pluggable: default is YAML (`createYamlPolicyEngine` with governance config and policy version hash from `src/policyVersions.ts`); optional OPA-WASM (`src/opaPolicyEngine.ts`) when `OPA_WASM_PATH` is set. Each evaluation produces a `DecisionRecord` (decision_id, policy_version, result, reason, obligations); records are persisted to `decision_records` and obligations are executed via `src/obligationEnforcer.ts`. Combining algorithms (`denyOverrides`, `firstApplicable`) in `src/combiningAlgorithms.ts` support multi-policy evaluation.
+Quick checks (in order): proposed_action != advance_state → IGNORE; epoch mismatch → REJECT; policy engine (transition) → PENDING if denied; checkPermission denied → REJECT. The **policy engine** (`src/policyEngine.ts`) uses YAML governance config and policy version hash from `src/policyVersions.ts`; deterministic evaluation is delegated to the sgrs-core kernel. Each evaluation produces a `DecisionRecord` (decision_id, policy_version, result, reason, obligations); records are persisted to `decision_records` and obligations are executed via `src/obligationEnforcer.ts`. Combining algorithms (`denyOverrides`, `firstApplicable`) in `src/combiningAlgorithms.ts` support multi-policy evaluation.
 
 ### Oversight agent
 
@@ -722,7 +724,7 @@ Adds valid time and transaction time to the semantic graph: `valid_from`, `valid
 | result | TEXT | allow \| deny |
 | reason | TEXT | Human-readable rationale |
 | obligations | JSONB | Obligations from policy (default []) |
-| binding | TEXT | Engine identifier (yaml, opa) |
+| binding | TEXT | Engine identifier (e.g. sgrs) |
 | suggested_actions | JSONB | Optional suggested actions |
 | created_at | TIMESTAMPTZ | Insert time |
 
@@ -786,7 +788,85 @@ flowchart LR
 
 ---
 
-## 10. Agent Hatchery: Dynamic Lifecycle Management
+## 10. Rust core (sgrs-core)
+
+The formal core (convergence math, finality gates, governance lattice, reduction kernel) lives in a Rust crate `sgrs-core`, built as a napi-rs native addon. The TypeScript layer handles I/O, LLM calls, messaging, and storage; it calls into the Rust engine for deterministic, replayable decisions.
+
+### Premise
+
+The theory defines a product lattice M = L x A: governance level L (permissiveness) and convergence rank A (per-dimension scores). Coordination is well-founded descent in M. V2 extracts this into a Rust engine so that invariants are enforced by the type system; the TS layer approximates this no longer—it delegates.
+
+### What lives in Rust vs TypeScript
+
+| In Rust (sgrs-core) | In TypeScript |
+|---------------------|---------------|
+| Governance lattice L (Yolo > Mitl > Master), convergence rank A (4 dimensions) | NATS, Postgres, S3, OpenFGA, agent loops, hatchery |
+| Product lattice M = L x A, admissibility check | Semantic graph sync, context WAL, decision persistence |
+| Reduction kernel (proposal → Accept/Reject/Escalate), stateless, config as parameter | LLM oversight, MITL server, feed server |
+| Lyapunov V(t), dimension scores, pressure, trajectory quality Q(t), plateau detection | Load snapshot, call Rust, persist convergence history |
+| Five-gate finality predicate F(t), condition evaluator | Load finality config, call Rust, emit events |
+| Decision record structure, exhaustive state transition table | Publish actions, persist records, obligations |
+
+### Crate structure
+
+```
+sgrs-core/
+  src/
+    lib.rs, error.rs
+    lattice/      -- GovernanceLevel, ConvergenceRank, LatticePoint, AdmissibilityResult
+    reduction/    -- ReductionKernel, ValidatedProposal, DecisionRecord
+    finality/     -- gates, conditions, FinalitySnapshot
+    convergence/   -- Lyapunov, pressure, trajectory, plateau
+    types/        -- ProcessingState, FinalityStatus, CaseState, DriftLevel
+```
+
+### Core concepts
+
+- **GovernanceLevel:** Yolo (most permissive) > Mitl > Master (most restrictive). Escalation is descent (allowed); de-escalation is ascent (rejected).
+- **ConvergenceRank:** Four dimensions (claim confidence, contradiction resolution, goal completion, risk inverse); componentwise partial order. Scalar V(t) is a derived diagnostic only; admissibility uses the vector.
+- **LatticePoint:** (governance, rank). Transition admissible iff M does not ascend; `check_transition` returns `AdmissibilityResult` (Admissible, GovernanceViolation, ConvergenceViolation, Incomparable, BothViolated).
+- **ReductionKernel:** Pure, stateless. `evaluate(proposal, current_lattice, snapshot, gov_config, fin_config)` returns `DecisionRecord`. No I/O. LLM/human resolutions are re-validated via `validate_escalation_resolution` so the kernel always has final say.
+- **Five-gate finality:** G_A (monotonicity), G_B (evidence + contradiction mass), G_C (trajectory quality, oscillation), G_D (quiescence), G_E (min content). All must pass for RESOLVED.
+
+### FFI boundary
+
+The Node adapter is `src/sgrsAdapter.ts`: it converts TS types to Rust DTOs, calls the napi-rs bindings (`sgrs-core` package), and maps results back. Key exports used by the TS layer:
+
+- **Convergence:** `computeDimensionScores`, `computeLyapunovV`, `computePressure`, `analyzeConvergence` (from `convergenceTracker.ts` / finality path).
+- **Finality:** `computeGoalScore`, `evaluateGates`, `evaluateConditions`, `evaluateOne` (from `finalityEvaluator.ts`).
+- **Governance:** `evaluateRules`, `canTransition`, `evaluateKernel` (from `governance.ts`, `governanceAgent.ts`).
+
+Serialization at the boundary is JSON for full calls; hot-path convergence math can use napi struct bindings to avoid serialization. Latency is recorded as `swarm.sgrs.call_ms` (operation name) for observability.
+
+### Invariants (enforced in Rust)
+
+- **Lattice descent:** Every accepted transition satisfies M_before >= M_after.
+- **Exhaustive state matching:** Legal transitions are explicit match arms; new enum variants force a compile-time decision.
+- **Gate conjunction:** F(t) = G_A AND G_B AND G_C AND G_D AND G_E.
+- **Replay determinism:** Kernel is pure; same inputs yield same DecisionRecord. Config snapshot hash in the record ties decisions to the exact YAML.
+- **Exploration vs reduction:** Agents propose (exploration); only the kernel produces Accept (reduction). Proposals do not carry governance mode—mode is resolved from scope config by the kernel.
+
+### MASTER mode
+
+MASTER is the most restrictive level (lattice bottom), not a bypass. No auto-approve; strictest policy and no escalation to LLM. De-escalation (Master → Yolo) is rejected. Development escape hatch is a separate `--unsafe-approve-all` CLI flag, not part of the lattice.
+
+### Intra-epoch vs cross-epoch
+
+V(t) can increase when new context is injected (new documents). Epochs are created by the TS layer when context changes. The kernel receives `same_epoch: bool`; intra-epoch transitions must not ascend in the convergence rank; cross-epoch transitions relax that so a new evidence batch can increase V without being rejected.
+
+### Error model
+
+Rust exposes typed `KernelError` (config, unknown state, invalid numeric, stale epoch). The bridge maps these to JS exceptions; the TS layer must not swallow them—reject the proposal, log, and optionally alert. Silent degradation is not acceptable for governance decisions.
+
+### Build and integration
+
+- **Build:** `pnpm run build:rust` (or `build:rust:debug`) compiles `sgrs-core` with napi-rs for the current platform; output is `sgrs-core/*.node`.
+- **Package:** `sgrs-core` is a workspace dependency `"sgrs-core": "file:sgrs-core"`; the Node entrypoint is `sgrs-core/index.js` (platform-specific `.node` loading).
+- **CI:** `cargo test` and `cargo clippy` in sgrs-core; `pnpm test` includes TS tests that call the bridge.
+
+---
+
+## 11. Agent Hatchery: Dynamic Lifecycle Management
 
 The hatchery is the default: a single-process orchestrator that spawns agent loops as in-process async tasks.
 

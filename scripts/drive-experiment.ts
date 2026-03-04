@@ -14,7 +14,7 @@
  *   pnpm tsx scripts/drive-experiment.ts --corpus=demo --resolve-at=4
  *
  * Options:
- *   --corpus        Corpus to use: exp1, exp2, exp3, demo
+ *   --corpus        Corpus to use: exp1, exp2, exp3, demo, noisy, financial
  *   --rounds        Max rounds (default: 10)
  *   --interval      Seconds between document injections (default: 20)
  *   --resolve-at    Round at which to inject a resolution (default: none)
@@ -91,6 +91,17 @@ function loadDemoCorpus(): Array<{ title: string; text: string }> {
 
 function loadNoisyCorpus(): Array<{ title: string; text: string }> {
   const dir = join(__dirname, "..", "demo", "scenario", "docs-noisy");
+  return readdirSync(dir)
+    .filter((f) => f.endsWith(".txt"))
+    .sort()
+    .map((f) => ({
+      title: f.replace(".txt", "").replace(/-/g, " "),
+      text: readFileSync(join(dir, f), "utf-8"),
+    }));
+}
+
+function loadFinancialCorpus(): Array<{ title: string; text: string }> {
+  const dir = join(__dirname, "..", "demo", "scenario", "docs-financial");
   return readdirSync(dir)
     .filter((f) => f.endsWith(".txt"))
     .sort()
@@ -221,6 +232,9 @@ async function main(): Promise<void> {
       break;
     case "noisy":
       corpus = loadNoisyCorpus();
+      break;
+    case "financial":
+      corpus = loadFinancialCorpus();
       break;
     case "demo":
     default:

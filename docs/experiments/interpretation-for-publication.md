@@ -1,6 +1,6 @@
 # Interpretation of Results for Publication
 
-Summary of the 2026-03-02 clean run (exp1–exp5) and noisy corpus run, for use in the paper (e.g. Section 9 / Results, Discussion).
+Summary of clean run (exp1–exp5) and noisy corpus run, for use in the paper (e.g. Section 9 / Results, Discussion). Latest run log: [RUN-2026-03-04-financial.md](RUN-2026-03-04-financial.md).
 
 ---
 

@@ -122,6 +122,24 @@ The paper defines five experimental protocols designed to address open questions
 
 ---
 
+## Financial Consolidation (financial)
+
+**Goal:** Demonstrate that the bitemporal semantic graph correctly handles multi-period financial statement reconciliation -- where dual temporality (valid time vs. transaction time) is structurally necessary, restatements supersede earlier figures, and accounting methodology differences create genuine (not artifactual) ambiguity.
+
+**Protocol:**
+
+- Use corpus from `demo/scenario/docs-financial` (8 documents: 1 consolidated summary, 3 subsidiary reports, 1 restatement, 1 cross-period comparative, 1 auditor review, 1 management response).
+- Documents arrive sequentially but reference overlapping and distinct valid-time windows (Q1 2025, Q2 2025, H1 2025). Document 5 (Alpha restated, tx May 22) supersedes document 2 (Alpha original, tx April 14) for the same valid period.
+- Contradictions span three categories: hard numerical disagreements (revenue, margin, headcount), temporal restatements (same valid time, later transaction time), and methodology-dependent ambiguity (ranges, classification judgment).
+- Run with hatchery and simulate-mitl; collect convergence history and decision records.
+- Measure: V(t) trajectory (expected non-monotonic: rise on contradiction arrival, partial decrease on restatement, re-rise on auditor observations), gate satisfaction (especially Gate B on stale evidence and Gate C on oscillation), temporal supersession correctness, finality state.
+
+**Expected outcome:** Characteristic non-monotonic V(t) trajectory distinct from clean demo (few contradictions) and noisy corpus (ambiguity without temporal structure). Gate B should fire on stale original figures after restatement. Final state: ESCALATED due to unresolved classification issues (equity vs. loan, methodology alignment).
+
+**Run:** `./scripts/run-experiment.sh financial --rounds=8`. Results: `docs/experiments/financial/results/<timestamp>`. See [docs/experiments/financial/README.md](experiments/financial/README.md) for the full contradiction and ambiguity map.
+
+---
+
 ## Relationship to Existing Benchmarks
 
 The **7 convergence benchmark scenarios** in `scripts/benchmark-convergence.ts` validate mathematical properties with pure math (no Docker, no LLM):
