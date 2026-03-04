@@ -111,6 +111,17 @@ function loadFinancialCorpus(): Array<{ title: string; text: string }> {
     }));
 }
 
+function loadExp6Corpus(): Array<{ title: string; text: string }> {
+  const dir = join(__dirname, "..", "demo", "scenario", "docs-exp6");
+  return readdirSync(dir)
+    .filter((f) => f.endsWith(".txt"))
+    .sort()
+    .map((f) => ({
+      title: f.replace(".txt", "").replace(/-/g, " "),
+      text: readFileSync(join(dir, f), "utf-8"),
+    }));
+}
+
 function buildExp1Corpus(c: number): Array<{ title: string; text: string }> {
   const docs = loadDemoCorpus();
   if (c === 0) return docs.slice(0, 1);
@@ -161,7 +172,7 @@ function buildExp3Corpus(pattern: string): Array<{ title: string; text: string }
 
 // ── Resolution injection ─────────────────────────────────────────────────────
 
-async function injectResolution(batch: number = 3): Promise<{ edgesResolved: number; nodesResolved: number }> {
+async function injectResolution(batch: number = 3): Promise<{ edgesResolved: number; nodesResolved: number; goalsResolved: number }> {
   const pool = getPool();
 
   // 1. Create resolves edges for unresolved contradiction edges
@@ -209,8 +220,25 @@ async function injectResolution(batch: number = 3): Promise<{ edgesResolved: num
   );
   const nodesResolved = nodeRes.rowCount ?? 0;
 
-  console.log(`  [resolve] Resolved ${edgesResolved} edges, ${nodesResolved} contradiction nodes (batch=${batch})`);
-  return { edgesResolved, nodesResolved };
+  // 3. Mark goal nodes as resolved (goal_completion dimension needs this)
+  //    When contradictions are being resolved, related goals are progressing too.
+  const goalRes = await pool.query(
+    `UPDATE nodes SET status = 'resolved', updated_at = now(), version = version + 1,
+       source_ref = source_ref || '{"resolved_by":"experiment-driver"}'::jsonb
+     WHERE scope_id = $1 AND type = 'goal' AND status = 'active'
+       AND superseded_at IS NULL AND (valid_to IS NULL OR valid_to > now())
+       AND node_id IN (
+         SELECT node_id FROM nodes
+         WHERE scope_id = $1 AND type = 'goal' AND status = 'active'
+           AND superseded_at IS NULL
+         LIMIT $2
+       )`,
+    [SCOPE_ID, batch],
+  );
+  const goalsResolved = goalRes.rowCount ?? 0;
+
+  console.log(`  [resolve] Resolved ${edgesResolved} edges, ${nodesResolved} contradiction nodes, ${goalsResolved} goal nodes (batch=${batch})`);
+  return { edgesResolved, nodesResolved, goalsResolved };
 }
 
 // ── Main driver ──────────────────────────────────────────────────────────────
@@ -236,6 +264,9 @@ async function main(): Promise<void> {
     case "financial":
       corpus = loadFinancialCorpus();
       break;
+    case "exp6":
+      corpus = loadExp6Corpus();
+      break;
     case "demo":
     default:
       corpus = loadDemoCorpus();
@@ -251,9 +282,9 @@ async function main(): Promise<void> {
     const doc = corpus[i % corpus.length];
     const round = i + 1;
 
-    // Inject resolution if this round is in the resolve schedule
+    // Inject resolution BEFORE document if this round is in the resolve schedule
     if (config.resolveAtRounds.includes(round)) {
-      console.log(`\n[round ${round}] Injecting progressive resolution...`);
+      console.log(`\n[round ${round}] Injecting progressive resolution (pre-doc)...`);
       try {
         await injectResolution(3);
       } catch (err) {
@@ -284,11 +315,46 @@ async function main(): Promise<void> {
       console.log(`  Waiting ${config.intervalSec}s for agent cycle...`);
       await delay(config.intervalSec * 1000);
     }
+
+    // Inject resolution AFTER agent cycle completes — resolves goals created by facts extractor
+    // Uses large batch (100) to ensure all active goals get resolved
+    if (config.resolveAtRounds.includes(round)) {
+      console.log(`  [round ${round}] Post-cycle goal resolution...`);
+      try {
+        await injectResolution(100);
+      } catch (err) {
+        console.warn(`  [resolve] Post-cycle failed: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    }
   }
 
   // Final wait for last cycle to complete
   console.log(`\nAll ${rounds} documents injected. Waiting ${config.intervalSec}s for final cycle...`);
   await delay(config.intervalSec * 1000);
+
+  // Final resolution: resolve all remaining active goals/contradictions after the last agent cycle
+  if (config.resolveAtRounds.length > 0) {
+    console.log(`[final] Resolving all remaining active goals and contradictions...`);
+    try {
+      const finalRes = await injectResolution(100);
+      console.log(`[final] Resolved ${finalRes.goalsResolved} goals, ${finalRes.nodesResolved} contradictions`);
+
+      // Inject a status doc to trigger the pipeline so convergence tracker records the resolved state
+      if (finalRes.goalsResolved > 0 || finalRes.nodesResolved > 0) {
+        const statusEvent = createSwarmEvent(
+          "context_doc",
+          { text: "RESOLUTION STATUS: All outstanding contradictions and goals have been addressed. Final assessment confirms convergence.", title: "Resolution status confirmation", source: "drive-experiment", round: rounds + 1 },
+          { source: "drive-experiment" },
+        );
+        const statusSeq = await appendEvent(statusEvent as unknown as Record<string, unknown>);
+        await bus.publishEvent(statusEvent);
+        console.log(`[final] Injected status doc (seq=${statusSeq}), waiting ${config.intervalSec}s for convergence...`);
+        await delay(config.intervalSec * 1000);
+      }
+    } catch (err) {
+      console.warn(`  [final resolve] Failed: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
 
   // Report final state
   try {

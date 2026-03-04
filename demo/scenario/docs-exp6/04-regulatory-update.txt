@@ -1,0 +1,21 @@
+PROJECT ATLAS — REGULATORY STATUS UPDATE
+
+Prepared by: Legal and Compliance Team
+Date: 2025-10-15
+Classification: CONFIDENTIAL
+
+UPDATE ON CE MARKING AND CERTIFICATIONS
+
+Following detailed review, the regulatory position is more nuanced than initially assessed:
+
+1. CE MARKING: The existing CE marking under the Medical Device Directive (MDD) is valid until May 2026. However, transition to the Medical Device Regulation (MDR) is required. MedCore has filed a pre-submission with a Notified Body, and the transition is on track for completion by March 2026.
+
+2. ISO 13485: The certification covers the current production environment. The concern raised in the cybersecurity assessment about the platform rewrite has been investigated. The rewrite was incremental (microservice migration) and each component was included in the most recent audit scope. The certification remains valid and covers the current codebase.
+
+3. GDPR: MedCore's data processing agreements are current and compliant across all 120 client relationships. The March 2024 breach was properly reported to the relevant data protection authorities within the required 72-hour window.
+
+CLARIFICATION ON BREACH DISCLOSURE
+
+The data breach referenced in the cybersecurity assessment was disclosed to the acquirer's legal team during initial discussions in April 2024. The omission from the initial assessment document was an oversight in document preparation, not a deliberate concealment. Records of the disclosure exist in the legal correspondence file.
+
+This partially resolves the regulatory and disclosure concerns. The ISO 13485 certification gap concern is resolved. The CE marking renewal remains a timeline risk but is being managed.

@@ -1,0 +1,26 @@
+PROJECT ATLAS — REVENUE RECONCILIATION
+
+Prepared by: Joint Finance Working Group
+Date: 2025-10-22
+Classification: CONFIDENTIAL
+
+RECONCILIATION RESULTS
+
+Following collaborative review between MedCore's CFO and the external audit team, the revenue discrepancy has been partially resolved:
+
+1. REVENUE: The correct audited figure is EUR 76M, not EUR 85M or EUR 72M.
+   - The external audit's EUR 72M figure excluded EUR 4M in legitimately recognized maintenance revenue that qualifies for immediate recognition under IFRS 15.
+   - MedCore's initial EUR 85M included EUR 9M in improperly recognized multi-year implementation fees.
+   - Net adjustment: EUR -9M from initial claim.
+
+2. GROWTH RATE: Adjusted growth is 31% YoY after applying consistent recognition methodology to both years.
+
+3. GROSS MARGIN: Agreed margin is 64% after reclassifying EUR 3M in hosting costs (not EUR 5M as initially claimed by auditors — EUR 2M was correctly classified as R&D for a dedicated research cluster).
+
+4. CLIENT COUNT: Agreed count is 108 active clients. Fourteen of the disputed 26 accounts have signed paid contracts effective Q4 2025.
+
+This resolves the revenue, growth, margin, and client count contradictions with agreed reconciled figures.
+
+REVISED VALUATION
+
+Based on reconciled financials, proposed valuation range: EUR 550M-580M.

@@ -1,0 +1,23 @@
+PROJECT ATLAS — INDEPENDENT FINANCIAL REVIEW
+
+Prepared by: External Audit Partners
+Date: 2025-10-01
+Classification: CONFIDENTIAL
+
+FINDINGS
+
+The independent financial review reveals significant discrepancies with the initial assessment:
+
+1. REVENUE DISCREPANCY: Audited revenue for FY 2024 is EUR 72M, not EUR 85M as previously reported. The EUR 13M difference is attributed to multi-year contract revenue that was recognized upfront rather than over the contract period under IFRS 15.
+
+2. GROWTH RATE: Adjusted year-over-year growth is 28%, not 38%. Prior year figures were also subject to the same recognition methodology.
+
+3. GROSS MARGIN: Actual gross margin after reclassifying hosting costs is 61%, not 68%. Approximately EUR 5M in infrastructure costs were incorrectly classified as R&D expenditure.
+
+4. CLIENT COUNT: Active paying clients number 94, not 120. Twenty-six accounts are in pilot or free-tier status and should not be counted as enterprise clients.
+
+These findings contradict the initial assessment claims regarding revenue, growth, margins, and client count.
+
+RECOMMENDATION
+
+Valuation should be revised downward. Proposed range: EUR 480M-520M based on adjusted multiples.
