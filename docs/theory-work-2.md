@@ -8,7 +8,7 @@
 
 ## 0. Separation: Technical Infrastructure vs. Theory
 
-The codebase mixes two distinct concerns. This document focuses exclusively on the **theoretical** work. Technical infrastructure questions (Zig vs Rust language choice, RustFS vs MinIO, napi-rs FFI bridges, Docker compose, NATS client libraries) are documented separately in `docs/rust-evaluation.md` and are **not** part of the paper's contribution. The conclusion from that evaluation — "harden TypeScript first, evaluate Rust only after profiling shows a CPU bottleneck" — is operationally sound but has no bearing on the theoretical claims.
+The codebase mixes two distinct concerns. This document focuses exclusively on the **theoretical** work. Technical infrastructure (language choice, storage, FFI, Docker, NATS) is **not** part of the paper's contribution and has no bearing on the theoretical claims.
 
 ---
 
@@ -259,4 +259,4 @@ The single-scope limitation is acknowledged. The theoretical challenge: define a
 
 ---
 
-*Files reviewed: `publication/swarm-governed-agents.tex`, `publication/references.bib`, `docs/convergence.md`, `docs/architecture.md`, `docs/finality-design.md`, `docs/governance-design.md`, `docs/validation.md`, `docs/experiments.md`, `docs/experiments/README.md`, `docs/rust-evaluation.md`, `docs/agent-hatching-design.md`, `academic-strengthening-plan.md`.*
+*Files reviewed: `publication/swarm-governed-agents.tex`, `publication/references.bib`, `docs/convergence.md`, `docs/architecture.md`, `docs/finality-design.md`, `docs/governance-design.md`, `docs/validation.md`, `docs/experiments.md`, `docs/experiments/README.md`, `docs/agent-hatching-design.md`, `academic-strengthening-plan.md`.*

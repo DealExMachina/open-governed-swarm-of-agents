@@ -8,6 +8,7 @@
 #   exp4  --rounds=7 --resolve-at=5
 #   exp5  (runs 3 times: YOLO, MITL, MASTER)
 #   noisy --corpus=docs-noisy (ambiguous/hedging documents)
+#   financial --rounds=8 (financial consolidation with dual temporality)
 #
 # Common options:
 #   --interval=20       Seconds between document injections (default 20)
@@ -141,8 +142,18 @@ case "$EXP_ID" in
   exp4)
     run_single_experiment "demo" "" "exp4-governance"
     ;;
+  demo-baseline)
+    ROUNDS="${ROUNDS:-7}"
+    [ -z "$RESOLVE_AT" ] && RESOLVE_OPT="--resolve-at=5,6,7"
+    run_single_experiment "demo" "" "demo-ma-baseline"
+    ;;
   noisy)
     run_single_experiment "noisy" "" "noisy-corpus"
+    ;;
+  financial)
+    ROUNDS="${ROUNDS:-8}"
+    [ -z "$RESOLVE_AT" ] && RESOLVE_OPT="--resolve-at=7,8"
+    run_single_experiment "financial" "" "financial-consolidation"
     ;;
   exp5)
     echo "[Exp] Exp5: coverage-autonomy trade-off — running 3 governance modes"
@@ -209,7 +220,7 @@ case "$EXP_ID" in
     exit 0
     ;;
   *)
-    echo "[Exp] Unknown experiment: $EXP_ID. Use exp1, exp2, exp3, exp4, exp5, noisy."
+    echo "[Exp] Unknown experiment: $EXP_ID. Use exp1, exp2, exp3, exp4, exp5, noisy, financial, demo-baseline."
     exit 1
     ;;
 esac

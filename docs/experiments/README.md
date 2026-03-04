@@ -9,6 +9,10 @@ Five reproducible experiments defined in the paper (Section 9) and implemented i
 | [Exp 3: Finality Robustness](exp3/README.md) | Gate mechanism prevents false finality under adversarial patterns | 3-5 | False finality rate, gate triggers |
 | [Exp 4: Multi-Level Governance](exp4/README.md) | Decision distribution across L1/L2/L3 governance levels | 7 | governance_path distribution |
 | [Exp 5: Coverage-Autonomy](exp5/README.md) | YOLO vs MITL vs MASTER convergence rate comparison | 7 x 3 | alpha by mode |
+| [Financial: Dual Temporality](financial/README.md) | Bitemporal consolidation with restatements and ambiguity | 8 | V(t) under temporal supersession |
+| demo-baseline | M&A (Project Horizon) without auto-approve; baseline for comparison | 7 | V(t) spike on doc 2, recovery |
+
+See [COMPARISON-financial-vs-ma.md](COMPARISON-financial-vs-ma.md) for consistency check (financial vs M&A).
 
 ## Quick Start
 
@@ -25,6 +29,9 @@ done
 
 # Run exp5 (3 governance modes, automated)
 bash scripts/run-experiment.sh exp5 --rounds=7
+
+# Run financial consolidation (dual temporality, 8 docs)
+bash scripts/run-experiment.sh financial --rounds=8
 ```
 
 ## Multiple runs and various scenarios

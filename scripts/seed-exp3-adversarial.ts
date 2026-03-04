@@ -11,7 +11,7 @@
  *   pnpm tsx scripts/seed-exp3-adversarial.ts --pattern=empty
  *
  * For "stale": use evidence_schemas with max_age_days and required evidence_types.
- * See docs/experiments/exp3-finality-robustness.md for config.
+ * See docs/experiments/exp3/README.md for config.
  *
  * Run after migrations.
  */
