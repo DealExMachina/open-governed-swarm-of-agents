@@ -42,6 +42,7 @@
     "bootstrap-once": "node --loader ts-node/esm scripts/bootstrap-once.ts",
     "build:rust": "cd sgrs-core && npx napi build --release --platform",
     "build:rust:debug": "cd sgrs-core && npx napi build --platform",
+    "benchmark:sgrs": "npx tsx scripts/benchmark-sgrs-load.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "demo:open": "bash scripts/open-demo.sh"

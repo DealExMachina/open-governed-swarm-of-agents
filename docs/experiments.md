@@ -108,6 +108,20 @@ The paper defines five experimental protocols designed to address open questions
 
 ---
 
+## Noisy corpus (noisy)
+
+**Goal:** Test behaviour on ambiguous/hedging documents (noisy corpus) as noted in the paper's internal validity and future work.
+
+**Protocol:**
+
+- Use corpus from `demo/scenario/docs-noisy` (5 documents with ambiguous language).
+- Run with same hatchery and simulate-mitl as exp4; collect convergence history and decision records.
+- Measure: V(t), resolution rate, finality, pipeline progression.
+
+**Run:** `./scripts/run-experiment.sh noisy`. Results: `docs/experiments/noisy/results/<timestamp>`.
+
+---
+
 ## Relationship to Existing Benchmarks
 
 The **7 convergence benchmark scenarios** in `scripts/benchmark-convergence.ts` validate mathematical properties with pure math (no Docker, no LLM):
@@ -123,6 +137,28 @@ The **7 convergence benchmark scenarios** in `scripts/benchmark-convergence.ts` 
 | Empty graph | Safe defaults |
 
 These benchmarks are a prerequisite for Experiments 1 and 3. The full experiments require Docker, LLM, and end-to-end pipeline execution.
+
+### sgrs load benchmark (unified governance)
+
+**Goal:** Show that multiple concurrent instances can share a single governance config and that the sgrs (Rust) kernel sustains high throughput with deterministic decisions.
+
+**Protocol:**
+
+- Load one governance config (e.g. `governance.yaml`) once; run N concurrent workers (instances).
+- Each worker repeatedly calls sgrs: kernel, transition, rules, gates, convergence (mix configurable).
+- Measure: throughput (ops/s), latency (p50/p95/p99) per operation, and consistency (same input yields same output across all instances).
+
+**Run:**
+
+```bash
+npx tsx scripts/benchmark-sgrs-load.ts
+npx tsx scripts/benchmark-sgrs-load.ts --instances=8 --duration=10 --mix=both
+npx tsx scripts/benchmark-sgrs-load.ts --instances=4 --ops=50000
+```
+
+**Options:** `--instances=N`, `--duration=N`, `--ops=N`, `--mix=governance|finality|both`.
+
+**Expected outcome:** High throughput (order of 10^5 ops/s depending on hardware), sub-millisecond latencies, and "Unified governance: all instances produced identical outputs for same inputs."
 
 ---
 

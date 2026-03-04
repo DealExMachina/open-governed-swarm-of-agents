@@ -32,6 +32,8 @@ Native Rust addon (`sgrs-core/`) compiled via napi-rs. Pure math and determinist
 
 Governed agent swarm: event-driven agents (facts, drift, planner, status) consume jobs from NATS, read/write shared context (Postgres WAL) and state graph (Postgres + S3 facts/drift). Governance and executor close the control loop (approve/reject proposals, execute transitions). A **semantic graph** (Postgres + pgvector) holds addressable nodes (claims, goals, risks) and edges (e.g. contradicts). A **stateful finality** layer uses a convergence tracker (Lyapunov V(t), monotonicity gate, plateau detection, pressure-directed activation) to evaluate scope readiness and trigger HITL review via the MITL server when near-finality or stalled. See [docs/convergence.md](docs/convergence.md) for the theory.
 
+**Scalability:** The novel piece—the sgrs (Rust) governance/convergence kernel—is load-benchmarked; multiple instances share one policy and produce identical decisions at high throughput. Node, Postgres, NATS, and S3 have established scalability; whole-system scaling is an engineering/composition topic.
+
 ## Implemented and wired
 
 **Core**
@@ -73,6 +75,7 @@ Governed agent swarm: event-driven agents (facts, drift, planner, status) consum
 - **Unit tests**: 305 TS tests across 37 suites (semanticGraph, finalityEvaluator, convergenceTracker, finalityDecisions, governanceAgent, policyEngine, policyVersions, combiningAlgorithms, finalityCertificates, obligationEnforcer, factsToSemanticGraph, embeddingPipeline, hitlFinalityRequest, activationFilters, agent tools, etc.); 4 integration suites require Docker.
 - **Rust tests**: 121 tests in sgrs-core (57 convergence, 35 finality, 29 governance). Run with `cargo test --manifest-path sgrs-core/Cargo.toml`.
 - **Convergence benchmark**: `npx tsx scripts/benchmark-convergence.ts` — 7 scenarios (pure math, no Docker) for Lyapunov, monotonicity, plateau, divergence.
+- **sgrs load benchmark**: `pnpm run benchmark:sgrs` — N concurrent instances, one governance config; measures throughput (~10^5 ops/s), latency (p50/p95/p99), and verifies identical outputs across instances (unified governance). See [docs/experiments.md](docs/experiments.md#sgrs-load-benchmark-unified-governance).
 
 ## HITL seed scenario
 

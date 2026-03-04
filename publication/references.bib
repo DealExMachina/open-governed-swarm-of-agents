@@ -1,3 +1,81 @@
+% ── Foundational Theory ──────────────────────────────────────────────────────
+
+@article{lyapunov1892,
+  author    = {Lyapunov, Aleksandr Mikhailovich},
+  title     = {The General Problem of the Stability of Motion},
+  journal   = {Annals of the Faculty of Sciences of Toulouse},
+  year      = {1892},
+  note      = {Reprinted in English by International Journal of Control, 1992}
+}
+
+% ── Lattice Theory and Information Flow ─────────────────────────────────────
+
+@article{bell1973,
+  author    = {Bell, David Elliott and LaPadula, Leonard J.},
+  title     = {Secure Computer Systems: Mathematical Foundations},
+  journal   = {MITRE Technical Report MTR-2547},
+  volume    = {I},
+  year      = {1973},
+  note      = {Foundational lattice-based security model}
+}
+
+@book{davey2002,
+  author    = {Davey, Brian A. and Priestley, Hilary A.},
+  title     = {Introduction to Lattices and Order},
+  edition   = {2nd},
+  publisher = {Cambridge University Press},
+  year      = {2002},
+  isbn      = {978-0521784511}
+}
+
+@article{denning1976,
+  author    = {Denning, Dorothy E.},
+  title     = {A Lattice Model of Secure Information Flow},
+  journal   = {Communications of the ACM},
+  volume    = {19},
+  number    = {5},
+  pages     = {236--243},
+  year      = {1976},
+  doi       = {10.1145/360051.360056}
+}
+
+% ── Rewriting Systems and Termination ───────────────────────────────────────
+
+@incollection{baader1998,
+  author    = {Baader, Franz and Nipkow, Tobias},
+  title     = {Term Rewriting and All That},
+  publisher = {Cambridge University Press},
+  year      = {1998},
+  isbn      = {978-0521779203},
+  note      = {Standard reference on rewriting theory, termination, and confluence}
+}
+
+@article{newman1942,
+  author    = {Newman, Maxwell Herman Alexander},
+  title     = {On Theories with a Combinatorial Definition of ``Equivalence''},
+  journal   = {Annals of Mathematics},
+  volume    = {43},
+  number    = {2},
+  pages     = {223--243},
+  year      = {1942},
+  doi       = {10.2307/1968867}
+}
+
+% ── Modal Logic and Fixed Points ────────────────────────────────────────────
+
+@article{kozen1983,
+  author    = {Kozen, Dexter},
+  title     = {Results on the Propositional $\mu$-Calculus},
+  journal   = {Theoretical Computer Science},
+  volume    = {27},
+  number    = {3},
+  pages     = {333--354},
+  year      = {1983},
+  doi       = {10.1016/0304-3975(82)90125-6}
+}
+
+% ── Multi-Agent Consensus ───────────────────────────────────────────────────
+
 @article{olfati2004,
   author    = {Olfati-Saber, Reza and Murray, Richard M.},
   title     = {Consensus Problems in Networks of Agents with Switching Topology and Time-Delays},
@@ -7,6 +85,15 @@
   pages     = {1520--1533},
   year      = {2004},
   doi       = {10.1109/TAC.2004.834113}
+}
+
+@inproceedings{ren2005,
+  author    = {Ren, Wei and Beard, Randal W. and Atkins, Ella M.},
+  title     = {A Survey of Consensus Problems in Multi-Agent Coordination},
+  booktitle = {Proceedings of the 2005 American Control Conference},
+  pages     = {1859--1864},
+  year      = {2005},
+  publisher = {IEEE}
 }
 
 @article{duan2025,
@@ -23,6 +110,43 @@
   year      = {2024}
 }
 
+% ── Byzantine Consensus ─────────────────────────────────────────────────────
+
+@article{lamport1982,
+  author    = {Lamport, Leslie and Shostak, Robert and Pease, Marshall},
+  title     = {The {Byzantine} Generals Problem},
+  journal   = {ACM Transactions on Programming Languages and Systems},
+  volume    = {4},
+  number    = {3},
+  pages     = {382--401},
+  year      = {1982},
+  doi       = {10.1145/357172.357176}
+}
+
+@inproceedings{castro1999,
+  author    = {Castro, Miguel and Liskov, Barbara},
+  title     = {Practical {Byzantine} Fault Tolerance},
+  booktitle = {Proceedings of the Third Symposium on Operating Systems Design and Implementation (OSDI)},
+  pages     = {173--186},
+  year      = {1999}
+}
+
+@article{zheng2025,
+  author    = {Zheng, Luyao and Chen, Jianhua and Yin, Quanjun and Zhang, Junping and Zeng, Xingguo and Tian, Yonghong},
+  title     = {Rethinking the Reliability of Multi-Agent System: A Perspective from {Byzantine} Fault Tolerance},
+  year      = {2025},
+  note      = {Preprint}
+}
+
+@article{mao2024,
+  author    = {Mao, Yiming and Kang, Yao and Li, Peng and Zhang, Nan and Xu, Wei and Zhang, Chongjie},
+  title     = {{IBGP}: Imperfect {Byzantine} Generals Problem for Zero-Shot Robustness in Communicative Multi-Agent Systems},
+  year      = {2024},
+  note      = {Preprint}
+}
+
+% ── Distributed Data Structures ─────────────────────────────────────────────
+
 @inproceedings{laddad2024,
   author    = {Laddad, Shadaj and others},
   title     = {{CodeCRDT}: Monotonic Merge Operations for Distributed Collaborative Editing},
@@ -30,24 +154,16 @@
   year      = {2024}
 }
 
-@article{dorigo2024,
-  author    = {Dorigo, Marco and others},
-  title     = {Swarm Intelligence: From Stigmergic Coordination to Pressure-Directed Activation},
-  journal   = {Swarm Intelligence},
-  volume    = {18},
-  number    = {1},
-  pages     = {1--28},
-  year      = {2024},
-  doi       = {10.1007/s11721-024-00001-0}
+@book{snodgrass2000,
+  author    = {Snodgrass, Richard T.},
+  title     = {Developing Time-Oriented Database Applications in {SQL}},
+  publisher = {Morgan Kaufmann},
+  year      = {2000},
+  isbn      = {978-1558604360},
+  note      = {Definitive reference on bitemporal database modeling}
 }
 
-@inproceedings{pang2019,
-  author    = {Pang, Ruoming and others},
-  title     = {Zanzibar: {Google}'s Consistent, Global Authorization System},
-  booktitle = {Proceedings of the 2019 USENIX Annual Technical Conference (USENIX ATC)},
-  year      = {2019},
-  pages     = {33--46}
-}
+% ── Agent Frameworks ────────────────────────────────────────────────────────
 
 @article{wu2023autogen,
   author    = {Wu, Qingyun and Bansal, Gagan and Zhang, Jieyu and Wu, Yiran and Li, Beibin and Zhu, Erkang and Jiang, Li and Zhang, Xiaoyun and Zhang, Shaokun and Liu, Jiale and Awadallah, Ahmed Hassan and White, Ryen W. and Burger, Doug and Wang, Chi},
@@ -70,13 +186,23 @@
   howpublished = {\url{https://github.com/langchain-ai/langgraph}}
 }
 
-@book{snodgrass2000,
-  author    = {Snodgrass, Richard T.},
-  title     = {Developing Time-Oriented Database Applications in {SQL}},
-  publisher = {Morgan Kaufmann},
-  year      = {2000},
-  isbn      = {978-1558604360},
-  note      = {Definitive reference on bitemporal database modeling}
+% ── Self-Evolving Coordination ──────────────────────────────────────────────
+
+@article{delachica2026,
+  author    = {de la Chica Rodriguez, Jose Manuel and Vera D{\'\i}az, Juan Manuel},
+  title     = {Self-Evolving Coordination Protocol in Multi-Agent {AI} Systems: An Exploratory Systems Feasibility Study},
+  journal   = {arXiv preprint arXiv:2602.02170},
+  year      = {2026}
+}
+
+% ── Policy Engines and Access Control ───────────────────────────────────────
+
+@inproceedings{pang2019,
+  author    = {Pang, Ruoming and others},
+  title     = {Zanzibar: {Google}'s Consistent, Global Authorization System},
+  booktitle = {Proceedings of the 2019 USENIX Annual Technical Conference (USENIX ATC)},
+  year      = {2019},
+  pages     = {33--46}
 }
 
 @techreport{xacml2013,
@@ -88,62 +214,7 @@
   note        = {\url{http://docs.oasis-open.org/xacml/3.0/xacml-3.0-core-spec-os-en.html}}
 }
 
-@misc{opa2021,
-  author       = {{Open Policy Agent Contributors}},
-  title        = {{Open Policy Agent}: Policy-based control for cloud native environments},
-  year         = {2021},
-  howpublished = {\url{https://www.openpolicyagent.org/}},
-  note         = {CNCF Graduated Project}
-}
-
-@article{delachica2026,
-  author    = {de la Chica Rodriguez, Jose Manuel and Vera D{\'\i}az, Juan Manuel},
-  title     = {Self-Evolving Coordination Protocol in Multi-Agent {AI} Systems: An Exploratory Systems Feasibility Study},
-  journal   = {arXiv preprint arXiv:2602.02170},
-  year      = {2026}
-}
-
-@article{lamport1982,
-  author    = {Lamport, Leslie and Shostak, Robert and Pease, Marshall},
-  title     = {The {Byzantine} Generals Problem},
-  journal   = {ACM Transactions on Programming Languages and Systems},
-  volume    = {4},
-  number    = {3},
-  pages     = {382--401},
-  year      = {1982},
-  doi       = {10.1145/357172.357176}
-}
-
-@inproceedings{castro1999,
-  author    = {Castro, Miguel and Liskov, Barbara},
-  title     = {Practical {Byzantine} Fault Tolerance},
-  booktitle = {Proceedings of the Third Symposium on Operating Systems Design and Implementation (OSDI)},
-  pages     = {173--186},
-  year      = {1999}
-}
-
-@inproceedings{ren2005,
-  author    = {Ren, Wei and Beard, Randal W. and Atkins, Ella M.},
-  title     = {A Survey of Consensus Problems in Multi-Agent Coordination},
-  booktitle = {Proceedings of the 2005 American Control Conference},
-  pages     = {1859--1864},
-  year      = {2005},
-  publisher = {IEEE}
-}
-
-@article{zheng2025,
-  author    = {Zheng, Luyao and Chen, Jianhua and Yin, Quanjun and Zhang, Junping and Zeng, Xingguo and Tian, Yonghong},
-  title     = {Rethinking the Reliability of Multi-Agent System: A Perspective from {Byzantine} Fault Tolerance},
-  year      = {2025},
-  note      = {Preprint}
-}
-
-@article{mao2024,
-  author    = {Mao, Yiming and Kang, Yao and Li, Peng and Zhang, Nan and Xu, Wei and Zhang, Chongjie},
-  title     = {{IBGP}: Imperfect {Byzantine} Generals Problem for Zero-Shot Robustness in Communicative Multi-Agent Systems},
-  year      = {2024},
-  note      = {Preprint}
-}
+% ── Coordination and Swarm Intelligence ─────────────────────────────────────
 
 @inproceedings{smith1988,
   author    = {Smith, Reid G.},
@@ -154,10 +225,13 @@
   year      = {1988}
 }
 
-@article{lyapunov1892,
-  author    = {Lyapunov, Aleksandr Mikhailovich},
-  title     = {The General Problem of the Stability of Motion},
-  journal   = {Annals of the Faculty of Sciences of Toulouse},
-  year      = {1892},
-  note      = {Reprinted in English by International Journal of Control, 1992}
+@article{dorigo2024,
+  author    = {Dorigo, Marco and others},
+  title     = {Swarm Intelligence: From Stigmergic Coordination to Pressure-Directed Activation},
+  journal   = {Swarm Intelligence},
+  volume    = {18},
+  number    = {1},
+  pages     = {1--28},
+  year      = {2024},
+  doi       = {10.1007/s11721-024-00001-0}
 }

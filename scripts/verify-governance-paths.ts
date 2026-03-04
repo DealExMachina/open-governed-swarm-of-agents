@@ -5,7 +5,7 @@
  * and checks that expected paths and outcomes are present. Exits 0 if all checks pass, 1 otherwise.
  *
  * Expected after seed-governance-e2e + governance run:
- * - At least one proposal_approved with governance_path processProposal and reason master_override (MASTER)
+ * - At least one proposal_approved with governance_path processProposal and reason policy_passed (MASTER)
  * - At least one proposal_pending_approval with governance_path processProposal (MITL)
  * - At least one proposal_rejected (YOLO, transition blocked by high drift)
  *
@@ -20,7 +20,7 @@ const EXPECTED = {
   processProposal_approve_master: {
     type: "proposal_approved",
     governance_path: "processProposal",
-    reason: "master_override",
+    reason: "policy_passed",
   },
   processProposal_pending: {
     type: "proposal_pending_approval",
@@ -72,7 +72,7 @@ async function main(): Promise<void> {
 
     const paths = new Set(events.map((d: Record<string, unknown>) => d.governance_path).filter(Boolean));
     const missing: string[] = [];
-    if (!hasApproveMaster) missing.push("proposal_approved with governance_path=processProposal, reason=master_override (MASTER path)");
+    if (!hasApproveMaster) missing.push("proposal_approved with governance_path=processProposal, reason=policy_passed (MASTER path)");
     if (!hasPendingProcessProposal) missing.push("proposal_pending_approval with governance_path=processProposal (MITL path)");
     if (!hasRejectedDrift) missing.push("proposal_rejected with reason containing 'drift' (YOLO reject)");
 

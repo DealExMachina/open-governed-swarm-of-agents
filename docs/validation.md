@@ -16,6 +16,7 @@ flowchart TB
   subgraph tested["Tested / validated"]
     U[Unit tests Vitest 305]
     BENCH[Convergence benchmark 7 scenarios]
+    SGRS[sgrs load benchmark unified governance]
     E2E[E2E pipeline run-e2e.sh manual]
   end
   subgraph theoretical["Theoretical / assumed"]
@@ -34,6 +35,7 @@ flowchart TB
 | Governance modes (MASTER/MITL/YOLO) | Unit tests + E2E seed + verification script | That three modes cover all real operational needs |
 | Oversight agent (LLM-backed) | Unit test for no-LLM fallback path | LLM-backed oversight quality (accept/escalate decisions) |
 | Convergence tracker (Lyapunov V, pressure, monotonicity, plateau, Gate C oscillation/trajectory) | 32 unit tests + 7-scenario benchmark (pure math) | That synthetic snapshot trajectories represent real LLM-generated fact sequences |
+| sgrs kernel (governance + finality Rust addon) | Load benchmark: N instances, one config; throughput, latency, identical outputs (unified governance) | Whole-system horizontal scaling (Node/Postgres/NATS/S3 have established profiles; composition is engineering) |
 | Finality evaluator (RESOLVED, ESCALATED, review, Gate C/D, certificates) | 13 unit tests with mocked snapshots + convergence state | That finality thresholds generalize across domains |
 | Semantic graph (nodes, edges, CRDT upserts) | 7 unit tests for factsToSemanticGraph, 2 for semanticGraph | Graph integrity under concurrent writers from multiple agents |
 | Embedding pipeline (Ollama bge-m3) | 11 unit tests (mocked fetch, dimension checks) | Embedding quality and semantic similarity accuracy |
@@ -113,7 +115,26 @@ output produces trajectories that match these synthetic patterns.
 
 ---
 
-## 4. E2E pipeline
+## 4. sgrs load benchmark
+
+**Pure sgrs (Rust kernel). No Docker, no Postgres, no NATS.**
+
+Run: `pnpm run benchmark:sgrs` or `npx tsx scripts/benchmark-sgrs-load.ts`
+
+Multiple concurrent workers share a single governance config (e.g. `governance.yaml`). Each worker repeatedly calls sgrs: kernel, transition, rules, gates, convergence. The benchmark reports total ops, elapsed time, throughput (ops/s), per-operation latency (p50/p95/p99), and verifies that **all instances produce identical outputs for the same inputs** (unified governance).
+
+| Option | Default | Meaning |
+|--------|---------|---------|
+| `--instances=N` | 4 | Concurrent workers |
+| `--duration=N` | 5 | Seconds to run |
+| `--ops=N` | — | Total ops then stop (overrides duration) |
+| `--mix=M` | both | governance \| finality \| both |
+
+This validates that the governance/convergence kernel is not a throughput bottleneck and that policy evaluation is deterministic across instances. Whole-system scalability (Node, Postgres, NATS, S3) is an engineering/composition concern; those components have established scalability evaluations elsewhere.
+
+---
+
+## 5. E2E pipeline
 
 **Script:** `scripts/run-e2e.sh`
 **Duration:** ~2 minutes (excluding Docker image build on first run; facts-worker
@@ -139,14 +160,14 @@ host Ollama running.
 | 9 | Wait 40s, `curl /summary` again | Facts extracted and written (S3 + semantic graph) |
 | 10 | Query `nodes` table (GROUP BY type) | Semantic graph populated with claim/goal/risk nodes |
 | 11 | Query `edges` table (GROUP BY edge_type) | Contradiction/resolves edges created |
-| 12 | `verify-governance-paths.ts` | Governance audit trail verified (see section 5) |
+| 12 | `verify-governance-paths.ts` | Governance audit trail verified (see section 6) |
 
 The E2E script is **not automated in CI**. It requires Docker and either an
 OpenAI key or a running Ollama instance. It is run manually before releases.
 
 ---
 
-## 5. Governance path auditing
+## 6. Governance path auditing
 
 ### Seed: `seed-governance-e2e.ts`
 
@@ -179,7 +200,7 @@ produced each decision.
 
 ---
 
-## 6. HITL finality scenario
+## 7. HITL finality scenario
 
 ### Seed: `seed-hitl-scenario.ts`
 
@@ -215,7 +236,7 @@ When the swarm runs and governance calls `runFinalityCheck(scopeId)`:
 
 ---
 
-## 7. Known validation gaps
+## 8. Known validation gaps
 
 This section is intentionally candid. The following areas have **no automated
 validation** and represent known gaps:
@@ -273,7 +294,7 @@ validation** and represent known gaps:
 
 ---
 
-## 8. Proposed experiments
+## 9. Proposed experiments
 
 The paper (Section 9) defines five experimental protocols designed to address
 open questions---particularly those identified by SECP. These experiments are

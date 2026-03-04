@@ -7,7 +7,7 @@
  * progression in sequence — useful for live demos.
  *
  * Usage:
- *   npm run seed:demo                        # all 5 docs, 20s gap
+ *   npm run seed:demo                        # all docs in scenario/docs, 20s gap
  *   DEMO_DELAY_MS=5000 npm run seed:demo     # faster (5s gap, less visible processing)
  *   DEMO_DOC=01 npm run seed:demo            # single doc by prefix
  *
