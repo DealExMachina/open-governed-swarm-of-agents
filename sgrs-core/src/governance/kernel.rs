@@ -56,11 +56,14 @@ pub struct KernelOutput {
 ///
 /// Flow:
 /// 1. Policy evaluation: `can_transition` + `evaluate_rules`
-/// 2. If policy blocks: MASTER → Reject, MITL/YOLO → Escalate
+/// 2. If policy blocks: MASTER → Reject, MITL → Escalate, YOLO → Accept (with obligations)
 /// 3. Lattice admissibility (when lattice data present)
 /// 4. Final mode routing: MITL → Escalate, MASTER/YOLO → Accept
 ///
-/// MASTER no longer auto-approves — it is the most restrictive mode.
+/// Mode semantics:
+/// - YOLO: Most permissive — accepts even when policy blocks (with logged obligations)
+/// - MITL: Moderate — escalates to human for blocked transitions
+/// - MASTER: Most restrictive — rejects on any policy block
 pub fn evaluate_kernel(
     input: &KernelInput,
     rules: &[PolicyRule],
@@ -75,12 +78,25 @@ pub fn evaluate_kernel(
     if !transition.allowed {
         let verdict = match input.mode {
             GovernanceLevel::Master => ReductionVerdict::Reject,
-            GovernanceLevel::Mitl | GovernanceLevel::Yolo => ReductionVerdict::Escalate,
+            GovernanceLevel::Mitl => ReductionVerdict::Escalate,
+            // YOLO: accept despite policy block — "proceed at your own risk"
+            GovernanceLevel::Yolo => ReductionVerdict::Accept,
         };
+        let reason = match input.mode {
+            // YOLO override: record that we accepted despite a policy block
+            GovernanceLevel::Yolo => format!("yolo_override: {}", transition.reason),
+            _ => transition.reason,
+        };
+        // For YOLO overrides, include the block reason in suggested_actions
+        // so the oversight agent can see what was overridden.
+        let mut actions = suggested_actions;
+        if matches!(input.mode, GovernanceLevel::Yolo) {
+            actions.push(format!("blocked_transition_overridden: {}", reason));
+        }
         return KernelOutput {
             verdict,
-            reason: transition.reason,
-            suggested_actions,
+            reason,
+            suggested_actions: actions,
             admissibility: None,
             regressed_dimensions: vec![],
         };
@@ -108,11 +124,16 @@ pub fn evaluate_kernel(
                 let dims = regressed.clone();
                 let verdict = match input.mode {
                     GovernanceLevel::Master => ReductionVerdict::Reject,
-                    _ => ReductionVerdict::Escalate,
+                    GovernanceLevel::Mitl => ReductionVerdict::Escalate,
+                    GovernanceLevel::Yolo => ReductionVerdict::Accept,
                 };
                 return KernelOutput {
                     verdict,
-                    reason: "convergence_violation".to_string(),
+                    reason: if matches!(input.mode, GovernanceLevel::Yolo) {
+                        "yolo_override: convergence_violation".to_string()
+                    } else {
+                        "convergence_violation".to_string()
+                    },
                     suggested_actions,
                     admissibility: Some(admissibility),
                     regressed_dimensions: dims,
@@ -125,11 +146,16 @@ pub fn evaluate_kernel(
                 let dims = regressed.clone();
                 let verdict = match input.mode {
                     GovernanceLevel::Master => ReductionVerdict::Reject,
-                    _ => ReductionVerdict::Escalate,
+                    GovernanceLevel::Mitl => ReductionVerdict::Escalate,
+                    GovernanceLevel::Yolo => ReductionVerdict::Accept,
                 };
                 return KernelOutput {
                     verdict,
-                    reason: "lattice_incomparable".to_string(),
+                    reason: if matches!(input.mode, GovernanceLevel::Yolo) {
+                        "yolo_override: lattice_incomparable".to_string()
+                    } else {
+                        "lattice_incomparable".to_string()
+                    },
                     suggested_actions,
                     admissibility: Some(admissibility),
                     regressed_dimensions: dims,

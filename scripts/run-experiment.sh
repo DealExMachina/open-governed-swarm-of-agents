@@ -177,13 +177,13 @@ case "$EXP_ID" in
       node --loader ts-node/esm scripts/ensure-schema.ts 2>/dev/null
       node --loader ts-node/esm scripts/ensure-stream.ts 2>/dev/null
 
-      # ── Start hatchery with exp7 policy (lowered threshold) and correct mode ──
+      # ── Start hatchery with correct governance mode ──
+      # governance.yaml now blocks on [high, critical] — no separate exp7 policy needed.
       export GOVERNANCE_MODE="$mode"
-      export GOVERNANCE_PATH="$(pwd)/governance-exp7.yaml"
       if [ "$RUN_SWARM" = 1 ]; then
-        echo "[Exp] Starting hatchery for mode=$mode (policy: governance-exp7.yaml)..."
+        echo "[Exp] Starting hatchery for mode=$mode..."
         : > "$LOG_DIR/swarm-exp-hatchery.log"
-        GOVERNANCE_MODE="$mode" GOVERNANCE_PATH="$GOVERNANCE_PATH" \
+        GOVERNANCE_MODE="$mode" \
           AGENT_ROLE=hatchery AGENT_ID=hatchery-exp \
           node --loader ts-node/esm src/swarm.ts \
           >> "$LOG_DIR/swarm-exp-hatchery.log" 2>&1 &
@@ -218,7 +218,6 @@ case "$EXP_ID" in
       node --loader ts-node/esm scripts/collect-experiment-results.ts "exp7" 2>/dev/null || true
     done
     unset GOVERNANCE_MODE
-    unset GOVERNANCE_PATH
     echo ""
     echo "[Exp] Exp7 complete. Analyzing tier coverage..."
     node --loader ts-node/esm scripts/analyze-tier-coverage.ts "docs/experiments/exp7/results/" 2>/dev/null || true

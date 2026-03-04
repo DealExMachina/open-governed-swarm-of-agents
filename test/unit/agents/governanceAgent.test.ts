@@ -145,7 +145,8 @@ describe("governanceAgent", () => {
     expect(rejectionCalls).toHaveLength(0);
   });
 
-  it("escalates to pending when canTransition blocks (critical drift, DriftChecked -> ContextIngested)", async () => {
+  it("approves via yolo_override when canTransition blocks (critical drift, YOLO mode)", async () => {
+    // YOLO is the most permissive mode: accepts even when policy blocks
     mockLoadState.mockResolvedValue({
       runId: "r1",
       lastNode: "DriftChecked",
@@ -170,12 +171,12 @@ describe("governanceAgent", () => {
 
     await processProposal(proposal, env);
 
-    const pendingList = await getPending();
-    expect(pendingList.some((p) => p.proposal_id === "p2")).toBe(true);
+    expect(actionCalls).toHaveLength(1);
+    expect(actionCalls[0].data.result).toBe("approved");
     expect(rejectionCalls).toHaveLength(0);
   });
 
-  it("approves proposal when drift is high (only critical blocks)", async () => {
+  it("approves proposal when drift is high in YOLO mode (yolo_override)", async () => {
     mockLoadState.mockResolvedValue({
       runId: "r1",
       lastNode: "DriftChecked",
@@ -344,10 +345,10 @@ describe("governanceAgent", () => {
       };
       const result = await evaluateProposalDeterministic(proposal, env);
       expect(result.outcome).toBe("reject");
-      expect(result.reason).toContain("Critical drift");
+      expect(result.reason).toContain("drift blocks cycle reset");
     });
 
-    it("returns pending with governance_review when canTransition blocks (critical drift)", async () => {
+    it("returns approve with yolo_override when canTransition blocks in YOLO mode (critical drift)", async () => {
       mockLoadState.mockResolvedValue({
         runId: "r1",
         lastNode: "DriftChecked",
@@ -370,13 +371,12 @@ describe("governanceAgent", () => {
         mode: "YOLO",
       };
       const result = await evaluateProposalDeterministic(proposal, env);
-      expect(result.outcome).toBe("pending");
-      expect(result.reason).toContain("Critical drift");
-      expect(result.actionPayload).toBeDefined();
-      expect((result.actionPayload as Record<string, unknown>).type).toBe("governance_review");
+      // YOLO is the most permissive mode: accepts even when policy blocks
+      expect(result.outcome).toBe("approve");
+      expect(result.reason).toContain("yolo_override:");
     });
 
-    it("returns approve when drift is high (only critical blocks in YAML)", async () => {
+    it("returns approve with yolo_override when drift is high in YOLO mode (high+critical block)", async () => {
       mockLoadState.mockResolvedValue({
         runId: "r1",
         lastNode: "DriftChecked",
@@ -399,8 +399,9 @@ describe("governanceAgent", () => {
         mode: "YOLO",
       };
       const result = await evaluateProposalDeterministic(proposal, env);
+      // YOLO accepts even when policy blocks — with yolo_override reason
       expect(result.outcome).toBe("approve");
-      expect(result.reason).toBe("policy_passed");
+      expect(result.reason).toContain("yolo_override:");
     });
 
     it("returns reject with policy_denied when checkPermission denies", async () => {
