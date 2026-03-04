@@ -128,12 +128,17 @@ async function collect(
     ),
   ]);
 
+  const adversarialMode = process.env.ADVERSARIAL_MODE ?? null;
   const metadata = {
     exp_id: expId,
     collected_at: new Date().toISOString(),
     load_run_id: runId ?? null,
+    adversarial_mode: adversarialMode,
+    label: adversarialMode ? `exp8-${adversarialMode}` : null,
     env: {
       SCOPE_ID: process.env.SCOPE_ID ?? "default",
+      GOVERNANCE_MODE: process.env.GOVERNANCE_MODE ?? null,
+      ADVERSARIAL_MODE: adversarialMode,
       LOAD_INJECTION: process.env.LOAD_INJECTION,
       LOAD_GRAPH: process.env.LOAD_GRAPH,
       LOAD_SCALING: process.env.LOAD_SCALING,

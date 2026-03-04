@@ -108,6 +108,25 @@ The paper defines five experimental protocols designed to address open questions
 
 ---
 
+## Experiment 8: Adversarial Agent Defense (exp8)
+
+**Goal:** Validate Assumption #5 (cooperative agent model) by demonstrating that adversarial agents can cause false finality when the cooperative assumption is violated.
+
+**Protocol:**
+
+- Run 3 sub-experiments using the exp6 corpus (M&A due diligence with genuine contradictions):
+  - **baseline**: Normal pipeline, no adversarial injection (ground truth)
+  - **inflate**: After each cycle, inject adversarial mutations (confidence inflation, fake contradiction resolution, goal completion)
+  - **collude**: Same as inflate + overwrite drift to "none" (simulates compromised drift agent)
+- All runs use YOLO governance (most permissive, giving adversary best chance)
+- Measure: V(t) trajectory, false finality rate, gate trigger profile, dimension inflation
+
+**Expected outcome:** Baseline stays ESCALATED. Inflate is caught by honest drift agent. Collude achieves false finality (RESOLVED with fake scores), confirming the cooperative model is structurally necessary.
+
+**Run:** `./scripts/run-experiment.sh exp8`. Results: `docs/experiments/exp8/results/<timestamp>`. See [docs/experiments/exp8/README.md](experiments/exp8/README.md) for the full attack model and defense analysis.
+
+---
+
 ## Noisy corpus (noisy)
 
 **Goal:** Test behaviour on ambiguous/hedging documents (noisy corpus) as noted in the paper's internal validity and future work.
