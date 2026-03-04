@@ -7,6 +7,7 @@
 #   exp3  --pattern=spike-and-drop --rounds=5
 #   exp4  --rounds=7 --resolve-at=5
 #   exp5  (runs 3 times: YOLO, MITL, MASTER)
+#   noisy --corpus=docs-noisy (ambiguous/hedging documents)
 #
 # Common options:
 #   --interval=20       Seconds between document injections (default 20)
@@ -98,8 +99,8 @@ if [ "$RUN_SWARM" = 1 ]; then
     sleep 1
   done
 
-  # For exp4/exp5, start simulate-mitl with finality handling
-  if [ "$EXP_ID" = "exp4" ] || [ "$EXP_ID" = "exp5" ]; then
+  # For exp4/exp5/noisy, start simulate-mitl with finality handling
+  if [ "$EXP_ID" = "exp4" ] || [ "$EXP_ID" = "exp5" ] || [ "$EXP_ID" = "noisy" ]; then
     echo "[Exp] Starting simulate-mitl (with finality auto-approve)..."
     node --loader ts-node/esm scripts/simulate-mitl-approve.ts --finality-option=approve_finality &
     SIM_PID=$!
@@ -139,6 +140,9 @@ case "$EXP_ID" in
     ;;
   exp4)
     run_single_experiment "demo" "" "exp4-governance"
+    ;;
+  noisy)
+    run_single_experiment "noisy" "" "noisy-corpus"
     ;;
   exp5)
     echo "[Exp] Exp5: coverage-autonomy trade-off — running 3 governance modes"
@@ -205,7 +209,7 @@ case "$EXP_ID" in
     exit 0
     ;;
   *)
-    echo "[Exp] Unknown experiment: $EXP_ID. Use exp1, exp2, exp3, exp4, exp5."
+    echo "[Exp] Unknown experiment: $EXP_ID. Use exp1, exp2, exp3, exp4, exp5, noisy."
     exit 1
     ;;
 esac

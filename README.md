@@ -196,13 +196,16 @@ See [docs/demo.md](docs/demo.md) for the full walkthrough and [demo/DEMO.md](dem
 
 ## Validation
 
-**305 tests** across 37 suites (Vitest) cover convergence math, finality decision paths, governance rule evaluation, semantic graph monotonicity, state machine CAS, policy engine, finality certificates, agent tools, and Gate B/C/D. **7 convergence benchmark scenarios** validate the tracker with pure math (no Docker, no LLM). An **E2E pipeline** (`scripts/run-e2e.sh`) tests the full Docker stack from document ingestion through governance to semantic graph verification. **Governance path auditing** seeds three proposal modes (MASTER/MITL/YOLO) and verifies the audit trail.
+**305 tests** across 37 suites (Vitest) cover convergence math, finality decision paths, governance rule evaluation, semantic graph monotonicity, state machine CAS, policy engine, finality certificates, agent tools, and Gate B/C/D. **7 convergence benchmark scenarios** validate the tracker with pure math (no Docker, no LLM). A **sgrs load benchmark** demonstrates multiple concurrent instances sharing a single governance config: high throughput (~10^5 ops/s), sub-ms latencies, and identical outputs across instances (unified governance). An **E2E pipeline** (`scripts/run-e2e.sh`) tests the full Docker stack from document ingestion through governance to semantic graph verification. **Governance path auditing** seeds three proposal modes (MASTER/MITL/YOLO) and verifies the audit trail.
+
+**Scalability:** The governance/convergence kernel (sgrs-core) is load-benchmarked; Node, Postgres, NATS, and S3 each have established scalability profiles. Whole-system scaling is an engineering/composition concern, not a novel bottleneck in this stack.
 
 **What's theoretical:** scalability beyond ~10 agents (architecture supports it, not stress-tested), multi-org OpenFGA isolation, long convergence runs over hundreds of epochs, adversarial robustness.
 
 ```bash
 pnpm run test                                  # 305 tests across 37 suites
 npx tsx scripts/benchmark-convergence.ts       # 7 convergence scenarios
+pnpm run benchmark:sgrs                        # sgrs load: N instances, unified governance
 ./scripts/run-e2e.sh                           # Full E2E pipeline
 ```
 
@@ -367,6 +370,7 @@ pnpm run test:watch
 
 ```bash
 npx tsx scripts/benchmark-convergence.ts   # 7 convergence scenarios (pure math, no Docker)
+pnpm run benchmark:sgrs                    # sgrs load: multi-instance, unified governance
 ```
 
 ```bash
@@ -400,6 +404,7 @@ For current status, verified functionality, and next steps, see **STATUS.md**.
 - [docs/finality-design.md](docs/finality-design.md) -- finality gates B/C/D, certificates, evidence coverage, implementation status
 - [docs/governance-design.md](docs/governance-design.md) -- policy stack, OPA-WASM, obligations, combining algorithms
 - [docs/validation.md](docs/validation.md) -- test methodology, what's proven vs theoretical, known gaps
+- [docs/experiments.md](docs/experiments.md) -- experimental protocols, convergence/sgrs benchmarks, load (exp-load)
 - [docs/demo.md](docs/demo.md) -- Project Horizon M&A demo walkthrough and explainability
 
 ---

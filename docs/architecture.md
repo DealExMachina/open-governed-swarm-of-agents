@@ -406,8 +406,10 @@ flowchart TD
   B --> C{Quick checks}
   C -->|ignore / reject / pending| OUT[IGNORE / REJECT / PENDING]
   C -->|pass| D{mode?}
-  D -->|MASTER| APPROVE[APPROVE master_override]
-  D -->|MITL| PEND[PENDING]
+  D -->|MASTER| KERNEL[Reduction Kernel]
+  KERNEL -->|policy_passed| APPROVE[APPROVE policy_passed]
+  KERNEL -->|blocked| REJECT2[REJECT policy/lattice block]
+  D -->|MITL| PEND[PENDING mitl_required]
   D -->|YOLO| E{LLM configured?}
   E -->|no| COMMIT[commitDeterministicResult]
   E -->|yes| OV[runOversightAgent]

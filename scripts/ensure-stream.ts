@@ -8,6 +8,7 @@ const STREAM_SUBJECTS = [
   "swarm.actions.>",
   "swarm.rejections.>",
   "swarm.events.>",
+  "swarm.finality.>",
 ];
 
 async function main(): Promise<void> {

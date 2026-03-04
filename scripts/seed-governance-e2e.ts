@@ -10,7 +10,7 @@
  * - S3 drift/latest.json: high (so YOLO DriftChecked->ContextIngested is blocked by transition rules)
  *
  * Publishes three proposals (same transition, same epoch) so each takes a different path:
- * 1. MASTER -> processProposal -> approved (master_override)
+ * 1. MASTER -> processProposal -> approved (policy_passed)
  * 2. MITL   -> processProposal -> pending
  * 3. YOLO   -> evaluate then (no LLM: commit; LLM: oversight) -> rejected (High drift...)
  *

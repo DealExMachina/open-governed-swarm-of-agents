@@ -208,10 +208,11 @@ async function handleStep(n: number, res: ServerResponse): Promise<void> {
   }
 }
 
-/** POST /api/run-all — feed all documents at once for concurrent processing */
+/** POST /api/run-all — feed the 5 scenario documents at once for concurrent processing */
 async function handleRunAll(res: ServerResponse): Promise<void> {
+  const scenarioDocs = DEMO_DOCS.slice(0, 5);
   const results: Array<{ index: number; title: string; ok: boolean; error?: string }> = [];
-  for (const doc of DEMO_DOCS) {
+  for (const doc of scenarioDocs) {
     if (fedSteps.has(doc.index)) {
       results.push({ index: doc.index, title: doc.title, ok: true });
       continue;
