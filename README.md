@@ -2,7 +2,7 @@
 
 > Can we replace orchestration-as-topology with governance-as-policy for agent coordination -- with formal convergence guarantees, bitemporal auditability, and a perpetual compliance lifecycle?
 
-Governed agent swarm: event-driven reasoning roles sharing a bitemporal context graph, governed by pluggable policy engines (YAML + OPA-WASM), converging toward certified finality checkpoints -- indefinitely, as new evidence and regulations arrive.
+Governed agent swarm: event-driven reasoning roles sharing a bitemporal context graph, governed by a Rust reduction kernel (sgrs-core) with formal lattice semantics, converging toward certified finality checkpoints -- indefinitely, as new evidence and regulations arrive.
 
 ---
 
@@ -12,7 +12,7 @@ Most agent frameworks coordinate via DAGs: fixed pipelines where topology determ
 
 This project tests an alternative hypothesis: **declarative governance over shared state, combined with a semantic graph and formal convergence tracking, can produce auditable, converging agent coordination without fixed pipelines.**
 
-Concretely: seven agents (facts, drift, planner, status, governance, executor, tuner) operate independently on shared bitemporal context (Postgres WAL + semantic graph + S3). A three-tier governance pipeline -- deterministic rules, oversight agent, full LLM -- enforces declarative transition rules and authorization policy (OpenFGA), with circuit-breaker fallback ensuring governance never stalls. A finality evaluator tracks convergence via a Lyapunov disagreement function with five formal gates, triggers human-in-the-loop review when the system plateaus, and issues Ed25519-signed finality certificates when convergence is achieved. No agent knows about any other agent's existence. Coordination emerges from the shared state and the governance layer. Finality is not terminal: new documents, regulatory changes, or periodic reviews re-open convergence, producing a chain of certified checkpoints over an indefinite lifecycle.
+Concretely: seven agents (facts, drift, planner, status, governance, executor, tuner) operate independently on shared bitemporal context (Postgres WAL + semantic graph + S3). A three-tier governance pipeline -- Rust reduction kernel (sgrs-core), oversight agent, full LLM -- enforces declarative transition rules via a product lattice (governance level x convergence rank), with circuit-breaker fallback ensuring governance never stalls. A finality evaluator tracks convergence via a Lyapunov disagreement function with five formal gates, triggers human-in-the-loop review when the system plateaus, and issues Ed25519-signed finality certificates when convergence is achieved. No agent knows about any other agent's existence. Coordination emerges from the shared state and the governance layer. Finality is not terminal: new documents, regulatory changes, or periodic reviews re-open convergence, producing a chain of certified checkpoints over an indefinite lifecycle.
 
 The formal guarantee: if the Lyapunov function V(t) decreases monotonically across evaluation cycles, the system is asymptotically converging toward finality. If V increases, the system detects divergence and escalates. If V stalls, it detects plateau and routes to human review. See [docs/convergence.md](docs/convergence.md) for the full theory.
 
@@ -53,12 +53,12 @@ The architecture rests on three principles:
 **1. Shared, append-only context.** Every agent reads from the same event log (Postgres WAL) and the same facts/drift state (S3). There is no "agent A's context" vs "agent B's context." There is context. Agents read it, reason over it, propose changes, and wait for approval.
 
 **2. Proposals and approvals via three-tier governance.** No agent directly advances the state. A facts agent proposes `FactsExtracted`; the governance pipeline evaluates it:
-- **Tier 1 (deterministic):** Policy engine (YAML or OPA-WASM) checks transition rules + drift conditions; OpenFGA checks permissions. Zero LLM tokens. Always available.
+- **Tier 1 (deterministic):** Rust reduction kernel (sgrs-core) evaluates policy rules, lattice admissibility, and mode routing. Zero LLM tokens. Always available.
 - **Tier 2 (oversight):** A lightweight LLM decides whether to accept the deterministic result, escalate to full LLM reasoning, or escalate to human.
 - **Tier 3 (full LLM):** A governance agent reasons over state, drift, and rules using tool calls, then publishes approval or rejection with rationale.
 A circuit breaker (3 failures, 60s cooldown) ensures Tier 1 fallback on LLM degradation. Every decision records which tier produced it.
 
-**3. Declarative rules, not imperative code.** A pluggable `PolicyEngine` interface supports YAML rules (default) and OPA-WASM (compiled Rego policies). XACML combining algorithms (deny-overrides, first-applicable) resolve multi-policy conflicts. Every evaluation produces an immutable `DecisionRecord` with a policy-version hash, binding each decision to the exact rule set that produced it. Adding a new constraint is a YAML change, not a refactor.
+**3. Declarative rules, not imperative code.** Governance rules are declared in `governance.yaml` and evaluated by the sgrs-core Rust kernel through a product lattice M = L x A (governance level x convergence rank). The kernel applies a three-stage pipeline: policy check, lattice admissibility, and mode routing. Every evaluation produces an immutable `DecisionRecord` with a policy-version hash, binding each decision to the exact rule set that produced it. Adding a new constraint is a YAML change, not a refactor.
 
 ```mermaid
 stateDiagram-v2
@@ -91,7 +91,7 @@ The convergence tracker (`src/convergenceTracker.ts`) transforms finality into a
 | Score in [0.40, 0.92), plateau detected | HITL review with convergence context |
 | Score in [0.40, 0.92), not plateaued | ACTIVE (keep iterating) |
 
-The semantic graph sync uses **CRDT-inspired monotonic upserts**: claim confidence only increases, resolution edges are irreversible, stale nodes are marked irrelevant rather than deleted. This guarantees the goal score is a ratchet ([Laddad et al., 2024](#references)).
+The semantic graph sync uses **CRDT-inspired monotonic upserts**: claim confidence only increases, resolution edges are irreversible, stale claims are marked irrelevant rather than deleted, and goals/risks are protected from stale marking as accumulative types. This guarantees the goal score is a ratchet ([Laddad et al., 2024](#references)).
 
 See [docs/convergence.md](docs/convergence.md) for the formal theory, configuration reference, and benchmark scenarios.
 
@@ -143,27 +143,17 @@ The finality evaluator queries the graph to compute a goal score across four wei
 
 ---
 
-## Why OpenFGA
-
-The governance rules handle *when* transitions are allowed. **OpenFGA** — an open implementation of Google Zanzibar ([Pang et al., 2019](#references)) — handles *who is allowed to do what to which resource*.
-
-In this project, OpenFGA is wired into the governance agent's `checkPolicy` tool. When a proposal arrives, the agent checks both transition rules and authorization policy. Both can reject. Neither is in application code.
-
-For enterprise use: auditability (the permission model is a first-class, versionable object), least privilege at scale (relationship model beats conditional logic), and dynamic policy (computed relationships, no redeployment).
-
----
-
 ## Scalability: from swarm to fabric
 
-This prototype runs one swarm with four agents against one scope. The architecture is designed to scale:
+The reference implementation runs one swarm with seven agents against one scope. The architecture is designed to scale:
 
-**Multiple scopes.** Each scope is an isolated coordination context: its own semantic graph, finality state, convergence history, and MITL queue. OpenFGA enforces isolation.
+**Multiple scopes.** Each scope is an isolated coordination context: its own semantic graph, finality state, convergence history, and MITL queue.
 
 **Multiple agents per role.** Pull-consumer model on NATS means ten facts agents can work the same stream. Epoch-based CAS prevents double-advances.
 
 **Heterogeneous models.** The facts-worker is a pluggable Python service (OpenAI SDK). Lighter models for low-stakes scopes (e.g. `gpt-4o-mini`), heavier ones for high-stakes — governance and finality stay constant. GLiNER and NLI models are opt-in for advanced entity extraction.
 
-**Declarative scaling.** Adding complexity means adding rules to `governance.yaml`, updating weights in `finality.yaml`, adjusting the OpenFGA model. The agents remain unchanged.
+**Declarative scaling.** Adding complexity means adding rules to `governance.yaml` and updating weights in `finality.yaml`. The agents remain unchanged.
 
 ---
 
@@ -202,7 +192,7 @@ See [docs/demo.md](docs/demo.md) for the full walkthrough and [demo/DEMO.md](dem
 
 **Scalability:** The governance/convergence kernel (sgrs-core) is load-benchmarked; Node, Postgres, NATS, and S3 each have established scalability profiles. Whole-system scaling is an engineering/composition concern, not a novel bottleneck in this stack.
 
-**What's theoretical:** scalability beyond ~10 agents (architecture supports it, not stress-tested), multi-org OpenFGA isolation, long convergence runs over hundreds of epochs, adversarial robustness.
+**What's theoretical:** scalability beyond ~10 agents (architecture supports it, not stress-tested), long convergence runs over hundreds of epochs. Adversarial robustness is partially validated (Exp 8: ephemeral false finality under 2-agent collusion, self-corrected via cycle-based re-extraction).
 
 ```bash
 pnpm run test                                  # 305 tests across 37 suites
@@ -225,7 +215,7 @@ See [docs/validation.md](docs/validation.md) for the complete test methodology a
 
 **Convergence history:** Postgres `convergence_history` (scope_id, epoch, goal_score, lyapunov_v, dimension_scores JSONB, pressure JSONB). Append-only. Feeds Gate C oscillation detection (lag-1 autocorrelation) and trajectory quality scoring.
 
-**Three-tier governance:** Tier 1 deterministic (policy engine + OpenFGA, zero LLM tokens) -> Tier 2 oversight agent (accept/escalate-to-LLM/escalate-to-human) -> Tier 3 full LLM governance agent with tool calls. Circuit breaker (3 failures, 60s cooldown) ensures Tier 1 fallback. Every decision persisted to `decision_records` with policy version hash and governance path; obligations executed via enforcer.
+**Three-tier governance:** Tier 1 deterministic (sgrs-core Rust kernel: policy check, lattice admissibility, mode routing; zero LLM tokens) -> Tier 2 oversight agent (accept/escalate-to-LLM/escalate-to-human) -> Tier 3 full LLM governance agent with tool calls. Circuit breaker (3 failures, 60s cooldown) ensures Tier 1 fallback. Every decision persisted to `decision_records` with policy version hash and governance path; obligations executed via enforcer.
 
 **Finality certificates:** When a scope reaches RESOLVED (all five gates passed) or is human-approved, a signed JWS (Ed25519) is stored in `finality_certificates` with policy version hashes and dimensional snapshot. Summary API and `GET /finality-certificate/:scope_id` expose certificates for audit. Perpetual lifecycle: new context re-opens convergence; new certificate extends the chain.
 
@@ -241,11 +231,11 @@ See [docs/architecture.md](docs/architecture.md) for the full technical deep div
 
 - **TypeScript** — orchestration, agents, state graph, convergence tracker, feed, tests.
 - **Python** — facts-worker (direct OpenAI SDK; OpenAI default, Ollama opt-in).
-- **Docker Compose** — Postgres (pgvector), MinIO (S3), NATS JetStream, facts-worker, feed server, OpenFGA, otel-collector, Prometheus, Grafana.
+- **Rust (sgrs-core)** — governance reduction kernel, convergence math, finality gates (napi-rs addon).
+- **Docker Compose** — Postgres (pgvector), MinIO (S3), NATS JetStream, facts-worker, feed server, otel-collector, Prometheus, Grafana.
 - **NATS JetStream** — event bus.
 - **Postgres + pgvector** — context WAL, state graph, semantic graph with optional 1024-d embeddings, convergence history.
 - **MinIO** — S3-compatible blob store for facts, drift, and history.
-- **OpenFGA** — policy checks (Zanzibar-style; optional but wired in).
 - **Prometheus + Grafana** — metrics collection and dashboards (proposal counts, agent latency, policy violations).
 - **OpenTelemetry** — traces and metrics via OTLP to the collector; Prometheus scrape endpoint.
 - **OpenAI or Ollama** — extraction (facts-worker), rationale, HITL explanation, embeddings (`bge-m3` via Ollama).
@@ -321,7 +311,7 @@ curl -s -X POST http://localhost:3002/context/docs \
 ./scripts/run-e2e.sh
 ```
 
-**Ports:** 3002 observability + API · 3003 demo UI · 3004 Grafana · 9090 Prometheus · 4222/8222 NATS · 5433 Postgres · 9000/9001 MinIO · 8010 facts-worker · 3001 MITL · 3000/8080 OpenFGA · 4317/4318 OTLP · 8889 OTEL Prometheus scrape.
+**Ports:** 3002 observability + API · 3003 demo UI · 3004 Grafana · 9090 Prometheus · 4222/8222 NATS · 5433 Postgres · 9000/9001 MinIO · 8010 facts-worker · 3001 MITL · 4317/4318 OTLP · 8889 OTEL Prometheus scrape.
 
 ---
 
@@ -331,9 +321,9 @@ Set in `governance.yaml` (per-scope overrides supported):
 
 | Mode | Behaviour | Governance tiers used |
 |------|-----------|----------------------|
-| `YOLO` | Valid transitions approved automatically. Oversight agent may escalate. | Tier 1 + Tier 2 + Tier 3 (with circuit-breaker fallback to Tier 1) |
-| `MITL` | Every proposal goes to the MITL queue; a human approves or rejects. | Tier 1 (deterministic) + human |
-| `MASTER` | Deterministic rule-based path; no LLM rationale. | Tier 1 only (zero LLM tokens) |
+| `YOLO` | Valid transitions approved automatically; policy blocks overridden with auditable `yolo_override`. Oversight agent may escalate. | Tier 1 + Tier 2 + Tier 3 (with circuit-breaker fallback to Tier 1) |
+| `MITL` | Kernel escalates with `mitl_required`; proposals go to MITL queue for human approval. | Tier 1 + Tier 2 (human) |
+| `MASTER` | Most restrictive: policy blocks and lattice incomparability produce Reject. Zero LLM tokens. | Tier 1 only (reduction kernel) |
 
 ---
 
@@ -392,8 +382,6 @@ pytest tests/ -v      # Python facts-worker unit + integration
 - **Pressure-directed activation:** Set filter type to `pressure_directed` in agent config. Agents activate based on convergence pressure.
 - **Observability:** `docker compose up -d` includes Prometheus (9090), Grafana (3004, anonymous read), and an OTEL collector. Agents default to `OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318` when started via `pnpm run swarm`. The feed server on port 3002 serves an observability dashboard with live events, convergence, and service health. Grafana ships with a pre-provisioned "Swarm Governance" dashboard. If Grafana shows no data: (1) start the observability stack (`docker compose up -d otel-collector prometheus grafana`), (2) start the swarm with `pnpm run swarm`, (3) run some activity (e.g. demo), then open http://localhost:3004 and the Swarm Governance dashboard.
 - **Policy version and certificates:** Summary API (`GET /summary`) exposes `policy_version` (governance/finality config hashes) and `finality_certificate` when a scope has been resolved. MITL server exposes `GET /finality-certificate/:scope_id` for the latest signed certificate.
-- **OPA-WASM:** Build with `pnpm run build:opa` (requires OPA CLI); set `OPA_WASM_PATH` to use Rego policies instead of YAML. See `policies/README.md`.
-
 For current status, verified functionality, and next steps, see **STATUS.md**.
 
 ---
@@ -404,7 +392,7 @@ For current status, verified functionality, and next steps, see **STATUS.md**.
 - [docs/architecture.md](docs/architecture.md) -- event bus internals, state machine, database schema, governance loop, policy engine, decision records, finality certificates
 - [docs/convergence.md](docs/convergence.md) -- formal convergence theory, Gate C (oscillation, trajectory quality), configuration reference, benchmark scenarios
 - [docs/finality-design.md](docs/finality-design.md) -- finality gates B/C/D, certificates, evidence coverage, implementation status
-- [docs/governance-design.md](docs/governance-design.md) -- policy stack, OPA-WASM, obligations, combining algorithms
+- [docs/governance-design.md](docs/governance-design.md) -- policy stack, reduction kernel, obligations
 - [docs/validation.md](docs/validation.md) -- test methodology, what's proven vs theoretical, known gaps
 - [docs/experiments.md](docs/experiments.md) -- experimental protocols, convergence/sgrs benchmarks, load (exp-load); [docs/experiments/README.md](docs/experiments/README.md) -- experiment table and quick start; financial vs M&A comparison in [COMPARISON-financial-vs-ma.md](docs/experiments/COMPARISON-financial-vs-ma.md)
 - [docs/demo.md](docs/demo.md) -- Project Horizon M&A demo walkthrough and explainability
@@ -428,17 +416,8 @@ For current status, verified functionality, and next steps, see **STATUS.md**.
 5. **Dorigo, M., Theraulaz, G., & Trianni, V.** (2024). Swarm Intelligence: Past, Present, and Future. *Proceedings of the Royal Society B*, 291(2024). doi:[10.1098/rspb.2024.0856](https://doi.org/10.1098/rspb.2024.0856)
    — Stigmergic coordination; basis for pressure-directed agent activation.
 
-6. **Pang, R. et al.** (2019). Zanzibar: Google's Consistent, Global Authorization System. *USENIX ATC 2019*. [usenix.org](https://www.usenix.org/conference/atc19/presentation/pang)
-   -- Relationship-based access control at scale; theoretical foundation for OpenFGA integration.
-
-7. **Snodgrass, R. T.** (2000). *Developing Time-Oriented Database Applications in SQL*. Morgan Kaufmann.
+6. **Snodgrass, R. T.** (2000). *Developing Time-Oriented Database Applications in SQL*. Morgan Kaufmann.
    -- Bitemporal data model: valid time + transaction time; foundation for the dual-temporality semantic graph.
-
-8. **OASIS** (2013). *eXtensible Access Control Markup Language (XACML) Version 3.0*. [OASIS Standard](http://docs.oasis-open.org/xacml/3.0/xacml-3.0-core-spec-os-en.html)
-   -- Combining algorithms (deny-overrides, first-applicable) for multi-policy evaluation.
-
-9. **Open Policy Agent** (2021). *OPA: Policy-based control for cloud native environments*. [openpolicyagent.org](https://www.openpolicyagent.org/). CNCF Graduated Project.
-   -- Rego policy language and WASM compilation; pluggable governance backend.
 
 ---
 
