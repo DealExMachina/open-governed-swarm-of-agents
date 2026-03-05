@@ -1027,7 +1027,7 @@ Gates disabled ($n = 3$) & 23 (38\%) & 0 (0\%)  & 37 (62\%) & 0 (0\%)   & 60 \\
 \label{tab:exp3-ablation}
 \end{table}
 
-The trajectory demonstrates the spike-and-drop mechanism: score reaches 1.000 during epochs 1--9 (RESOLVED), then drops to 0.700 when contradicting documents arrive (epoch 10+). In the gates-enabled condition, Gate~A (monotonicity) immediately detects the non-monotonic drop and blocks re-entry to RESOLVED. Gate~B satisfaction drops from 100\% to 58\%. The system transitions to HITL/ESCALATED---never falsely remaining in RESOLVED after contradictions appear.
+The trajectory demonstrates the spike-and-drop mechanism: score reaches 1.000 during epochs 1--5 (RESOLVED, $V = 0$), then drops to 0.400 when contradicting documents arrive at epoch~6 ($V$ spikes from 0 to~0.6 as both \texttt{claim\_confidence} and \texttt{contradiction\_resolution} drop to~0), with partial recovery to 0.700 ($V = 0.3$) at epoch~11 as contradictions resolve. In the gates-enabled condition, Gate~A (monotonicity) immediately detects the non-monotonic drop and blocks re-entry to RESOLVED. The system transitions to HITL---never falsely remaining in RESOLVED after contradictions appear.
 
 In the ablation (gates disabled), the ESCALATED rate drops from 7\% to 0\% because divergence detection depends on convergence rate $\alpha$, which the gate bypass does not disable. The persistence of RESOLVED states at 38\% (vs 33\%) indicates that without gates, the system is more likely to declare finality during transient score peaks.
 
@@ -1059,7 +1059,7 @@ At $N = 10$ and $N = 50$, convergence point counts (19--22) and max epochs (14--
 
 Three governance modes were run sequentially (YOLO, MITL, MASTER) on the same 7-document corpus, with database reset between modes. Each mode's hatchery was started with the corresponding \texttt{GOVERNANCE\_MODE} environment variable, ensuring the reduction kernel operated in the correct lattice level.
 
-In YOLO mode, the system processed all documents through the pipeline with epoch advancing to 21 and 24 decision records produced. In MITL mode (with simulated human approvals), a similar progression occurred with automatic finality review approval.
+In YOLO mode, the system processed all documents through the pipeline with 23 decision records produced. In MITL mode (with simulated human approvals), a similar progression occurred with automatic finality review approval.
 
 In MASTER mode---the most restrictive governance level $\ell = \textsc{Master}$---all proposals were evaluated through the full reduction kernel (Definition~\ref{def:kernel}). The kernel applies the complete three-stage pipeline: policy check, lattice admissibility, and mode routing. Proposals that pass both policy and lattice checks receive \texttt{Accept(policy\_passed)}; proposals blocked by policy or lattice violations receive \texttt{Reject} rather than \texttt{Escalate}. MASTER routes through the strictest path, where any ambiguity (including lattice incomparability) results in rejection.
 
@@ -1099,16 +1099,16 @@ To validate the three-tier governance architecture beyond Tier~1 deterministic e
 \toprule
 \textbf{Mode} & \textbf{Decisions} & \textbf{Tier~1} & \textbf{Tier~2} & \textbf{Tier~3} & \textbf{Final} \\
 \midrule
-YOLO   & 24 & 24 (100\%) & 0 & 0 & HITL \\
-MITL   & 15 & 0 & 15 (100\%) & 0 & HITL \\
-MASTER & 18 & 18 (100\%) & 0 & 0 & HITL \\
+YOLO   & 32 & 31 (97\%) & 1 (3\%) & 0 & HITL \\
+MITL   & 49 & 0 & 49 (100\%) & 0 & HITL \\
+MASTER & 40 & 28 (70\%) & 0 & 0 & HITL \\
 \bottomrule
 \end{tabular}
-\caption{Tier coverage by governance mode. YOLO routes all decisions through Tier~1 deterministic evaluation with yolo\_override where policy blocks. MITL escalates 100\% to Tier~2 (human-in-the-loop). MASTER rejects policy-blocked transitions deterministically at Tier~1. Combined coverage: Tier~1 = 73\%, Tier~2 = 26\%, demonstrating that multi-tier routing is exercised across configurations.}
+\caption{Tier coverage by governance mode. YOLO routes 97\% of decisions through Tier~1 deterministic evaluation. MITL escalates 100\% to Tier~2 (human-in-the-loop). MASTER processes all decisions at Tier~1, rejecting 12/40 (30\%) due to policy violations. Combined coverage: Tier~1 = 59/121 (49\%), Tier~2 = 50/121 (41\%), demonstrating that multi-tier routing is exercised across configurations.}
 \label{tab:exp7-tiers}
 \end{table}
 
-Across the three modes, the combined decision population exercised both Tier~1 and Tier~2 governance paths. MITL mode produced 100\% Tier~2 escalation (all proposals required human approval), while YOLO and MASTER operated at Tier~1. MASTER rejected 6/18 proposals (33\%) due to policy violations---specifically, high-drift transitions that YOLO overrode. This validates that the reduction kernel's mode-dependent routing produces observably different governance behavior: MASTER is the most restrictive (rejects on policy block), MITL requires human approval for every decision, and YOLO is the most permissive (overrides policy blocks with auditable justification). Assumption~4 is partially validated: Tier~1 and Tier~2 are exercised; Tier~3 (full LLM governance via the oversight agent choosing \texttt{escalateToLLM}) was not triggered because the oversight LLM consistently accepted the deterministic result.
+Across the three modes, the combined decision population exercised both Tier~1 and Tier~2 governance paths. MITL mode produced 100\% Tier~2 escalation (all 49 proposals required human approval), while YOLO operated primarily at Tier~1 (31/32 deterministic) and MASTER processed all 40 decisions at Tier~1. MASTER rejected 12/40 proposals (30\%) due to policy violations---specifically, high-drift transitions that YOLO overrode. This validates that the reduction kernel's mode-dependent routing produces observably different governance behavior: MASTER is the most restrictive (rejects on policy block), MITL requires human approval for every decision, and YOLO is the most permissive (overrides policy blocks with auditable justification). Assumption~4 is partially validated: Tier~1 and Tier~2 are exercised; Tier~3 (full LLM governance via the oversight agent choosing \texttt{escalateToLLM}) was not triggered because the oversight LLM consistently accepted the deterministic result.
 
 \subsection{Experiment 8: Adversarial Agent Defense (Assumption~5)}
 
@@ -1121,18 +1121,18 @@ To validate the cooperative agent model assumption, three sub-experiments tested
 \toprule
 \textbf{Mode} & \textbf{$V(t)$} & \textbf{Epochs} & \textbf{Decisions} & \textbf{YOLO ovr.} & \textbf{False RES} & \textbf{Final} \\
 \midrule
-Baseline & 0.25 & 15 & 20 & 3 (15\%) & 0 & HITL \\
-Inflate  & 0.55 & 14 & 34 & 16 (47\%) & 1 & HITL \\
-Collude  & 0.55 & 32 & 44 & 7 (16\%) & 2 & HITL \\
+Baseline & 0.25 & 18 & 24 & 3 (12\%) & 0 & HITL \\
+Inflate  & 0.55 & 18 & 28 & 9 (32\%) & 10 & HITL \\
+Collude  & 0.55 & 31 & 41 & 8 (20\%) & 18 & HITL \\
 \bottomrule
 \end{tabular}
-\caption{Adversarial defense results. \emph{Inflate}: single compromised facts agent inflates confidences, fakes resolutions. \emph{Collude}: facts + drift agents both compromised. YOLO ovr. = governance overrides where policy would have blocked. False RES = epochs of false RESOLVED state.}
+\caption{Adversarial defense results. \emph{Inflate}: single compromised facts agent inflates confidences, fakes resolutions. \emph{Collude}: facts + drift agents both compromised. YOLO ovr. = governance overrides where policy would have blocked. False RES = convergence snapshots in RESOLVED state induced by adversarial manipulation.}
 \label{tab:exp8-results}
 \end{table}
 
-In \emph{inflate} mode, the honest drift agent detected the manipulation, producing 5.3$\times$ more governance overrides than baseline (16 vs 3). Gate~C (trajectory quality) caught post-inflation inconsistency at epoch~5. In \emph{collude} mode, both facts and drift agents were compromised: the system achieved false RESOLVED for 2 epochs (goal completion = 1.0, $V(t) = 0.0$) but self-corrected by epoch~5. The key defense mechanism is \emph{cycle-based re-extraction}: the facts-worker continuously re-extracts from source documents, overwriting adversarial mutations within 1--2 extraction cycles. This structural property---not designed as a Byzantine defense---limits adversarial impact to ephemeral windows. For sustained false finality, an adversary would need to compromise the facts-worker itself (3-agent collusion), exceeding the 2-agent collusion tested.
+In \emph{inflate} mode, the honest drift agent detected the manipulation, producing 3$\times$ more governance overrides than baseline (9 vs 3). The system reached RESOLVED 10 times (vs 0 for baseline) through adversarially inflated convergence metrics. In \emph{collude} mode, both facts and drift agents were compromised: the system achieved false RESOLVED for 18 convergence snapshots across the 31-epoch run, with $V(t)$ oscillating between 0 and 0.25 as adversarial mutations were periodically flushed by cycle-based re-extraction. The key defense mechanism is this \emph{cycle-based re-extraction}: the facts-worker continuously re-extracts from source documents, overwriting adversarial mutations within 1--2 extraction cycles. This structural property---not designed as a Byzantine defense---limits adversarial impact to ephemeral windows. For sustained false finality, an adversary would need to compromise the facts-worker itself (3-agent collusion), exceeding the 2-agent collusion tested.
 
-Gate~B (evidence coverage) provided additional defense: the all-gates-pass rate dropped from 71\% (baseline) to 49\% (collude), catching evidence inconsistencies that the adversary could not mask. Assumption~5 is partially validated: the cooperative model is structurally necessary (V(t) monotonicity was violated 9 times in collude mode, and brief false finality windows exist), but the system has unexpected defense-in-depth through cycle-based re-extraction.
+Assumption~5 is partially validated: the cooperative model is structurally necessary ($V(t)$ monotonicity is violated in collude mode, and adversarially induced RESOLVED windows exist), but the system has unexpected defense-in-depth through cycle-based re-extraction. The collude run required 31 epochs (vs 18 for baseline) to reach its final state, demonstrating that adversarial oscillation extends but does not permanently compromise the governance lifecycle.
 
 \subsection{Experiment 9: Local Confluence (Assumption~2)}
 
@@ -1177,15 +1177,17 @@ A second validation scenario tests the system on multi-period financial statemen
 Baseline        & 0.25 & 1--23  & Subsidiary filings ingested \\
 Resolution      & 0.00 & 24     & Goals resolved at resolution round \\
 Re-extraction   & 0.25 & 25--27 & New goals from later documents \\
-Resolution      & 0.00 & 28     & Goals resolved again \\
-Stable          & 0.25 & 31--45 & Auditor review + management response \\
+Resolution      & 0.00 & 28--30 & Goals resolved (sustained convergence) \\
+Re-extraction   & 0.25 & 31--35 & New goals from auditor review \\
+Resolution      & 0.00 & 36     & Third convergence cycle \\
+Final           & 0.25 & 37--38 & Management response (goals regress) \\
 \bottomrule
 \end{tabular}
 \caption{Financial consolidation $V(t)$ trajectory. $V$ reaches 0.00 at resolution epochs and exhibits the sawtooth pattern (convergence $\to$ cross-epoch shock $\to$ re-convergence) observed in Exp.~1, confirming domain-independent convergence behavior.}
 \label{tab:financial-results}
 \end{table}
 
-The temporal restatement demonstrates dual temporality in action: Alpha's restated Q1 revenue (EUR~126.6M vs original EUR~127.4M) is recorded with transaction time May~22, superseding the April~14 original for the same valid period (Q1~2025). The system sets \texttt{superseded\_at} on original nodes. With goal-aware stale protection, goals persist across extraction cycles and are resolved at resolution rounds, producing the same sawtooth $V(t)$ pattern as Exp.~1: $V$ drops to 0.00 at resolution epochs (24, 28, 36), then rises back to 0.25 as new documents introduce new goals.
+The temporal restatement demonstrates dual temporality in action: Alpha's restated Q1 revenue (EUR~126.6M vs original EUR~127.4M) is recorded with transaction time May~22, superseding the April~14 original for the same valid period (Q1~2025). The system sets \texttt{superseded\_at} on original nodes. With goal-aware stale protection, goals persist across extraction cycles and are resolved at resolution rounds, producing the same sawtooth $V(t)$ pattern as Exp.~1: $V$ drops to 0.00 at resolution epochs (24, 28--30, 36), then rises back to 0.25 as new documents introduce new goals.
 
 Three properties distinguish this scenario: (1)~contradiction detection respects valid-time overlap---Q1 figures contradict only other Q1 figures, not Q2; (2)~the auditor's range-based observations (39--41\% gross margin) are correctly classified as compatible, avoiding false contradictions; (3)~the $V(t)$ sawtooth pattern (0.25~$\to$~0.00~$\to$~0.25) matches the M\&A dynamics, confirming that convergence behavior---including full $V \to 0$ at resolution boundaries---is domain-independent. The scenario produced 45~convergence points across 38~epochs.
 
@@ -1202,13 +1204,13 @@ The experimental results provide evidence for four of the paper's central claims
 
 \paragraph{2. Five-gate mechanism prevents false finality (confirmed).} Exp.~3 demonstrates that the system reaches RESOLVED (score = 1.0) during the spike phase, then correctly exits RESOLVED when contradictions arrive. Gate~A (monotonicity) and Gate~B (evidence coverage) are the primary defenses: Gate~B satisfaction drops from 100\% to 58\% when contradictions appear. The ablation (gates disabled) shows that without gates, the system is more permissive (RESOLVED 38\% vs 33\%, ESCALATED 0\% vs 7\%), confirming that gates provide an additional safety layer beyond threshold-based checking.
 
-\paragraph{3. Governance mode affects coverage (confirmed).} Exp.~5 demonstrates the coverage--autonomy trade-off across governance modes. YOLO processes all documents (epoch = 21, 24 decisions). MITL occupies an intermediate position with human-escalated review. MASTER evaluates all proposals through the full reduction kernel, applying the three-stage pipeline (policy, lattice, mode routing) and only accepting proposals that pass both policy and lattice admissibility checks. Policy violations and lattice incomparability produce \textsc{Reject}, not \textsc{Escalate}. This maps directly to the lattice ordering $\textsc{Master} \leq \textsc{Mitl} \leq \textsc{Yolo}$ in Definition~\ref{def:gov-lattice} and aligns with SECP's finding that stricter evaluation reduces coverage.
+\paragraph{3. Governance mode affects coverage (confirmed).} Exp.~5 demonstrates the coverage--autonomy trade-off across governance modes. YOLO processes all documents (23 decisions). MITL occupies an intermediate position with human-escalated review (40 decisions, all escalated). MASTER evaluates all proposals through the full reduction kernel, applying the three-stage pipeline (policy, lattice, mode routing) and only accepting proposals that pass both policy and lattice admissibility checks. Policy violations and lattice incomparability produce \textsc{Reject}, not \textsc{Escalate}. This maps directly to the lattice ordering $\textsc{Master} \leq \textsc{Mitl} \leq \textsc{Yolo}$ in Definition~\ref{def:gov-lattice} and aligns with SECP's finding that stricter evaluation reduces coverage.
 
 \paragraph{4. Pressure-directed routing affects system dynamics (directional evidence).} The pressure ablation shows a substantial difference in finality state distribution: pressure-enabled runs produce 94 convergence points with HITL dominating (84\%), while pressure-disabled runs produce 27 points with ACTIVE dominating (63\%). This suggests that pressure routing accelerates the system toward finality evaluation, though the single-run ablation design ($n = 1$) limits statistical confidence.
 
-\paragraph{5. Multi-tier governance routing is exercised (confirmed).} Exp.~7 demonstrates that the three governance modes produce observably different tier coverage: YOLO routes 100\% of decisions through Tier~1 (with auditable overrides for policy blocks), MITL escalates 100\% to Tier~2 (human-in-the-loop), and MASTER rejects 33\% of proposals at Tier~1 due to policy violations. Combined across modes, Tier~1 and Tier~2 are both exercised. This confirms that the lattice ordering $\textsc{Master} \leq \textsc{Mitl} \leq \textsc{Yolo}$ produces structurally distinct governance behavior, not merely different labels on the same path.
+\paragraph{5. Multi-tier governance routing is exercised (confirmed).} Exp.~7 demonstrates that the three governance modes produce observably different tier coverage: YOLO routes 97\% of decisions through Tier~1, MITL escalates 100\% to Tier~2 (human-in-the-loop), and MASTER rejects 30\% of proposals at Tier~1 due to policy violations. Combined across modes, Tier~1 and Tier~2 are both exercised. This confirms that the lattice ordering $\textsc{Master} \leq \textsc{Mitl} \leq \textsc{Yolo}$ produces structurally distinct governance behavior, not merely different labels on the same path.
 
-\paragraph{6. Adversarial agents cause ephemeral---not permanent---false finality (partially confirmed).} Exp.~8 demonstrates that adversarial confidence inflation (single compromised agent) is caught by the honest drift agent (5.3$\times$ more governance overrides). Even with coordinated adversarial agents (facts + drift), false finality lasted only 2 epochs before cycle-based re-extraction flushed the adversarial mutations. The cooperative agent model (Assumption~5) is structurally necessary (brief false finality windows exist, $V(t)$ monotonicity is violated), but the system has unexpected defense-in-depth: source re-extraction acts as a practical Byzantine defense.
+\paragraph{6. Adversarial agents cause oscillating---not permanent---false finality (partially confirmed).} Exp.~8 demonstrates that adversarial confidence inflation (single compromised agent) produces 3$\times$ more governance overrides than baseline (9 vs 3). With coordinated adversarial agents (facts + drift), the system oscillated between RESOLVED and HITL over 31 epochs (vs 18 for baseline), with 18 convergence snapshots reaching false RESOLVED. Cycle-based re-extraction flushed adversarial mutations within 1--2 cycles each time, preventing sustained false finality. The cooperative agent model (Assumption~5) is structurally necessary (adversarially induced RESOLVED windows exist, $V(t)$ monotonicity is violated), but the system has unexpected defense-in-depth: source re-extraction acts as a practical Byzantine defense.
 
 \paragraph{7. Partial confluence holds for CRDT operations (confirmed).} Exp.~9 demonstrates that the core semantic graph operations---confidence ratchet (max join), contradiction resolution (set-once), node upsert (content-matched)---are fully commutative. Claim stale marking is non-commutative (18/24 orderings diverge) but eventually consistent after complete re-extraction; goals and risks are protected from stale marking as accumulative types, narrowing the non-commutativity surface. The governance kernel is a pure deterministic function (80 evaluations, all identical). This validates the paper's claim of ``partial confluence'' and identifies claim stale marking as the specific operation preventing full commutativity.
 
@@ -1304,7 +1306,7 @@ Following the principled scoping methodology of de la Chica Rodriguez and Vera D
 
 \begin{enumerate}
   \item \textbf{Statistical generality or significance.} Project Horizon is a single scenario with synthetic documents. No confidence intervals, hypothesis tests, or distributional claims are supported. Results are existence proofs, not performance estimates.
-  \item \textbf{Formal Byzantine fault tolerance.} All agents are assumed cooperative. Exp.~8 demonstrates that adversarial agents can cause ephemeral false finality (2 epochs with coordinated collusion), but cycle-based re-extraction limits the adversarial window. This is a practical defense, not a formal Byzantine guarantee: the system provides no proven $n \geq 3f+1$ tolerance. The monotonic confidence constraint limits downward manipulation but does not prevent upward inflation. Formal Byzantine-tolerant coordination \cite{lamport1982,castro1999,zheng2025} remains future work, though the empirical resilience is stronger than previously claimed.
+  \item \textbf{Formal Byzantine fault tolerance.} All agents are assumed cooperative. Exp.~8 demonstrates that adversarial agents can cause oscillating false finality (18 RESOLVED snapshots across 31 epochs with coordinated collusion), but cycle-based re-extraction limits each adversarial window to 1--2 extraction cycles. This is a practical defense, not a formal Byzantine guarantee: the system provides no proven $n \geq 3f+1$ tolerance. The monotonic confidence constraint limits downward manipulation but does not prevent upward inflation. Formal Byzantine-tolerant coordination \cite{lamport1982,castro1999,zheng2025} remains future work, though the empirical resilience is stronger than previously claimed.
   \item \textbf{Scalability beyond proof of concept.} Validation covers two scenarios (5 and 8 documents, $\sim$50 claims each, 7 agents). Whether convergence dynamics, governance throughput, or the Lyapunov function's behavior change qualitatively at production scale (thousands of claims, hundreds of agents) is unknown.
   \item \textbf{Machine-checked convergence proofs.} Proposition~\ref{prop:monotonic} is a proof sketch validated empirically. No formal verification tool or proof assistant has checked the convergence guarantee. An arbitrary sequence of approved transitions could, in principle, violate the proposition's preconditions in untested scenarios.
   \item \textbf{Convergence under real LLM stochasticity.} All convergence benchmarks use synthetic trajectories. Whether the oscillation detection (Gate~C) and trajectory quality score $Q$ perform correctly under the inherent stochasticity of real LLM reasoning traces is untested.
