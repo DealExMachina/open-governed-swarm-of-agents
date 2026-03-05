@@ -32,11 +32,14 @@ c=0: doc 1 only (no contradictions). c=1: docs 1-2. c=3: docs 1-4. c=5: all 5 + 
 # Default: c=3, 7 rounds, resolve at round 5
 bash scripts/run-experiment.sh exp1
 
-# Vary contradiction density
-bash scripts/run-experiment.sh exp1 --contradictions=0 --rounds=5
-bash scripts/run-experiment.sh exp1 --contradictions=1 --rounds=5
-bash scripts/run-experiment.sh exp1 --contradictions=3 --rounds=7 --resolve-at=5
-bash scripts/run-experiment.sh exp1 --contradictions=5 --rounds=7 --resolve-at=5
+# Full protocol (issue #12): all four contradiction densities c=0,1,3,5
+bash scripts/run-exp1-full-protocol.sh
+
+# Vary contradiction density (single runs)
+bash scripts/run-experiment.sh exp1 --contradictions=0 --rounds=7 --resolve-at=5,6,7
+bash scripts/run-experiment.sh exp1 --contradictions=1 --rounds=7 --resolve-at=5,6,7
+bash scripts/run-experiment.sh exp1 --contradictions=3 --rounds=7 --resolve-at=5,6,7
+bash scripts/run-experiment.sh exp1 --contradictions=5 --rounds=7 --resolve-at=5,6,7
 ```
 
 ## Recording

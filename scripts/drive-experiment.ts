@@ -14,7 +14,7 @@
  *   pnpm tsx scripts/drive-experiment.ts --corpus=demo --resolve-at=4
  *
  * Options:
- *   --corpus        Corpus to use: exp1, exp2, exp3, demo, noisy, financial
+ *   --corpus        Corpus to use: exp1, exp2, exp3, demo, noisy, financial, insurance
  *   --rounds        Max rounds (default: 10)
  *   --interval      Seconds between document injections (default: 20)
  *   --resolve-at    Round at which to inject a resolution (default: none)
@@ -140,6 +140,34 @@ function buildExp2Corpus(n: number, rho: number): Array<{ title: string; text: s
     docs.push({ title: `Scalability doc ${i + 1}/${n}`, text });
   }
   return docs;
+}
+
+/** Insurance onboarding and quote: 22 docs, ~22 convergence cycles. Agents check conditions and take verifiable onboarding decision at a given price. */
+function buildInsuranceCorpus(): Array<{ title: string; text: string }> {
+  return [
+    { title: "01 Product and application", text: "INSURANCE APPLICATION — Property and contents.\n\nProduct: Home and contents insurance. Applicant: Jean Dupont. Date of application: 2025-03-01. Coverage type: Buildings and contents, standard perils (fire, theft, water damage). Policy term: 12 months. Sum insured requested: Buildings 200,000 EUR, Contents 50,000 EUR.\n\nGoal: Verify onboarding conditions and issue a binding quote. All information must be verified before a final price and onboarding decision." },
+    { title: "02 Applicant identity", text: "APPLICANT DETAILS.\n\nFull name: Jean Dupont. Date of birth: 1985-06-15. National ID number provided. Address: 12 Rue des Lilas, 75015 Paris, France. Email and phone on file. Occupation: Software engineer. No declared bankruptcy or criminal record. Applicant attests that all information is accurate.\n\nClaim: Identity details provided and consistent. Goal: Confirm identity verification before pricing." },
+    { title: "03 Risk questionnaire", text: "RISK QUESTIONNAIRE — Property use and exposure.\n\nProperty type: Primary residence. Year of construction: 1992. Construction type: Masonry. Roof: Slate, last inspected 2023. Heating: Gas central. No commercial use. No tenants. Security: Deadlock, no alarm stated in initial form.\n\nClaims: Property is standard residential risk. Construction and roof are acceptable per underwriting rules. Goal: Complete risk profile for pricing." },
+    { title: "04 Property details", text: "PROPERTY SPECIFICS.\n\nAddress: 12 Rue des Lilas, 75015 Paris. Surface: 85 m². Number of rooms: 4. Building has shared common areas. No recent claims at this address. Claims history at previous address: one water-damage claim in 2022, closed and paid.\n\nClaim: Single prior claim, non-material. Goal: Validate property details and claims history for underwriting." },
+    { title: "05 Sum insured and options", text: "COVERAGE REQUEST.\n\nBuildings sum insured: 200,000 EUR. Contents sum insured: 50,000 EUR. Optional: Legal expenses cover requested. Optional: Accidental damage to contents declined. Excess: 300 EUR standard.\n\nClaim: Sums and options are within product limits. Goal: Ensure coverage request is within underwriting appetite." },
+    { title: "06 Claims history declaration", text: "CLAIMS HISTORY DECLARATION.\n\nApplicant declares one claim in the last 5 years: water damage at previous address, 2022, amount paid 2,400 EUR. No other claims. No refused or cancelled policies declared.\n\nClaim: Claims history declared and acceptable per guidelines. Goal: Confirm no material misrepresentation." },
+    { title: "07 Underwriting eligibility rules", text: "UNDERWRITING RULES — Onboarding conditions.\n\nCondition 1: Identity verified via official document. Condition 2: Address verified (utility or official letter). Condition 3: Property construction and roof within acceptable criteria. Condition 4: Sum insured supported by valuation or acceptable declaration. Condition 5: No material misrepresentation on application or claims history.\n\nAll conditions must be met before a binding quote and onboarding decision. Goal: Apply conditions consistently and document compliance." },
+    { title: "08 ID verification result", text: "VERIFICATION RESULT — Identity.\n\nIdentity verification completed. Document: National ID. Result: PASS. Name and date of birth match application. No discrepancies. Verified on 2025-03-02.\n\nClaim: Condition 1 (identity verified) is met. Goal: Record verification for audit trail." },
+    { title: "09 Address verification result", text: "VERIFICATION RESULT — Address.\n\nAddress verification completed. Source: Utility bill dated within 90 days. Address matches application: 12 Rue des Lilas, 75015 Paris. Result: PASS. Verified on 2025-03-02.\n\nClaim: Condition 2 (address verified) is met. Goal: Record verification for audit trail." },
+    { title: "10 Underwriting check conditions 1-3", text: "UNDERWRITING CHECK — Conditions 1 to 3.\n\nCondition 1 (identity): Met. Condition 2 (address): Met. Condition 3 (property construction and roof): Met. Property is masonry, roof slate, within acceptable criteria. No referral required for construction.\n\nClaim: First three onboarding conditions are satisfied. Goal: Proceed to condition 4 and 5 check." },
+    { title: "11 Condition 4 pending", text: "UNDERWRITING CHECK — Condition 4 (sum insured).\n\nSum insured for buildings: 200,000 EUR. Standard rule: sum insured must be supported by valuation or acceptable self-declaration for properties under 250,000 EUR. No valuation document received yet. Status: PENDING. Additional information required to confirm condition 4.\n\nClaim: Condition 4 not yet met. Goal: Obtain valuation or accept declaration per policy." },
+    { title: "12 Request additional information", text: "REQUEST FOR ADDITIONAL INFORMATION.\n\nWe require one of the following to complete the assessment: (a) Recent valuation report for the buildings sum insured, or (b) Signed declaration that the sum insured is based on rebuild cost and is accurate. Please also confirm presence of a certified security system if sum insured for contents exceeds 40,000 EUR.\n\nGoal: Resolve condition 4 and any security requirement before final quote." },
+    { title: "13 Supplemental construction", text: "SUPPLEMENTAL DOCUMENT — Construction.\n\nApplicant provides construction certificate and rebuild cost estimate from a recognized surveyor. Rebuild cost estimate: 185,000 EUR. Date of estimate: 2024-11. Certificate confirms masonry construction and standard specifications.\n\nClaim: Rebuild cost documented. Value differs from initial sum insured (200,000 EUR). Goal: Reconcile sum insured with valuation." },
+    { title: "14 Supplemental security", text: "SUPPLEMENTAL DOCUMENT — Security.\n\nApplicant confirms installation of a certified alarm system (certificate attached). System installed 2023. Contents sum insured 50,000 EUR; security requirement for contents above 40,000 EUR is satisfied.\n\nClaim: Security condition for contents is met. Goal: Close security requirement and update risk score." },
+    { title: "15 Contradiction value stated vs valuation", text: "VALUATION DISCREPANCY.\n\nApplication stated buildings sum insured: 200,000 EUR. Surveyor rebuild cost estimate: 185,000 EUR. There is a contradiction between stated sum insured and the valuation. Underwriting guideline: sum insured should not exceed valuation by more than 10%. Here the ratio is 200/185, i.e. about 8% above valuation.\n\nClaim: Contradiction exists between stated value and valuation. Risk: Over-insurance or misrepresentation. Goal: Resolve discrepancy before final quote and onboarding decision." },
+    { title: "16 Underwriter exception note", text: "UNDERWRITER EXCEPTION — Sum insured.\n\nUnderwriter approval: Accept sum insured at 185,000 EUR (valuation) rather than 200,000 EUR to remove discrepancy. Reason: Valuation is recent and from a recognized surveyor. No indication of bad faith. Premium and terms will be based on 185,000 EUR buildings sum insured. Exception logged and approved by underwriting authority.\n\nClaim: Discrepancy resolved by reducing sum insured to valuation. Goal: Proceed to pricing with agreed sum insured." },
+    { title: "17 Resolution of value discrepancy", text: "RESOLUTION — Value discrepancy.\n\nThe contradiction between stated sum insured (200,000 EUR) and valuation (185,000 EUR) has been resolved. Agreed buildings sum insured: 185,000 EUR. Applicant informed and accepted. Condition 4 (sum insured supported) is now met. No material misrepresentation; adjustment is administrative.\n\nClaim: Condition 4 met. All onboarding conditions now satisfied. Goal: Final conditions check and pricing." },
+    { title: "18 Final conditions check", text: "FINAL CONDITIONS CHECK.\n\nCondition 1 (identity): Met. Condition 2 (address): Met. Condition 3 (property): Met. Condition 4 (sum insured): Met at 185,000 EUR. Condition 5 (no material misrepresentation): Met. Security requirement for contents: Met.\n\nClaim: All onboarding conditions are met. System may proceed to quote and onboarding decision. Goal: Record final compliance and trigger pricing." },
+    { title: "19 Pricing engine output", text: "PRICING ENGINE OUTPUT.\n\nProduct: Home and contents. Buildings sum insured: 185,000 EUR. Contents sum insured: 50,000 EUR. Risk band: Standard. Postcode zone: 75015 — standard. Premium: 420 EUR per year (buildings 280 EUR, contents 140 EUR). Legal expenses add-on: 35 EUR. Total premium: 455 EUR. Quote valid 30 days. Payment frequency: annual.\n\nClaim: Premium is 455 EUR per year. Price is binding subject to no change in risk or information. Goal: Issue quote and record price for onboarding decision." },
+    { title: "20 Quote summary", text: "QUOTE SUMMARY.\n\nQuote reference: Q-INS-2025-0042. Applicant: Jean Dupont. Product: Home and contents. Premium: 455 EUR per year. Excess: 300 EUR. Coverage: Buildings 185,000 EUR, Contents 50,000 EUR, legal expenses included. Terms: standard policy wording v2024.2. Valid until: 2025-04-05.\n\nClaim: Quote is binding. All conditions for onboarding are met. Goal: Obtain acceptance and record onboarding decision." },
+    { title: "21 Compliance and audit trail", text: "COMPLIANCE AND AUDIT TRAIL.\n\nAll onboarding conditions have been verified and documented. Identity, address, property, sum insured, and claims history checks are complete. Valuation discrepancy was resolved by underwriter exception. Pricing is based on verified data. Audit trail: verification dates, exception approval, and pricing inputs are logged. No regulatory or internal policy breach identified.\n\nClaim: Process is compliant and auditable. Goal: Final audit check before onboarding decision." },
+    { title: "22 Onboarding decision", text: "ONBOARDING DECISION.\n\nDecision: ACCEPTED. Applicant Jean Dupont is onboarded at the quoted price of 455 EUR per year. Policy will be issued upon payment. Sum insured: Buildings 185,000 EUR, Contents 50,000 EUR. All conditions were met. Decision is verifiable and documented. Timestamp: 2025-03-05. Authority: automated underwriting with human oversight where exception applied.\n\nClaim: Onboarding complete at stated price. Goal: Close file and issue policy." },
+  ];
 }
 
 function buildExp3Corpus(pattern: string): Array<{ title: string; text: string }> {
@@ -268,14 +296,21 @@ async function main(): Promise<void> {
     case "exp6":
       corpus = loadExp6Corpus();
       break;
+    case "insurance":
+      corpus = buildInsuranceCorpus();
+      break;
     case "demo":
     default:
       corpus = loadDemoCorpus();
       break;
   }
 
-  const rounds = Math.min(config.rounds, corpus.length);
-  console.log(`Corpus: ${corpus.length} docs, will inject ${rounds} rounds, ${config.intervalSec}s apart`);
+  const rounds = config.rounds;
+  if (rounds > corpus.length) {
+    console.log(`Corpus: ${corpus.length} docs, will inject ${rounds} rounds (cycling), ${config.intervalSec}s apart`);
+  } else {
+    console.log(`Corpus: ${corpus.length} docs, will inject ${rounds} rounds, ${config.intervalSec}s apart`);
+  }
 
   const bus = await makeEventBus();
 
