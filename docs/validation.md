@@ -306,6 +306,10 @@ open questions---particularly those identified by SECP. These experiments are
 | 2. Scalability | Vary claims, contradictions, agents; measure rounds, tokens, audit events | [#13](https://github.com/DealExMachina/swarm-of-governed-agents/issues/13) |
 | 3. Finality robustness | Adversarial evidence (spike-and-drop, oscillation, stale) | [#14](https://github.com/DealExMachina/swarm-of-governed-agents/issues/14) |
 | 4. Multi-level governance | L1/L2/L3 escalation, decision distribution | [#15](https://github.com/DealExMachina/swarm-of-governed-agents/issues/15) |
-| 5. Coverage-autonomy trade-off | YOLO vs MITL vs MASTER on identical document set | [#16](https://github.com/DealExMachina/swarm-of-governed-agents/issues/16) |
+| 5. Coverage-autonomy trade-off | YOLO vs MITL vs MASTER on identical document set | [#16](https://github.com/DealExMachina/swarm-of-governed-agents/issues/16) (closed) |
+| 6. Monotonic progress + discretization | Assumptions #3, #1; full pipeline + resolver | [#20](https://github.com/DealExMachina/swarm-of-governed-agents/issues/20) |
+| 7. Tier 2/3 governance, Tier-3 reachability | Assumption #4; tier coverage | [#21](https://github.com/DealExMachina/swarm-of-governed-agents/issues/21) |
+| 8. Cooperative agent model | Assumption #5; adversarial defense | [#22](https://github.com/DealExMachina/swarm-of-governed-agents/issues/22) |
+| 9. Local confluence | Assumption #2; CRDT + eventual consistency | [#23](https://github.com/DealExMachina/swarm-of-governed-agents/issues/23) |
 
 See [experiments.md](experiments.md) for full protocol details.

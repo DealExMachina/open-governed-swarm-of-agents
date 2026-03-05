@@ -11,6 +11,7 @@
 #   exp7  (runs 3 times: YOLO, MITL, MASTER with lowered escalation threshold)
 #   exp8  (runs 3 times: baseline, inflate, collude — adversarial agent defense)
 #   exp9  (local confluence — no LLM/Docker needed, Postgres only)
+#   insurance --rounds=22 (insurance onboarding/quote corpus, 22 docs, 20+ cycles)
 #   noisy --corpus=docs-noisy (ambiguous/hedging documents)
 #   financial --rounds=8 (financial consolidation with dual temporality)
 #
@@ -39,6 +40,7 @@ for arg in "$@"; do
     --interval=*) INTERVAL="${arg#*=}";;
     --rounds=*) ROUNDS="${arg#*=}";;
     --resolve-at=*) RESOLVE_AT="${arg#*=}";;
+    --contradictions=*) CONTRADICTIONS="${arg#*=}";;
     --no-swarm) RUN_SWARM=0;;
     *) EXTRA_ARGS+=("$arg");;
   esac
@@ -298,6 +300,12 @@ case "$EXP_ID" in
     echo "[Exp] Done. See docs/experiments/exp8/results/"
     exit 0
     ;;
+  insurance)
+    ROUNDS="${ROUNDS:-22}"
+    [ -z "$RESOLVE_AT" ] && RESOLVE_OPT="--resolve-at=17,18,19"
+    echo "[Exp] Insurance: onboarding and quote corpus (22 docs, ${ROUNDS} rounds)"
+    run_single_experiment "insurance" ""
+    ;;
   exp9)
     echo "[Exp] Exp9: local confluence — validating Assumption #2 (commutativity of CRDT operations)"
     echo "[Exp] This experiment requires only Postgres (no Docker/LLM/NATS needed)."
@@ -386,7 +394,7 @@ case "$EXP_ID" in
     exit 0
     ;;
   *)
-    echo "[Exp] Unknown experiment: $EXP_ID. Use exp1, exp2, exp3, exp4, exp5, exp6, exp7, exp8, noisy, financial, demo-baseline."
+    echo "[Exp] Unknown experiment: $EXP_ID. Use exp1, exp2, exp3, exp4, exp5, exp6, exp7, exp8, exp9, insurance, noisy, financial, demo-baseline."
     exit 1
     ;;
 esac
