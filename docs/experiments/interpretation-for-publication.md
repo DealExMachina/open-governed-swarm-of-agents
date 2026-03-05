@@ -26,8 +26,8 @@ Summary of clean run with goal-aware stale protection (exp1-exp8, noisy, financi
 ## 3. Finality robustness (Exp. 3)
 
 - **Setup:** Spike-and-drop pattern (4 documents).
-- **Outcome:** 17 convergence points. goal_completion = 1.00 vacuously (adversarial docs have no goals). V starts at 0, rises to 0.30.
-- **Publishable:** Gates correctly block finality after contradiction arrival.
+- **Outcome:** 17 convergence points, 11 epochs. V=0 at epochs 1-5 (score=1.0), spikes to 0.6 at epoch 6 (contradictions arrive, claim_confidence and contradiction_resolution drop to 0), partial recovery to 0.3 at epoch 11. goal_completion = 1.00 throughout (vacuously satisfied).
+- **Publishable:** Gates correctly block finality after contradiction arrival. V=0 phase followed by spike demonstrates the spike-and-drop mechanism.
 
 ---
 
@@ -41,9 +41,9 @@ Summary of clean run with goal-aware stale protection (exp1-exp8, noisy, financi
 
 ## 5. Coverage-autonomy trade-off (Exp. 5)
 
-- **YOLO:** 2 convergence points, 23 decisions. goal_completion = 0.00 (no resolution injection).
-- **MITL:** 1 convergence point, 40 decisions.
-- **MASTER:** 1 convergence point, 46 decisions.
+- **YOLO:** 2 convergence points, 23 decisions (20 deterministic, 3 yolo_override). goal_completion = 0.00 (no resolution injection).
+- **MITL:** 1 convergence point, 40 decisions (all mitl_escalation).
+- **MASTER:** 1 convergence point, 46 decisions (all policy_passed through full kernel).
 - **Publishable:** Clear separation of three modes. goal_completion stays 0 because demo corpus has no `--resolve-at`; this is correct behavior (no resolution = no goal progress).
 
 ---
@@ -58,19 +58,19 @@ Summary of clean run with goal-aware stale protection (exp1-exp8, noisy, financi
 
 ## 7. Tier 2/3 routing (Exp. 7)
 
-- **YOLO:** 37 pts, gc_max=1.00, V_min=0.00.
-- **MITL:** 41 pts, gc_max=1.00, V_min=0.00.
-- **MASTER:** 40 pts, gc_max=1.00, V_min=0.00.
-- **Publishable:** All three modes show goal_completion reaching 1.00 and V reaching 0.00.
+- **YOLO:** 37 pts, 32 decisions (31 Tier 1, 1 Tier 2), gc_max=1.00, V_min=0.00.
+- **MITL:** 41 pts, 49 decisions (36 mitl_escalation, 13 processProposal), gc_max=1.00, V_min=0.00.
+- **MASTER:** 40 pts, 40 decisions (28 allow, 12 reject/30%), gc_max=1.00, V_min=0.00.
+- **Publishable:** All three modes show goal_completion reaching 1.00 and V reaching 0.00. MASTER rejects 30% of proposals due to policy violations.
 
 ---
 
 ## 8. Adversarial defense (Exp. 8)
 
-- **baseline:** 39 pts, gc_max=0.00 (no resolution), V_min=0.25.
-- **inflate:** 70 pts, gc_max=1.00 (adversarial mutation), V_min=0.00.
-- **collude:** 70 pts, gc_max=1.00, V_min=0.00.
-- **Publishable:** Baseline correctly stays at gc=0 (no resolution); adversarial modes still achieve false gc=1.00 via mutation. Key distinction preserved.
+- **baseline:** 39 pts, 24 decisions (3 yolo_override/12%), gc_max=0.00 (no resolution), V_min=0.25, max epoch 18.
+- **inflate:** 70 pts, 28 decisions (9 yolo_override/32%), gc_max=1.00 (adversarial mutation), V_min=0.00, 10 RESOLVED snapshots, max epoch 18.
+- **collude:** 70 pts, 41 decisions (8 yolo_override/20%), gc_max=1.00, V_min=0.00, 18 RESOLVED snapshots, max epoch 31 (oscillating V between 0 and 0.25).
+- **Publishable:** Baseline correctly stays at gc=0 (no resolution); adversarial modes achieve false RESOLVED via mutation but cycle-based re-extraction limits each false window to 1-2 cycles. Collude extends run to 31 epochs (vs 18 baseline) due to oscillation.
 
 ---
 
@@ -85,8 +85,8 @@ Summary of clean run with goal-aware stale protection (exp1-exp8, noisy, financi
 ## 10. Financial consolidation
 
 - **Setup:** 8 documents, resolution at rounds 7-8.
-- **Outcome:** 45 convergence points, epoch 38. goal_completion reaches 1.00. V reaches 0.00 at epochs 24, 28, 36. Sawtooth pattern matches Exp 1.
-- **Publishable:** Domain-independent convergence confirmed. V -> 0 achieved in financial scenario.
+- **Outcome:** 45 convergence points, epoch 38. goal_completion reaches 1.00. V reaches 0.00 at epochs 24, 28-30, 36 (three convergence cycles). Sawtooth pattern matches Exp 1.
+- **Publishable:** Domain-independent convergence confirmed. V -> 0 achieved in financial scenario with three distinct convergence-regress-reconvergence cycles.
 
 ---
 
@@ -94,14 +94,14 @@ Summary of clean run with goal-aware stale protection (exp1-exp8, noisy, financi
 
 | Experiment | GC max | V min  | V=0 epochs | Score max |
 |------------|--------|--------|------------|-----------|
-| exp1       | 1.00   | 0.0000 | 6/44       | 1.0000    |
+| exp1       | 1.00   | 0.0000 | 5/44       | 1.0000    |
 | exp2       | 1.00   | 0.0000 | 3/22       | 1.0000    |
-| exp3       | 1.00   | 0.0000 | 7/17       | 1.0000    |
+| exp3       | 1.00   | 0.0000 | 5/17       | 1.0000    |
 | exp4       | 0.00   | 0.2500 | 0/1        | 0.7500    |
 | exp5       | 0.00   | 0.2510 | 0/1        | 0.7324    |
 | exp6       | 1.00   | 0.0010 | 0/20       | 0.9824    |
-| exp7       | 1.00   | 0.0000 | varies     | 1.0000    |
-| exp8       | 1.00   | 0.0000 | 19/70      | 1.0000    |
+| exp7       | 1.00   | 0.0000 | 2 per mode | 1.0000    |
+| exp8       | 1.00   | 0.0000 | 19/70*     | 1.0000    |
 | noisy      | 0.00   | 0.2593 | 0/1        | 0.6971    |
 | financial  | 1.00   | 0.0000 | 5/45       | 1.0000    |
 
