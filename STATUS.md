@@ -4,9 +4,7 @@ Short snapshot of what exists, what is verified, and what comes next.
 
 ## V2 Rust engine (sgrs-core)
 
-**PR #17** — `feat/v2-rust-engine` — three phases, all complete.
-
-Native Rust addon (`sgrs-core/`) compiled via napi-rs. Pure math and deterministic logic execute in Rust; I/O orchestration (DB, NATS, YAML parsing) stays in TypeScript. TS adapter (`src/sgrsAdapter.ts`) converts between v1 snake_case and Rust camelCase DTOs.
+Native Rust addon (`sgrs-core/`) compiled via napi-rs. Pure math and deterministic logic execute in Rust; I/O orchestration (DB, NATS, YAML parsing) stays in TypeScript. TS adapter (`src/sgrsAdapter.ts`) converts between snake_case and Rust camelCase DTOs. The sgrs-core kernel is the sole policy engine for all governance decisions.
 
 **Phase 0 — Convergence math** (complete)
 - Dimension scores, Lyapunov V(t), pressure vectors, full convergence analysis (trajectory quality, oscillation, plateau, monotonicity, EMA, autocorrelation).
@@ -30,7 +28,7 @@ Native Rust addon (`sgrs-core/`) compiled via napi-rs. Pure math and determinist
 
 ## What this is
 
-Governed agent swarm: event-driven agents (facts, drift, planner, status) consume jobs from NATS, read/write shared context (Postgres WAL) and state graph (Postgres + S3 facts/drift). Governance and executor close the control loop (approve/reject proposals, execute transitions). A **semantic graph** (Postgres + pgvector) holds addressable nodes (claims, goals, risks) and edges (e.g. contradicts). A **stateful finality** layer uses a convergence tracker (Lyapunov V(t), monotonicity gate, plateau detection, pressure-directed activation) to evaluate scope readiness and trigger HITL review via the MITL server when near-finality or stalled. See [docs/convergence.md](docs/convergence.md) for the theory.
+Governed agent swarm: event-driven agents (facts, drift, planner, status, governance, executor, tuner) consume jobs from NATS, read/write shared context (Postgres WAL) and state graph (Postgres + S3 facts/drift). Governance and executor close the control loop (approve/reject proposals, execute transitions). A **semantic graph** (Postgres + pgvector) holds addressable nodes (claims, goals, risks) and edges (e.g. contradicts). A **stateful finality** layer uses a convergence tracker (Lyapunov V(t), monotonicity gate, plateau detection, pressure-directed activation) to evaluate scope readiness and trigger HITL review via the MITL server when near-finality or stalled. See [docs/convergence.md](docs/convergence.md) for the theory.
 
 **Scalability:** The novel piece—the sgrs (Rust) governance/convergence kernel—is load-benchmarked; multiple instances share one policy and produce identical decisions at high throughput. Node, Postgres, NATS, and S3 have established scalability; whole-system scaling is an engineering/composition topic.
 
@@ -39,11 +37,11 @@ Governed agent swarm: event-driven agents (facts, drift, planner, status) consum
 **Core**
 
 - Context WAL (`context_events`), state graph (`swarm_state`). Migrations 002–010 plus 011 (bitemporal), 012 (decision_records), 013 (finality_certificates). **ensure-schema** runs all in order; **run-e2e.sh** runs 002/003/005/006.
-- NATS JetStream stream, four agents (facts, drift, planner, status), governance agent, executor.
-- Governance rules (`governance.yaml`), **policy engine** (YAML default; OPA-WASM when `OPA_WASM_PATH` is set—build with `pnpm run build:opa`), **decision records** persisted to `decision_records` with policy version hash, **obligation enforcer** (executeObligations after each decision), **combining algorithms** (denyOverrides, firstApplicable). OpenFGA policy checks. MITL server (approve/reject/options, **GET /finality-certificate/:scope_id**).
+- NATS JetStream stream, seven agents (facts, drift, planner, status, governance, executor, tuner).
+- Governance rules (`governance.yaml`), **sgrs-core Rust kernel** (reduction pipeline: policy check, lattice admissibility, mode routing), **decision records** persisted to `decision_records` with policy version hash, **obligation enforcer** (executeObligations after each decision). MITL server (approve/reject/options, **GET /finality-certificate/:scope_id**).
 - Facts agent: readContext -> facts-worker `/extract` -> writeFacts to S3. Direct pipeline and optional Mastra orchestration.
 - Feed server (port 3002): observability dashboard + API. Summary (policy_version, finality_certificate, convergence with trajectory_quality/oscillation_detected), POST context/docs, POST context/resolution, **GET /convergence?scope=** for convergence state. HTML dashboard shows KPIs, service health, convergence bars, live SSE events, and links to Grafana/Prometheus.
-- Docker Compose: Postgres (pgvector image), MinIO, NATS, facts-worker, OpenFGA, feed, otel-collector, Prometheus, Grafana. Grafana dashboards: **Swarm Governance** (proposals, agent latency, governance loop) and **SGRS Core** (sgrs-core Rust call latency and rate by operation).
+- Docker Compose: Postgres (pgvector image), MinIO, NATS, facts-worker, feed, otel-collector, Prometheus, Grafana. Grafana dashboards: **Swarm Governance** (proposals, agent latency, governance loop) and **SGRS Core** (sgrs-core Rust call latency and rate by operation).
 
 **Finality and semantic layer**
 
@@ -57,7 +55,7 @@ Governed agent swarm: event-driven agents (facts, drift, planner, status) consum
 - **migrations/005_semantic_graph.sql**, **011_bitemporal.sql**: nodes/edges with optional valid_from, valid_to, recorded_at, superseded_at. Current view and time-travel (asOfValidTime, asOfRecordedAt); **supersedeNode** / **supersedeEdge** for append-over-update.
 - **semanticGraph.ts**: `appendNode` / `appendEdge` (optional valid time), `queryNodes` / `queryEdges` (optional time-travel), `loadFinalitySnapshot(scopeId)` (contradiction_mass, evidence_coverage; temporal contradiction = overlap of valid-time intervals), `getEvidenceCoverageForScope` (evidence_schemas.yaml, optional max_age_days staleness), `deleteNodesBySource`. Transaction helper: `runInTransaction` from `db.js`.
 - **embeddingPipeline.ts**: `getEmbedding` (Ollama bge-m3), `updateNodeEmbedding`, `embedAndPersistNode`.
-- **factsToSemanticGraph.ts**: `syncFactsToSemanticGraph(scopeId, facts)`: replace fact-sourced nodes/edges for scope, insert claim/goal/risk nodes and contradiction edges; optional `embedClaims` (FACTS_SYNC_EMBED=1).
+- **factsToSemanticGraph.ts**: `syncFactsToSemanticGraph(scopeId, facts)`: CRDT-inspired monotonic upserts for claims, goals, risks, and contradictions. Goals and risks are protected from stale marking (accumulative across extractions); claims use last-writer-wins stale marking. Optional `embedClaims` (FACTS_SYNC_EMBED=1).
 - **factsAgent writeFacts**: after S3 write, calls `syncFactsToSemanticGraph(scopeId, facts)`; sync failure is logged, S3 write still succeeds.
 - **activationFilters.ts**: optional **pressure_directed** filter using convergence history (highest-pressure dimension); fallback when `convergence_history` missing.
 - **modelConfig.ts**: Ollama base URL, embedding model, chat/rationale/HITL models; SCOPE_ID.
@@ -116,38 +114,37 @@ Every proposal decision written to the WAL includes `governance_path` when appli
 - **Facts-worker**: For the pipeline to write facts and sync to the semantic graph, the facts-worker must return 200 from `/extract`. In Docker it needs `OPENAI_API_KEY` (or Ollama reachable at `OLLAMA_BASE_URL`) and any model env; otherwise the worker may return 500 and the facts agent will log "Internal Server Error".
 - **Facts-worker "Connection error" (500)**: The worker runs inside Docker and must reach the LLM backend. (1) **OpenAI**: leave `OLLAMA_BASE_URL` unset; ensure the container can reach the internet (e.g. no firewall blocking outbound HTTPS). (2) **Ollama on host**: set in `.env` `OLLAMA_BASE_URL=http://host.docker.internal:11434` (Mac/Windows; on Linux use host IP or `--add-host=host.docker.internal:host-gateway`). Run Ollama on the host and pull the extraction model (e.g. `ollama pull qwen3:8b`). Do not use `localhost` inside Docker for Ollama—it refers to the container, not the host.
 
-## Experiments (Issues #12–#16)
+## Experiments
 
-All five experiments have complete infrastructure: seed scripts, drivers, result collection, and analysis. Results are written to `docs/experiments/<exp>/results/<timestamp>` (gitignored).
+Ten experiments validated, all using the sgrs-core Rust kernel as the sole policy engine. Results in `docs/experiments/<exp>/results/<timestamp>` (gitignored). Run via `./scripts/run-experiment.sh <exp>`.
 
-| # | Issue | What it tests | Status |
-|---|-------|--------------|--------|
-| 1 | #12 | Multi-iteration convergence dynamics (Lyapunov V(t) decay) | Infrastructure complete, results collected |
-| 2 | #13 | Scalability benchmark (10/50/100/200 nodes, latency, memory) | Infrastructure complete, results collected |
-| 3 | #14 | Finality robustness under adversarial evidence | Infrastructure complete, results collected |
-| 4 | #15 | Multi-level governance bounded (MASTER/MITL/YOLO correctness) | Infrastructure complete — **MASTER fix in PR #17 directly impacts this** |
-| 5 | #16 | Coverage-autonomy trade-off mapping | Infrastructure complete — **MASTER fix changes the autonomy curve** |
+| # | What it tests | Key result |
+|---|--------------|------------|
+| 1 | Multi-iteration convergence dynamics | V(t) reaches 0.0000 at resolution epochs; goal_completion 0 -> 1.00; sawtooth pattern confirmed |
+| 2 | Scalability (N=10/50/100, rho=0.1/0.3) | Sub-linear scaling; no CAS storms |
+| 3 | Finality robustness (spike-and-drop) | Gates correctly block false finality after contradiction arrival |
+| 4 | Multi-level governance (MASTER/MITL/YOLO) | Governance path exercised across all modes |
+| 5 | Coverage-autonomy trade-off | YOLO/MITL/MASTER produce distinct coverage and convergence rates |
+| 6 | Full pipeline with resolver agent | goal_completion advances beyond 0.00; Assumption #3 substantively satisfied |
+| 7 | Tier 2/3 governance routing | All three modes reach gc=1.00; MITL escalates 100% to Tier 2 |
+| 8 | Adversarial agent defense | Ephemeral false finality (2 epochs); self-corrected via re-extraction |
+| 9 | Local confluence (CRDT commutativity) | Partial confluence validated; claim stale marking is non-commutative but eventually consistent |
+| financial | Dual temporality (financial consolidation) | V(t) sawtooth matches M&A; domain-independent convergence confirmed |
+| noisy | Ambiguous/hedging documents | System handles noisy input; decisions recorded |
 
-**Additional scenarios (no auto-approve, for comparable V(t) trajectories):**
-- **financial** — Financial consolidation (8 docs): dual temporality, restatements, auditor/management response. Run: `./scripts/run-experiment.sh financial --rounds=8`. See [docs/experiments/financial/README.md](docs/experiments/financial/README.md).
-- **demo-baseline** — M&A (Project Horizon, 7 docs) without HITL auto-approve; baseline for comparison. Run: `./scripts/run-experiment.sh demo-baseline --rounds=7`.
+See [docs/experiments/README.md](docs/experiments/README.md) and [docs/experiments/interpretation-for-publication.md](docs/experiments/interpretation-for-publication.md).
 
-**Consistency check:** [docs/experiments/COMPARISON-financial-vs-ma.md](docs/experiments/COMPARISON-financial-vs-ma.md) confirms financial and M&A show the same convergence behaviour (baseline V ~ 0.25, spike to ~0.55 on contradiction, Gates A/B fail, recovery).
-
-Run experiments: `./scripts/run-experiment.sh exp<N>`, `financial`, or `demo-baseline`. Analyze: `npx tsx scripts/analyze-experiment.ts`.
 
 ## Not yet done / optional
-- **Resolutions as goal completion**: when user posts a resolution, optionally mark one or more goals as `resolved` in the semantic graph (e.g. by convention or a small heuristic) so `goals_completion_ratio` increases.
-- **HITL flow in UI**: MITL server already supports finality_review; a minimal UI or script to accept/reject/defer and emit the right response so governance/finality state is updated.
+- **Autonomous goal resolution agent**: a dedicated agent that transitions goals to resolved status when supporting evidence reaches sufficient confidence, removing the dependency on the experiment driver's `injectResolution()`.
+- **HITL flow in UI**: MITL server already supports finality_review; a minimal UI or script to accept/reject/defer.
 - **Embeddings by default**: set FACTS_SYNC_EMBED=1 in env to embed claim nodes after each facts sync (requires Ollama with bge-m3).
-- **OpenFGA**: if OPENFGA_* is configured, policy checks are used; store/model setup and playground usage are doc’d in README.
-- **E2E full schema**: run-e2e.sh runs 002/003/005/006 only; for 007–010 (scope state, MITL pending, processed messages, convergence_history), run **pnpm run ensure-schema** before swarm when not using run-e2e.
-- **Re-run Experiments 4+5**: After merging PR #17 (MASTER fix), re-run experiments 4 and 5 to measure the impact of the governance kernel on multi-level correctness and coverage-autonomy trade-offs.
+- **Scalability beyond N=100**: experiments cover N up to 100; testing at N=500+ would identify the hypothesized scaling bottleneck.
+- **Per-dimension finality criterion**: extending finality gates to require each dimension to independently satisfy its target.
 
 ## Next steps (suggested order)
 
-1. **E2E run**: With Postgres (ensure-schema or E2E subset), MinIO, NATS, and facts-worker up, run seed + bootstrap + `pnpm run swarm`; POST a doc; verify facts in S3 and nodes/edges in DB.
-2. **Re-run Experiments 4+5** (optional): After MASTER fix, re-collect results with the kernel-based evaluation for coverage-autonomy and governance correctness.
-3. **Resolutions -> goals**: When handling POST /context/resolution, optionally create or update goal nodes so finality sees higher goal completion.
-4. **HITL UX**: Feed UI and MITL server already support finality review; GET /finality-certificate/:scope_id exposes latest certificate for resolved scopes.
-5. **Observability**: GET /convergence and summary expose convergence state, policy version, and certificate summary.
+1. **Autonomous goal resolution**: implement a goal-resolution agent to close the convergence loop end-to-end.
+2. **HITL UX**: feed UI and MITL server already support finality review; GET /finality-certificate/:scope_id exposes latest certificate.
+3. **Scalability testing**: run exp2 at N=500+ to identify scaling bottlenecks.
+4. **Per-dimension finality**: extend finality gates for per-dimension satisfaction.
