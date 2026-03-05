@@ -70,6 +70,13 @@ export interface ConvergenceState {
   trajectory_quality: number;
   /** Gate C: lag-1 autocorrelation of goal_score (null if insufficient data). */
   autocorrelation_lag1: number | null;
+
+  // Per-dimension gates (Issue #18: non-scalar finality)
+
+  /** GA_d: per-dimension monotonicity over last β rounds. [claim, contra, goal, risk]. */
+  per_dimension_monotonic: boolean[];
+  /** GC_d: per-dimension trajectory quality [0, 1]. [claim, contra, goal, risk]. */
+  per_dimension_trajectory_quality: number[];
 }
 
 export interface ConvergenceConfig {

@@ -20,6 +20,7 @@ import {
   evaluateGovernanceRules as rustEvaluateGovernanceRules,
   canGovernanceTransition as rustCanGovernanceTransition,
   evaluateKernel as rustEvaluateKernel,
+  evaluateVectorFinalityBridge as rustEvaluateVectorFinality,
 } from "../sgrs-core/index.js";
 import type {
   FinalitySnapshotDto,
@@ -37,7 +38,13 @@ import type {
   TransitionDecisionDto,
   LatticePointDto,
 } from "../sgrs-core/index.js";
-import type { FinalitySnapshot, GoalGradientConfig, QuiescenceConfig } from "./finalityEvaluator.js";
+import type {
+  FinalitySnapshot,
+  GoalGradientConfig,
+  QuiescenceConfig,
+  PerDimensionFinalityConfig,
+  VectorFinalityResult,
+} from "./finalityEvaluator.js";
 import type { ConvergencePoint, ConvergenceConfig, ConvergenceState } from "./convergenceTracker.js";
 import type { GovernanceConfig, DriftInput, TransitionDecision, PolicyRule, TransitionRule } from "./governance.js";
 import { recordSgrsCall } from "./metrics.js";
@@ -193,6 +200,9 @@ function fromConvergenceOutputDto(
           },
         }
       : null,
+    // Per-dimension gates (Issue #18: non-scalar finality)
+    per_dimension_monotonic: dto.perDimensionMonotonic ?? [false, false, false, false],
+    per_dimension_trajectory_quality: dto.perDimensionTrajectoryQuality ?? [1.0, 1.0, 1.0, 1.0],
   };
 }
 
@@ -411,5 +421,76 @@ export function evaluateKernel(
     suggested_actions: output.suggestedActions,
     admissibility: output.admissibility ?? undefined,
     regressed_dimensions: output.regressedDimensions ?? undefined,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Issue #18: Vector finality
+// ---------------------------------------------------------------------------
+
+const DIM_NAMES = ["claim_confidence", "contradiction_resolution", "goal_completion", "risk_score_inverse"];
+
+/**
+ * Evaluate vector (per-dimension) finality predicate via Rust core.
+ *
+ * F*(t) = AND_d[e_d <= eps_d AND GA_d AND GC_d] AND GB AND GD AND GE
+ */
+export function evaluateVectorFinality(
+  dimensionScores: Record<string, number>,
+  perDimConfig: PerDimensionFinalityConfig,
+  perDimMonotonic: boolean[],
+  perDimTrajectory: number[],
+  globalGates: GateState,
+  scalarScore: number,
+  scalarThreshold: number,
+): VectorFinalityResult {
+  const scores = DIM_NAMES.map((n) => dimensionScores[n] ?? 0);
+  const thresholds = DIM_NAMES.map((n) => perDimConfig.dimension_thresholds[n] ?? 0.85);
+  const epsilon = DIM_NAMES.map((n) => perDimConfig.epsilon[n] ?? 0.02);
+  const required = DIM_NAMES.map((n) => perDimConfig.required_dimensions.includes(n));
+  const veto = DIM_NAMES.map((n) => perDimConfig.veto_dimensions.includes(n));
+
+  const dto = timedSgrs("vector_finality", () =>
+    rustEvaluateVectorFinality(
+      scores,
+      {
+        thresholds,
+        epsilon,
+        required,
+        veto,
+        trajectoryQualityThreshold: 0.7,
+      },
+      perDimMonotonic,
+      perDimTrajectory,
+      {
+        aMonotonic: globalGates.a_monotonic,
+        bEvidence: globalGates.b_evidence,
+        cTrajectory: globalGates.c_trajectory,
+        dQuiescent: globalGates.d_quiescent,
+        eHasContent: globalGates.e_has_content,
+        allPassed: globalGates.all_passed,
+      },
+      scalarScore,
+      scalarThreshold,
+    ),
+  );
+
+  return {
+    dimension_results: dto.dimensionResults.map((dr: any) => ({
+      dimension: dr.dimension,
+      score: dr.score,
+      threshold: dr.threshold,
+      gap: dr.gap,
+      epsilon: dr.epsilon,
+      passed: dr.passed,
+      is_veto: dr.isVeto,
+      is_required: dr.isRequired,
+      gate_a_monotonic: dr.gateAMonotonic,
+      gate_c_trajectory_ok: dr.gateCTrajectoryOk,
+    })),
+    all_required_passed: dto.allRequiredPassed,
+    veto_triggered: dto.vetoTriggered,
+    veto_causes: dto.vetoCauses,
+    global_gates_passed: dto.globalGatesPassed,
   };
 }

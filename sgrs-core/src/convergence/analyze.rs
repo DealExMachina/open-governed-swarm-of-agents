@@ -90,6 +90,15 @@ pub struct ConvergenceAnalysis {
     pub trajectory_quality: f64,
     /// Gate C: lag-1 autocorrelation of goal_score.
     pub autocorrelation_lag1: Option<f64>,
+
+    // --- Per-dimension gates (Issue #18: non-scalar finality) ---
+
+    /// GA_d: per-dimension monotonicity over last β rounds.
+    /// Indexed by DimensionId: [claim, contra, goal, risk].
+    pub per_dimension_monotonic: [bool; 4],
+    /// GC_d: per-dimension trajectory quality [0, 1].
+    /// Indexed by DimensionId: [claim, contra, goal, risk].
+    pub per_dimension_trajectory_quality: [f64; 4],
 }
 
 /// Analyze convergence from history points. Pure function.
@@ -116,6 +125,8 @@ pub fn analyze_convergence(
         oscillation_detected: false,
         trajectory_quality: 1.0,
         autocorrelation_lag1: None,
+        per_dimension_monotonic: [false; 4],
+        per_dimension_trajectory_quality: [1.0; 4],
     };
 
     if history.is_empty() {
@@ -230,6 +241,11 @@ pub fn analyze_convergence(
     let plateau_rounds = compute_plateau_rounds(history, auto_threshold, config);
     let is_plateaued = plateau_rounds >= config.tau as u32;
 
+    // --- Per-dimension gates (Issue #18: non-scalar finality) ---
+    let per_dimension_monotonic = check_per_dimension_monotonicity(history, config.beta);
+    let per_dimension_trajectory_quality =
+        compute_per_dimension_trajectory_quality(history, &traj_config);
+
     ConvergenceAnalysis {
         convergence_rate: avg_alpha,
         alpha_intra,
@@ -244,6 +260,8 @@ pub fn analyze_convergence(
         oscillation_detected: traj.oscillation_detected,
         trajectory_quality: traj.quality,
         autocorrelation_lag1: traj.autocorrelation_lag1,
+        per_dimension_monotonic,
+        per_dimension_trajectory_quality,
     }
 }
 
@@ -331,4 +349,54 @@ fn compute_plateau_rounds(
     }
 
     consecutive
+}
+
+// ---------------------------------------------------------------------------
+// Per-dimension gates (Issue #18: non-scalar finality)
+// ---------------------------------------------------------------------------
+
+/// GA_d: check per-dimension monotonicity over the last β rounds.
+/// Returns [bool; 4] indexed by DimensionId.
+/// A dimension is monotonic if its score is non-decreasing (epsilon=0.001)
+/// for β consecutive rounds.
+fn check_per_dimension_monotonicity(
+    history: &[ConvergencePointInput],
+    beta: usize,
+) -> [bool; 4] {
+    let mut result = [false; 4];
+    if history.len() < beta {
+        return result;
+    }
+    let window = &history[history.len() - beta..];
+    for dim in DimensionId::ALL {
+        let idx = dim.index();
+        let monotonic = window
+            .windows(2)
+            .all(|w| w[1].dimension_scores[idx] >= w[0].dimension_scores[idx] - 0.001);
+        result[idx] = monotonic;
+    }
+    result
+}
+
+/// GC_d: compute per-dimension trajectory quality.
+/// Returns [f64; 4] indexed by DimensionId.
+/// Uses the same trajectory quality algorithm as the scalar version but
+/// applied to each dimension's score history independently.
+fn compute_per_dimension_trajectory_quality(
+    history: &[ConvergencePointInput],
+    traj_config: &TrajectoryConfig,
+) -> [f64; 4] {
+    let mut result = [1.0; 4];
+    let window_size = history.len().min(10);
+    if window_size < 2 {
+        return result;
+    }
+    let window = &history[history.len() - window_size..];
+    for dim in DimensionId::ALL {
+        let idx = dim.index();
+        let dim_scores: Vec<f64> = window.iter().map(|p| p.dimension_scores[idx]).collect();
+        let traj = compute_trajectory_quality(&dim_scores, traj_config);
+        result[idx] = traj.quality;
+    }
+    result
 }
