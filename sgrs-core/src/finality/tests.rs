@@ -428,3 +428,415 @@ fn conditions_any_mode_none_met() {
     ];
     assert!(!evaluate_conditions(&conditions, ConditionMode::Any, &snapshot));
 }
+
+// ===========================================================================
+// Vector finality tests (Issue #18: non-scalar finality)
+// ===========================================================================
+
+use super::vector::*;
+use crate::types::DimensionId;
+
+/// Helper: all global gates passing.
+fn make_passing_global_gates() -> GateState {
+    GateState {
+        a_monotonic: true,
+        b_evidence: true,
+        c_trajectory: true,
+        d_quiescent: true,
+        e_has_content: true,
+    }
+}
+
+// ---------------------------------------------------------------------------
+// dimension_gap / dimension_final unit tests
+// ---------------------------------------------------------------------------
+
+#[test]
+fn dimension_gap_zero_when_score_above_threshold() {
+    assert!((dimension_gap(0.90, 0.85) - 0.0).abs() < 1e-10);
+}
+
+#[test]
+fn dimension_gap_positive_when_score_below_threshold() {
+    assert!((dimension_gap(0.80, 0.95) - 0.15).abs() < 1e-10);
+}
+
+#[test]
+fn dimension_gap_zero_when_score_equals_threshold() {
+    assert!((dimension_gap(0.85, 0.85) - 0.0).abs() < 1e-10);
+}
+
+#[test]
+fn dimension_final_passes_within_epsilon() {
+    // score=0.84, threshold=0.85, gap=0.01, epsilon=0.02 → passes
+    assert!(dimension_final(0.84, 0.85, 0.02));
+}
+
+#[test]
+fn dimension_final_fails_outside_epsilon() {
+    // score=0.80, threshold=0.85, gap=0.05, epsilon=0.02 → fails
+    assert!(!dimension_final(0.80, 0.85, 0.02));
+}
+
+#[test]
+fn dimension_final_passes_exactly_at_epsilon() {
+    // score=0.83, threshold=0.85, gap≈0.02 → use slightly larger epsilon for FP safety
+    assert!(dimension_final(0.83, 0.85, 0.021));
+    // And verify gap is very close to 0.02
+    let gap = dimension_gap(0.83, 0.85);
+    assert!((gap - 0.02).abs() < 1e-10);
+}
+
+#[test]
+fn dimension_final_passes_above_threshold() {
+    // score=0.95, threshold=0.85 → gap=0, any epsilon passes
+    assert!(dimension_final(0.95, 0.85, 0.0));
+}
+
+// ---------------------------------------------------------------------------
+// Vector finality: all dimensions pass
+// ---------------------------------------------------------------------------
+
+#[test]
+fn vector_finality_all_pass() {
+    let scores = [0.90, 0.98, 0.95, 0.85]; // all above thresholds
+    let config = VectorFinalityConfig::default();
+    let monotonic = [true, true, true, true];
+    let trajectory = [0.9, 0.85, 0.8, 0.75];
+    let gates = make_passing_global_gates();
+
+    let result = evaluate_vector_finality(
+        &scores, &config, &monotonic, &trajectory, &gates, 0.95, 0.92,
+    );
+
+    assert!(result.all_required_passed);
+    assert!(!result.veto_triggered);
+    assert!(result.global_gates_passed);
+    assert!(result.finality_reached);
+    assert!(!result.compensation_detected);
+    assert_eq!(result.dimension_results.len(), 4);
+    for dr in &result.dimension_results {
+        assert!(dr.passed, "dim {:?} should pass", dr.dimension);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Compensation attack detection (PO-2): scalar passes, vector blocks
+// ---------------------------------------------------------------------------
+
+#[test]
+fn vector_finality_blocks_compensation() {
+    // Compensation scenario: high claim + goal + risk compensate low contradiction
+    // claim_confidence=1.0, contra=0.50, goal=1.0, risk_inv=1.0
+    // Scalar: 0.30*1.0 + 0.30*0.50 + 0.25*1.0 + 0.15*1.0 = 0.85 → hmm
+    // Actually with normalization: claim_conf = min(1.0/0.85, 1.0) = 1.0
+    // contra_resolution = 0.50
+    // goal_completion = 1.0
+    // risk_inverse = 1.0
+    // scalar = 0.30*1.0 + 0.30*0.50 + 0.25*1.0 + 0.15*1.0 = 0.30+0.15+0.25+0.15 = 0.85
+    // Need higher scalar to pass 0.92:
+    // claim=1.0, contra=0.80, goal=1.0, risk=1.0
+    // scalar = 0.30 + 0.24 + 0.25 + 0.15 = 0.94 → passes 0.92
+    // But contra=0.80 < threshold=0.95 → vector blocks
+    let scores = [1.0, 0.80, 1.0, 1.0];
+    let config = VectorFinalityConfig::default();
+    let monotonic = [true, true, true, true];
+    let trajectory = [0.9, 0.9, 0.9, 0.9];
+    let gates = make_passing_global_gates();
+
+    let result = evaluate_vector_finality(
+        &scores, &config, &monotonic, &trajectory, &gates,
+        0.94, // scalar_score — passes 0.92
+        0.92, // scalar_threshold
+    );
+
+    // Vector should block: contra=0.80 < threshold=0.95, gap=0.15 > eps=0.01
+    assert!(!result.all_required_passed);
+    assert!(result.veto_triggered, "contra_resolution is veto");
+    assert_eq!(result.veto_causes.len(), 1);
+    assert_eq!(result.veto_causes[0], DimensionId::ContradictionResolution);
+    assert!(!result.finality_reached);
+    assert!(result.compensation_detected, "scalar passes but vector blocks");
+}
+
+// ---------------------------------------------------------------------------
+// Veto dimension tests
+// ---------------------------------------------------------------------------
+
+#[test]
+fn vector_finality_veto_blocks_even_if_non_required() {
+    // Make contradiction_resolution the only veto but also the only failure
+    let scores = [0.90, 0.80, 0.95, 0.85]; // contra fails
+    let config = VectorFinalityConfig::default(); // contra is veto
+    let monotonic = [true, true, true, true];
+    let trajectory = [0.9, 0.9, 0.9, 0.9];
+    let gates = make_passing_global_gates();
+
+    let result = evaluate_vector_finality(
+        &scores, &config, &monotonic, &trajectory, &gates, 0.50, 0.92,
+    );
+
+    assert!(result.veto_triggered);
+    assert!(!result.finality_reached);
+    assert_eq!(result.veto_causes, vec![DimensionId::ContradictionResolution]);
+}
+
+#[test]
+fn vector_finality_no_veto_when_veto_dim_passes() {
+    let scores = [0.90, 0.98, 0.95, 0.85]; // all pass including veto
+    let config = VectorFinalityConfig::default();
+    let monotonic = [true, true, true, true];
+    let trajectory = [0.9, 0.9, 0.9, 0.9];
+    let gates = make_passing_global_gates();
+
+    let result = evaluate_vector_finality(
+        &scores, &config, &monotonic, &trajectory, &gates, 0.95, 0.92,
+    );
+
+    assert!(!result.veto_triggered);
+    assert!(result.veto_causes.is_empty());
+    assert!(result.finality_reached);
+}
+
+// ---------------------------------------------------------------------------
+// Per-dimension monotonicity gate (GA_d) tests
+// ---------------------------------------------------------------------------
+
+#[test]
+fn vector_finality_fails_when_dim_not_monotonic() {
+    let scores = [0.90, 0.98, 0.95, 0.85]; // all above thresholds
+    let config = VectorFinalityConfig::default();
+    // claim_confidence is NOT monotonic
+    let monotonic = [false, true, true, true];
+    let trajectory = [0.9, 0.9, 0.9, 0.9];
+    let gates = make_passing_global_gates();
+
+    let result = evaluate_vector_finality(
+        &scores, &config, &monotonic, &trajectory, &gates, 0.95, 0.92,
+    );
+
+    // claim_confidence fails GA_d → not passed → all_required_passed = false
+    assert!(!result.all_required_passed);
+    assert!(!result.finality_reached);
+
+    // Verify the specific dimension result
+    let claim = &result.dimension_results[DimensionId::ClaimConfidence.index()];
+    assert!(!claim.gate_a_monotonic);
+    assert!(!claim.passed);
+}
+
+// ---------------------------------------------------------------------------
+// Per-dimension trajectory quality gate (GC_d) tests
+// ---------------------------------------------------------------------------
+
+#[test]
+fn vector_finality_fails_when_dim_trajectory_low() {
+    let scores = [0.90, 0.98, 0.95, 0.85];
+    let config = VectorFinalityConfig::default(); // trajectory threshold = 0.7
+    let monotonic = [true, true, true, true];
+    // goal_completion has low trajectory quality (oscillating)
+    let trajectory = [0.9, 0.9, 0.5, 0.9];
+    let gates = make_passing_global_gates();
+
+    let result = evaluate_vector_finality(
+        &scores, &config, &monotonic, &trajectory, &gates, 0.95, 0.92,
+    );
+
+    assert!(!result.all_required_passed);
+    assert!(!result.finality_reached);
+
+    let goal = &result.dimension_results[DimensionId::GoalCompletion.index()];
+    assert!(!goal.gate_c_trajectory_ok);
+    assert!(!goal.passed);
+}
+
+// ---------------------------------------------------------------------------
+// Epsilon tolerance sensitivity
+// ---------------------------------------------------------------------------
+
+#[test]
+fn vector_finality_epsilon_tight_pass() {
+    // Score just below threshold but within epsilon
+    let scores = [0.84, 0.945, 0.89, 0.78];
+    let config = VectorFinalityConfig {
+        thresholds: [0.85, 0.95, 0.90, 0.80],
+        epsilon: [0.02, 0.01, 0.02, 0.03], // default
+        required: [true, true, true, true],
+        veto: [false, true, false, false],
+        trajectory_quality_threshold: 0.7,
+    };
+    let monotonic = [true, true, true, true];
+    let trajectory = [0.9, 0.9, 0.9, 0.9];
+    let gates = make_passing_global_gates();
+
+    let result = evaluate_vector_finality(
+        &scores, &config, &monotonic, &trajectory, &gates, 0.95, 0.92,
+    );
+
+    // gaps: claim=0.01<=0.02, contra=0.005<=0.01, goal=0.01<=0.02, risk=0.02<=0.03
+    assert!(result.all_required_passed, "all within epsilon tolerance");
+    assert!(result.finality_reached);
+}
+
+#[test]
+fn vector_finality_epsilon_zero_requires_exact() {
+    let scores = [0.849, 0.98, 0.95, 0.85];
+    let config = VectorFinalityConfig {
+        thresholds: [0.85, 0.95, 0.90, 0.80],
+        epsilon: [0.0, 0.01, 0.02, 0.03], // zero epsilon for claim
+        required: [true, true, true, true],
+        veto: [false, true, false, false],
+        trajectory_quality_threshold: 0.7,
+    };
+    let monotonic = [true, true, true, true];
+    let trajectory = [0.9, 0.9, 0.9, 0.9];
+    let gates = make_passing_global_gates();
+
+    let result = evaluate_vector_finality(
+        &scores, &config, &monotonic, &trajectory, &gates, 0.95, 0.92,
+    );
+
+    // claim gap=0.001 > epsilon=0.0 → fails
+    assert!(!result.all_required_passed);
+    assert!(!result.finality_reached);
+}
+
+// ---------------------------------------------------------------------------
+// Global gates interaction
+// ---------------------------------------------------------------------------
+
+#[test]
+fn vector_finality_fails_when_global_gate_b_fails() {
+    let scores = [0.90, 0.98, 0.95, 0.85];
+    let config = VectorFinalityConfig::default();
+    let monotonic = [true, true, true, true];
+    let trajectory = [0.9, 0.9, 0.9, 0.9];
+    let mut gates = make_passing_global_gates();
+    gates.b_evidence = false; // global gate B fails
+
+    let result = evaluate_vector_finality(
+        &scores, &config, &monotonic, &trajectory, &gates, 0.95, 0.92,
+    );
+
+    assert!(result.all_required_passed); // per-dim all pass
+    assert!(!result.global_gates_passed);
+    assert!(!result.finality_reached);
+}
+
+#[test]
+fn vector_finality_fails_when_global_gate_e_fails() {
+    let scores = [0.90, 0.98, 0.95, 0.85];
+    let config = VectorFinalityConfig::default();
+    let monotonic = [true, true, true, true];
+    let trajectory = [0.9, 0.9, 0.9, 0.9];
+    let mut gates = make_passing_global_gates();
+    gates.e_has_content = false; // no content
+
+    let result = evaluate_vector_finality(
+        &scores, &config, &monotonic, &trajectory, &gates, 0.95, 0.92,
+    );
+
+    assert!(!result.global_gates_passed);
+    assert!(!result.finality_reached);
+}
+
+// ---------------------------------------------------------------------------
+// Non-required dimension does not block
+// ---------------------------------------------------------------------------
+
+#[test]
+fn vector_finality_non_required_dim_does_not_block() {
+    let scores = [0.90, 0.98, 0.95, 0.50]; // risk_inverse very low
+    let config = VectorFinalityConfig {
+        thresholds: [0.85, 0.95, 0.90, 0.80],
+        epsilon: [0.02, 0.01, 0.02, 0.03],
+        required: [true, true, true, false], // risk NOT required
+        veto: [false, true, false, false],
+        trajectory_quality_threshold: 0.7,
+    };
+    let monotonic = [true, true, true, true];
+    let trajectory = [0.9, 0.9, 0.9, 0.9];
+    let gates = make_passing_global_gates();
+
+    let result = evaluate_vector_finality(
+        &scores, &config, &monotonic, &trajectory, &gates, 0.95, 0.92,
+    );
+
+    // risk fails its threshold but is not required
+    assert!(result.all_required_passed);
+    assert!(result.finality_reached);
+
+    let risk = &result.dimension_results[DimensionId::RiskInverse.index()];
+    assert!(!risk.passed);
+    assert!(!risk.is_required);
+}
+
+// ---------------------------------------------------------------------------
+// Compensation detection: scalar below threshold = no detection
+// ---------------------------------------------------------------------------
+
+#[test]
+fn no_compensation_when_scalar_also_fails() {
+    let scores = [0.50, 0.50, 0.50, 0.50]; // everything low
+    let config = VectorFinalityConfig::default();
+    let monotonic = [true, true, true, true];
+    let trajectory = [0.9, 0.9, 0.9, 0.9];
+    let gates = make_passing_global_gates();
+
+    let result = evaluate_vector_finality(
+        &scores, &config, &monotonic, &trajectory, &gates,
+        0.50, // scalar also fails
+        0.92,
+    );
+
+    assert!(!result.finality_reached);
+    assert!(!result.compensation_detected, "scalar also fails, no compensation");
+}
+
+// ---------------------------------------------------------------------------
+// Dimension result correctness
+// ---------------------------------------------------------------------------
+
+#[test]
+fn dimension_results_have_correct_metadata() {
+    let scores = [0.90, 0.80, 0.95, 0.85];
+    let config = VectorFinalityConfig::default();
+    let monotonic = [true, false, true, true];
+    let trajectory = [0.9, 0.9, 0.5, 0.9];
+    let gates = make_passing_global_gates();
+
+    let result = evaluate_vector_finality(
+        &scores, &config, &monotonic, &trajectory, &gates, 0.50, 0.92,
+    );
+
+    assert_eq!(result.dimension_results.len(), 4);
+
+    // Check claim_confidence
+    let claim = &result.dimension_results[0];
+    assert_eq!(claim.dimension, DimensionId::ClaimConfidence);
+    assert!((claim.score - 0.90).abs() < 1e-10);
+    assert!((claim.threshold - 0.85).abs() < 1e-10);
+    assert!((claim.gap - 0.0).abs() < 1e-10);
+    assert!(claim.passed);
+    assert!(!claim.is_veto);
+    assert!(claim.is_required);
+
+    // Check contradiction_resolution: score=0.80, threshold=0.95, monotonic=false
+    let contra = &result.dimension_results[1];
+    assert_eq!(contra.dimension, DimensionId::ContradictionResolution);
+    assert!((contra.gap - 0.15).abs() < 1e-10);
+    assert!(!contra.gate_a_monotonic);
+    assert!(!contra.passed);
+    assert!(contra.is_veto);
+
+    // Check goal_completion: trajectory=0.5 < 0.7
+    let goal = &result.dimension_results[2];
+    assert_eq!(goal.dimension, DimensionId::GoalCompletion);
+    assert!(!goal.gate_c_trajectory_ok);
+    assert!(!goal.passed);
+
+    // Check risk_score_inverse: all gates pass
+    let risk = &result.dimension_results[3];
+    assert_eq!(risk.dimension, DimensionId::RiskInverse);
+    assert!(risk.passed);
+}

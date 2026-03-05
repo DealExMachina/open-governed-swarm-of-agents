@@ -15,6 +15,30 @@ convergence:
   history_depth: 20          # Convergence points to keep in analysis window
   divergence_rate: -0.05     # Convergence rate α below this triggers divergence alert
 
+# Per-dimension (vector) finality. When enabled, RESOLVED requires every required
+# dimension to independently meet its threshold + epsilon, with per-dimension gates
+# GA_d (monotonicity) and GC_d (trajectory quality). Scalar finality remains as
+# fallback when disabled.  See Issue #18 / docs/formal-hardening.md.
+per_dimension_finality:
+  enabled: true
+  required_dimensions:
+    - claim_confidence
+    - contradiction_resolution
+    - goal_completion
+    - risk_score_inverse
+  dimension_thresholds:
+    claim_confidence: 0.85         # avg_confidence / 0.85 ratio >= this
+    contradiction_resolution: 0.95 # resolution ratio >= this
+    goal_completion: 0.90          # goals resolved ratio >= this
+    risk_score_inverse: 0.80       # 1 - risk_score >= this
+  veto_dimensions:                 # Any veto dimension below threshold blocks finality
+    - contradiction_resolution
+  epsilon:                         # Per-dimension tolerance: e_d(t) = max(0, tau_d - mu_d(t)) <= eps_d
+    claim_confidence: 0.02
+    contradiction_resolution: 0.01
+    goal_completion: 0.02
+    risk_score_inverse: 0.03
+
 # Gate D: quiescence. Set idle_cycles_min > 0 and/or window_ms > 0 to require stability before RESOLVED.
 quiescence:
   idle_cycles_min: 0         # 0 = not required

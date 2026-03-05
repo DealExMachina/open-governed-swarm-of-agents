@@ -58,6 +58,20 @@ export interface FinalityCertificatePayload {
   timestamp: string;
   policy_version_hashes?: { governance?: string; finality?: string };
   dimensions_snapshot?: Record<string, number>;
+  /** Issue #18: 'scalar' or 'vector' finality mode used. */
+  finality_mode?: "scalar" | "vector";
+  /** Issue #18: per-dimension pass/fail results (vector mode). */
+  per_dimension_results?: {
+    dimension: string;
+    score: number;
+    threshold: number;
+    passed: boolean;
+    is_veto: boolean;
+    gate_a: boolean;
+    gate_c: boolean;
+  }[];
+  /** Issue #18: veto dimensions that blocked finality. */
+  veto_causes?: string[];
 }
 
 export type CaseStatus =
@@ -104,11 +118,57 @@ export interface QuiescenceConfig {
   window_ms: number;
 }
 
+/**
+ * Per-dimension (vector) finality configuration.
+ * When enabled, RESOLVED requires every required dimension to independently
+ * satisfy its threshold + epsilon, with per-dimension gates GA_d and GC_d.
+ * Scalar finality remains as fallback when disabled.
+ *
+ * F*(t) = AND_d[e_d <= eps_d AND GA_d AND GC_d] AND GB AND GD AND GE
+ */
+export interface PerDimensionFinalityConfig {
+  /** Enable vector finality predicate (default: false for backward compat). */
+  enabled: boolean;
+  /** Dimensions that must individually pass for RESOLVED. */
+  required_dimensions: string[];
+  /** Per-dimension score thresholds (tau_d). */
+  dimension_thresholds: Record<string, number>;
+  /** Dimensions whose failure vetoes finality regardless of other dimensions. */
+  veto_dimensions: string[];
+  /** Per-dimension epsilon tolerances. e_d(t) = max(0, tau_d - mu_d(t)) <= eps_d. */
+  epsilon: Record<string, number>;
+}
+
+/** Result of per-dimension vector finality evaluation. */
+export interface VectorFinalityResult {
+  dimension_results: DimensionFinalityResult[];
+  all_required_passed: boolean;
+  veto_triggered: boolean;
+  veto_causes: string[];
+  global_gates_passed: boolean;
+}
+
+/** Per-dimension finality outcome. */
+export interface DimensionFinalityResult {
+  dimension: string;
+  score: number;
+  threshold: number;
+  gap: number;
+  epsilon: number;
+  passed: boolean;
+  is_veto: boolean;
+  is_required: boolean;
+  gate_a_monotonic: boolean;
+  gate_c_trajectory_ok: boolean;
+}
+
 export interface FinalityConfig {
   goal_gradient?: GoalGradientConfig;
   convergence?: ConvergenceYamlConfig;
   /** Gate D: optional quiescence; 0/0 = disabled. */
   quiescence?: QuiescenceConfig;
+  /** Per-dimension (vector) finality; when enabled replaces scalar threshold. */
+  per_dimension_finality?: PerDimensionFinalityConfig;
   finality: Record<CaseStatus, FinalityConditionRule>;
 }
 
@@ -214,6 +274,10 @@ export interface ConvergenceData {
   trajectory_quality: number;
   /** Gate C: oscillation detected (blocks or downgrades auto-resolve). */
   oscillation_detected: boolean;
+  /** GA_d: per-dimension monotonicity (Issue #18). */
+  per_dimension_monotonic?: boolean[];
+  /** GC_d: per-dimension trajectory quality (Issue #18). */
+  per_dimension_trajectory_quality?: number[];
 }
 
 export interface FinalityReviewRequest {
@@ -377,6 +441,8 @@ export async function evaluateFinality(scopeId: string): Promise<FinalityResult 
       score_history: convergence.history.map((p) => p.goal_score),
       trajectory_quality: convergence.trajectory_quality,
       oscillation_detected: convergence.oscillation_detected,
+      per_dimension_monotonic: convergence.per_dimension_monotonic,
+      per_dimension_trajectory_quality: convergence.per_dimension_trajectory_quality,
     };
 
     // Divergence detection: V is increasing → system moving away from finality
@@ -421,7 +487,65 @@ export async function evaluateFinality(scopeId: string): Promise<FinalityResult 
     const isMonotonic = gatesDisabled || (convergenceData?.is_monotonic ?? true);
     const trajectoryOk = gatesDisabled || ((convergenceData?.trajectory_quality ?? 1) >= 0.7);
     const quiescent = gatesDisabled || isQuiescent(snapshot, config.quiescence);
-    if (allMet && goalScore >= auto && isMonotonic && trajectoryOk && quiescent) {
+
+    const perDimConfig = config.per_dimension_finality;
+    const vectorEnabled = perDimConfig?.enabled && !gatesDisabled;
+
+    if (vectorEnabled && convergenceData) {
+      // --- Vector (per-dimension) finality: Issue #18 ---
+      // F*(t) = AND_d[e_d <= eps_d AND GA_d AND GC_d] AND GB AND GD AND GE
+      try {
+        const { evaluateVectorFinality } = await import("./sgrsAdapter.js");
+        const { computeDimensionScores } = await import("./convergenceTracker.js");
+        const dimScores = computeDimensionScores(snapshot, config.goal_gradient);
+        const vectorResult = evaluateVectorFinality(
+          dimScores,
+          perDimConfig,
+          convergenceData.per_dimension_monotonic ?? [false, false, false, false],
+          convergenceData.per_dimension_trajectory_quality ?? [1, 1, 1, 1],
+          {
+            a_monotonic: isMonotonic,
+            b_evidence: (snapshot.contradiction_mass ?? 0) === 0 && (snapshot.evidence_coverage ?? 1) >= 0.99,
+            c_trajectory: trajectoryOk,
+            d_quiescent: quiescent,
+            e_has_content: hasContent,
+            all_passed: false, // computed downstream
+          },
+          goalScore,
+          auto,
+        );
+
+        if (allMet && vectorResult.all_required_passed && vectorResult.global_gates_passed && !vectorResult.veto_triggered) {
+          await recordGateStateIfAvailable(scopeId, epoch, snapshot, convergenceData, config, "RESOLVED");
+          await emitSessionFinalized(scopeId);
+          await emitFinalityCertificate(scopeId);
+          return { kind: "status", status: "RESOLVED" };
+        }
+
+        // Compensation detection: scalar would pass but vector blocks
+        if (allMet && goalScore >= auto && isMonotonic && trajectoryOk && quiescent) {
+          if (!vectorResult.all_required_passed || vectorResult.veto_triggered) {
+            try {
+              const { logger } = await import("./logger.js");
+              logger.warn("compensation_detected", {
+                scopeId,
+                goalScore,
+                auto,
+                vectorResult: {
+                  all_required_passed: vectorResult.all_required_passed,
+                  veto_triggered: vectorResult.veto_triggered,
+                  veto_causes: vectorResult.veto_causes,
+                  dimension_results: vectorResult.dimension_results,
+                },
+              });
+            } catch { /* logger unavailable */ }
+          }
+        }
+      } catch {
+        // Vector finality unavailable (e.g. Rust addon not built) — fall through to scalar
+      }
+    } else if (allMet && goalScore >= auto && isMonotonic && trajectoryOk && quiescent) {
+      // --- Scalar finality (backward compatible) ---
       if (convergenceData) {
         await recordGateStateIfAvailable(scopeId, epoch, snapshot, convergenceData, config, "RESOLVED");
       }

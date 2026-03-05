@@ -154,6 +154,9 @@ pub struct ConvergenceOutputDto {
     pub oscillation_detected: bool,
     pub trajectory_quality: f64,
     pub autocorrelation_lag1: Option<f64>,
+    // Per-dimension gates (Issue #18: non-scalar finality)
+    pub per_dimension_monotonic: Vec<bool>,
+    pub per_dimension_trajectory_quality: Vec<f64>,
 }
 
 // ---------------------------------------------------------------------------
@@ -343,6 +346,8 @@ pub fn analyze_convergence_bridge(
         oscillation_detected: result.oscillation_detected,
         trajectory_quality: result.trajectory_quality,
         autocorrelation_lag1: result.autocorrelation_lag1,
+        per_dimension_monotonic: result.per_dimension_monotonic.to_vec(),
+        per_dimension_trajectory_quality: result.per_dimension_trajectory_quality.to_vec(),
     }
 }
 
@@ -554,6 +559,52 @@ fn lattice_point_from_dto(dto: &LatticePointDto) -> LatticePoint {
     }
 }
 
+// ---------------------------------------------------------------------------
+// Issue #18: Vector finality DTOs
+// ---------------------------------------------------------------------------
+
+/// Per-dimension finality configuration DTO.
+#[napi(object)]
+pub struct VectorFinalityConfigDto {
+    /// Per-dimension thresholds: [claim, contra, goal, risk].
+    pub thresholds: Vec<f64>,
+    /// Per-dimension epsilon tolerances.
+    pub epsilon: Vec<f64>,
+    /// Which dimensions are required.
+    pub required: Vec<bool>,
+    /// Which dimensions are veto dimensions.
+    pub veto: Vec<bool>,
+    /// Trajectory quality threshold for per-dimension GC_d (default 0.7).
+    pub trajectory_quality_threshold: Option<f64>,
+}
+
+/// Per-dimension finality result DTO.
+#[napi(object)]
+pub struct DimensionFinalityResultDto {
+    pub dimension: String,
+    pub score: f64,
+    pub threshold: f64,
+    pub gap: f64,
+    pub epsilon: f64,
+    pub passed: bool,
+    pub is_veto: bool,
+    pub is_required: bool,
+    pub gate_a_monotonic: bool,
+    pub gate_c_trajectory_ok: bool,
+}
+
+/// Vector finality result DTO.
+#[napi(object)]
+pub struct VectorFinalityResultDto {
+    pub dimension_results: Vec<DimensionFinalityResultDto>,
+    pub all_required_passed: bool,
+    pub veto_triggered: bool,
+    pub veto_causes: Vec<String>,
+    pub global_gates_passed: bool,
+    pub finality_reached: bool,
+    pub compensation_detected: bool,
+}
+
 fn admissibility_to_string(result: &AdmissibilityResult) -> String {
     match result {
         AdmissibilityResult::Admissible => "admissible".to_string(),
@@ -634,5 +685,110 @@ pub fn evaluate_kernel(
                     .collect(),
             )
         },
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Issue #18: Vector finality bridge
+// ---------------------------------------------------------------------------
+
+/// Evaluate vector (per-dimension) finality predicate.
+///
+/// F*(t) = AND_d[e_d <= eps_d AND GA_d AND GC_d] AND GB AND GD AND GE
+#[napi]
+pub fn evaluate_vector_finality_bridge(
+    scores: Vec<f64>,
+    config: VectorFinalityConfigDto,
+    per_dim_monotonic: Vec<bool>,
+    per_dim_trajectory: Vec<f64>,
+    global_gates: GateStateDto,
+    scalar_score: f64,
+    scalar_threshold: f64,
+) -> VectorFinalityResultDto {
+    let scores_arr = if scores.len() >= 4 {
+        [scores[0], scores[1], scores[2], scores[3]]
+    } else {
+        [0.0; 4]
+    };
+    let thresholds = if config.thresholds.len() >= 4 {
+        [config.thresholds[0], config.thresholds[1], config.thresholds[2], config.thresholds[3]]
+    } else {
+        [0.85, 0.95, 0.90, 0.80]
+    };
+    let eps = if config.epsilon.len() >= 4 {
+        [config.epsilon[0], config.epsilon[1], config.epsilon[2], config.epsilon[3]]
+    } else {
+        [0.02, 0.01, 0.02, 0.03]
+    };
+    let required = if config.required.len() >= 4 {
+        [config.required[0], config.required[1], config.required[2], config.required[3]]
+    } else {
+        [true; 4]
+    };
+    let veto = if config.veto.len() >= 4 {
+        [config.veto[0], config.veto[1], config.veto[2], config.veto[3]]
+    } else {
+        [false, true, false, false]
+    };
+    let monotonic = if per_dim_monotonic.len() >= 4 {
+        [per_dim_monotonic[0], per_dim_monotonic[1], per_dim_monotonic[2], per_dim_monotonic[3]]
+    } else {
+        [false; 4]
+    };
+    let trajectory = if per_dim_trajectory.len() >= 4 {
+        [per_dim_trajectory[0], per_dim_trajectory[1], per_dim_trajectory[2], per_dim_trajectory[3]]
+    } else {
+        [1.0; 4]
+    };
+
+    let vec_config = finality::VectorFinalityConfig {
+        thresholds,
+        epsilon: eps,
+        required,
+        veto,
+        trajectory_quality_threshold: config.trajectory_quality_threshold.unwrap_or(0.7),
+    };
+
+    let gate_state = GateState {
+        a_monotonic: global_gates.a_monotonic,
+        b_evidence: global_gates.b_evidence,
+        c_trajectory: global_gates.c_trajectory,
+        d_quiescent: global_gates.d_quiescent,
+        e_has_content: global_gates.e_has_content,
+    };
+
+    let result = finality::evaluate_vector_finality(
+        &scores_arr,
+        &vec_config,
+        &monotonic,
+        &trajectory,
+        &gate_state,
+        scalar_score,
+        scalar_threshold,
+    );
+
+    VectorFinalityResultDto {
+        dimension_results: result
+            .dimension_results
+            .iter()
+            .map(|dr| DimensionFinalityResultDto {
+                dimension: dr.dimension.v1_name().to_string(),
+                score: dr.score,
+                threshold: dr.threshold,
+                gap: dr.gap,
+                epsilon: dr.epsilon,
+                passed: dr.passed,
+                is_veto: dr.is_veto,
+                is_required: dr.is_required,
+                gate_a_monotonic: dr.gate_a_monotonic,
+                gate_c_trajectory_ok: dr.gate_c_trajectory_ok,
+            })
+            .collect(),
+        all_required_passed: result.all_required_passed,
+        veto_triggered: result.veto_triggered,
+        veto_causes: result.veto_causes.iter().map(|d| d.v1_name().to_string()).collect(),
+        global_gates_passed: result.global_gates_passed,
+        finality_reached: result.finality_reached,
+        compensation_detected: result.compensation_detected,
     }
 }
