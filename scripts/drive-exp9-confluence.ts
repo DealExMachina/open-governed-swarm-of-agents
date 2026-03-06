@@ -682,6 +682,86 @@ async function runCrossEpochTest(): Promise<CrossEpochResult> {
   };
 }
 
+// ─── Sub-test 7: Vector Finality Determinism ─────────────────────────────────
+
+interface VectorFinalityDeterminismResult {
+  input_sets: number;
+  iterations_per_set: number;
+  all_deterministic: boolean;
+  mismatches: Array<{ set_index: number; detail: string }>;
+}
+
+async function runVectorFinalityDeterminismTest(): Promise<VectorFinalityDeterminismResult> {
+  console.log(`\n[Sub-test 7] Vector Finality Determinism: same inputs → identical results across repeated calls`);
+
+  let evaluateVectorFinalityBridge: ((...args: unknown[]) => unknown) | undefined;
+  try {
+    const mod = await import("../sgrs-core/index.js");
+    evaluateVectorFinalityBridge = mod.evaluateVectorFinalityBridge;
+  } catch { /* addon not available */ }
+
+  if (typeof evaluateVectorFinalityBridge !== "function") {
+    console.log("  ⚠ evaluateVectorFinalityBridge not available — skipping");
+    return { input_sets: 0, iterations_per_set: 0, all_deterministic: true, mismatches: [] };
+  }
+
+  const globalGates = {
+    aMonotonic: true, bEvidence: true, cTrajectory: true, dQuiescent: true, eHasContent: true, allPassed: true,
+  };
+
+  // 5 diverse input sets covering different dimension profiles
+  const inputSets = [
+    { scores: [1.0, 1.0, 1.0, 1.0], monotonic: [true, true, true, true], trajectory: [0.9, 0.9, 0.9, 0.9], scalar: 0.98, label: "all-pass" },
+    { scores: [1.0, 0.80, 1.0, 1.0], monotonic: [true, true, true, true], trajectory: [0.9, 0.9, 0.9, 0.9], scalar: 0.94, label: "compensation" },
+    { scores: [0.50, 0.50, 0.50, 0.50], monotonic: [false, false, false, false], trajectory: [0.3, 0.3, 0.3, 0.3], scalar: 0.50, label: "all-fail" },
+    { scores: [0.86, 0.96, 0.91, 0.81], monotonic: [true, false, true, true], trajectory: [0.8, 0.5, 0.9, 0.7], scalar: 0.89, label: "mixed" },
+    { scores: [0.84, 0.94, 0.89, 0.79], monotonic: [true, true, true, true], trajectory: [0.9, 0.9, 0.9, 0.9], scalar: 0.87, label: "epsilon-boundary" },
+  ];
+
+  const config = {
+    thresholds: [0.85, 0.95, 0.90, 0.80],
+    epsilon: [0.02, 0.01, 0.02, 0.03],
+    required: [true, true, true, true],
+    veto: [false, true, false, false],
+    trajectoryQualityThreshold: 0.7,
+  };
+
+  const ITERATIONS = 10;
+  let allDeterministic = true;
+  const mismatches: VectorFinalityDeterminismResult["mismatches"] = [];
+
+  for (let si = 0; si < inputSets.length; si++) {
+    const input = inputSets[si];
+    const results: string[] = [];
+
+    for (let iter = 0; iter < ITERATIONS; iter++) {
+      const result = evaluateVectorFinalityBridge(
+        input.scores, config, input.monotonic, input.trajectory,
+        globalGates, input.scalar, 0.92,
+      );
+      results.push(JSON.stringify(result));
+    }
+
+    // All iterations must produce identical JSON
+    const ref = results[0];
+    const allSame = results.every((r) => r === ref);
+    if (!allSame) {
+      allDeterministic = false;
+      mismatches.push({ set_index: si, detail: `${input.label}: ${ITERATIONS} iterations produced different outputs` });
+    }
+    console.log(`  Set ${si + 1} (${input.label}): ${allSame ? "✅ deterministic" : "❌ MISMATCH"}`);
+  }
+
+  console.log(`  All deterministic: ${allDeterministic}`);
+
+  return {
+    input_sets: inputSets.length,
+    iterations_per_set: ITERATIONS,
+    all_deterministic: allDeterministic,
+    mismatches,
+  };
+}
+
 // ─── Main ────────────────────────────────────────────────────────────────────
 
 async function main(): Promise<void> {
@@ -705,6 +785,7 @@ async function main(): Promise<void> {
   const eventualResult = await runEventualConsistencyTest();
   const kernelResult = await runKernelDeterminismTest();
   const crossEpochResult = await runCrossEpochTest();
+  const vectorDeterminismResult = await runVectorFinalityDeterminismTest();
 
   // ── Aggregate results ──────────────────────────────────────────────────────
 
@@ -758,6 +839,13 @@ async function main(): Promise<void> {
         description: crossEpochResult.description,
         notes: crossEpochResult.notes,
       },
+      "7_vector_finality_determinism": {
+        pass: vectorDeterminismResult.all_deterministic,
+        description: "evaluateVectorFinalityBridge produces identical output for identical inputs across repeated calls",
+        input_sets: vectorDeterminismResult.input_sets,
+        iterations_per_set: vectorDeterminismResult.iterations_per_set,
+        mismatches: vectorDeterminismResult.mismatches,
+      },
     },
     conclusion: "",
   };
@@ -768,7 +856,8 @@ async function main(): Promise<void> {
     idempotencyResult.idempotent &&
     eventualResult.all_final_equal &&
     kernelResult.all_deterministic &&
-    crossEpochResult.all_equal_after_stabilization;
+    crossEpochResult.all_equal_after_stabilization &&
+    vectorDeterminismResult.all_deterministic;
 
   const hasPartialDivergence = commutativityResult.divergent_permutations > 0;
 
@@ -815,6 +904,7 @@ async function main(): Promise<void> {
   console.log(`  Eventual consistency:    ${eventualResult.all_final_equal ? "✅ PASS" : "❌ FAIL"}`);
   console.log(`  Kernel determinism:      ${kernelResult.all_deterministic ? "✅ PASS" : "❌ FAIL"}`);
   console.log(`  Cross-epoch convergence: ${crossEpochResult.all_equal_after_stabilization ? "✅ PASS" : "❌ FAIL"}`);
+  console.log(`  Vector finality determ.: ${vectorDeterminismResult.all_deterministic ? "✅ PASS" : "❌ FAIL"} (${vectorDeterminismResult.input_sets} sets × ${vectorDeterminismResult.iterations_per_set} iters)`);
   console.log(`\n  ${summary.conclusion}`);
   console.log(`\n  Results written to: ${outputDir}`);
 

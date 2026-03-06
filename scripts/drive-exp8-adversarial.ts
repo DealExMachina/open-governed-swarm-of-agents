@@ -34,7 +34,7 @@ import { fileURLToPath } from "url";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const SCOPE_ID = process.env.SCOPE_ID ?? "default";
 
-type AdversarialMode = "baseline" | "inflate" | "collude";
+type AdversarialMode = "baseline" | "inflate" | "collude" | "compensate";
 
 interface DriverConfig {
   mode: AdversarialMode;
@@ -97,6 +97,50 @@ async function injectAdversarialMutations(
   };
 
   if (mode === "baseline") return stats;
+
+  // Compensate mode: inflate claims, goals, risks but LEAVE contradictions unresolved.
+  // This creates a scalar-pass / vector-block scenario (PO-2 proof).
+  if (mode === "compensate") {
+    const pool = getPool();
+
+    // 1. Inflate claim confidences to 0.99 (push claim_confidence dimension → 1.0)
+    const claimRes = await pool.query(
+      `UPDATE nodes SET confidence = 0.99, updated_at = now(), version = version + 1
+       WHERE scope_id = $1 AND type = 'claim' AND status = 'active'
+         AND superseded_at IS NULL AND (valid_to IS NULL OR valid_to > now())
+         AND confidence < 0.99`,
+      [scopeId],
+    );
+    stats.claimsInflated = claimRes.rowCount ?? 0;
+
+    // 2. Mark active goals as resolved (push goal_completion → 1.0)
+    const goalRes = await pool.query(
+      `UPDATE nodes SET status = 'resolved', updated_at = now(), version = version + 1,
+         source_ref = COALESCE(source_ref, '{}') || '{"resolved_by":"compensate-agent"}'::jsonb
+       WHERE scope_id = $1 AND type = 'goal' AND status = 'active'
+         AND superseded_at IS NULL AND (valid_to IS NULL OR valid_to > now())`,
+      [scopeId],
+    );
+    stats.goalsResolved = goalRes.rowCount ?? 0;
+
+    // 3. Neutralize risks (push risk_score_inverse → 1.0)
+    const riskRes = await pool.query(
+      `UPDATE nodes SET metadata = metadata || '{"severity":"low"}'::jsonb,
+         updated_at = now(), version = version + 1
+       WHERE scope_id = $1 AND type = 'risk' AND status = 'active'
+         AND superseded_at IS NULL AND (valid_to IS NULL OR valid_to > now())
+         AND metadata->>'severity' IN ('high', 'critical')`,
+      [scopeId],
+    );
+    stats.risksNeutralized = riskRes.rowCount ?? 0;
+
+    // 4. DO NOT resolve contradictions — this is the key difference.
+    //    contradiction_resolution stays low while other dims are inflated.
+    //    Scalar: weighted avg should pass 0.92 (claim=1.0, goal=1.0, risk=1.0)
+    //    Vector: contradiction_resolution < 0.95 → BLOCKED (veto)
+
+    return stats;
+  }
 
   const pool = getPool();
 

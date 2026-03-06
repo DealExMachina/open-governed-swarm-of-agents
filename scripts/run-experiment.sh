@@ -232,7 +232,7 @@ case "$EXP_ID" in
     ROUNDS="${ROUNDS:-7}"
     echo "[Exp] Exp8: adversarial agent defense — validating Assumption #5 (cooperative model)"
     echo "[Exp] Running 3 sub-experiments: baseline, inflate, collude"
-    for adv_mode in baseline inflate collude; do
+    for adv_mode in baseline inflate collude compensate; do
       echo ""
       echo "[Exp] ═══ Exp8 run: adversarial_mode=$adv_mode ═══"
 
@@ -393,8 +393,137 @@ case "$EXP_ID" in
     echo "[Exp] Done. See docs/experiments/exp5/results/"
     exit 0
     ;;
+  exp1-sweep)
+    echo "[Exp] Exp1-Sweep: contradiction density sweep under vector finality"
+    echo "[Exp] Running 4 contradiction densities: 0, 1, 3, 5"
+    for C in 0 1 3 5; do
+      echo ""
+      echo "[Exp] ═══ Exp1-Sweep: contradictions=$C ═══"
+
+      # ── Stop previous hatchery ──
+      if [ -n "$HATCHERY_PID" ]; then
+        kill "$HATCHERY_PID" 2>/dev/null || true
+        wait "$HATCHERY_PID" 2>/dev/null || true
+        HATCHERY_PID=""
+      fi
+
+      # ── Reset DB/NATS ──
+      node --loader ts-node/esm scripts/reset-e2e.ts 2>/dev/null || true
+      node --loader ts-node/esm scripts/ensure-schema.ts 2>/dev/null
+      node --loader ts-node/esm scripts/ensure-stream.ts 2>/dev/null
+
+      # ── Start hatchery ──
+      if [ "$RUN_SWARM" = 1 ]; then
+        : > "$LOG_DIR/swarm-exp-hatchery.log"
+        AGENT_ROLE=hatchery AGENT_ID=hatchery-exp node --loader ts-node/esm src/swarm.ts \
+          >> "$LOG_DIR/swarm-exp-hatchery.log" 2>&1 &
+        HATCHERY_PID=$!
+        MITL_PORT="${MITL_PORT:-3001}"
+        for i in $(seq 1 30); do
+          curl -sf "http://127.0.0.1:${MITL_PORT}/health" >/dev/null 2>&1 && break
+          [ "$i" = 30 ] && { echo "[Exp] MITL not ready"; exit 1; }
+          sleep 1
+        done
+      fi
+
+      RESOLVE_OPT="--resolve-at=5,6,7"
+      export CONTRADICTIONS="$C"
+      run_single_experiment "exp1" "--contradictions=$C"
+
+      echo "[Exp] Collecting exp1-sweep (contradictions=$C) results..."
+      node --loader ts-node/esm scripts/collect-experiment-results.ts "exp1" 2>/dev/null || true
+    done
+    unset CONTRADICTIONS
+    echo ""
+    echo "[Exp] Exp1-Sweep complete. See docs/experiments/exp1/results/"
+    exit 0
+    ;;
+  exp-ab)
+    ROUNDS="${ROUNDS:-7}"
+    echo "[Exp] Exp-AB: Scalar↔Vector finality A/B comparison"
+    echo "[Exp] Phase 1: Scalar (per_dimension_finality.enabled: false)"
+    FINALITY_YAML="finality.yaml"
+
+    # ── Phase A: Scalar finality ──
+    # Temporarily disable vector finality
+    sed -i.exp-ab-bak 's/^  enabled: true/  enabled: false/' "$FINALITY_YAML"
+
+    if [ -n "$HATCHERY_PID" ]; then
+      kill "$HATCHERY_PID" 2>/dev/null || true
+      wait "$HATCHERY_PID" 2>/dev/null || true
+      HATCHERY_PID=""
+    fi
+
+    node --loader ts-node/esm scripts/reset-e2e.ts 2>/dev/null || true
+    node --loader ts-node/esm scripts/ensure-schema.ts 2>/dev/null
+    node --loader ts-node/esm scripts/ensure-stream.ts 2>/dev/null
+
+    if [ "$RUN_SWARM" = 1 ]; then
+      : > "$LOG_DIR/swarm-exp-hatchery.log"
+      AGENT_ROLE=hatchery AGENT_ID=hatchery-exp node --loader ts-node/esm src/swarm.ts \
+        >> "$LOG_DIR/swarm-exp-hatchery.log" 2>&1 &
+      HATCHERY_PID=$!
+      MITL_PORT="${MITL_PORT:-3001}"
+      for i in $(seq 1 30); do
+        curl -sf "http://127.0.0.1:${MITL_PORT}/health" >/dev/null 2>&1 && break
+        [ "$i" = 30 ] && { echo "[Exp] MITL not ready"; exit 1; }
+        sleep 1
+      done
+    fi
+
+    RESOLVE_OPT="--resolve-at=5,6,7"
+    CONTRADICT="${CONTRADICTIONS:-3}"
+    run_single_experiment "exp1" "--contradictions=$CONTRADICT"
+
+    # Collect scalar results
+    TS_AB=$(date -u +%Y-%m-%dT%H-%M-%S)
+    AB_DIR="docs/experiments/exp-ab/results/$TS_AB"
+    mkdir -p "$AB_DIR/scalar"
+    node --loader ts-node/esm scripts/collect-experiment-results.ts "exp-ab" "$AB_DIR/scalar" 2>/dev/null || true
+
+    echo ""
+    echo "[Exp] Phase 2: Vector (per_dimension_finality.enabled: true)"
+
+    # ── Phase B: Vector finality ──
+    # Restore vector finality
+    mv "$FINALITY_YAML.exp-ab-bak" "$FINALITY_YAML"
+
+    if [ -n "$HATCHERY_PID" ]; then
+      kill "$HATCHERY_PID" 2>/dev/null || true
+      wait "$HATCHERY_PID" 2>/dev/null || true
+      HATCHERY_PID=""
+    fi
+
+    node --loader ts-node/esm scripts/reset-e2e.ts 2>/dev/null || true
+    node --loader ts-node/esm scripts/ensure-schema.ts 2>/dev/null
+    node --loader ts-node/esm scripts/ensure-stream.ts 2>/dev/null
+
+    if [ "$RUN_SWARM" = 1 ]; then
+      : > "$LOG_DIR/swarm-exp-hatchery.log"
+      AGENT_ROLE=hatchery AGENT_ID=hatchery-exp node --loader ts-node/esm src/swarm.ts \
+        >> "$LOG_DIR/swarm-exp-hatchery.log" 2>&1 &
+      HATCHERY_PID=$!
+      MITL_PORT="${MITL_PORT:-3001}"
+      for i in $(seq 1 30); do
+        curl -sf "http://127.0.0.1:${MITL_PORT}/health" >/dev/null 2>&1 && break
+        [ "$i" = 30 ] && { echo "[Exp] MITL not ready"; exit 1; }
+        sleep 1
+      done
+    fi
+
+    run_single_experiment "exp1" "--contradictions=$CONTRADICT"
+
+    mkdir -p "$AB_DIR/vector"
+    node --loader ts-node/esm scripts/collect-experiment-results.ts "exp-ab" "$AB_DIR/vector" 2>/dev/null || true
+
+    echo ""
+    echo "[Exp] Exp-AB complete. Running analysis..."
+    node --loader ts-node/esm scripts/analyze-scalar-vs-vector.ts "$AB_DIR" 2>/dev/null || true
+    echo "[Exp] Done. See $AB_DIR"
+    exit 0
+    ;;
   *)
-    echo "[Exp] Unknown experiment: $EXP_ID. Use exp1, exp2, exp3, exp4, exp5, exp6, exp7, exp8, exp9, insurance, noisy, financial, demo-baseline."
+    echo "[Exp] Unknown experiment: $EXP_ID. Use exp1, exp2, exp3, exp4, exp5, exp6, exp7, exp8, exp9, exp1-sweep, exp-ab, insurance, noisy, financial, demo-baseline."
     exit 1
     ;;
 esac
