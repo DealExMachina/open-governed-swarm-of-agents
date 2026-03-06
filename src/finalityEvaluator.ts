@@ -525,20 +525,27 @@ export async function evaluateFinality(scopeId: string): Promise<FinalityResult 
         // Compensation detection: scalar would pass but vector blocks
         if (allMet && goalScore >= auto && isMonotonic && trajectoryOk && quiescent) {
           if (!vectorResult.all_required_passed || vectorResult.veto_triggered) {
+            const compensationPayload = {
+              scopeId,
+              epoch,
+              goalScore,
+              scalarThreshold: auto,
+              vectorResult: {
+                all_required_passed: vectorResult.all_required_passed,
+                veto_triggered: vectorResult.veto_triggered,
+                veto_causes: vectorResult.veto_causes,
+                dimension_results: vectorResult.dimension_results,
+              },
+            };
             try {
               const { logger } = await import("./logger.js");
-              logger.warn("compensation_detected", {
-                scopeId,
-                goalScore,
-                auto,
-                vectorResult: {
-                  all_required_passed: vectorResult.all_required_passed,
-                  veto_triggered: vectorResult.veto_triggered,
-                  veto_causes: vectorResult.veto_causes,
-                  dimension_results: vectorResult.dimension_results,
-                },
-              });
+              logger.warn("compensation_detected", compensationPayload);
             } catch { /* logger unavailable */ }
+            // Emit structured event for experiment result collection
+            try {
+              const { appendEvent } = await import("./contextWal.js");
+              await appendEvent({ type: "compensation_detected", ...compensationPayload });
+            } catch { /* WAL unavailable */ }
           }
         }
       } catch {

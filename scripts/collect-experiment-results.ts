@@ -4,8 +4,8 @@
  * Usage:
  *   pnpm tsx scripts/collect-experiment-results.ts <exp_id> [output_dir]
  *
- * Exports: convergence_history.json, decision_records.json, scope_finality_decisions.json,
- * context_events.json (sample), metadata.json (run params, timestamp).
+ * Exports: convergence_history.json (includes dimension_scores, gate columns for vector finality),
+ * decision_records.json, scope_finality_decisions.json, context_events.json (sample), metadata.json.
  *
  * For exp-load: also exports load_metrics.json (state graph, progression, finality).
  * Env: LOAD_RUN_ID, LOAD_INJECTION, LOAD_GRAPH, LOAD_SCALING, LOAD_DURATION.
@@ -119,12 +119,15 @@ async function collect(
 
   const pool = getPool();
 
-  const [convRes, decRes, finRes, eventsRes] = await Promise.all([
+  const [convRes, decRes, finRes, eventsRes, compRes] = await Promise.all([
     pool.query("SELECT * FROM convergence_history ORDER BY scope_id, epoch"),
     pool.query("SELECT * FROM decision_records ORDER BY timestamp"),
     pool.query("SELECT * FROM scope_finality_decisions ORDER BY scope_id, created_at"),
     pool.query(
       "SELECT seq, ts, data FROM context_events WHERE data->>'type' IN ('proposal_approved','proposal_rejected','proposal_pending_approval','finality_decided') ORDER BY ts LIMIT 500",
+    ),
+    pool.query(
+      "SELECT seq, ts, data FROM context_events WHERE data->>'type' = 'compensation_detected' ORDER BY ts",
     ),
   ]);
 
@@ -148,6 +151,7 @@ async function collect(
       decision_records: decRes.rowCount ?? 0,
       scope_finality_decisions: finRes.rowCount ?? 0,
       context_events_sampled: eventsRes.rowCount ?? 0,
+      compensation_events: compRes.rowCount ?? 0,
     },
   };
 
@@ -164,6 +168,16 @@ async function collect(
       JSON.stringify(eventsRes.rows ?? [], null, 2),
     ),
   ];
+
+  // Write compensation events if any were detected (Issue #18 — PO-2 proof artifact)
+  if ((compRes.rowCount ?? 0) > 0) {
+    writes.push(
+      writeFile(
+        join(base, "compensation_events.json"),
+        JSON.stringify(compRes.rows ?? [], null, 2),
+      ),
+    );
+  }
 
   if (expId === "exp-load") {
     const loadMetrics = await collectLoadMetrics(pool);
