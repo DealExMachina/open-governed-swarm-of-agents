@@ -10,13 +10,14 @@
 
 % ── Lattice Theory and Information Flow ─────────────────────────────────────
 
-@article{bell1973,
-  author    = {Bell, David Elliott and LaPadula, Leonard J.},
-  title     = {Secure Computer Systems: Mathematical Foundations},
-  journal   = {MITRE Technical Report MTR-2547},
-  volume    = {I},
-  year      = {1973},
-  note      = {Foundational lattice-based security model}
+@techreport{bell1973,
+  author      = {Bell, David Elliott and LaPadula, Leonard J.},
+  title       = {Secure Computer Systems: Mathematical Foundations},
+  institution = {MITRE Corporation},
+  number      = {MTR-2547},
+  volume      = {I},
+  year        = {1973},
+  note        = {Foundational lattice-based security model}
 }
 
 @book{davey2002,
@@ -41,13 +42,12 @@
 
 % ── Rewriting Systems and Termination ───────────────────────────────────────
 
-@incollection{baader1998,
+@book{baader1998,
   author    = {Baader, Franz and Nipkow, Tobias},
   title     = {Term Rewriting and All That},
   publisher = {Cambridge University Press},
   year      = {1998},
-  isbn      = {978-0521779203},
-  note      = {Standard reference on rewriting theory, termination, and confluence}
+  isbn      = {978-0521779203}
 }
 
 @article{newman1942,
@@ -96,19 +96,15 @@
   publisher = {IEEE}
 }
 
-@article{duan2025,
-  author    = {Duan, Haibin and others},
-  title     = {Aegean: Monotonicity Gates and Coordination Invariants for Multi-Agent Convergence},
-  year      = {2025},
-  note      = {Preprint}
+@misc{ruan2025,
+  author        = {Ruan, Chaoyi and Wang, Yiliang and Shi, Ziji and Li, Jialin},
+  title         = {Reaching Agreement Among Reasoning {LLM} Agents},
+  year          = {2025},
+  eprint        = {2512.20184},
+  archiveprefix = {arXiv},
+  primaryclass  = {cs.DC}
 }
 
-@inproceedings{camacho2024,
-  author    = {Camacho, Alberto and others},
-  title     = {{MACI}: {EMA}-Based Stagnation Detection in Multi-Agent Coordination},
-  booktitle = {Proceedings of the 23rd International Conference on Autonomous Agents and Multiagent Systems (AAMAS)},
-  year      = {2024}
-}
 
 % ── Byzantine Consensus ─────────────────────────────────────────────────────
 
@@ -131,27 +127,39 @@
   year      = {1999}
 }
 
-@article{zheng2025,
-  author    = {Zheng, Luyao and Chen, Jianhua and Yin, Quanjun and Zhang, Junping and Zeng, Xingguo and Tian, Yonghong},
-  title     = {Rethinking the Reliability of Multi-Agent System: A Perspective from {Byzantine} Fault Tolerance},
-  year      = {2025},
-  note      = {Preprint}
+@misc{zheng2025,
+  author        = {Zheng, Lifan and Chen, Jiawei and Yin, Qinghong and Zhang, Jingyuan and Zeng, Xinyi and Tian, Yu},
+  title         = {Rethinking the Reliability of Multi-Agent System: A Perspective from {Byzantine} Fault Tolerance},
+  year          = {2025},
+  eprint        = {2511.10400},
+  archiveprefix = {arXiv},
+  primaryclass  = {cs.MA}
 }
 
-@article{mao2024,
-  author    = {Mao, Yiming and Kang, Yao and Li, Peng and Zhang, Nan and Xu, Wei and Zhang, Chongjie},
-  title     = {{IBGP}: Imperfect {Byzantine} Generals Problem for Zero-Shot Robustness in Communicative Multi-Agent Systems},
-  year      = {2024},
-  note      = {Preprint}
+@misc{mao2024,
+  author        = {Mao, Yihuan and Kang, Yipeng and Li, Peilun and Zhang, Ning and Xu, Wei and Zhang, Chongjie},
+  title         = {{IBGP}: Imperfect {Byzantine} Generals Problem for Zero-Shot Robustness in Communicative Multi-Agent Systems},
+  year          = {2024},
+  eprint        = {2410.16237},
+  archiveprefix = {arXiv},
+  primaryclass  = {cs.MA}
 }
 
 % ── Distributed Data Structures ─────────────────────────────────────────────
 
-@inproceedings{laddad2024,
-  author    = {Laddad, Shadaj and others},
-  title     = {{CodeCRDT}: Monotonic Merge Operations for Distributed Collaborative Editing},
-  booktitle = {Proceedings of the ACM on Programming Languages (OOPSLA)},
-  year      = {2024}
+% TODO: Cite key references "Laddad" but Laddad's actual CRDT work is
+% "Keep CALM and CRDT On" (VLDB 2023, arXiv:2210.12605). The title
+% "CodeCRDT: Monotonic Merge Operations" does not match any Laddad paper.
+% A CodeCRDT paper exists (arXiv:2510.18893) but by Pugachev (2025).
+% The .tex text references "Laddad et al." -- verify the intended source.
+@misc{laddad2024,
+  author        = {Laddad, Shadaj and Cheung, Alvin and Hellerstein, Joseph M.},
+  title         = {Keep {CALM} and {CRDT} On},
+  year          = {2022},
+  eprint        = {2210.12605},
+  archiveprefix = {arXiv},
+  primaryclass  = {cs.DB},
+  note          = {Published in Proceedings of the VLDB Endowment, 2023}
 }
 
 @book{snodgrass2000,
@@ -159,46 +167,49 @@
   title     = {Developing Time-Oriented Database Applications in {SQL}},
   publisher = {Morgan Kaufmann},
   year      = {2000},
-  isbn      = {978-1558604360},
-  note      = {Definitive reference on bitemporal database modeling}
+  isbn      = {978-1558604360}
 }
 
 % ── Agent Frameworks ────────────────────────────────────────────────────────
 
-@article{wu2023autogen,
-  author    = {Wu, Qingyun and Bansal, Gagan and Zhang, Jieyu and Wu, Yiran and Li, Beibin and Zhu, Erkang and Jiang, Li and Zhang, Xiaoyun and Zhang, Shaokun and Liu, Jiale and Awadallah, Ahmed Hassan and White, Ryen W. and Burger, Doug and Wang, Chi},
-  title     = {{AutoGen}: Enabling Next-Gen {LLM} Applications via Multi-Agent Conversation},
-  journal   = {arXiv preprint arXiv:2308.08155},
-  year      = {2023}
+@misc{wu2023autogen,
+  author        = {Wu, Qingyun and Bansal, Gagan and Zhang, Jieyu and Wu, Yiran and Li, Beibin and Zhu, Erkang and Jiang, Li and Zhang, Xiaoyun and Zhang, Shaokun and Liu, Jiale and Awadallah, Ahmed Hassan and White, Ryen W. and Burger, Doug and Wang, Chi},
+  title         = {{AutoGen}: Enabling Next-Gen {LLM} Applications via Multi-Agent Conversation},
+  year          = {2023},
+  eprint        = {2308.08155},
+  archiveprefix = {arXiv},
+  primaryclass  = {cs.AI}
 }
 
 @misc{crewai2024,
-  author    = {Moura, Jo\~{a}o},
-  title     = {{CrewAI}: Framework for Orchestrating Role-Playing Autonomous {AI} Agents},
-  year      = {2024},
+  author       = {Moura, Jo\~{a}o},
+  title        = {{CrewAI}: Framework for Orchestrating Role-Playing Autonomous {AI} Agents},
+  year         = {2024},
   howpublished = {\url{https://github.com/joaomdmoura/crewAI}}
 }
 
 @misc{langgraph2024,
-  author    = {{LangChain Team}},
-  title     = {{LangGraph}: Building Stateful, Multi-Actor Applications with {LLMs}},
-  year      = {2024},
+  author       = {{LangChain Team}},
+  title        = {{LangGraph}: Building Stateful, Multi-Actor Applications with {LLMs}},
+  year         = {2024},
   howpublished = {\url{https://github.com/langchain-ai/langgraph}}
 }
 
 % ── Self-Evolving Coordination ──────────────────────────────────────────────
 
-@article{delachica2026,
-  author    = {de la Chica Rodriguez, Jose Manuel and Vera D{\'\i}az, Juan Manuel},
-  title     = {Self-Evolving Coordination Protocol in Multi-Agent {AI} Systems: An Exploratory Systems Feasibility Study},
-  journal   = {arXiv preprint arXiv:2602.02170},
-  year      = {2026}
+@misc{delachica2026,
+  author        = {de la Chica Rodriguez, Jose Manuel and Vera D{\'\i}az, Juan Manuel},
+  title         = {Self-Evolving Coordination Protocol in Multi-Agent {AI} Systems: An Exploratory Systems Feasibility Study},
+  year          = {2026},
+  eprint        = {2602.02170},
+  archiveprefix = {arXiv},
+  primaryclass  = {cs.MA}
 }
 
 % ── Policy Engines and Access Control ───────────────────────────────────────
 
 @inproceedings{pang2019,
-  author    = {Pang, Ruoming and others},
+  author    = {Pang, Ruoming and Caceres, Ramon and Burrows, Mike and Chen, Zhifeng and Dave, Pratik and Germer, Nathan and Golynski, Alexander and Graney, Kevin and Kang, Nina and Kissner, Lea and Korn, Jeffrey L. and Parmar, Abhishek and Richards, Christina D. and Wang, Mengzhi},
   title     = {Zanzibar: {Google}'s Consistent, Global Authorization System},
   booktitle = {Proceedings of the 2019 USENIX Annual Technical Conference (USENIX ATC)},
   year      = {2019},
@@ -211,7 +222,7 @@
   institution = {OASIS Standard},
   year        = {2013},
   month       = jan,
-  note        = {\url{http://docs.oasis-open.org/xacml/3.0/xacml-3.0-core-spec-os-en.html}}
+  url         = {http://docs.oasis-open.org/xacml/3.0/xacml-3.0-core-spec-os-en.html}
 }
 
 % ── Coordination and Swarm Intelligence ─────────────────────────────────────
@@ -225,13 +236,13 @@
   year      = {1988}
 }
 
-@article{dorigo2024,
-  author    = {Dorigo, Marco and others},
-  title     = {Swarm Intelligence: From Stigmergic Coordination to Pressure-Directed Activation},
-  journal   = {Swarm Intelligence},
-  volume    = {18},
-  number    = {1},
-  pages     = {1--28},
-  year      = {2024},
-  doi       = {10.1007/s11721-024-00001-0}
+@article{dorigo2000,
+  author    = {Dorigo, Marco and Bonabeau, Eric and Theraulaz, Guy},
+  title     = {Ant Algorithms and Stigmergy},
+  journal   = {Future Generation Computer Systems},
+  volume    = {16},
+  number    = {8},
+  pages     = {851--871},
+  year      = {2000},
+  doi       = {10.1016/S0167-739X(00)00042-X}
 }
