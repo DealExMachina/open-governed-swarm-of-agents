@@ -522,31 +522,36 @@ export async function evaluateFinality(scopeId: string): Promise<FinalityResult 
           return { kind: "status", status: "RESOLVED" };
         }
 
-        // Compensation detection: scalar would pass but vector blocks
-        if (allMet && goalScore >= auto && isMonotonic && trajectoryOk && quiescent) {
-          if (!vectorResult.all_required_passed || vectorResult.veto_triggered) {
-            const compensationPayload = {
-              scopeId,
-              epoch,
-              goalScore,
-              scalarThreshold: auto,
-              vectorResult: {
-                all_required_passed: vectorResult.all_required_passed,
-                veto_triggered: vectorResult.veto_triggered,
-                veto_causes: vectorResult.veto_causes,
-                dimension_results: vectorResult.dimension_results,
-              },
-            };
-            try {
-              const { logger } = await import("./logger.js");
-              logger.warn("compensation_detected", compensationPayload);
-            } catch { /* logger unavailable */ }
-            // Emit structured event for experiment result collection
-            try {
-              const { appendEvent } = await import("./contextWal.js");
-              await appendEvent({ type: "compensation_detected", ...compensationPayload });
-            } catch { /* WAL unavailable */ }
-          }
+        // Compensation detection: scalar aggregate exceeds threshold but vector blocks.
+        // We intentionally do NOT require allMet here — the whole point of compensation
+        // is that the weighted average hides a weak dimension.  The hard conditions in
+        // finality.RESOLVED overlap with (and are stricter than) the vector thresholds,
+        // so requiring allMet would make this check structurally unreachable.
+        // Instead we check: scalar score looks good enough + gates stable → but vector disagrees.
+        const scalarWouldPass = goalScore >= auto && isMonotonic && trajectoryOk && quiescent;
+        if (scalarWouldPass && (!vectorResult.all_required_passed || vectorResult.veto_triggered)) {
+          const compensationPayload = {
+            scopeId,
+            epoch,
+            goalScore,
+            scalarThreshold: auto,
+            hardConditionsMet: allMet,
+            vectorResult: {
+              all_required_passed: vectorResult.all_required_passed,
+              veto_triggered: vectorResult.veto_triggered,
+              veto_causes: vectorResult.veto_causes,
+              dimension_results: vectorResult.dimension_results,
+            },
+          };
+          try {
+            const { logger } = await import("./logger.js");
+            logger.warn("compensation_detected", compensationPayload);
+          } catch { /* logger unavailable */ }
+          // Emit structured event for experiment result collection
+          try {
+            const { appendEvent } = await import("./contextWal.js");
+            await appendEvent({ type: "compensation_detected", ...compensationPayload });
+          } catch { /* WAL unavailable */ }
         }
       } catch {
         // Vector finality unavailable (e.g. Rust addon not built) — fall through to scalar

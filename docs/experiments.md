@@ -4,7 +4,7 @@
 
 The paper defines five experimental protocols designed to address open questions in the literature---particularly those identified by de la Chica Rodriguez and Vera Diaz (SECP). These experiments are **designed to be reproducible** using the reference implementation.
 
-**Implementation:** Seed scripts, drivers, result collection, and analysis are in place. Run via `./scripts/run-experiment.sh exp<N>` or batch with `./scripts/run-experiment-batch.sh`. See [docs/experiments/README.md](experiments/README.md) for per-experiment setup and result locations.
+**Implementation:** Seed scripts, drivers, result collection, and analysis are in place. Run via `./scripts/run-experiment.sh exp<N>` or batch with `./scripts/run-experiment-batch.sh`. See [docs/experiments/README.md](experiments/README.md) for per-experiment setup and result locations. Experiments run under **per-dimension (vector) finality** when `per_dimension_finality.enabled: true` in `finality.yaml`; see [docs/formal-hardening.md](formal-hardening.md) Section 7 (E1–E5) and Section 3 (assumptions).
 
 | Experiment | GitHub Issue |
 |------------|--------------|
@@ -17,6 +17,8 @@ The paper defines five experimental protocols designed to address open questions
 | 7. Tier 2/3 governance (Assumption 4), Tier-3 reachability | [#21](https://github.com/DealExMachina/swarm-of-governed-agents/issues/21) |
 | 8. Cooperative agent model (Assumption 5) | [#22](https://github.com/DealExMachina/swarm-of-governed-agents/issues/22) |
 | 9. Local confluence (Assumption 2) | [#23](https://github.com/DealExMachina/swarm-of-governed-agents/issues/23) |
+
+**Domain demos (use cases):** M&A (Project Horizon), Financial consolidation, Insurance onboarding and pricing are documented in [docs/demos/](demos/README.md). They use the same driver and run via `run-experiment.sh financial`, `insurance`, `demo-baseline`; they are not assertion-validation experiments.
 
 ---
 
@@ -179,7 +181,7 @@ The paper defines five experimental protocols designed to address open questions
 
 **Expected outcome:** Characteristic non-monotonic V(t) trajectory distinct from clean demo (few contradictions) and noisy corpus (ambiguity without temporal structure). Gate B should fire on stale original figures after restatement. Final state: ESCALATED due to unresolved classification issues (equity vs. loan, methodology alignment).
 
-**Run:** `./scripts/run-experiment.sh financial --rounds=8`. Results: `docs/experiments/financial/results/<timestamp>`. See [docs/experiments/financial/README.md](experiments/financial/README.md) for the full contradiction and ambiguity map.
+**Run:** `./scripts/run-experiment.sh financial --rounds=8`. Results: `docs/experiments/financial/results/<timestamp>`. See [docs/demos/financial/README.md](demos/financial/README.md) for the full scenario and contradiction map.
 
 ---
 

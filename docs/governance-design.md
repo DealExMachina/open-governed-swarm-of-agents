@@ -3,7 +3,7 @@
 **Branch:** `feature/governance-design`
 **Status:** Architecture Review — NOT YET IMPLEMENTING
 **Date:** 2026-02-22
-**Last updated:** 2026-02-22 — Incorporated user decisions: OPA-WASM confirmed, Gate A moved here from finality PRD
+**Last updated:** 2026-02-22 — Incorporated user decisions: Gate A moved here from finality PRD. **Note:** OPA was removed; governance uses YAML + sgrs kernel only (see `governance.yaml`, `src/governance.ts`, `sgrs-core`).
 
 ---
 

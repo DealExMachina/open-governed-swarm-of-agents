@@ -8,7 +8,6 @@
     "swarm:start": "bash scripts/swarm-hatchery.sh",
     "build": "tsc",
     "typecheck": "tsc -p tsconfig.check.json --noEmit",
-    "build:opa": "opa build -t wasm -e governance/result -o policies/bundle.tar.gz policies/ && (cd policies && tar -xzf bundle.tar.gz; true)",
     "start": "node dist/swarm.js",
     "loadgen": "node dist/loadgen.js",
     "seed": "node --loader ts-node/esm scripts/seed-context.ts",
@@ -50,7 +49,6 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.993.0",
     "@mastra/core": "^0.24.9",
-    "@open-policy-agent/opa-wasm": "^1.10.0",
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/exporter-metrics-otlp-http": "^0.212.0",
     "@opentelemetry/exporter-trace-otlp-http": "^0.212.0",

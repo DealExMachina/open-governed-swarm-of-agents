@@ -97,6 +97,40 @@ See [docs/convergence.md](docs/convergence.md) for the formal theory, configurat
 
 ---
 
+## Per-Dimension Vector Finality: Preventing Compensation Attacks
+
+The Lyapunov function aggregates four dimensions into a single weighted score: $V(t) = \sum_d w_d (\tau_d - \mu_d)^2$. However, a scalar score permits a subtle vulnerability: **compensation artifacts** where one dimension over-improves to hide failures in another. For example, agents could inflate claim confidence to 1.0 and goal completion to 1.0 while leaving contradiction resolution at 0.80 — the scalar score would pass (0.94 ≥ 0.92) despite unresolved contradictions.
+
+To address this, the system enforces **per-dimension vector finality** as the default (Issue #18, [docs/formal-hardening.md](docs/formal-hardening.md)):
+
+$$F^*(t) = \bigwedge_{d \in \mathcal{D}} \left[ e_d(t) \leq \epsilon_d \wedge G_A^d(t) \wedge G_C^d(t) \right] \wedge GB \wedge GD \wedge GE$$
+
+where:
+- **Per-dimension gap** $e_d(t) = \max(0, \tau_d - \mu_d(\mathcal{G}_t))$ must be within epsilon tolerance ($\epsilon_d$)
+- **Per-dimension monotonicity** $G_A^d(t)$: each dimension's score must be non-decreasing for $\beta = 3$ rounds
+- **Per-dimension trajectory** $G_C^d(t)$: lag-1 autocorrelation ≥ 0.7 (stable upward trend)
+- **Global gates** GB, GD, GE remain unchanged (evidence coverage, quiescence, minimum content)
+
+| Dimension | Threshold $\tau_d$ | Tolerance $\epsilon_d$ | Veto? | Meaning |
+|-----------|-------------------|----------------------|-------|---------|
+| claim_confidence | 0.85 | 0.02 | No | Active claims at sufficient confidence |
+| contradiction_resolution | **0.95** | **0.01** | **Yes** | Unresolved contradictions must approach zero; **blocks finality unconditionally** |
+| goal_completion | 0.90 | 0.02 | No | Declared goals substantially completed |
+| risk_score_inverse | 0.80 | 0.03 | No | Residual risk below operational threshold |
+
+The **veto semantics** on contradiction_resolution ensure that no amount of claim confidence or goal completion can compensate for unresolved contradictions. This proves **Proof Obligation PO-2 (Non-Compensability)**: the system blocks scalar-pass/vector-fail states.
+
+**Backward compatibility**: Vector finality is controlled by `per_dimension_finality.enabled: true` in `finality.yaml`. Setting it to `false` reverts to scalar finality (the original behavior). The system logs a `compensation_detected` diagnostic flag whenever a state would pass scalar finality but fails vector finality, enabling empirical measurement of attack attempts.
+
+Validation: Three experiments (Issue #18 program) prove non-compensability:
+1. **exp-ab**: Same-session A/B comparison of scalar vs. vector finality on M&A and financial scenarios. Result: scalar RESOLVED 7 times, vector 0 times (same corpus, identical seeds).
+2. **exp8-compensate**: Synthetic workload deliberately inflating claim_confidence and goal_completion while leaving contradiction_resolution low. Result: vector finality correctly blocks all finality attempts.
+3. **Exp 9 sub-test 7**: Determinism and replay validation across M&A and financial scenarios. Result: per-dimension monotonicity gates hold across replay, validating CRDT monotonicity assumption A3.
+
+See [publication/swarm-governed-agents.tex](publication/swarm-governed-agents.tex) (Section "Per-Dimension Finality and Non-Compensability", Theorem 2) for formal proofs and witness cases.
+
+---
+
 ## Perpetual finality: from checkpoint to checkpoint
 
 Most regulated processes are not one-shot. KYC reviews recur annually. IFRS 9 models are recalibrated quarterly. Post-merger integration monitoring runs for years. Sanctions lists update daily. The system that analyzed yesterday's data must analyze tomorrow's -- over the same knowledge base, with the same audit trail.
@@ -182,7 +216,9 @@ The demo UI includes one-click **Reset state** and **Restart** buttons, a servic
 
 See [docs/demo.md](docs/demo.md) for the full walkthrough and [demo/DEMO.md](demo/DEMO.md) for the complete step-by-step guide.
 
-**Financial consolidation** — A second scenario (`demo/scenario/docs-financial/`, 8 documents) exercises dual temporality: holding-company consolidation with subsidiary reports, restatements, auditor review, and management response. Contradictions and ambiguity are designed to trigger V(t) spikes and gate behaviour comparable to the M&A case. Run with `./scripts/run-experiment.sh financial --rounds=8`. See [docs/experiments/financial/README.md](docs/experiments/financial/README.md) and [docs/experiments/COMPARISON-financial-vs-ma.md](docs/experiments/COMPARISON-financial-vs-ma.md) for protocol and consistency check vs M&A.
+**Financial consolidation** — A second scenario (`demo/scenario/docs-financial/`, 8 documents) exercises dual temporality: holding-company consolidation with subsidiary reports, restatements, auditor review, and management response. Run with `./scripts/run-experiment.sh financial --rounds=8`. See [docs/demos/financial/README.md](docs/demos/financial/README.md) and [docs/demos/COMPARISON-financial-vs-ma.md](docs/demos/COMPARISON-financial-vs-ma.md) for protocol and consistency check vs M&A.
+
+**Insurance onboarding** — 22-doc corpus for 20+ convergence cycles; see [docs/demos/insurance/README.md](docs/demos/insurance/README.md). Run with `./scripts/run-experiment.sh insurance`.
 
 ---
 
@@ -394,7 +430,7 @@ For current status, verified functionality, and next steps, see **STATUS.md**.
 - [docs/finality-design.md](docs/finality-design.md) -- finality gates B/C/D, certificates, evidence coverage, implementation status
 - [docs/governance-design.md](docs/governance-design.md) -- policy stack, reduction kernel, obligations
 - [docs/validation.md](docs/validation.md) -- test methodology, what's proven vs theoretical, known gaps
-- [docs/experiments.md](docs/experiments.md) -- experimental protocols, convergence/sgrs benchmarks, load (exp-load); [docs/experiments/README.md](docs/experiments/README.md) -- experiment table and quick start; financial vs M&A comparison in [COMPARISON-financial-vs-ma.md](docs/experiments/COMPARISON-financial-vs-ma.md)
+- [docs/experiments.md](docs/experiments.md) — experimental protocols; [docs/experiments/README.md](docs/experiments/README.md) — experiment table and quick start; [docs/demos/](docs/demos/README.md) — M&A, Financial, Insurance use cases; financial vs M&A comparison in [docs/demos/COMPARISON-financial-vs-ma.md](docs/demos/COMPARISON-financial-vs-ma.md)
 - [docs/demo.md](docs/demo.md) -- Project Horizon M&A demo walkthrough and explainability
 
 ---

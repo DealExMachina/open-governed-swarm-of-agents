@@ -1,1 +1,0 @@
-{"revision":"","roots":[""],"wasm":[{"entrypoint":"governance/result","module":"/policy.wasm"}],"rego_version":1}

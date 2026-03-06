@@ -8,7 +8,7 @@
 
 ## Summary
 
-Evaluate replacing [MinIO](https://minio.io/) with [RustFS](https://github.com/rustfs/rustfs) as the S3-compatible object storage backend for facts, drift, history, filter snapshots, resolutions, and (future) OPA policy bundles. The application already uses the AWS S3 client and standard S3 APIs only; no MinIO-specific features are used, so the migration is a backend swap behind the same client interface.
+Evaluate replacing [MinIO](https://minio.io/) with [RustFS](https://github.com/rustfs/rustfs) as the S3-compatible object storage backend for facts, drift, history, filter snapshots, resolutions, and filter snapshots. The application already uses the AWS S3 client and standard S3 APIs only; no MinIO-specific features are used, so the migration is a backend swap behind the same client interface.
 
 ---
 
@@ -28,7 +28,6 @@ Evaluate replacing [MinIO](https://minio.io/) with [RustFS](https://github.com/r
 | Drift | `drift/latest.json`, `drift/history/<ts>.json` | Drift agent, governance agent, feed, action executor |
 | Resolutions | `resolutions/latest.json` | Facts agent, resolution MCP |
 | Filter snapshots | Config-driven keys via `snapshotFilterToS3()` | Activation filters |
-| (Future) OPA bundles | Tarball bundles from S3 (see `docs/governance-design.md`) | OPA layer |
 
 ### Code touchpoints
 
@@ -78,9 +77,6 @@ RustFS is still in alpha; the migration is a **roadmap option** to re-evaluate w
 5. **Documentation**
    - README, STATUS.md, `docs/governance-design.md`, `publication/swarm-governed-agents.tex`: Replace “MinIO” with “RustFS (S3-compatible)” or “S3 (RustFS)” and update any setup/runbook steps (e.g. console URL if different).
    - `.env.example`: Comment that backend can be MinIO or RustFS (or drop MinIO reference if we fully switch).
-
-6. **OPA (future)**
-   - When OPA bundle distribution is implemented, ensure bundle fetch from S3 (tarball GET) works with RustFS (expected if S3 GET is supported).
 
 ---
 

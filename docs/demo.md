@@ -8,7 +8,7 @@
 
 **Project Horizon** is an M&A due diligence scenario. A strategic buyer evaluates the acquisition of **NovaTech AG**, a B2B SaaS company in supply chain compliance. Five documents arrive over time, each revealing new facts, contradictions, and risks. The governed agent swarm processes them in real time, enforces policy at every transition, and escalates to a human at the right moment.
 
-This is the front door. For the full step-by-step walkthrough with commands, expected states, and SQL queries, see [demo/DEMO.md](../demo/DEMO.md).
+This is the front door. For the full step-by-step walkthrough with commands, expected states, and SQL queries, see [demo/DEMO.md](../demo/DEMO.md). The M&A scenario is also documented as a use case in [docs/demos/ma/README.md](demos/ma/README.md).
 
 ---
 

@@ -231,7 +231,7 @@ case "$EXP_ID" in
   exp8)
     ROUNDS="${ROUNDS:-7}"
     echo "[Exp] Exp8: adversarial agent defense — validating Assumption #5 (cooperative model)"
-    echo "[Exp] Running 3 sub-experiments: baseline, inflate, collude"
+    echo "[Exp] Running 4 sub-experiments: baseline, inflate, collude, compensate"
     for adv_mode in baseline inflate collude compensate; do
       echo ""
       echo "[Exp] ═══ Exp8 run: adversarial_mode=$adv_mode ═══"
@@ -312,7 +312,7 @@ case "$EXP_ID" in
     # Ensure schema exists
     node --loader ts-node/esm scripts/ensure-schema.ts 2>/dev/null
     # Run the confluence driver
-    node --loader ts-node/esm scripts/drive-exp9-confluence.ts "${EXTRA_ARGS[@]}"
+    npx tsx scripts/drive-exp9-confluence.ts "${EXTRA_ARGS[@]}"
     echo "[Exp] Done. See docs/experiments/exp9/results/"
     exit 0
     ;;

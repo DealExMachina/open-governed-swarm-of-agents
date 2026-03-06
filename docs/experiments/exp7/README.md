@@ -54,6 +54,15 @@ Runs 3 sub-experiments with the exp6 corpus:
 | **MITL** | Escalate | "Human decides" |
 | **MASTER** | Reject | "Hard stop" |
 
+## Tier 3 checklist
+
+To reach Tier 3 (oversight → escalateToLLM → processProposalWithAgent):
+
+- **OPENAI_API_KEY** must be set (oversight agent uses `getOversightModelConfig()`, which reads from .env).
+- Recommend **OVERSEE_MODEL=gpt-4o** (or set OPENAI_MODEL=gpt-4o) for more reliable oversight routing.
+- Run with **YOLO** for the sub-run that exercises Tier 3 (exp7-YOLO).
+- Use a corpus that produces **obligations** (e.g. exp6 corpus with contradictions → high drift → open_investigation) and optionally **financial/legal** context so the oversight prompt favours escalateToLLM; see Tier Trigger Conditions above and corpus notes in docs/demos.
+
 ## Running
 
 ```bash

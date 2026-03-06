@@ -312,4 +312,4 @@ open questions---particularly those identified by SECP. These experiments are
 | 8. Cooperative agent model | Assumption #5; adversarial defense | [#22](https://github.com/DealExMachina/swarm-of-governed-agents/issues/22) |
 | 9. Local confluence | Assumption #2; CRDT + eventual consistency | [#23](https://github.com/DealExMachina/swarm-of-governed-agents/issues/23) |
 
-See [experiments.md](experiments.md) for full protocol details.
+See [experiments.md](experiments.md) for full protocol details. When `per_dimension_finality.enabled` is true in `finality.yaml`, experiments run under **per-dimension (vector) finality**; see [formal-hardening.md](formal-hardening.md) for the assumption matrix and E1–E5 program.
