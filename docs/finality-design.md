@@ -195,7 +195,7 @@ Introducing new session/round abstractions alongside existing scope/epoch create
 
 #### Issue 3: Gate A (authorization stability) is governance, not finality
 
-**Problem:** Gate A ("no pending high-impact actions remain blocked by missing permissions/approvals") is a governance gate, not a convergence gate. It checks authorization state, which is the domain of the governance pipeline (OpenFGA + OPA from the governance PRD).
+**Problem:** Gate A ("no pending high-impact actions remain blocked by missing permissions/approvals") is a governance gate, not a convergence gate. It checks authorization state, which is the domain of the governance pipeline (OpenFGA; OPA was removed — governance uses YAML + sgrs only).
 
 Mixing governance checks into finality evaluation creates coupling between two layers that should be independent. The governance layer should clear authorization blockers *before* finality evaluates epistemic stability.
 
@@ -339,7 +339,7 @@ protocols:
 
 #### Issue 9: Integration with governance PRD needs alignment
 
-**Problem:** The Finality PRD references XACML obligations for human routing and OPA monotonicity gates. The governance PRD (reviewed separately) recommends against XACML as a runtime engine and proposes OPA-WASM instead.
+**Problem:** The Finality PRD references XACML obligations for human routing and OPA monotonicity gates. OPA was removed; governance uses YAML + sgrs kernel only.
 
 **Recommendation:** Align the two PRDs:
 - **HITL routing obligations** → implement via the custom obligation enforcer from the governance design (not raw XACML)

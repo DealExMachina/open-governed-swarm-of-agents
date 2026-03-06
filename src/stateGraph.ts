@@ -1,4 +1,7 @@
 import pg from "pg";
+// #region agent log
+fetch("http://127.0.0.1:7243/ingest/43a26554-c058-4ee2-bffa-258ea712c1dc", { method: "POST", headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "346e93" }, body: JSON.stringify({ sessionId: "346e93", location: "stateGraph.ts:top", message: "stateGraph.ts top-level", data: {}, timestamp: Date.now(), hypothesisId: "H3" }) }).catch(() => {});
+// #endregion
 import { getPool, runInTransaction } from "./db.js";
 import { ensureContextTable } from "./contextWal.js";
 import { createSwarmEvent } from "./events.js";

@@ -47,7 +47,7 @@
 
 - Spike at doc 2 (financial due diligence); longer elevated phase (epochs 7–10), then gradual return with a small step at doc 4.
 
-**Consistency:** In both runs, V(t) sits near **0.25** in the initial/baseline state and jumps to **~0.55** when a contradiction is detected, with goal score dropping and finality moving to ESCALATED. Values and behaviour align with the paper’s design.
+**Consistency:** In both runs, V(t) sits near **0.25** in the initial/baseline state and jumps to **~0.55** when a contradiction is detected, with goal score dropping and finality moving to ESCALATED. Values and behaviour align with the paper's design.
 
 ---
 
@@ -70,14 +70,14 @@
 ### Financial
 
 - **1 contradiction** (later marked irrelevant after recovery):  
-  “Initial consolidated revenue EUR 127.4M contradicted by adjustment to EUR 126.6M.”
+  "Initial consolidated revenue EUR 127.4M contradicted by adjustment to EUR 126.6M."
 - Aligns with doc 5 (Alpha Q1 restated) and doc 6 (Q2 with restated Q1 comparatives).
 
 ### M&A
 
 - **2 contradictions** (both irrelevant at end):
-  1. “Original claim of 7 granted patents without encumbrance is contradicted by the IP ownership dispute.”
-  2. “Claim of €50M ARR is overstated by 24%.”
+  1. "Original claim of 7 granted patents without encumbrance is contradicted by the IP ownership dispute."
+  2. "Claim of €50M ARR is overstated by 24%."
 - Both come from doc 2 (financial due diligence) vs doc 1 (analyst briefing).
 
 **Consistency:** In both cases the drift agent identifies **factual conflicts** (revenue/ARR and, in M&A, IP), creates contradiction nodes, and the system escalates. Resolution/replacement in later docs leads to recovery and contradiction nodes marked irrelevant.
@@ -118,4 +118,4 @@ No finality decisions in either run (no auto-approve). Decision counts reflect t
 - **Recovery:** After one or more subsequent documents, V(t) returns to ~0.25–0.30 and finality to HITL; contradiction nodes are marked irrelevant.
 - **Gates:** Same pattern—A and B fail on spike; C–E pass.
 
-The financial consolidation run is **consistent with the initial M&A case**: same Lyapunov and gate semantics, same escalation and recovery pattern, with differences explained by document order and content (one main contradiction in financial vs two in M&A, and a longer “ripple” in M&A at doc 4). The system behaves as intended across both scenarios.
+The financial consolidation run is **consistent with the initial M&A case**: same Lyapunov and gate semantics, same escalation and recovery pattern, with differences explained by document order and content (one main contradiction in financial vs two in M&A, and a longer "ripple" in M&A at doc 4). The system behaves as intended across both scenarios.

@@ -132,7 +132,7 @@ Ten experiments validated, all using the sgrs-core Rust kernel as the sole polic
 | financial | Dual temporality (financial consolidation) | V(t) sawtooth matches M&A; domain-independent convergence confirmed |
 | noisy | Ambiguous/hedging documents | System handles noisy input; decisions recorded |
 
-See [docs/experiments/README.md](docs/experiments/README.md) and [docs/experiments/interpretation-for-publication.md](docs/experiments/interpretation-for-publication.md).
+See [docs/experiments/README.md](docs/experiments/README.md) and [docs/formal-hardening.md](docs/formal-hardening.md) for the experiment program and assumption validation.
 
 
 ## Not yet done / optional

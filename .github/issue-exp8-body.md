@@ -8,7 +8,7 @@ Validate **Assumption #5 (Cooperative agent model)**. The paper states that all 
 - Corpus: exp6 (genuine contradictions). Governance: YOLO (most permissive).
 - Measure: V(t), false finality rate, gate triggers, dimension inflation, cycle-based re-extraction effect.
 
-## Latest results (2026-03-04 run; see interpretation-for-publication.md)
+## Latest results (2026-03-04 run; see docs/experiments/exp8/results/ and docs/formal-hardening.md)
 
 - **Baseline:** HITL, gc=0, V_min=0.25 (correct: no resolution).
 - **Inflate:** Honest drift agent caught manipulation (e.g. 3× more overrides); cycle re-extraction flushes mutations.

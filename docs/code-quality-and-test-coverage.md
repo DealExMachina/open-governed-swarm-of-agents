@@ -142,7 +142,7 @@ Modules **without** a dedicated test file (no direct import in tests):
 | `decisionRecorder.ts` | Persists decisions | Unit test with mocked DB |
 | `errors.ts` | `toErrorString` | Small unit test for Error vs non-Error |
 | `db.ts` | Pool singleton | Usually tested indirectly; optional pool behavior tests |
-| `opaPolicyEngine.ts` | OPA WASM | Unit test with mock WASM/bundle if used |
+| (OPA removed) | — | Policy evaluation uses YAML + sgrs kernel only |
 | `watchdog.ts` | Watchdog logic | Unit test with mocked timers/callbacks |
 | `activationFilters.ts` | Filter config, memory, tailEvents | Unit test with mocked DB/contextWal/S3 |
 | `agentLoop.ts` | Event loop, job routing | Unit test with mocked NATS, runners, filters |
@@ -189,7 +189,7 @@ Policy for the modules listed in §3.2 (no dedicated test today). Goal: robust c
 | `activationFilters.ts` | **Should** | Unit | Mock DB, contextWal, S3; test filter config load, `checkFilter` outcomes, and memory load/save. |
 | `readiness.ts` | **Should** | Unit | Mock dependencies; test that readiness reflects each check. |
 | `sgrsAdapter.ts` | **Should** | Unit | Mock semantic graph and finality; test mapping and error handling. |
-| `opaPolicyEngine.ts` | **Should** (if wired) | Unit | Mock WASM load/evaluate; test policy result mapping. Skip if OPA remains unwired. |
+| (OPA removed) | — | — | Policy evaluation uses YAML + sgrs only. |
 | `watchdog.ts` | **Optional** | Unit | Mock timers/callbacks if logic is more than a thin wrapper. |
 | `hatchery.ts` | **Optional** | Unit | Mock lifecycle dependencies; add tests if logic grows beyond wiring. |
 | `agents/tunerAgent.ts` | **Optional** | Unit | Only if it contains non-trivial logic; otherwise skip. |
@@ -218,7 +218,7 @@ Policy for the modules listed in §3.2 (no dedicated test today). Goal: robust c
 
 1. **Coverage**: Add `@vitest/coverage-v8`, configure `coverage` in `vitest.config.ts`, and run `pnpm test -- --coverage` in CI. Track line/branch coverage for `src/` (excluding seed-data and scripts).
 2. **Linting**: Introduce ESLint (TypeScript + recommended) and Prettier; run in CI and optionally pre-commit.
-3. **High-value unit tests**: Add tests for `errors.ts` (`toErrorString`), `agentLoop.ts` (routing and filter integration with mocks), `resolverAgent.ts` (mocked MCP), and optionally `readiness.ts` and `opaPolicyEngine.ts` if they are on hot paths.
+3. **High-value unit tests**: Add tests for `errors.ts` (`toErrorString`), `agentLoop.ts` (routing and filter integration with mocks), `resolverAgent.ts` (mocked MCP), and optionally `readiness.ts` if on hot paths.
 4. **Integration tests**: Document required env (e.g. `DATABASE_URL`, `NATS_URL`, S3) for the skipped integration suites and run them in CI when available (e.g. in a dedicated job or nightly).
 5. **STATUS.md**: Update the unit test count (e.g. "304 tests across 37 suites") and mention that embedding pipeline now uses OpenAI 1536-dim and tests reflect that.
 

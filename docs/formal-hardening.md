@@ -132,7 +132,7 @@ validation status with evidence references.
 | A4 | Progress precondition | At least one dimension can improve when admissible resolutions exist | Empirically validated | Exp 6: resolver advances `goal_completion` |
 | A5 | Local confluence boundary | Compatible transitions commute; stale-claim marking may not | Partially validated | Exp 9: 6 sub-tests, 24 permutations, 80 kernel evals |
 | A6 | Non-compensability | Finality blocked if any required dimension fails threshold | **Implemented** | Vector finality predicate; 20 Rust + 13 TS tests |
-| A7 | Tier completeness | Tier 3 reachable under realizable disagreement workloads | Partially validated | Exp 7: MITL escalation demonstrated |
+| A7 | Tier completeness | Tier 3 reachable under realizable disagreement workloads | Partially validated | Exp 7: MITL escalation; Tier 3 (escalateToLLM) with OPENAI_API_KEY + OVERSEE_MODEL=gpt-4o + YOLO; see [exp7 Tier 3 checklist](experiments/exp7/README.md#tier-3-checklist) |
 
 ### Key Insight: Why Per-Dimension Finality is Sound
 
