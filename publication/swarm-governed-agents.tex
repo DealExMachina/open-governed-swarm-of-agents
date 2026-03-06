@@ -5,16 +5,13 @@
 \usepackage[utf8]{inputenc}
 \usepackage{amsmath,amssymb,amsfonts,amsthm}
 \usepackage{graphicx}
+\usepackage[numbers,sort&compress]{natbib}
 \usepackage{hyperref}
 \usepackage{xcolor}
 \usepackage{listings}
 \usepackage{float}
 \usepackage{booktabs}
 \usepackage[margin=1in]{geometry}
-
-% ArXiv-style formatting
-\usepackage{setspace}
-\onehalfspacing
 
 \newtheorem{definition}{Definition}
 \newtheorem{theorem}{Theorem}
@@ -30,14 +27,15 @@
   backgroundcolor=\color{gray!10}
 }
 
-\title{\textbf{Coordination of Governed Agents Over Shared Context:\\Declarative Governance and Lyapunov-Based Finality}}
+\title{Coordination of Governed Agents Over Shared Context:\\Declarative Governance and Lyapunov-Based Finality}
 
 \author{
-  \textit{Submitted to arXiv}\\
-  \texttt{https://github.com/DealExMachina/swarm-of-governed-agents}
+  Jean-Baptiste D\'ezard\thanks{Source code: \url{https://github.com/DealExMachina/swarm-of-governed-agents}}\\
+  Deal ex Machina SAS\\
+  \texttt{jeanbapt@dealexmachina.com}
 }
 
-\date{\today}
+\date{March 2026}
 
 \begin{document}
 
@@ -149,9 +147,8 @@ A unified architecture combining SECP's governed protocol evolution with our for
 
 Olfati-Saber and Murray \cite{olfati2004} established the Lyapunov consensus framework for multi-agent systems, proving that monotonically decreasing disagreement functions guarantee convergence under mild assumptions. We adapt this to knowledge-work coordination, defining a weighted disagreement function over four semantic dimensions. The classical theory \cite{lyapunov1892} provides the mathematical foundation: if a scalar function $V \geq 0$ is strictly decreasing along system trajectories and $V = 0$ only at the equilibrium, the system converges.
 
-Duan et al.\ \cite{duan2025} introduced the Aegean protocol with monotonicity gates and coordination invariants, requiring $\beta$ consecutive non-decreasing rounds before declaring convergence. We adopt this mechanism directly.
+Ruan et al.\ \cite{ruan2025} introduced the Aegean consensus protocol for multi-agent reasoning, which detects incremental quorum convergence across concurrent agent executions with provable refinement monotonicity---solution quality is guaranteed non-decreasing. We adapt their monotonicity principle to our finality evaluator: Gate~A requires $\beta$ consecutive non-decreasing rounds before declaring convergence.
 
-Camacho et al.\ \cite{camacho2024} proposed EMA-based stagnation detection in the MACI framework, identifying when systems plateau despite appearing active. Our plateau detection mechanism derives from this work.
 
 \subsection{CRDT Semantics and Monotonic State}
 
@@ -159,7 +156,7 @@ Laddad et al. \cite{laddad2024} demonstrated CRDT monotonic merge operations (Co
 
 \subsection{Stigmergic Coordination}
 
-Dorigo et al. \cite{dorigo2024} formalized stigmergic coordination in swarm intelligence: agents respond to environmental signals (pheromones) rather than direct communication. Our pressure-directed activation mechanism applies this principle---agents are routed toward high-pressure dimensions (bottleneck areas) without centralized scheduling.
+Dorigo, Bonabeau, and Theraulaz \cite{dorigo2000} formalized stigmergy as a distributed communication paradigm: agents coordinate indirectly through local modifications to their environment (pheromone trails in ant colonies) rather than through direct message passing. We apply this principle to convergence-driven agent routing: each agent's activation is gated by the per-dimension convergence pressure of the shared semantic graph, causing agents to concentrate on bottleneck dimensions without centralized scheduling.
 
 \subsection{Bitemporal Data Models}
 
@@ -338,7 +335,7 @@ The current system operates under the following assumptions:
   \item \textbf{Single-scope operation.} Cross-scope governance and hierarchical finality are designed but not validated.
 \end{enumerate}
 
-These assumptions are substantially weaker than those required for Byzantine consensus ($n \geq 3f+1$) \cite{lamport1982}. Relaxing them---particularly the cooperative-agent assumption---is the primary direction for future work (Section~\ref{sec:limitations}).
+These assumptions are substantially weaker than those required for Byzantine consensus ($n \geq 3f+1$) \cite{lamport1982}. Relaxing them---particularly the cooperative-agent assumption---is the primary direction for future work (Section~\ref{sec:boundaries}).
 
 \subsection{Complexity Bounds}
 
@@ -631,7 +628,7 @@ Three regimes:
 
 Auto-finality (RESOLVED) requires passing all five gates simultaneously. Each gate addresses a distinct failure mode of premature finality.
 
-\paragraph{Gate A: Monotonicity \cite{duan2025}.}
+\paragraph{Gate A: Monotonicity \cite{ruan2025}.}
 Goal score must remain non-decreasing for $\beta = 3$ consecutive rounds before auto-finality eligibility. A single drop $> 0.001$ resets the counter. This prevents declaring convergence during transient spikes.
 
 \paragraph{Gate B: Evidence Coverage and Contradiction Mass.}
@@ -659,7 +656,7 @@ Configurable via \texttt{idle\_cycles\_min} and \texttt{window\_ms} in finality 
 \paragraph{Gate E: Minimum Content.}
 When all dimensions score 1.0 vacuously---because there are zero claims, zero goals, and zero risks in the graph---Gate~E blocks auto-finality. An empty or trivially-seeded scope cannot be declared resolved. This prevents the degenerate case where a newly initialized scope immediately satisfies all threshold conditions.
 
-\paragraph{Pressure-Directed Activation \cite{dorigo2024}.}
+\paragraph{Pressure-Directed Activation \cite{dorigo2000}.}
 Agents are routed toward the dimension with highest residual gap (bottleneck), without centralized scheduling. This stigmergic mechanism ensures resources concentrate where they matter most.
 
 \paragraph{Divergence Escalation.}
@@ -778,7 +775,7 @@ Periodically optimizes activation filter parameters based on accumulated statist
 \textbf{Activation filters.} Each agent's activation is gated by a deterministic filter stored in Postgres with four types: \texttt{sequence\_delta} (new WAL events), \texttt{hash\_delta} (artifact content changed), \texttt{timer} (time elapsed), and \texttt{pressure\_directed} (convergence pressure exceeds threshold for the agent's dimension). Filters prevent redundant agent invocations, reducing LLM token consumption. A \texttt{pressure\_directed} filter consults the latest convergence history and activates the agent only if its associated dimension (e.g., \texttt{contradiction\_resolution} for the drift agent) has the highest or near-highest pressure---implementing stigmergic routing at the activation layer.
 
 \medskip
-\textbf{Key invariant:} Agents do not call each other directly. They emit events that trigger governance rules. This decoupling enables resilience (agent failure does not cascade), auditability (every interaction is logged), and scalability (agents can be independently scaled via hatchery-based dynamic provisioning using M/M/c queueing theory \cite{dorigo2024}).
+\textbf{Key invariant:} Agents do not call each other directly. They emit events that trigger governance rules. This decoupling enables resilience (agent failure does not cascade), auditability (every interaction is logged), and scalability (agents can be independently scaled via hatchery-based dynamic provisioning using M/M/c queueing theory).
 
 %% ============================================================
 \section{Comparison with Agent Frameworks}
@@ -1234,7 +1231,7 @@ The architecture partially addresses this limitation through the product lattice
 
 \paragraph{Internal validity.} The document corpus is synthetic (though realistic). Contradictions are explicit and clearly stated, not subtle or ambiguous. The noisy corpus (available but not yet tested in batch mode) was designed to address this gap. LLM stochasticity is partially controlled by $n = 3$ repetitions, but larger $n$ would increase confidence.
 
-\paragraph{External validity.} Experiments use two domains: M\&A due diligence and financial consolidation. The financial scenario confirms that convergence dynamics ($V(t)$ spike-and-recovery) are domain-independent. Generalization to additional regulated domains (KYC/AML, clinical trials) is asserted by architectural argument (Section~\ref{sec:enterprise}) but not empirically validated beyond these two.
+\paragraph{External validity.} Experiments use two domains: M\&A due diligence and financial consolidation. The financial scenario confirms that convergence dynamics ($V(t)$ spike-and-recovery) are domain-independent. Generalization to additional regulated domains (KYC/AML, clinical trials) is asserted by architectural argument (Appendix~\ref{sec:enterprise}) but not empirically validated beyond these two.
 
 \paragraph{Statistical power.} With $n = 3$ runs per condition, the standard deviations are informative (e.g., $V$ std = 0.001--0.015) but formal hypothesis testing (e.g., paired $t$-tests) would require larger samples. The current results should be interpreted as reproducibility evidence, not as statistically powered claims.
 
@@ -1251,40 +1248,7 @@ The experimental results identify four specific research directions, ordered by 
 \paragraph{Production-scale and multi-domain validation.} Testing at $N > 500$ documents, with noisy/ambiguous corpora, and across multiple regulated domains (KYC/AML, clinical trials) would establish external validity.
 
 %% ============================================================
-\section{Enterprise and Regulatory Fitness}
-\label{sec:enterprise}
-%% ============================================================
-
-Regulated environments---financial services, healthcare, defense, critical infrastructure---impose requirements that go beyond functional correctness. This section maps the architecture's capabilities to specific regulatory demands, showing that the mechanisms described above are not merely useful but structurally necessary for enterprise deployment.
-
-\subsection{Temporal Audit for Regulators}
-
-Regulatory frameworks frequently require point-in-time reconstruction: demonstrating what was known, when, and what decisions followed. SOX Section~404 requires that internal controls over financial reporting be documented as they existed at the reporting date. IFRS~9 (Expected Credit Loss) requires temporal evidence chains for impairment assessments. Basel~III mandates historical risk factor traceability.
-
-The bitemporal semantic graph (Section~\ref{sec:shared-context}) enables these queries directly:
-
-\begin{itemize}
-  \item \textbf{``What did the system know on audit date $T'$?''} As-of transaction-time query: filters to rows with $\texttt{recorded\_at} \leq T'$ and ($\texttt{superseded\_at} > T'$ or not superseded).
-  \item \textbf{``What was believed true for reporting period $T$?''} As-of valid-time query: filters to rows with $\texttt{valid\_from} \leq T$ and ($\texttt{valid\_to} > T$ or open-ended).
-  \item \textbf{``What did the system know at $T'$ about facts valid at $T$?''} Combined bitemporal query: both filters applied simultaneously.
-\end{itemize}
-
-Unlike retrospective log analysis (grepping timestamps in application logs), these are first-class database queries with indexed support, returning structured graph state rather than unstructured log lines.
-
-\subsection{Cryptographic Non-Repudiation}
-
-When a scope reaches finality (Section~\ref{sec:certificates}), an Ed25519-signed JWS certificate is issued containing: the scope identifier, the finality decision, the timestamp, and content hashes of the governance and finality policy files in effect. This certificate is self-contained: an external party---auditor, counterparty, regulator---can verify the signature and inspect the payload without access to the running system.
-
-The policy-version hashes are critical: they bind the finality decision to the exact rule set that produced it. If governance rules are amended between two finality decisions, the certificates will carry different policy hashes, enabling precise attribution of which decisions were made under which rules.
-
-This addresses requirements in MiFID~II (best execution record-keeping), SOX (management sign-off chains), and EMIR (trade repository reporting), where demonstrating \emph{which rules governed a decision} is as important as demonstrating the decision itself.
-
-\subsection{Summary of Remaining Regulatory Mappings}
-
-Several additional enterprise concerns---policy change management (each \texttt{DecisionRecord} binds to a content-hashed \texttt{policy\_version}), ongoing compliance lifecycle (the perpetual finality mechanism produces certificate chains for KYC/AML, IFRS~9, Basel~III, and pharmacovigilance monitoring), evidence freshness (Gate~B enforces per-domain staleness limits), separation of duties (OpenFGA + governance modes map to SOX/PCI-DSS segregation requirements), operational resilience (circuit breaker, message deduplication, graceful degradation), and governance agility (YAML rule changes are auditable and require no recompilation)---are addressed by mechanisms described in Sections~\ref{sec:declarative-governance}--\ref{sec:perpetual-finality} and are not re-derived here. These mappings are assertion-based: they follow from the architectural properties established above but have not been validated in production regulatory contexts.
-
-%% ============================================================
-\section{Scope and Boundaries}
+\section{Scope, Limitations, and Future Work}
 \label{sec:boundaries}
 %% ============================================================
 
@@ -1317,13 +1281,6 @@ Following the principled scoping methodology of de la Chica Rodriguez and Vera D
 \end{enumerate}
 
 Any claim beyond the narrow statement---``the architecture is implementable, produces auditable convergence in a controlled scenario, and provides formal safeguards against premature finality''---is unsupported by the evidence presented.
-
-%% ============================================================
-\section{Limitations and Future Work}
-\label{sec:limitations}
-%% ============================================================
-
-This section states the principal limitations and the research directions required to move from architectural feasibility to practical validation.
 
 \subsection{Implementation Limitations}
 
@@ -1427,9 +1384,44 @@ As LLM agents become increasingly capable of reasoning, planning, and hypothesis
 %% ============================================================
 \section*{Acknowledgments}
 %% ============================================================
-This work was supported by Deal ex Machina SAS. We thank the communities behind PostgreSQL, NATS, OpenFGA, napi-rs, DSPy, and Mastra for foundational infrastructure.
+This work was supported by Deal ex Machina SAS. We thank Jean-Christophe Jardinier for critical review of earlier drafts and detailed feedback on the formal convergence arguments. We also thank the communities behind PostgreSQL, NATS, OpenFGA, napi-rs, DSPy, and Mastra for foundational infrastructure.
 
-\bibliographystyle{plain}
+\bibliographystyle{plainnat}
 \bibliography{references}
+
+\appendix
+
+%% ============================================================
+\section{Enterprise and Regulatory Fitness}
+\label{sec:enterprise}
+%% ============================================================
+
+Regulated environments---financial services, healthcare, defense, critical infrastructure---impose requirements that go beyond functional correctness. This appendix maps the architecture's capabilities to specific regulatory demands, showing that the mechanisms described above are not merely useful but structurally necessary for enterprise deployment.
+
+\subsection{Temporal Audit for Regulators}
+
+Regulatory frameworks frequently require point-in-time reconstruction: demonstrating what was known, when, and what decisions followed. SOX Section~404 requires that internal controls over financial reporting be documented as they existed at the reporting date. IFRS~9 (Expected Credit Loss) requires temporal evidence chains for impairment assessments. Basel~III mandates historical risk factor traceability.
+
+The bitemporal semantic graph (Section~\ref{sec:shared-context}) enables these queries directly:
+
+\begin{itemize}
+  \item \textbf{``What did the system know on audit date $T'$?''} As-of transaction-time query: filters to rows with $\texttt{recorded\_at} \leq T'$ and ($\texttt{superseded\_at} > T'$ or not superseded).
+  \item \textbf{``What was believed true for reporting period $T$?''} As-of valid-time query: filters to rows with $\texttt{valid\_from} \leq T$ and ($\texttt{valid\_to} > T$ or open-ended).
+  \item \textbf{``What did the system know at $T'$ about facts valid at $T$?''} Combined bitemporal query: both filters applied simultaneously.
+\end{itemize}
+
+Unlike retrospective log analysis (grepping timestamps in application logs), these are first-class database queries with indexed support, returning structured graph state rather than unstructured log lines.
+
+\subsection{Cryptographic Non-Repudiation}
+
+When a scope reaches finality (Section~\ref{sec:certificates}), an Ed25519-signed JWS certificate is issued containing: the scope identifier, the finality decision, the timestamp, and content hashes of the governance and finality policy files in effect. This certificate is self-contained: an external party---auditor, counterparty, regulator---can verify the signature and inspect the payload without access to the running system.
+
+The policy-version hashes are critical: they bind the finality decision to the exact rule set that produced it. If governance rules are amended between two finality decisions, the certificates will carry different policy hashes, enabling precise attribution of which decisions were made under which rules.
+
+This addresses requirements in MiFID~II (best execution record-keeping), SOX (management sign-off chains), and EMIR (trade repository reporting), where demonstrating \emph{which rules governed a decision} is as important as demonstrating the decision itself.
+
+\subsection{Summary of Remaining Regulatory Mappings}
+
+Several additional enterprise concerns---policy change management (each \texttt{DecisionRecord} binds to a content-hashed \texttt{policy\_version}), ongoing compliance lifecycle (the perpetual finality mechanism produces certificate chains for KYC/AML, IFRS~9, Basel~III, and pharmacovigilance monitoring), evidence freshness (Gate~B enforces per-domain staleness limits), separation of duties (OpenFGA + governance modes map to SOX/PCI-DSS segregation requirements), operational resilience (circuit breaker, message deduplication, graceful degradation), and governance agility (YAML rule changes are auditable and require no recompilation)---are addressed by mechanisms described in Sections~\ref{sec:declarative-governance}--\ref{sec:perpetual-finality} and are not re-derived here. These mappings are assertion-based: they follow from the architectural properties established above but have not been validated in production regulatory contexts.
 
 \end{document}
