@@ -1,5 +1,13 @@
 # CLAUDE.md — Project Rules for agents-swarm-governed
 
+## Open Repo Policy (GitHub)
+
+This repository is the **public/open** version on GitHub. Apply these rules when working in it:
+
+- **Do not change the code** for feature work or behavior. Code changes here are limited to **cleanup only** (formatting, dead code, structure) so that people can read and use the code.
+- **Update the docs** as needed so they match the cleaned code and stay accurate for external users.
+- **Remove everything related to Stage 2** (the proprietary part). Do not add, document, or reference Stage 2 features, config, or APIs in this repo.
+
 ## Package Manager
 
 **Always use `pnpm`**, never `npm` or `yarn`. This applies to all commands:
