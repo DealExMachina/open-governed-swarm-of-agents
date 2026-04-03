@@ -1,6 +1,6 @@
 # Demo Guide
 
-[Back to README](../../README.md). The demo reflects the **Stage 2** pipeline: 5-node state cycle (ContextIngested / FactsExtracted / DriftChecked / EvidencePropagated / DeltasExtracted), sheaf-based evidence propagation, ISS cascade monitoring, and per-dimension finality. See [stage-2-implementation-plan.md](../stage-2-implementation-plan.md) for technical details.
+[Back to README](../../README.md). The demo reflects the governed pipeline used in this open snapshot: extended state cycle, evidence propagation, and per-dimension finality checks.
 
 **Archived:** see [README.md](README.md) in this folder. Prefer [demo/DEMO.md](../../demo/DEMO.md) for the canonical walkthrough.
 

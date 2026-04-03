@@ -2,7 +2,7 @@
 
 > Formal convergence tracking for finality gradient descent in governed agent swarms.
 
-Back to [README.md](../README.md). **Stage 2** extends this layer with sheaf-based propagation dynamics, evidence state space (support/refutation), and ISS cascade stability; see [stage-2-implementation-plan.md](stage-2-implementation-plan.md) and [stage-2-status-and-experiments.md](stage-2-status-and-experiments.md).
+Back to [README.md](../README.md). This page documents convergence mechanisms and configuration used by the open snapshot.
 
 ---
 

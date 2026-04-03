@@ -15,7 +15,7 @@ convergence:
   history_depth: 20          # Convergence points to keep in analysis window
   divergence_rate: -0.05     # Convergence rate α below this triggers divergence alert
 
-# Stage 2 Phase 3: ISS cascade monitoring (sheaf propagation stability).
+# ISS cascade monitoring (propagation stability).
 iss_cascade:
   enabled: true
   max_contradiction_rate: 0.3
@@ -25,7 +25,7 @@ iss_cascade:
 # Per-dimension (vector) finality. When enabled, RESOLVED requires every required
 # dimension to independently meet its threshold + epsilon, with per-dimension gates
 # GA_d (monotonicity) and GC_d (trajectory quality). Scalar finality remains as
-# fallback when disabled.  See Issue #18 / docs/formal-hardening.md.
+# fallback when disabled. See Issue #18.
 per_dimension_finality:
   enabled: true
   required_dimensions:

@@ -1,6 +1,6 @@
 # Demos and use cases
 
-Domain scenarios used to demonstrate swarm behaviour. These are **not** assertion-validation experiments; for formal experiments (exp1–exp9) and assumption validation, see [docs/experiments/](../experiments/README.md) and [docs/formal-hardening.md](../formal-hardening.md).
+Domain scenarios used to demonstrate swarm behaviour. These are **not** assertion-validation experiments; for formal experiment protocols, see [docs/experiments.md](../experiments.md).
 
 | Demo | Corpus | Run command |
 |------|--------|-------------|

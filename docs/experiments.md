@@ -20,7 +20,7 @@ The paper defines five experimental protocols designed to address open questions
 
 **Domain demos (use cases):** M&A (Project Horizon), Financial consolidation, Insurance onboarding and pricing, and European Green Bond Standard (EUGBS) lifecycle are documented in [docs/demos/](demos/README.md). They use the same driver and run via `run-experiment.sh financial`, `insurance`, `demo-baseline`, `green-bond`.
 
-### Stage 2 evidence diffusion results
+### Evidence diffusion results (historical snapshot)
 
 All four domain demos now produce real evidence diffusion trajectories through the sheaf propagation engine. The propagation agent fires at `DriftChecked`, builds perturbation vectors from convergence dimension scores, runs one sheaf diffusion step, and publishes evidence along sheaf edges via the evidence bus.
 
@@ -79,7 +79,7 @@ The pipeline advances only when agents successfully process events and the execu
 
 ## Proposed experiments (1–5)
 
-Experiments 1–5 (convergence dynamics, scalability, finality robustness, multi-level governance, coverage-autonomy) are defined in the paper and linked to GitHub issues above. Per-experiment setup, run commands, and result locations: [experiments/README.md](experiments/README.md). Stage 2 propagation experiments E1–E7: [stage-2-status-and-experiments.md](stage-2-status-and-experiments.md). Formal assumption validation (E1–E5 program): [formal-hardening.md](formal-hardening.md) Section 7.
+Experiments 1–5 (convergence dynamics, scalability, finality robustness, multi-level governance, coverage-autonomy) are defined in the paper and linked to GitHub issues above.
 
 ---
 

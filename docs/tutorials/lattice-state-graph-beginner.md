@@ -78,7 +78,7 @@ Most swarm roles are declared in `src/agentRegistry.ts` (`AgentRole` + `AGENT_SP
 
 ### Core transition-producing agents
 
-- **facts**: in Stage 2 it runs from `ContextIngested` (and can also run from `DeltasExtracted` via extended gating); extracts facts and writes semantic nodes/edges; proposes advance to `FactsExtracted`
+- **facts**: runs from `ContextIngested` (and can also run from `DeltasExtracted` via extended gating); extracts facts and writes semantic nodes/edges; proposes advance to `FactsExtracted`
 - **drift**: compares current vs previous facts; proposes advance to `DriftChecked`
 - **propagation**: propagates evidence over role graph/sheaf; proposes advance to `EvidencePropagated`
 - **deltas**: extracts per-dimension changes after propagation; proposes advance to `DeltasExtracted`
@@ -239,7 +239,7 @@ flowchart TB
 - **Vertex (role graph):** one role in propagation topology
 - **Edge (semantic graph):** relation between knowledge items
 - **Edge (role graph):** evidence communication channel between roles
-- **Lattice:** partially ordered set with **join** and **meet** for every pair (e.g. formal **concept lattice** ℒ in Stage 3 FCA)
+- **Lattice:** partially ordered set with **join** and **meet** for every pair
 - **Product poset M = L × A:** pairs (governance level, convergence rank) with the **product order**; used for kernel admissibility. **Not** a lattice on pairs (no general join/meet in M). **L** is a chain; **A** is componentwise partial order on ranks.
 - **Stalk (sheaf):** local evidence space attached to one role vertex
 - **Restriction map:** projection used to compare neighboring roles on shared edge space
