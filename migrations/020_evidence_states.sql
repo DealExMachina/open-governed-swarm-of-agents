@@ -1,4 +1,4 @@
--- Stage 2 Phase 3: Evidence state snapshots per scope/epoch/role.
+-- Evidence state snapshots per scope/epoch/role.
 CREATE TABLE IF NOT EXISTS evidence_states (
     id         BIGSERIAL PRIMARY KEY,
     scope_id   TEXT NOT NULL,

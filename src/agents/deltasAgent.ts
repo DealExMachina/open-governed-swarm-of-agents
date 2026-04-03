@@ -1,5 +1,5 @@
 /**
- * Stage 2 Phase 3: Deltas extraction agent.
+ * Deltas extraction agent.
  * Runs at DeltasExtracted node — computes what changed after propagation
  * and writes a delta summary to S3 for downstream consumption.
  */

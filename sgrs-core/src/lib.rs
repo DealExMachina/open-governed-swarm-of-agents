@@ -1,5 +1,4 @@
 pub mod causal;
-pub mod concept;
 pub mod convergence;
 pub mod error;
 pub mod finality;

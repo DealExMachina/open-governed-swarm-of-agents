@@ -53,7 +53,7 @@ pub struct GateState {
     /// Gate E: minimum content (at least one claim or incomplete goals).
     pub e_has_content: bool,
     /// Gate F: elimination completeness — all dimensions with refutation > θ_refute
-    /// have been formally eliminated (Phase 3, §6.8).
+    /// have been formally eliminated.
     pub f_elimination_complete: bool,
 }
 

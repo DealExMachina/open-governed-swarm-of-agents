@@ -1,4 +1,4 @@
--- Stage 2 Phase 1: Causal contribution layer.
+-- Causal contribution layer.
 -- Content-addressed DAG of contributions; rid = SHA-256(CBOR(parents, payload, kind)).
 CREATE TABLE IF NOT EXISTS causal_contributions (
     rid              TEXT PRIMARY KEY,

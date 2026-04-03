@@ -16,7 +16,7 @@ pub struct PropagationStepResult {
     pub contraction_achieved: bool,
 }
 
-/// Result of a hybrid propagation step with elimination (Phase 3, §6.8).
+/// Result of a hybrid propagation step with elimination.
 #[derive(Debug, Clone)]
 pub struct HybridStepResult {
     /// Standard propagation result.
@@ -88,7 +88,7 @@ pub fn propagation_step(
     }
 }
 
-/// Hybrid propagation step with bilattice elimination (Phase 3, §6.8).
+/// Hybrid propagation step with bilattice elimination.
 ///
 /// Pipeline:
 ///   1. Diffuse:    y = (I − αL_F)x_t

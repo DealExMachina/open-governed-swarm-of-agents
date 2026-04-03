@@ -1,4 +1,4 @@
--- Stage 2 Phase 3 (E17): LLM perturbation profiling samples.
+-- LLM perturbation profiling samples.
 -- Append-only table to capture epsilon statistics and model metadata per epoch.
 CREATE TABLE IF NOT EXISTS e17_perturbation_profiles (
     id                 BIGSERIAL PRIMARY KEY,

@@ -1,5 +1,5 @@
 /**
- * Stage 2 Phase 3: Sheaf-based evidence propagation engine.
+ * Sheaf-based evidence propagation engine.
  * Runs one step Π_A[(I − αL_F)x_t + ε_t], spectral analysis, disagreement, and ISS analysis.
  *
  * Supports configurable topology: complete (default), star, ring, chain, random_regular.

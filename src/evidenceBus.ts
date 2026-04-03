@@ -1,5 +1,5 @@
 /**
- * Stage 2 Phase 3: Topology-aware evidence bus.
+ * Topology-aware evidence bus.
  * Routes evidence only along sheaf edges; records perturbation norm for ISS.
  */
 import type { EventBus } from "./eventBus.js";

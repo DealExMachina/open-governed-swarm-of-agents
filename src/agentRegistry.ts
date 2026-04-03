@@ -20,7 +20,7 @@ export interface AgentSpec {
   jobType: JobType;
   /** Legacy: node that must be current for this agent to run (old loop). Null = no gate. */
   requiresNode: Node | null;
-  /** Optional: allow activation when current node is in this list (Stage 2 extended cycle). */
+  /** Optional: allow activation when current node is in this list (extended cycle). */
   requiresNodeList?: Node[];
   /** Node this agent writes to (for OpenFGA self-check: writer on node) */
   targetNode: Node;

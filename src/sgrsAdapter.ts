@@ -33,9 +33,6 @@ import {
   analyzeSpectrumSheafBridge as rustAnalyzeSpectrumSheaf,
   propagationStepSheafBridge as rustPropagationStepSheaf,
   perDimensionDisagreementBridge as rustPerDimensionDisagreement,
-  computeConceptLatticeBridge as rustComputeConceptLattice,
-  checkFinalityOnConceptsBridge as rustCheckFinalityOnConcepts,
-  getConceptProvenanceBridge as rustGetConceptProvenance,
 } from "../sgrs-core/index.js";
 import type {
   FinalitySnapshotDto,
@@ -511,7 +508,7 @@ export function evaluateVectorFinality(
 }
 
 // ---------------------------------------------------------------------------
-// Causal contribution layer (Stage 2 Phase 1)
+// Causal contribution layer
 // ---------------------------------------------------------------------------
 
 export interface ContentHashResult {
@@ -561,7 +558,7 @@ export function validateContribution(
 }
 
 // ---------------------------------------------------------------------------
-// Propagation / sheaf / ISS (Stage 2 Phase 2)
+// Propagation / sheaf / ISS
 // ---------------------------------------------------------------------------
 
 export interface SpectralAnalysis {
@@ -699,7 +696,7 @@ export function analyzeISS(
 }
 
 // ---------------------------------------------------------------------------
-// Contradiction extraction (Stage 2)
+// Contradiction extraction
 // ---------------------------------------------------------------------------
 
 export interface DetectedContradiction {
@@ -725,105 +722,6 @@ export function extractContradictions(
     dimension: d.dimension,
     channel: d.channel,
     magnitude: d.magnitude,
-  }));
-}
-
-// ---------------------------------------------------------------------------
-// FCA concept lattice bridge (Phase 3.D)
-// ---------------------------------------------------------------------------
-
-export interface ConceptLatticeResult {
-  concept_count: number;
-  overflow: boolean;
-  compute_ms: number;
-}
-
-export interface ConceptFinalityResult {
-  is_final: boolean;
-  concept_count: number;
-  overflow: boolean;
-  lattice_threshold: number;
-}
-
-export interface ConceptProvenance {
-  intent_mask: number;
-  extent_size: number;
-}
-
-export function computeConceptLattice(
-  flatSupport: number[],
-  flatRefutation: number[],
-  governanceLevels: string[],
-  numRoles: number,
-  numDims: number,
-  maxConcepts = 5000,
-): ConceptLatticeResult {
-  const dto = timedSgrs("compute_concept_lattice", () =>
-    rustComputeConceptLattice(
-      flatSupport,
-      flatRefutation,
-      governanceLevels,
-      numRoles,
-      numDims,
-      maxConcepts,
-    ),
-  );
-  return {
-    concept_count: dto.conceptCount ?? 0,
-    overflow: dto.overflow ?? false,
-    compute_ms: dto.computeMs ?? 0,
-  };
-}
-
-export function checkFinalityOnConcepts(
-  flatSupport: number[],
-  flatRefutation: number[],
-  governanceLevels: string[],
-  numRoles: number,
-  numDims: number,
-  latticeThreshold = 50,
-  maxConcepts = 5000,
-): ConceptFinalityResult {
-  const dto = timedSgrs("check_finality_on_concepts", () =>
-    rustCheckFinalityOnConcepts(
-      flatSupport,
-      flatRefutation,
-      governanceLevels,
-      numRoles,
-      numDims,
-      latticeThreshold,
-      maxConcepts,
-    ),
-  );
-  return {
-    is_final: dto.isFinal ?? false,
-    concept_count: dto.conceptCount ?? 0,
-    overflow: dto.overflow ?? false,
-    lattice_threshold: dto.latticeThreshold ?? latticeThreshold,
-  };
-}
-
-export function getConceptProvenance(
-  flatSupport: number[],
-  flatRefutation: number[],
-  governanceLevels: string[],
-  numRoles: number,
-  numDims: number,
-  maxConcepts = 256,
-): ConceptProvenance[] {
-  const dtos = timedSgrs("get_concept_provenance", () =>
-    rustGetConceptProvenance(
-      flatSupport,
-      flatRefutation,
-      governanceLevels,
-      numRoles,
-      numDims,
-      maxConcepts,
-    ),
-  );
-  return (dtos ?? []).map((d: any) => ({
-    intent_mask: d.intentMask ?? 0,
-    extent_size: d.extentSize ?? 0,
   }));
 }
 

@@ -28,7 +28,7 @@ impl ReductionVerdict {
     }
 }
 
-/// Certificate for an elimination action (Phase 3, §6.8).
+/// Certificate for an elimination action.
 ///
 /// When the kernel produces `Eliminate`, this certificate specifies which
 /// dimension to eliminate and the evidence backing the elimination.

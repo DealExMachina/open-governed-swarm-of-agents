@@ -1,6 +1,6 @@
 //! Tarski Laplacian: meet-based aggregation on bilattice-valued sheaves.
 //!
-//! Exploratory module (Phase 3, P3.5). Replaces the linear diffusion operator
+//! Exploratory module. Replaces the linear diffusion operator
 //! `x_{t+1} = (I - αL_F)x_t` with a monotone lattice operator:
 //!
 //! `x_i^{t+1} = join_k(x_i^t, meet_k_{j in N(i)}(x_j^t))`

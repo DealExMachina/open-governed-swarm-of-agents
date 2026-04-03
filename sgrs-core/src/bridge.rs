@@ -2,7 +2,6 @@ use napi_derive::napi;
 use std::time::Instant;
 
 use crate::causal;
-use crate::concept;
 use crate::convergence::{self, ConvergenceConfig, ConvergencePointInput, SnapshotInput};
 use crate::propagation;
 use crate::finality::{self, ConditionMode, FinalitySnapshotFull, GateConfig, GateState};
@@ -165,31 +164,6 @@ pub struct ConvergenceOutputDto {
     // Per-dimension gates (Issue #18: non-scalar finality)
     pub per_dimension_monotonic: Vec<bool>,
     pub per_dimension_trajectory_quality: Vec<f64>,
-}
-
-// ---------------------------------------------------------------------------
-// Phase 3: Concept lattice DTOs
-// ---------------------------------------------------------------------------
-
-#[napi(object)]
-pub struct ConceptLatticeResultDto {
-    pub concept_count: u32,
-    pub overflow: bool,
-    pub compute_ms: f64,
-}
-
-#[napi(object)]
-pub struct ConceptFinalityResultDto {
-    pub is_final: bool,
-    pub concept_count: u32,
-    pub overflow: bool,
-    pub lattice_threshold: u32,
-}
-
-#[napi(object)]
-pub struct ConceptProvenanceDto {
-    pub intent_mask: u32,
-    pub extent_size: u32,
 }
 
 // ---------------------------------------------------------------------------
@@ -1277,128 +1251,6 @@ pub fn extract_contradictions_bridge(
             dimension: c.dimension as u32,
             channel: format!("{:?}", c.channel),
             magnitude: c.magnitude,
-        })
-        .collect()
-}
-
-/// Compute concept lattice size on the 31-attribute FCA context.
-#[napi]
-pub fn compute_concept_lattice_bridge(
-    flat_support: Vec<f64>,
-    flat_refutation: Vec<f64>,
-    governance_levels: Vec<String>,
-    num_roles: u32,
-    num_dims: u32,
-    max_concepts: u32,
-) -> ConceptLatticeResultDto {
-    let governance: Vec<concept::GovernanceAttr> = governance_levels
-        .iter()
-        .map(|g| match g.as_str() {
-            "MASTER" => concept::GovernanceAttr::Master,
-            "MITL" => concept::GovernanceAttr::Mitl,
-            _ => concept::GovernanceAttr::Yolo,
-        })
-        .collect();
-
-    let cfg = concept::ThresholdConfig::default();
-    let rows = concept::build_context_rows(
-        &flat_support,
-        &flat_refutation,
-        &governance,
-        num_roles as usize,
-        num_dims as usize,
-        &cfg,
-    );
-
-    let t0 = Instant::now();
-    let (count, overflow) = concept::concept_lattice_size(&rows, 31, max_concepts as usize);
-    let dt = t0.elapsed().as_secs_f64() * 1000.0;
-
-    ConceptLatticeResultDto {
-        concept_count: count as u32,
-        overflow,
-        compute_ms: dt,
-    }
-}
-
-/// Check concept-space finality proxy against a lattice cardinality threshold.
-#[napi]
-pub fn check_finality_on_concepts_bridge(
-    flat_support: Vec<f64>,
-    flat_refutation: Vec<f64>,
-    governance_levels: Vec<String>,
-    num_roles: u32,
-    num_dims: u32,
-    lattice_threshold: u32,
-    max_concepts: u32,
-) -> ConceptFinalityResultDto {
-    let governance: Vec<concept::GovernanceAttr> = governance_levels
-        .iter()
-        .map(|g| match g.as_str() {
-            "MASTER" => concept::GovernanceAttr::Master,
-            "MITL" => concept::GovernanceAttr::Mitl,
-            _ => concept::GovernanceAttr::Yolo,
-        })
-        .collect();
-
-    let cfg = concept::ThresholdConfig::default();
-    let rows = concept::build_context_rows(
-        &flat_support,
-        &flat_refutation,
-        &governance,
-        num_roles as usize,
-        num_dims as usize,
-        &cfg,
-    );
-    let (is_final, count, overflow) = concept::check_finality_on_concepts(
-        &rows,
-        31,
-        lattice_threshold as usize,
-        max_concepts as usize,
-    );
-
-    ConceptFinalityResultDto {
-        is_final,
-        concept_count: count as u32,
-        overflow,
-        lattice_threshold,
-    }
-}
-
-/// Return concept intents with extent sizes for provenance/debugging.
-#[napi]
-pub fn get_concept_provenance_bridge(
-    flat_support: Vec<f64>,
-    flat_refutation: Vec<f64>,
-    governance_levels: Vec<String>,
-    num_roles: u32,
-    num_dims: u32,
-    max_concepts: u32,
-) -> Vec<ConceptProvenanceDto> {
-    let governance: Vec<concept::GovernanceAttr> = governance_levels
-        .iter()
-        .map(|g| match g.as_str() {
-            "MASTER" => concept::GovernanceAttr::Master,
-            "MITL" => concept::GovernanceAttr::Mitl,
-            _ => concept::GovernanceAttr::Yolo,
-        })
-        .collect();
-
-    let cfg = concept::ThresholdConfig::default();
-    let rows = concept::build_context_rows(
-        &flat_support,
-        &flat_refutation,
-        &governance,
-        num_roles as usize,
-        num_dims as usize,
-        &cfg,
-    );
-
-    concept::concept_provenance(&rows, 31, max_concepts as usize)
-        .into_iter()
-        .map(|(intent_mask, extent_size)| ConceptProvenanceDto {
-            intent_mask,
-            extent_size: extent_size as u32,
         })
         .collect()
 }
