@@ -1,5 +1,5 @@
 /**
- * Load propagation config from propagation.yaml (Stage 2 Phase 2).
+ * Load propagation config from propagation.yaml.
  */
 import { readFileSync } from "fs";
 import { join } from "path";

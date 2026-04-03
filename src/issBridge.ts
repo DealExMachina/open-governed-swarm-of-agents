@@ -1,5 +1,5 @@
 /**
- * Stage 2 Phase 3: ISS cascade monitoring.
+ * ISS cascade monitoring.
  * Composes semantic defect, propagation disagreement, and contradiction burden
  * into a single ISSCascadeResult; replaces unproven composite Lyapunov.
  */

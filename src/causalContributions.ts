@@ -1,5 +1,5 @@
 /**
- * Causal contribution layer (Stage 2 Phase 1).
+ * Causal contribution layer.
  * Content-addressed DAG of contributions; rid = SHA-256(CBOR(parents, payload, kind)).
  */
 import type pg from "pg";

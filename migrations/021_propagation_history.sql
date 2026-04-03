@@ -1,4 +1,4 @@
--- Stage 2 Phase 3: Propagation step metrics for ISS and audit.
+-- Propagation step metrics for ISS and audit.
 CREATE TABLE IF NOT EXISTS propagation_history (
     id                   BIGSERIAL PRIMARY KEY,
     scope_id             TEXT NOT NULL,

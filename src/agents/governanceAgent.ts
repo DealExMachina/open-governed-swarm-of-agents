@@ -82,7 +82,7 @@ export interface GovernanceAgentEnv {
 }
 
 /**
- * Process one proposal: check transition rules, optionally policy (OpenFGA in Phase 3),
+ * Process one proposal: check transition rules, optionally policy (OpenFGA),
  * then publish Action (approved) or Rejection.
  */
 const GOVERNANCE_AGENT_INSTRUCTIONS = `You are the governance agent. You have a proposal to advance the state machine (from, to, expectedEpoch). The proposing agent and target node are in the proposal.

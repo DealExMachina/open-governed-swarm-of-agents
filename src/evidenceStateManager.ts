@@ -1,5 +1,5 @@
 /**
- * Stage 2 Phase 3: Evidence state persistence and flat-vector builder.
+ * Evidence state persistence and flat-vector builder.
  * Manages evidence_states and propagation_history tables.
  */
 import type pg from "pg";

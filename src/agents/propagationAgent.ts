@@ -1,5 +1,5 @@
 /**
- * Stage 2 Phase 3: Propagation agent.
+ * Propagation agent.
  * Runs at DriftChecked node — executes one sheaf propagation step,
  * logs ISS cascade metrics, persists updated evidence state, and
  * publishes per-role evidence along sheaf edges via the evidence bus.

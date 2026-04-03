@@ -163,7 +163,7 @@ export interface DimensionFinalityResult {
   gate_c_trajectory_ok: boolean;
 }
 
-/** Stage 2 Phase 3: ISS cascade monitoring (sheaf propagation stability). */
+/** ISS cascade monitoring (sheaf propagation stability). */
 export interface ISSCascadeConfig {
   enabled?: boolean;
   max_contradiction_rate?: number;
@@ -176,7 +176,7 @@ export interface FinalityConfig {
   convergence?: ConvergenceYamlConfig;
   /** Gate D: optional quiescence; 0/0 = disabled. */
   quiescence?: QuiescenceConfig;
-  /** Stage 2: ISS cascade (propagation stability). */
+  /** ISS cascade (propagation stability). */
   iss_cascade?: ISSCascadeConfig;
   /** Per-dimension (vector) finality; when enabled replaces scalar threshold. */
   per_dimension_finality?: PerDimensionFinalityConfig;
@@ -605,7 +605,7 @@ export async function evaluateFinality(scopeId: string): Promise<FinalityResult 
     return { kind: "status", status: "ACTIVE" };
   }
 
-  // Stage 2 Phase 3: ISS cascade monitoring (sheaf propagation stability).
+  // ISS cascade monitoring (sheaf propagation stability).
   // When enabled, check small-gain condition; act based on small_gain_violation_action.
   const issConfig = config.iss_cascade;
   if (issConfig?.enabled) {
