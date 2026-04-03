@@ -1,0 +1,83 @@
+================================================================================
+CONFIDENTIAL — PROJECT HORIZON
+INDEPENDENT FINANCIAL REVIEW: NovaTech AG
+Date: 2025-03-10
+Prepared by: Katharina Braun, Partner — Deloitte AG, Zurich
+Engagement Reference: DT-2025-ZRH-04821
+Classification: CRITICAL FINDINGS — IMMEDIATE ATTENTION REQUIRED
+================================================================================
+
+1. SCOPE OF ENGAGEMENT
+
+Deloitte AG was engaged by Meridian Capital Partners to perform an independent
+Quality of Earnings (QoE) review of NovaTech AG for the period FY2023 through
+Q3 FY2025. This report summarizes material findings that deviate from
+management-reported figures.
+
+2. CRITICAL FINDING: REVENUE OVERSTATEMENT
+
+Our review identified material discrepancies in NovaTech's reported Annual
+Recurring Revenue (ARR). Management reported ARR of EUR 50.0 million as of
+Q3 2025. Our adjusted figure is EUR 38.0 million, representing an overstatement
+of EUR 12.0 million (24.0%).
+
+The overstatement arises from three sources:
+
+  (a) Deferred Revenue Misclassification (EUR 6.2M):
+      NovaTech recognized EUR 6.2 million in multi-year contract revenue
+      upfront rather than ratably over the contract term. Specifically,
+      three contracts signed in Q2-Q3 2025 with 3-year terms were recognized
+      at full annual value in the signing quarter. Under ASC 606 / IFRS 15,
+      this revenue should be deferred and recognized over 36 months.
+
+  (b) Professional Services Bundling (EUR 3.1M):
+      Implementation and customization revenue totaling EUR 3.1 million was
+      classified as recurring subscription revenue. These are one-time
+      professional services fees that should be excluded from ARR calculations.
+
+  (c) Churned / At-Risk Revenue Inclusion (EUR 2.7M):
+      Two accounts totaling EUR 2.7 million in annual contract value had
+      submitted formal non-renewal notices prior to the reporting date.
+      These should have been excluded from the ARR figure as of the
+      measurement date.
+
+3. ADJUSTED FINANCIAL METRICS
+
+                            Management     Deloitte      Delta
+                            Reported       Adjusted
+  ARR (Q3 2025):            EUR 50.0M      EUR 38.0M    -EUR 12.0M (-24%)
+  TTM Revenue:              EUR 52.3M      EUR 44.1M    -EUR  8.2M (-16%)
+  Gross Margin:             72.0%          68.4%        -3.6 pts
+  NRR:                      118%           104%         -14 pts
+  3-Year Revenue CAGR:      45%            32%          -13 pts
+
+4. ADDITIONAL OBSERVATIONS
+
+  (a) Accounts receivable aging shows EUR 3.2M in invoices >90 days overdue,
+      suggesting collection challenges not disclosed by management.
+
+  (b) Related-party transactions: EUR 420K in consulting payments to Haber
+      Consulting GmbH (owned by Dr. Klaus Haber, former employee) were not
+      disclosed in the management-prepared financials.
+
+  (c) The reported operating loss of EUR 4.3M should be adjusted to EUR 7.8M
+      when revenue adjustments and understated expenses are included.
+
+5. IMPACT ON VALUATION
+
+At the adjusted ARR of EUR 38.0M, the indicative offer of EUR 420M represents
+an implied multiple of 11.1x ARR — significantly above the comparable
+transaction range of 6-12x for companies with NovaTech's adjusted growth
+profile (~32% CAGR rather than the reported 45%).
+
+6. RECOMMENDATION
+
+We recommend that Meridian Capital Partners:
+  (a) Revise the indicative valuation downward to reflect adjusted metrics
+  (b) Request management explanation for all identified discrepancies
+  (c) Engage forensic accounting review if discrepancies are not satisfactorily
+      explained
+
+This report constitutes a material adverse finding under the diligence protocol.
+
+Prepared by Katharina Braun, Partner — Deloitte AG, Zurich

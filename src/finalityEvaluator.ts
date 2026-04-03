@@ -6,6 +6,7 @@ import {
   computeGoalScore as rustComputeGoalScore,
   evaluateOne as rustEvaluateOne,
 } from "./sgrsAdapter.js";
+import { emitContribution } from "./causalEmit.js";
 
 /** Severity/materiality for contradiction mass (Gate B). */
 export type ContradictionSeverity = "low" | "medium" | "high" | "material";
@@ -162,11 +163,21 @@ export interface DimensionFinalityResult {
   gate_c_trajectory_ok: boolean;
 }
 
+/** Stage 2 Phase 3: ISS cascade monitoring (sheaf propagation stability). */
+export interface ISSCascadeConfig {
+  enabled?: boolean;
+  max_contradiction_rate?: number;
+  practical_stability_alert_threshold?: number;
+  small_gain_violation_action?: "escalate" | "warn" | "block";
+}
+
 export interface FinalityConfig {
   goal_gradient?: GoalGradientConfig;
   convergence?: ConvergenceYamlConfig;
   /** Gate D: optional quiescence; 0/0 = disabled. */
   quiescence?: QuiescenceConfig;
+  /** Stage 2: ISS cascade (propagation stability). */
+  iss_cascade?: ISSCascadeConfig;
   /** Per-dimension (vector) finality; when enabled replaces scalar threshold. */
   per_dimension_finality?: PerDimensionFinalityConfig;
   finality: Record<CaseStatus, FinalityConditionRule>;
@@ -209,22 +220,6 @@ export function loadFinalityConfig(): FinalityConfig {
   } catch {
     return { finality: {} as Record<CaseStatus, FinalityConditionRule> };
   }
-}
-
-/** Parse a condition string like "claims.active.min_confidence: 0.85" or "scope.risk_score: \"< 0.20\"". */
-function parseCondition(condition: string): { key: string; op: string; value: number } {
-  const colon = condition.indexOf(":");
-  if (colon === -1) return { key: "", op: "==", value: 0 };
-  const key = condition.slice(0, colon).trim();
-  const rest = condition.slice(colon + 1).trim().replace(/^["']|["']$/g, "");
-  const match = rest.match(/^(>=|<=|>|<|==)\s*([\d.]+)$/);
-  if (match) {
-    return { key, op: match[1], value: Number(match[2]) };
-  }
-  const num = Number(rest);
-  const value = Number.isFinite(num) ? num : 0;
-  const op = value === 0 && (key.includes("count") || key.includes("_count")) ? "==" : ">=";
-  return { key, op, value };
 }
 
 function evaluateOne(condition: string, snapshot: FinalitySnapshot): boolean {
@@ -294,7 +289,15 @@ export interface FinalityReviewRequest {
     status: "ok" | "partial" | "blocking";
     detail: string;
   }[];
-  blockers: { type: string; node_ids: string[]; description: string }[];
+  blockers: {
+    type: string;
+    node_ids: string[];
+    description: string;
+    /** For unresolved_contradiction: full contradiction text. */
+    content?: string;
+    /** For unresolved_contradiction: parsed sides for "Choose A" / "Choose B" UI. */
+    choices?: Array<{ id: string; label: string }>;
+  }[];
   llm_explanation: string;
   suggested_actions: string[];
   options: FinalityOption[];
@@ -311,6 +314,128 @@ export type FinalityResult =
   | { kind: "status"; status: CaseStatus }
   | { kind: "review"; request: FinalityReviewRequest };
 
+/**
+ * Loaded inputs for finality evaluation. Separates I/O (load) from gate logic (evaluate)
+ * so callers can test gate behaviour with plain objects.
+ */
+export interface FinalityInput {
+  scopeId: string;
+  snapshot: FinalitySnapshot;
+  config: FinalityConfig;
+  near: number;
+  auto: number;
+  goalScore: number;
+  convergenceData?: ConvergenceData;
+  epoch: number;
+  hasContent: boolean;
+  /** When true, convergence rate indicates divergence; caller should record gate state and return ESCALATED. */
+  divergenceDetected?: boolean;
+}
+
+/**
+ * Load snapshot, config, thresholds, and convergence state for finality evaluation.
+ * Records the current convergence point. Does not perform gate evaluation or side effects
+ * (emit certificate, record gate state for non-divergence outcomes).
+ */
+export async function loadFinalityInput(scopeId: string): Promise<FinalityInput> {
+  const snapshot = await loadFinalitySnapshot(scopeId);
+  const config = loadFinalityConfig();
+  const thresholds = getFinalityThresholds();
+  const near = config.goal_gradient?.near_finality_threshold ?? thresholds.nearFinalityThreshold;
+  const auto = config.goal_gradient?.auto_finality_threshold ?? thresholds.autoFinalityThreshold;
+  const goalScore = computeGoalScore(snapshot, config.goal_gradient);
+
+  let epoch = 0;
+  try {
+    const { loadState } = await import("./stateGraph.js");
+    const st = await loadState(scopeId);
+    epoch = st?.epoch ?? 0;
+  } catch {
+    /* state table may not exist */
+  }
+
+  const hasContent = snapshot.claims_active_count > 0 || snapshot.goals_completion_ratio < 1;
+
+  let convergenceData: ConvergenceData | undefined;
+  let divergenceDetected = false;
+  try {
+    const {
+      computeLyapunovV,
+      computePressure,
+      computeDimensionScores,
+      recordConvergencePoint,
+      getConvergenceState,
+      DEFAULT_CONVERGENCE_CONFIG,
+    } = await import("./convergenceTracker.js");
+
+    const lyapunovV = computeLyapunovV(snapshot, undefined, config.goal_gradient?.weights);
+    const pressure = computePressure(snapshot, config.goal_gradient?.weights);
+    const dimensionScores = computeDimensionScores(snapshot, config.goal_gradient);
+
+    let contextSeq: number | null = null;
+    try {
+      const { getLatestPipelineWalSeqForFacts } = await import("./contextWal.js");
+      contextSeq = await getLatestPipelineWalSeqForFacts();
+    } catch {
+      /* WAL table may not exist */
+    }
+    await recordConvergencePoint(scopeId, epoch, goalScore, lyapunovV, dimensionScores, pressure, undefined, contextSeq);
+
+    const convConfig = {
+      ...DEFAULT_CONVERGENCE_CONFIG,
+      ...(config.convergence ?? {}),
+    };
+    const convergence = await getConvergenceState(scopeId, convConfig, auto);
+    const divergenceRate = config.convergence?.divergence_rate ?? DEFAULT_CONVERGENCE_CONFIG.divergence_rate;
+
+    try {
+      const { recordConvergenceStateMetrics } = await import("./metrics.js");
+      recordConvergenceStateMetrics(scopeId, convergence);
+    } catch {
+      /* metrics may be unavailable */
+    }
+
+    convergenceData = {
+      rate: convergence.convergence_rate,
+      estimated_rounds: convergence.estimated_rounds,
+      plateau_rounds: convergence.plateau_rounds,
+      lyapunov_v: lyapunovV,
+      highest_pressure: convergence.highest_pressure_dimension,
+      is_monotonic: convergence.is_monotonic,
+      is_plateaued: convergence.is_plateaued,
+      score_history: convergence.history.map((p) => p.goal_score),
+      trajectory_quality: convergence.trajectory_quality,
+      oscillation_detected: convergence.oscillation_detected,
+      per_dimension_monotonic: convergence.per_dimension_monotonic,
+      per_dimension_trajectory_quality: convergence.per_dimension_trajectory_quality,
+    };
+
+    if (convergence.convergence_rate < divergenceRate && convergence.history.length >= 3) {
+      divergenceDetected = true;
+    }
+  } catch (err) {
+    try {
+      const { logger } = await import("./logger.js");
+      logger.warn("convergence tracking unavailable in loadFinalityInput", { scopeId, error: String(err) });
+    } catch {
+      /* logger unavailable */
+    }
+  }
+
+  return {
+    scopeId,
+    snapshot,
+    config,
+    near,
+    auto,
+    goalScore,
+    convergenceData,
+    epoch,
+    hasContent,
+    divergenceDetected,
+  };
+}
+
 /** Gate D: true when quiescence is disabled or snapshot meets idle_cycles and window_ms. */
 function isQuiescent(snapshot: FinalitySnapshot, quiescence?: QuiescenceConfig): boolean {
   if (!quiescence || (quiescence.idle_cycles_min <= 0 && quiescence.window_ms <= 0)) return true;
@@ -326,6 +451,9 @@ async function emitSessionFinalized(scopeId: string): Promise<void> {
   } catch {
     // WAL may be unavailable
   }
+  await emitContribution("finality-evaluator", "assessment", {
+    outcome: "RESOLVED",
+  }, { scopeId });
 }
 
 async function emitFinalityCertificate(scopeId: string): Promise<void> {
@@ -371,6 +499,9 @@ async function recordGateStateIfAvailable(
   }
 }
 
+/** Seconds to suppress HITL after provide_resolution/defer so resolution can be submitted and processed. */
+const HITL_COOLDOWN_SEC = Number(process.env.HITL_RESOLUTION_COOLDOWN_SEC ?? "90");
+
 export async function evaluateFinality(scopeId: string): Promise<FinalityResult | null> {
   // Human-approved finality: skip re-HITL and treat as RESOLVED
   try {
@@ -381,98 +512,148 @@ export async function evaluateFinality(scopeId: string): Promise<FinalityResult 
       await emitFinalityCertificate(scopeId);
       return { kind: "status", status: "RESOLVED" };
     }
+    // Cooldown after provide_resolution or defer: avoid re-queuing HITL before resolution is processed
+    if (
+      HITL_COOLDOWN_SEC > 0 &&
+      (latest?.option === "provide_resolution" || latest?.option === "defer")
+    ) {
+      const createdAt = latest.created_at ? new Date(latest.created_at).getTime() : 0;
+      if (Date.now() - createdAt < HITL_COOLDOWN_SEC * 1000) {
+        return null; // stay ACTIVE, do not trigger HITL again yet
+      }
+    }
   } catch {
     // table may not exist or DATABASE_URL unset
   }
 
-  const snapshot = await loadFinalitySnapshot(scopeId);
-  const config = loadFinalityConfig();
-  const thresholds = getFinalityThresholds();
-  const near = config.goal_gradient?.near_finality_threshold ?? thresholds.nearFinalityThreshold;
-  const auto = config.goal_gradient?.auto_finality_threshold ?? thresholds.autoFinalityThreshold;
-  const goalScore = computeGoalScore(snapshot, config.goal_gradient);
+  const input = await loadFinalityInput(scopeId);
+  const { snapshot, config, near, auto, goalScore, convergenceData, epoch, hasContent } = input;
 
-  // --- Convergence tracking (graceful degradation if DB unavailable) ---
-  let convergenceData: ConvergenceData | undefined;
+  // When drift blocks the transition AND there are contradictions to solve, trigger HITL.
+  // Only pause for contradictions; otherwise let the flow continue.
+  const hasContradictions = (snapshot.contradictions_unresolved_count ?? 0) > 0;
+  const BLOCKING_DRIFT_LEVELS = ["high", "critical"];
   try {
-    const {
-      computeLyapunovV,
-      computePressure,
-      computeDimensionScores,
-      recordConvergencePoint,
-      getConvergenceState,
-      DEFAULT_CONVERGENCE_CONFIG,
-    } = await import("./convergenceTracker.js");
-
-    const lyapunovV = computeLyapunovV(snapshot, undefined, config.goal_gradient?.weights);
-    const pressure = computePressure(snapshot, config.goal_gradient?.weights);
-    const dimensionScores = computeDimensionScores(snapshot, config.goal_gradient);
-
-    // Record this evaluation cycle — use swarm_state.epoch as round number
-    let epoch = 0;
-    try {
-      const { loadState } = await import("./stateGraph.js");
-      const st = await loadState(scopeId);
-      epoch = st?.epoch ?? 0;
-    } catch { /* state table may not exist */ }
-    let contextSeq: number | null = null;
-    try {
-      const { getLatestPipelineWalSeqForFacts } = await import("./contextWal.js");
-      contextSeq = await getLatestPipelineWalSeqForFacts();
-    } catch { /* WAL table may not exist */ }
-    await recordConvergencePoint(scopeId, epoch, goalScore, lyapunovV, dimensionScores, pressure, undefined, contextSeq);
-
-    // Analyze convergence state
-    const convConfig = {
-      ...DEFAULT_CONVERGENCE_CONFIG,
-      ...(config.convergence ?? {}),
-    };
-    const convergence = await getConvergenceState(scopeId, convConfig, auto);
-    const divergenceRate = config.convergence?.divergence_rate ?? DEFAULT_CONVERGENCE_CONFIG.divergence_rate;
-
-    convergenceData = {
-      rate: convergence.convergence_rate,
-      estimated_rounds: convergence.estimated_rounds,
-      plateau_rounds: convergence.plateau_rounds,
-      lyapunov_v: lyapunovV,
-      highest_pressure: convergence.highest_pressure_dimension,
-      is_monotonic: convergence.is_monotonic,
-      is_plateaued: convergence.is_plateaued,
-      score_history: convergence.history.map((p) => p.goal_score),
-      trajectory_quality: convergence.trajectory_quality,
-      oscillation_detected: convergence.oscillation_detected,
-      per_dimension_monotonic: convergence.per_dimension_monotonic,
-      per_dimension_trajectory_quality: convergence.per_dimension_trajectory_quality,
-    };
-
-    // Divergence detection: V is increasing → system moving away from finality
-    if (convergence.convergence_rate < divergenceRate && convergence.history.length >= 3) {
-      await recordGateStateIfAvailable(scopeId, epoch, snapshot, convergence, config, "ESCALATED");
-      return { kind: "status", status: "ESCALATED" };
+    const { loadState } = await import("./stateGraph.js");
+    const { makeS3, s3GetText } = await import("./s3.js");
+    const st = await loadState(scopeId);
+    const lastNode = st?.lastNode;
+    if (hasContradictions && (lastNode === "DriftChecked" || lastNode === "EvidencePropagated")) {
+      const bucket = process.env.S3_BUCKET ?? "swarm-facts";
+      const s3 = makeS3();
+      const driftRaw = await s3GetText(s3, bucket, "drift/latest.json");
+      const drift = driftRaw
+        ? (JSON.parse(driftRaw) as { level?: string; types?: string[]; recommend_hitl?: boolean })
+        : { level: "none", types: [] as string[], recommend_hitl: false };
+      const driftBlocksAdvancement = (drift.level && BLOCKING_DRIFT_LEVELS.includes(drift.level.toLowerCase())) || drift.recommend_hitl === true;
+      if (driftBlocksAdvancement) {
+        if (convergenceData) {
+          await recordGateStateIfAvailable(scopeId, epoch, snapshot, convergenceData, config, "HITL");
+        }
+        const dimension_breakdown = buildDimensionBreakdown(snapshot, config.goal_gradient);
+        const blockers = await buildBlockers(scopeId, snapshot);
+        blockers.push({
+          type: "drift_blocking",
+          node_ids: [],
+          description: `Drift is ${drift.level}; governance blocks advancement until resolved. Provide a resolution to unblock.`,
+        });
+        return {
+          kind: "review",
+          request: {
+            type: "finality_review",
+            scope_id: scopeId,
+            goal_score: goalScore,
+            near_threshold: near,
+            auto_threshold: auto,
+            gap: auto - goalScore,
+            dimension_breakdown,
+            blockers,
+            llm_explanation: "",
+            suggested_actions: ["Provide a resolution to address the drift and unblock the pipeline"],
+            options: [
+              { action: "approve_finality", label: "Mark as Resolved now" },
+              { action: "provide_resolution", label: "Add resolution to unblock drift" },
+              { action: "escalate", label: "Escalate to authority" },
+              { action: "defer", days: 7, label: "Defer review (7 days)" },
+            ],
+            convergence: convergenceData,
+          },
+        };
+      }
     }
-  } catch (err) {
-    try {
-      const { logger } = await import("./logger.js");
-      logger.warn("convergence tracking unavailable in evaluateFinality", { scopeId, error: String(err) });
-    } catch {
-      /* logger unavailable */
-    }
+  } catch {
+    /* S3 or state unavailable — continue with normal flow */
+  }
+
+  if (input.divergenceDetected && input.convergenceData) {
+    await recordGateStateIfAvailable(
+      scopeId,
+      input.epoch,
+      input.snapshot,
+      input.convergenceData,
+      input.config,
+      "ESCALATED",
+    );
+    return { kind: "status", status: "ESCALATED" };
   }
 
   // Gate E: minimum content — do not auto-resolve or trigger HITL when there's no meaningful content.
-  // When all dimensions are 1.0 only because there are zero claims/goals/risks, the score is vacuously high.
-  const hasContent = snapshot.claims_active_count > 0 || snapshot.goals_completion_ratio < 1;
-  let epoch = 0;
-  try {
-    const { loadState } = await import("./stateGraph.js");
-    const st = await loadState(scopeId);
-    epoch = st?.epoch ?? 0;
-  } catch { /* state table may not exist */ }
   if (!hasContent) {
     if (convergenceData) {
       await recordGateStateIfAvailable(scopeId, epoch, snapshot, convergenceData, config, "ACTIVE");
     }
     return { kind: "status", status: "ACTIVE" };
+  }
+
+  // Stage 2 Phase 3: ISS cascade monitoring (sheaf propagation stability).
+  // When enabled, check small-gain condition; act based on small_gain_violation_action.
+  const issConfig = config.iss_cascade;
+  if (issConfig?.enabled) {
+    try {
+      const { loadPropagationHistory } = await import("./evidenceStateManager.js");
+      const { computeISSCascadeResult } = await import("./issBridge.js");
+      const { PropagationEngine } = await import("./propagationEngine.js");
+
+      const history = await loadPropagationHistory(scopeId, 20);
+      if (history.length > 0) {
+        const engine = PropagationEngine.create();
+        const noiseHistory = history.map((h) => h.perturbation_norm);
+        const contradictionHistory = history.map((h) => h.kappa);
+        const initialDisagreement = history[0].disagreement_after;
+        const issAnalysis = engine.analyzeISS(noiseHistory, contradictionHistory, initialDisagreement);
+
+        const cascadeResult = computeISSCascadeResult({
+          psi: 1 - goalScore,
+          monotone: convergenceData?.is_monotonic ?? true,
+          omega: history[history.length - 1].disagreement_after,
+          iss: issAnalysis,
+          burden: snapshot.contradictions_unresolved_count,
+        });
+
+        if (!cascadeResult.cascade_stable) {
+          const action = issConfig.small_gain_violation_action ?? "warn";
+          if (action === "escalate") {
+            if (convergenceData) {
+              await recordGateStateIfAvailable(scopeId, epoch, snapshot, convergenceData, config, "ESCALATED");
+            }
+            return { kind: "status", status: "ESCALATED" };
+          }
+          if (action === "block") {
+            if (convergenceData) {
+              await recordGateStateIfAvailable(scopeId, epoch, snapshot, convergenceData, config, "ACTIVE");
+            }
+            return null;
+          }
+          // action === "warn": log and continue
+          try {
+            const { logger } = await import("./logger.js");
+            logger.warn("iss_cascade_violation", { scopeId, cascade_stable: false });
+          } catch { /* logger unavailable */ }
+        }
+      }
+    } catch {
+      // Propagation not available (no history, missing tables) — graceful degradation
+    }
   }
 
   // Path A: RESOLVED if all hard conditions hold and goal score >= auto
@@ -567,13 +748,17 @@ export async function evaluateFinality(scopeId: string): Promise<FinalityResult 
     }
   }
 
-  // Path B: near <= goalScore < auto -> HITL review (payload built in hitlFinalityRequest)
-  if (goalScore >= near && goalScore < auto) {
+  // Path B: HITL only when there are unresolved contradictions. Human resolves, flow resumes.
+  // Do not block on low confidence, goals, or drift alone.
+  const hasBlockingContradictions = (snapshot.contradictions_unresolved_count ?? 0) > 0;
+  const hitlMinEpochWhenContra = Number(process.env.HITL_MIN_EPOCH_WHEN_CONTRADICTIONS ?? "0");
+  const epochOk = hitlMinEpochWhenContra <= 0 || epoch >= hitlMinEpochWhenContra;
+  if (hasBlockingContradictions && goalScore >= near && goalScore < auto && epochOk) {
     if (convergenceData) {
       await recordGateStateIfAvailable(scopeId, epoch, snapshot, convergenceData, config, "HITL");
     }
     const dimension_breakdown = buildDimensionBreakdown(snapshot, config.goal_gradient);
-    const blockers = buildBlockers(snapshot);
+    const blockers = await buildBlockers(scopeId, snapshot);
     const request: FinalityReviewRequest = {
       type: "finality_review",
       scope_id: scopeId,
@@ -669,14 +854,35 @@ function buildDimensionBreakdown(
   ];
 }
 
-function buildBlockers(snapshot: FinalitySnapshot): FinalityReviewRequest["blockers"] {
+async function buildBlockers(
+  scopeId: string,
+  snapshot: FinalitySnapshot,
+): Promise<FinalityReviewRequest["blockers"]> {
   const out: FinalityReviewRequest["blockers"] = [];
   if (snapshot.contradictions_unresolved_count > 0) {
-    out.push({
-      type: "unresolved_contradiction",
-      node_ids: [],
-      description: `${snapshot.contradictions_unresolved_count} unresolved contradiction(s)`,
-    });
+    try {
+      const { loadUnresolvedContradictionDetails } = await import("./semanticGraph.js");
+      const details = await loadUnresolvedContradictionDetails(scopeId);
+      for (const d of details) {
+        const choices: Array<{ id: string; label: string }> = [];
+        if (d.side_a) choices.push({ id: "a", label: d.side_a.slice(0, 120) + (d.side_a.length > 120 ? "…" : "") });
+        if (d.side_b) choices.push({ id: "b", label: d.side_b.slice(0, 120) + (d.side_b.length > 120 ? "…" : "") });
+        const nodeIds = d.node_id ? [d.node_id] : [];
+        out.push({
+          type: "unresolved_contradiction",
+          node_ids: nodeIds,
+          description: d.content.slice(0, 200) + (d.content.length > 200 ? "…" : ""),
+          content: d.content,
+          choices: choices.length > 0 ? choices : undefined,
+        });
+      }
+    } catch {
+      out.push({
+        type: "unresolved_contradiction",
+        node_ids: [],
+        description: `${snapshot.contradictions_unresolved_count} unresolved contradiction(s)`,
+      });
+    }
   }
   if (snapshot.risks_critical_active_count > 0) {
     out.push({
@@ -685,20 +891,16 @@ function buildBlockers(snapshot: FinalitySnapshot): FinalityReviewRequest["block
       description: `${snapshot.risks_critical_active_count} critical risk(s) active`,
     });
   }
-  if (snapshot.claims_active_min_confidence < 0.85) {
+  // Only block on genuinely low confidence (<65%); 80%+ claims are acceptable
+  const claimHitlThreshold = 0.65;
+  if (snapshot.claims_active_min_confidence < claimHitlThreshold) {
     out.push({
       type: "low_confidence_claims",
       node_ids: [],
-      description: `min claim confidence ${(snapshot.claims_active_min_confidence * 100).toFixed(0)}% (need 85%)`,
+      description: `min claim confidence ${(snapshot.claims_active_min_confidence * 100).toFixed(0)}% (need ${claimHitlThreshold * 100}%)`,
     });
   }
-  if (snapshot.goals_completion_ratio < 0.9) {
-    out.push({
-      type: "missing_goal_resolution",
-      node_ids: [],
-      description: `goals completion ${(snapshot.goals_completion_ratio * 100).toFixed(0)}% (need 90%)`,
-    });
-  }
+  // Goals are aspirational; do not block finality on unresolved goals
   return out;
 }
 

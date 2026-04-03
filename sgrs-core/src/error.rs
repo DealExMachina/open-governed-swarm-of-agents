@@ -15,4 +15,17 @@ pub enum KernelError {
 
     #[error("epoch mismatch: proposal epoch {proposal} < current {current}")]
     StaleEpoch { proposal: u64, current: u64 },
+
+    // --- Causal contribution layer ---
+    #[error("missing parent: contribution {child} references unknown parent {parent}")]
+    MissingParent { child: String, parent: String },
+
+    #[error("cycle detected: inserting contribution {contribution} would create a cycle")]
+    CycleDetected { contribution: String },
+
+    #[error("hash mismatch: expected {expected}, got {actual}")]
+    HashMismatch { expected: String, actual: String },
+
+    #[error("serialization error: {0}")]
+    SerializationError(String),
 }

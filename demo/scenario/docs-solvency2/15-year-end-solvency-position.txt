@@ -1,0 +1,206 @@
+MERIDIAN INSURANCE GROUP AG
+Year-End Solvency Position and SFCR Filing Summary
+Reference Date: 31 December 2026
+Prepared by: Capital Model Analyst — Dr. Katharina Engel
+              Risk Actuary — Dr. Lukas Feldmann
+              Regulatory Interpreter — Dr. Anna-Lena Richter
+Classification: CONFIDENTIAL (until SFCR publication on 7 April 2027)
+Date of Issue: 15 January 2027
+Reference: SOL-2027-001
+
+1. EXECUTIVE SUMMARY
+
+Meridian Insurance Group AG reports a year-end SCR ratio of 151%,
+representing a significant recovery from the low point of 128% at
+Q1 2026 but below the revised Board target of 155%.
+
+The Solvency and Financial Condition Report (SFCR) for FY2026 has
+been prepared for filing with BaFin by 7 April 2027 and simultaneous
+public disclosure per Art. 51 of Directive 2009/138/EC.
+
+This summary consolidates the full-year solvency journey and provides
+the definitive figures for the FY2026 regulatory reporting cycle.
+
+2. YEAR-END ELIGIBLE OWN FUNDS
+
+Tier 1 unrestricted own funds:          EUR 748,000,000
+Tier 1 restricted own funds:            EUR  98,000,000
+Tier 2 own funds (existing sub debt):   EUR  80,000,000
+Tier 2 own funds (new issuance Sep 2026): EUR 150,000,000
+-------------------------------------------------------
+Total eligible own funds:               EUR 1,076,000,000
+
+Change from Q4 2025 (EUR 890M): +EUR 186,000,000
+  of which subordinated debt issuance:  +EUR 150,000,000
+  of which retained earnings (div susp): +EUR 32,000,000
+  of which other movements:             +EUR   4,000,000
+
+Tiering compliance:
+  Tier 1 as % of SCR: 119% (minimum 50%) — COMPLIANT
+  Tier 2 as % of SCR:  32% (maximum 50%) — COMPLIANT
+  Tier 3: NIL
+
+3. YEAR-END SCR BREAKDOWN
+
+Market risk module:                     EUR 318,000,000
+  (reduced from Q1 2026 EUR 342M due to equity de-risking)
+Counterparty default risk module:       EUR 52,000,000
+  (increased from EUR 49M due to Swiss Re downgrade,
+   partially offset by novation to Munich Re)
+Life underwriting risk module:          EUR 198,000,000
+Non-life underwriting risk module:      EUR 138,000,000
+Health underwriting risk module:        EUR 62,000,000
+Diversification benefit:               EUR (155,000,000)
+Operational risk:                       EUR 45,000,000
+Adjustment for loss-absorbing capacity
+  of deferred taxes:                    EUR (15,000,000)
+  (newly recognized following tax opinion from KPMG)
+Cat bond risk transfer credit:          EUR  (8,000,000)
+-------------------------------------------------------
+Total SCR:                              EUR 635,000,000
+
+Note: The Q4 2025 SCR was EUR 627,000,000. Despite significant changes
+in individual modules, the total SCR has increased by only EUR 8,000,000
+due to offsetting effects (look-through increase vs. de-risking decrease
+vs. new loss-absorbing capacity recognition).
+
+4. SCR RATIO
+
+SCR Ratio = 1,076 / 635 = 151.3% (rounded: 151%)
+MCR Ratio = 1,076 / 224 = 480.4%
+Surplus above SCR: EUR 441,000,000
+
+5. FULL-YEAR SCR RATIO TRAJECTORY
+
+  Q4 2025:   142%  (guidelines: EIOPA-BoS-14/171)
+  Q1 2026:   128%  (guidelines: EIOPA-BoS-26/142, full look-through)
+  Q2 2026:   130%  (Swiss Re downgrade impact absorbed)
+  Q3 2026:   148%  (subordinated debt issuance, de-risking)
+  Q4 2026:   151%  (full remediation effects, LACDT recognition)
+
+Each quarterly figure was calculated under the regulatory framework
+applicable AT THAT DATE and represents the official regulatory position
+for that period. Prior figures are NOT restated.
+
+6. TRANSITIONAL MEASURE — FINAL POSITION
+
+The Art. 308c transitional deduction has been fully recalculated as at
+31 December 2026:
+
+  Solvency II technical provisions (gross):  EUR 4,350,000,000
+  Solvency I proxy technical provisions:     EUR 4,298,000,000
+  Difference:                                EUR    52,000,000
+  Linear reduction factor (9/16 remaining):          56.25%
+  Transitional deduction (current):          EUR    29,250,000
+  Rounded:                                   EUR    29,000,000
+
+Historical transitional figures (all preserved in records):
+  Q4 2025: EUR 45,000,000 (valid time: Q4 2025, tx time: 20 Dec 2025)
+  Q1 2026: EUR 28,000,000 (valid time: Q1-Q2 2026, tx time: 5 May 2026)
+  Q4 2026: EUR 29,000,000 (valid time: Q3-Q4 2026, tx time: 15 Jan 2027)
+
+Without the transitional measure, the SCR ratio would be approximately
+147% (still above the 135% minimum target under the old framework).
+The Board notes that Meridian is converging toward a position where the
+transitional measure is no longer critical to capital adequacy.
+
+7. INTERNAL MODEL VS. STANDARD FORMULA RECONCILIATION
+
+Per the recalibrated PIM (Report PIM-2026-002 dated 8 August 2026):
+
+  PIM SCR (market + life modules):     EUR 472,000,000
+  Standard formula (same modules):     EUR 465,000,000
+  PIM produces HIGHER SCR by:          EUR   7,000,000 (1.5%)
+
+  Full SCR under PIM:                  EUR 642,000,000
+  Full SCR under standard formula:     EUR 635,000,000
+  Difference:                          EUR   7,000,000
+
+For FY2026, Meridian reports the STANDARD FORMULA SCR of EUR 635,000,000
+as the binding regulatory figure, as the PIM model change application
+(filed 5 September 2026) is still under BaFin review. Once approved,
+the higher PIM figure will become the binding SCR.
+
+Estimated impact on ratio if PIM is approved: 151% -> 150%
+(immaterial, but directionally negative).
+
+8. OUTSTANDING MATTERS AND FORWARD LOOK
+
+8.1 Contract Boundary Classification (Audit Observation 4)
+  Parallel calculations under both interpretations have been prepared:
+    Current interpretation (5-year boundary):  SCR ratio 151%
+    Alternative interpretation (1-year boundary): SCR ratio 149%
+  BaFin dialogue initiated on 15 November 2026. Response pending.
+  The SFCR discloses this as a significant judgment in Note 4.3.
+
+8.2 Swiss Re Rating
+  Moody's concluded its review on 10 December 2026: downgraded Swiss Re
+  to A2 (from Aa3), stable outlook. S&P rating remains A- (stable).
+  No further SCR impact (A2/A- both map to credit quality step 3).
+  Treaty renewal for 1 January 2027: novation of remaining Swiss Re
+  exposure to a panel of A+-rated reinsurers approved by the Board.
+
+8.3 EIOPA Stress Test Remediation
+  BaFin acknowledged Meridian's capital remediation plan on 15 October
+  2026 and noted the improved trajectory. Enhanced supervisory reporting
+  (quarterly) will continue through H1 2027.
+
+8.4 2027 Outlook
+  Projected SCR ratio range: 155%-162% (assuming no further regulatory
+  changes, successful Swiss Re novation, and stable markets).
+  Key risk: EIOPA review of standard formula calibration scheduled
+  for Q2 2027 could affect market risk and life underwriting charges.
+
+9. SFCR DISCLOSURE SUMMARY
+
+The FY2026 SFCR includes the following key disclosures:
+  Section A: Business and Performance — premium growth 3.8%
+  Section B: System of Governance — enhanced look-through controls
+  Section C: Risk Profile — SCR breakdown per Section 3 above
+  Section D: Valuation — contract boundary judgment disclosed
+  Section E: Capital Management — remediation plan, sub debt issuance
+
+The SFCR has been reviewed by:
+  - External auditor (Deloitte GmbH) — unqualified opinion
+  - Appointed Actuary — technical provisions opinion issued
+  - Compliance function — regulatory completeness sign-off
+
+10. CONTRADICTION AND DRIFT REGISTER
+
+For the benefit of governance monitoring systems, the following
+regulatory contradictions and drifts occurred during FY2026:
+
+  C1: SCR ratio — 142% (Q4 2025) vs 128% (Q1 2026) vs 151% (Q4 2026)
+      Each figure valid under its applicable regulatory framework.
+      No restatement of prior figures.
+
+  C2: Transitional measure — EUR 45M vs EUR 28M vs EUR 29M
+      Bitemporal records maintained. Q4 2025 figure preserved.
+
+  C3: Internal model vs standard formula — initially aligned (PIM
+      3.2% lower), then diverged (PIM 1.5% higher). Reversal driven
+      by look-through data revealing concentrated exposures.
+
+  C4: Look-through approach — initially 78% coverage, then 100%.
+      EIOPA guideline change (EIOPA-BoS-26/142) was the trigger.
+      Retroactive assessment performed but prior figures not restated.
+
+  C5: Reinsurance counterparty quality — Swiss Re A+ -> A-/A2.
+      ORSA assumptions invalidated. SCR impact EUR 12M.
+
+  C6: Contract boundary — two interpretations coexist. Resolution
+      pending BaFin guidance. Parallel calculations disclosed.
+
+11. SIGN-OFF
+
+  Dr. Katharina Engel — Capital Model Analyst
+  Dr. Lukas Feldmann — Risk Actuary
+  Dr. Anna-Lena Richter — Head of Regulatory Interpretation
+  Herr Prof. Stefan Bruckner — Chief Actuary (Appointed Actuary)
+  Frau Monika Adler — Chief Risk Officer
+  Herr Martin Schreiber — CEO
+
+  SFCR approved by Management Board: 10 January 2027
+  SFCR approved by Supervisory Board: 14 January 2027
+  Filing with BaFin: 7 April 2027
+  Public disclosure: 7 April 2027

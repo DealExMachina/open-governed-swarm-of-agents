@@ -1,0 +1,70 @@
+================================================================================
+CONFIDENTIAL — PROJECT HORIZON
+NovaTech AG: Customer Analysis & Revenue Concentration
+Date: 2025-01-22
+Prepared by: Julia Hartmann, VP Sales — NovaTech AG
+================================================================================
+
+1. CUSTOMER BASE OVERVIEW
+
+NovaTech AG serves 47 enterprise customers across the European life sciences
+sector. The customer base is segmented as follows:
+
+  Pharmaceutical Companies:           19 clients  (40%)
+  Medical Device Manufacturers:       14 clients  (30%)
+  Contract Research Organizations:     8 clients  (17%)
+  Biotech / Diagnostics:              6 clients   (13%)
+
+2. TOP 10 CUSTOMERS BY ARR
+
+  Rank  Customer                   ARR (EUR M)   % of ARR   Contract End
+  ----  --------                   -----------   --------   ------------
+   1    Pharmakon GmbH               7.8          15.6%     2026-06-30
+   2    BioVantage AG                 5.2          10.4%     2027-12-31
+   3    MedCore Instruments           4.1           8.2%     2027-03-31
+   4    Helvetia Diagnostics          3.5           7.0%     2026-09-30
+   5    Rheingold Therapeutics        3.2           6.4%     2028-06-30
+   6    Nordica Pharma AS             2.8           5.6%     2027-06-30
+   7    Catalys Biotech              2.4           4.8%     2026-12-31
+   8    EuroMed Devices SRL          2.1           4.2%     2027-09-30
+   9    Albion Clinical Research     1.9           3.8%     2027-03-31
+  10    Sentinel Health Systems      1.7           3.4%     2028-01-31
+        -------------------------------------------------------
+        Top 10 Total:               34.7          69.4%
+
+3. RETENTION & EXPANSION METRICS
+
+  Logo Retention Rate (TTM):         96% (2 churned accounts in 12 months)
+  Net Revenue Retention (NRR):      118%
+  Average Contract Value (ACV):     EUR 1.06 million
+  Average Contract Length:          2.3 years
+  Accounts with Multi-Year Deals:   31 of 47 (66%)
+
+4. CUSTOMER HEALTH ASSESSMENT
+
+NovaTech utilizes a proprietary health scoring model (1-100). Current
+distribution of scores across the customer base:
+
+  Green (score 75-100):    38 accounts  (81%)
+  Yellow (score 50-74):     7 accounts  (15%)
+  Red (score below 50):     2 accounts  ( 4%)
+
+Both "Red" accounts are in active remediation with dedicated customer success
+managers. Neither is in the top-10 by revenue.
+
+5. GEOGRAPHIC DISTRIBUTION
+
+  DACH Region (DE/AT/CH):           58% of ARR
+  Nordics (NO/SE/DK/FI):           18% of ARR
+  Southern Europe (IT/ES):          12% of ARR
+  UK & Ireland:                      8% of ARR
+  Benelux:                           4% of ARR
+
+6. KEY RELATIONSHIPS
+
+Pharmakon GmbH is NovaTech's longest-standing customer (since 2019) and serves
+as a flagship reference account. The relationship is managed at executive level
+by CEO Dr. Lukas Meier directly. Pharmakon's contract includes a 90-day
+termination-for-convenience clause.
+
+Prepared by Julia Hartmann, VP Sales — NovaTech AG

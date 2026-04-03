@@ -1,0 +1,166 @@
+DOCUMENT: NorthGrid Utilities — Q1 2026 Evidence Coarsening Audit Report
+DATE: March 30, 2026
+CLASSIFICATION: NERC CIP — Audit Sensitive / Compliance Record
+AUTHOR: Data Governance Office / Internal Audit Division
+REF: NG-AUDIT-2026-Q1-COARSEN-015
+
+AUDIT SCOPE
+
+This report documents the quarterly evidence coarsening process whereby
+NorthGrid's real-time operational data is aggregated into compliance
+metrics for the Q1 2026 NERC filing. The audit examines the fidelity
+and completeness of the aggregation pipeline and addresses auditor
+questions raised during the Q4 2025 external audit.
+
+DATA VOLUME SUMMARY
+
+  Data Type              | Q1 Raw Records    | Compliance Metrics
+  -----------------------|-------------------|--------------------
+  SCADA frequency        |   388,800,000     |    92 (per standard)
+  PMU synchrophasor      | 2,099,520,000     |    48 (per event)
+  Generator telemetry    |    78,624,000     |   187 (per unit)
+  Settlement metering    |    17,452,800     |   312 (per interval)
+  Cybersecurity logs     |    43,200,000     |   156 (per asset)
+  Physical security logs |     8,640,000     |    52 (per perimeter)
+  -----------------------|-------------------|--------------------
+  TOTAL                  | 2,636,236,800     |   847
+
+Compression ratio: approximately 3.1 million raw data points per
+compliance metric.
+
+COARSENING METHODOLOGY
+
+The evidence coarsening pipeline operates in four stages:
+
+Stage 1 — RAW COLLECTION (millisecond to second resolution)
+  All operational data systems continuously write to local historians.
+  PMU data: 30 samples/second per channel, 12 PMUs, 8 channels each.
+  SCADA data: 2-second scan rate, 847 monitored points.
+  Cybersecurity logs: event-driven, variable rate.
+
+Stage 2 — INTERMEDIATE AGGREGATION (minute to hourly resolution)
+  Automated jobs aggregate raw data into intermediate summaries:
+    - Frequency: 1-minute averages, maxima, minima, std. deviation
+    - Generation: 5-minute energy intervals, 15-minute meter reads
+    - Cyber logs: hourly event counts by severity and asset
+    - Physical security: hourly alarm summaries by perimeter
+
+Stage 3 — DAILY ROLLS (daily resolution)
+  Daily compliance calculations executed at 00:15 UTC:
+    - BAL-001 CPS1/CPS2 daily components
+    - BAL-003 frequency response metrics
+    - CIP event counts and compliance status flags
+    - Settlement energy balances and imbalance calculations
+
+Stage 4 — QUARTERLY SYNTHESIS (quarterly compliance metrics)
+  Final aggregation into 847 NERC-reportable metrics:
+    - Weighted compliance index (WCI) per standard
+    - Reliability performance metrics (CPS1, CPS2, BAAL)
+    - BES Cyber Asset compliance status per requirement
+    - Physical security compliance status per perimeter
+    - Event narratives and corrective action summaries
+
+AUDITOR QUESTIONS AND RESPONSES
+
+QUESTION 1: Are sub-second frequency transients preserved or lost
+during coarsening?
+
+RESPONSE: Sub-second transients are preserved in the PMU archive at
+full resolution (30 samples/second) for 13 months from the date of
+recording. After 13 months, PMU data is coarsened to 1-minute averages
+(min, max, mean, std. dev.) and retained for 7 years per NorthGrid
+Data Retention Policy NG-DRP-2024-001.
+
+For the February 12 Storm Helios event specifically:
+  - Full 30 Hz PMU data: retained through March 2027
+  - After coarsening: the 59.82 Hz nadir would be preserved in the
+    1-minute minimum field, but the sub-second trajectory would be lost
+  - The 0.8-second duration of the nadir would not survive coarsening
+
+DEMONSTRATION: NorthGrid provided the auditor with a live query of the
+OSIsoft PI historian, retrieving 30 Hz PMU data for the February 12
+event window (16:48:00 - 16:50:00 UTC). All 3,600 data points per PMU
+were retrieved successfully, confirming archive integrity.
+
+QUESTION 2: How is the coarsening process validated for accuracy?
+
+RESPONSE: Three validation mechanisms are in place:
+
+  1. AUTOMATED RECONCILIATION: Daily automated checks compare Stage 2
+     aggregated values against random samples of Stage 1 raw data.
+     Tolerance: +/- 0.1% for energy quantities, +/- 0.005 Hz for
+     frequency values. Q1 pass rate: 99.94% (52 of 87,600 checks
+     flagged, all resolved as rounding differences).
+
+  2. EVENT SPOT-CHECKS: For each NERC-reportable event, a manual
+     comparison of raw data vs. compliance metric is performed.
+     Q1: 3 reportable events, all spot-checked, 1 discrepancy found
+     (the SCADA vs. PMU frequency nadir — resolved per document
+     NG-FREQ-2026-03-RECON-012).
+
+  3. ANNUAL EXTERNAL AUDIT: Deloitte & Touche performs an annual
+     review of the coarsening pipeline (last audit: October 2025,
+     next audit: October 2026). No material findings in last audit.
+
+QUESTION 3: What is the risk of material information loss?
+
+RESPONSE: The primary risk is loss of sub-second transient information
+after the 13-month PMU retention window. For the February 12 event:
+
+  Information preserved after coarsening:
+    - Frequency nadir value (59.82 Hz) — preserved in 1-min minimum
+    - Duration below threshold (53 seconds) — preserved in event log
+    - Total energy imbalance — preserved in settlement data
+
+  Information lost after coarsening:
+    - Sub-second frequency trajectory (0.8-sec nadir shape)
+    - Rate of Change of Frequency (RoCoF) waveform
+    - PMU phase angle dynamics during the transient
+    - Inter-area oscillation modes present during recovery
+
+  Risk assessment: LOW for compliance purposes (the nadir value and
+  duration are preserved). MEDIUM for future event analysis (the
+  detailed transient shape is lost, which could be valuable for
+  validating generator model parameters or system inertia studies).
+
+MULTI-RESOLUTION TEMPORAL INTEGRITY
+
+The audit confirms NorthGrid maintains data at four temporal resolutions
+simultaneously during Q1 2026:
+
+  Resolution    | Data Type                | Volume      | Retention
+  --------------|--------------------------|-------------|----------
+  Millisecond   | PMU synchrophasor        | 2.1B pts    | 13 months
+  Second        | SCADA operational        | 389M pts    | 3 years
+  Minute/Hourly | Intermediate aggregates  | 6.5M pts    | 7 years
+  Daily/Quarter | Compliance metrics       | 847 metrics | Permanent
+
+The temporal tower operates correctly: higher-resolution data feeds
+into lower-resolution aggregations, with each level independently
+queryable and auditable.
+
+KNOWN LIMITATION
+
+The settlement metering temporal gap (15-minute reads vs. 4-second
+actuals) creates a known coarsening artifact in curtailment calculations.
+This was the root cause of the February 18 settlement dispute
+(NG-SETL-2026-03-DISP-013). The planned upgrade to 4-second settlement
+telemetry (NG-PROJ-2026-017) will close this gap by Q3 2026.
+
+AUDIT OPINION
+
+The evidence coarsening pipeline is functioning as designed, with
+appropriate controls and validation. The 13-month full-resolution PMU
+retention is adequate for current compliance requirements but should be
+reviewed if NERC introduces sub-second reporting obligations (currently
+under NERC Project 2024-05 consideration).
+
+The single material discrepancy found this quarter (SCADA vs. PMU
+frequency nadir) was identified through the existing spot-check process
+and corrected through the established data reconciliation procedure.
+This demonstrates the control framework is effective.
+
+PREPARED BY: G. Foster, Data Governance Officer
+              N. Patel, Internal Audit Manager
+REVIEWED BY: M. Thornton, CISSP, Chief Compliance Officer
+APPROVED BY: R. Vasquez, VP Grid Operations

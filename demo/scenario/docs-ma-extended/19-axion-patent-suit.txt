@@ -1,0 +1,87 @@
+================================================================================
+CONFIDENTIAL — PROJECT HORIZON
+URGENT: Axion Corp Patent Infringement Lawsuit — NovaTech AG
+Date: 2025-05-12
+Prepared by: Dr. Martina Scholz, VP Legal — NovaTech AG
+External Counsel: Dr. Hans-Jurgen Falk, Falk & Weber IP, Munich
+Classification: LITIGATION HOLD — PRESERVE ALL DOCUMENTS
+================================================================================
+
+1. LAWSUIT FILING
+
+On May 8, 2025, Axion Corp GmbH ("Axion"), a Munich-based regulatory technology
+company, filed a patent infringement action against NovaTech AG in the Unified
+Patent Court (UPC), Munich Local Division (Case No. UPC_CFI_2025/004891).
+
+2. CLAIMS ASSERTED
+
+Axion asserts infringement of European Patent EP4102883 ("AI-Driven Regulatory
+Risk Assessment Framework"), granted March 15, 2025. Axion claims that
+NovaTech's Predictive Risk Scoring module (covered by NovaTech's EP3847291)
+infringes claims 1-4 and 7-9 of EP4102883.
+
+Specifically, Axion alleges:
+  (a) NovaTech's use of ensemble ML models for regulatory risk scoring
+      infringes Axion's method claims (claims 1-4)
+  (b) NovaTech's automated submission prioritization feature infringes
+      Axion's system claims (claims 7-9)
+  (c) Infringement has been willful since at least September 2024, when
+      Axion's patent application was published
+
+3. RELIEF SOUGHT
+
+  - Damages of EUR 15 million (based on alleged lost profits and royalties)
+  - Preliminary injunction preventing NovaTech from offering the Predictive
+    Risk Scoring module in all UPC contracting states
+  - Permanent injunction and recall of infringing products
+  - Court costs and attorney fees
+
+4. CONNECTION TO DR. KLAUS HABER
+
+Court filings reveal that Dr. Klaus Haber is listed as a technical consultant
+to Axion Corp in this matter. This confirms the concern raised in Document 12
+regarding Axion's interest in EP3847291. It appears Dr. Haber may have provided
+Axion with detailed knowledge of NovaTech's implementation of the Predictive
+Risk Scoring module.
+
+NovaTech's separation agreement with Dr. Haber includes a 6-month non-compete
+clause, which expired September 2024. The non-solicitation clause (12 months)
+expired March 2025. Dr. Haber's current engagement with Axion therefore does
+not breach his contractual obligations, though it raises questions about
+potential misuse of NovaTech trade secrets.
+
+5. IMPACT ON EP3847291 OWNERSHIP
+
+The existing co-ownership dispute regarding EP3847291 (Document 12) is now
+further complicated by the Axion lawsuit. If Dr. Haber's ownership claim to
+EP3847291 is upheld, NovaTech's ability to assert EP3847291 as a defense
+(prior art or cross-license) would be compromised.
+
+6. PRELIMINARY LEGAL ASSESSMENT
+
+  Likelihood of Axion prevailing on infringement:    40-55%
+  Likelihood of preliminary injunction granted:      25-35%
+  Estimated legal costs (through trial):             EUR 2.0-3.5M
+  Potential settlement range:                        EUR 1.5-5.0M
+
+  If a preliminary injunction is granted, NovaTech would need to disable the
+  Predictive Risk Scoring module across all EU markets. This module is used
+  by 31 of 47 customers and generates approximately EUR 6.0M in annual
+  revenue (based on adjusted ARR).
+
+7. IMMEDIATE ACTIONS TAKEN
+
+  (a) Litigation hold notice issued to all NovaTech employees
+  (b) External patent litigation counsel retained (Falk & Weber IP)
+  (c) Preservation of all communications with Dr. Klaus Haber
+  (d) Technical team preparing non-infringement analysis and design-around
+      options
+
+8. IMPACT ON ACQUISITION
+
+This lawsuit represents a material development that must be disclosed to
+Meridian Capital Partners. The litigation risk, combined with the Haber IP
+disputes, creates potential exposure of EUR 15-25M in the worst case and
+will likely impact the transaction timeline and valuation.
+
+Prepared by Dr. Martina Scholz & Dr. Hans-Jurgen Falk

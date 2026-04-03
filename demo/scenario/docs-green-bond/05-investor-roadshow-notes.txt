@@ -1,0 +1,29 @@
+INVESTOR ROADSHOW NOTES -- CONFIDENTIAL
+
+Date: 2024-10-08 to 2024-10-11
+Participants: EuroVert Asset Management, Banque Verte (arranger), 14 institutional investors.
+
+Key investor questions and responses:
+
+Q1 (Nordic pension fund): "What is your plan for EUGBS compliance after December 2024?"
+A: The issuer intends to seek EUGBS designation once the regulation applies. The framework already targets 85% Taxonomy alignment. External reviewer appointment under EUGBS will be addressed in Q1 2025.
+
+Q2 (German insurer): "Category B -- Sustainalytics flagged partial alignment. How will you address this?"
+A: We are updating the framework to include mandatory EPC documentation for all building renovation projects and DNSH water disclosure for industrial projects. Framework v1.1 expected by end of November.
+
+Q3 (French asset manager): "Pipeline visibility -- what projects are you targeting?"
+A: Current pipeline includes:
+- SolarMed S.r.l. (Italy): 45 MW solar PV, EUR 38M, construction start Q4 2024
+- WindNorth ApS (Denmark): 80 MW onshore wind, EUR 62M, operational since June 2024
+- RetroFit GmbH (Germany): 12 commercial building renovations, EUR 28M, works 2024-2026
+- ChargeNet B.V. (Netherlands): 2,500 public EV charging points, EUR 18M, rollout 2024-2025
+
+Q4 (UK fund): "What is the expected green premium (greenium)?"
+A: Initial price guidance at MS+145bps; comparable conventional bonds at MS+155-160bps, suggesting a greenium of 10-15bps.
+
+Q5 (Swiss bank): "How do you handle project substitution if a project becomes ineligible?"
+A: The Green Bond Committee has authority to substitute projects, subject to the same eligibility criteria. Any substitution will be disclosed in the next allocation report and subject to external review.
+
+Investor indication of interest: EUR 380M (1.52x oversubscribed).
+
+Claim: Strong investor demand at 1.52x oversubscription. Pipeline of 4 identified projects totalling EUR 146M. Goal: Price at MS+145bps and achieve full allocation.

@@ -1,0 +1,21 @@
+FINANCIAL RESTATEMENT — Project Horizon (CONFIDENTIAL)
+Date: Week 2 (independent audit findings)
+
+CONTRADICTION OF PRIOR ASSESSMENT: The initial risk assessment (Week 1) reported
+litigation exposure of €2.1M. Independent audit identifies three additional pending
+claims not disclosed in initial due diligence materials:
+  - Claim A: €4.8M (IP infringement, active proceedings)
+  - Claim B: €2.3M (regulatory penalty, pre-assessment)
+  - Claim C: €1.1M (employment dispute, unresolved)
+
+Revised total estimated exposure: €10.3M (prior: €2.1M). Discrepancy: €8.2M.
+
+IP ownership: CONTESTED. Third-party claim on core software module filed 6 weeks ago.
+The initial due diligence materials did not include this claim.
+
+Financial risk: MEDIUM. Revenue trajectory unaffected, but liability exposure
+significantly higher than reported. The prior assessment cannot be accepted as-is.
+
+Note: Audit team cannot determine whether the omission was intentional or administrative.
+Source reconciliation required before finalizing risk position.
+Confidence: MEDIUM. Risk score: 0.41 (moderate — revised upward from 0.08).

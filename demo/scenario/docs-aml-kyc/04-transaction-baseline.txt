@@ -1,0 +1,106 @@
+DOCUMENT: TRANSACTION MONITORING BASELINE — CASTELLAN HOLDINGS
+CLASSIFICATION: CONFIDENTIAL — AML/KYC RESTRICTED
+INSTITUTION: EuroBank AG, Frankfurt am Main
+DATE: 2023-12-31
+REFERENCE: TXN-2023-CAST-0001
+MONITORING OFFICER: Petra Vogel, Transaction Monitoring Officer (EB-6634)
+PERIOD: 2023-04-01 to 2023-12-31 (first 9 months of relationship)
+
+1. ACCOUNT OVERVIEW
+
+Account Number:      DE89 3704 0044 0532 0130 00 (EuroBank AG)
+Account Type:        Corporate Current Account (EUR)
+Account Holder:      Castellan Holdings S.a.r.l.
+Authorized Signatories: Viktor Castellan (sole signatory)
+Credit Facility:     None (deposit-only relationship)
+
+2. TRANSACTION PATTERN SUMMARY (APR-DEC 2023)
+
+  Category                    Monthly Avg     Annual Projection
+  ─────────────────────────────────────────────────────────────
+  Inflows — Rental Income     EUR 247,000     EUR 2,964,000
+    Source: Castellan Property Cyprus Ltd
+    Frequency: Monthly wire, 1st-5th of each month
+    Originating Bank: Bank of Cyprus, Limassol
+
+  Inflows — Tech Dividends    EUR 166,667     EUR 2,000,000
+    Source: CastleTech BVI Ltd
+    Frequency: Quarterly (Jun, Sep, Dec), ~EUR 500,000 each
+    Originating Bank: First Caribbean International, Tortola
+
+  Inflows — Other             EUR 19,444      EUR 233,328
+    Sources: Interest, FX gains, minor consultancy fees
+    Pattern: Irregular, small amounts (EUR 5K-30K)
+
+  Total Projected Inflows:    EUR 433,111/mo  EUR 5,197,328/yr
+
+  Outflows — Operating        EUR 45,000      EUR 540,000
+    Includes: Management fees, legal, audit, admin
+    Recipients: Luxembourg service providers (known)
+
+  Outflows — Trust Contrib.   EUR 41,667      EUR 500,000
+    Recipient: Castellan Trust (via ATU, Vaduz)
+    Frequency: Annual (December)
+
+  Outflows — Personal         EUR 85,000      EUR 1,020,000
+    Recipient: Viktor Castellan personal accounts
+    Frequency: Monthly distributions
+
+  Outflows — Tax Payments     EUR 62,500      EUR 750,000
+    Recipients: Luxembourg ACD, Swiss cantonal tax
+
+  Total Projected Outflows:   EUR 234,167/mo  EUR 2,810,000/yr
+
+3. TRANSACTION MONITORING ALERTS (APR-DEC 2023)
+
+  Total Alerts Generated:     3
+  Alerts Closed (False Positive): 3
+  Alerts Escalated:           0
+
+  Alert Detail:
+  (a) TXN-ALERT-2023-041: Single rental remittance of EUR 312,000
+      (above EUR 300K threshold). Resolved — tenant prepaid 2 months.
+  (b) TXN-ALERT-2023-078: BVI dividend timing shifted by 12 days.
+      Resolved — BVI public holiday delay, confirmed by FCIB.
+  (c) TXN-ALERT-2023-112: Outgoing EUR 95,000 to unknown Swiss entity
+      "Kunsthaus Galerie Zug." Resolved — art purchase by Viktor
+      Castellan, receipt and provenance documentation obtained.
+
+4. BEHAVIORAL BASELINE ESTABLISHED
+
+Based on 9 months of observation, the following behavioral profile is
+established for automated monitoring thresholds:
+
+  Expected Monthly Inflow Range:   EUR 200,000 — EUR 550,000
+  Expected Monthly Outflow Range:  EUR 150,000 — EUR 350,000
+  Maximum Single Transaction:      EUR 550,000 (quarterly dividend)
+  Unusual Transaction Threshold:   >EUR 600,000 single transaction
+  Velocity Alert:                  >4 outgoing wires per day
+  New Counterparty Alert:          Any wire >EUR 100,000 to a
+                                   previously unseen counterparty
+  Geographic Alert:                Transactions involving FATF
+                                   high-risk or grey-listed jurisdictions
+
+5. PATTERN CONSISTENCY ASSESSMENT
+
+The observed transaction patterns are CONSISTENT with the declared
+business model (rental income + technology dividends). No layering,
+structuring, or round-tripping indicators detected.
+
+Cash usage:          NONE (all electronic transfers)
+Third-party payments: NONE (all payments to/from known entities)
+Rapid movement:      NONE (funds held 15-45 days average before outflow)
+
+6. ANNUAL MONITORING CONCLUSION
+
+Transaction activity for the period is WITHIN EXPECTED PARAMETERS.
+No Suspicious Activity Report (SAR) warranted.
+No escalation to Compliance Committee required.
+
+Baseline established for Year 2 comparative analysis.
+
+Prepared by:  Petra Vogel, Transaction Monitoring Officer (EB-6634)
+Reviewed by:  Klaus Brandt, Head of Transaction Monitoring (EB-3301)
+Date:         2023-12-31
+
+— END OF TRANSACTION BASELINE REPORT —

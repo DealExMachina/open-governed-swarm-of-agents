@@ -1,0 +1,17 @@
+SETTLEMENT CONFIRMATION
+
+Date: 2024-10-22
+Bond: EuroVert Capital Green Bond Fund I (XS2987654321)
+
+Settlement completed via Euroclear/Clearstream.
+Net proceeds: EUR 249,687,500 (after issue discount and fees).
+Proceeds credited to the Segregated Proceeds Account at Banque Verte S.A.
+
+Initial allocation status:
+- Allocated: EUR 0 (0%)
+- Unallocated: EUR 249,687,500 (100%)
+- Interim investment: Short-term EEA sovereign bonds and green money market fund per framework section 4.
+
+First disbursement expected: November 2024 (SolarMed construction drawdown).
+
+Claim: Proceeds settled and held in segregated account. Goal: Begin project allocation and maintain quarterly tracking.

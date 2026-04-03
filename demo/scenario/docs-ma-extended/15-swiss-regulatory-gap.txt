@@ -1,0 +1,96 @@
+================================================================================
+CONFIDENTIAL — PROJECT HORIZON
+NovaTech AG: Swiss Regulatory Gap Analysis
+Date: 2025-03-25
+Prepared by: Dr. Andreas Keller, Regulatory Counsel — Walder Wyss AG, Zurich
+Engagement Reference: WW-2025-REG-0417
+Classification: MATERIAL FINDING
+================================================================================
+
+1. SCOPE
+
+Walder Wyss AG was engaged to independently verify NovaTech AG's regulatory
+compliance status across Swiss, EU, and German jurisdictions. This report
+identifies material gaps not disclosed in the initial compliance assessment
+(Document 07).
+
+2. CRITICAL FINDING: FINMA COMPLIANCE GAP
+
+Contrary to NovaTech's assertion in Document 07 that "FINMA oversight is not
+applicable as NovaTech does not provide financial services," our analysis
+reveals that NovaTech's RegAssure platform includes a module ("ComplianceScore")
+that generates automated risk assessments used by clients for regulatory
+submission prioritization.
+
+Under FINMA Circular 2018/3 (Outsourcing — Banks and Insurers), NovaTech's
+services to three Swiss financial-sector clients (including Helvetia
+Diagnostics, which is a subsidiary of Helvetia Group, a FINMA-regulated
+entity) constitute outsourced compliance functions subject to FINMA oversight.
+
+Specifically:
+  - NovaTech has not registered as a critical outsourcing provider with FINMA
+  - Required FINMA audit rights clauses are missing from contracts with
+    regulated clients
+  - Business continuity requirements per FINMA Circular 2023/1 are not met
+  - No FINMA-compliant incident reporting procedures are in place
+
+3. CROSS-BORDER DATA TRANSFER VIOLATIONS
+
+Document 07 states that cross-border transfers rely on the "EU-Swiss Data
+Protection Adequacy Decision." However, our review found:
+
+  (a) NovaTech transfers personal data of Swiss-domiciled individuals to
+      its AWS eu-central-1 (Frankfurt) infrastructure. While the EU-Swiss
+      adequacy framework covers EU-to-Swiss transfers, Swiss-to-EU transfers
+      of non-EU personal data require separate legal basis under the revised
+      Swiss FADP (nDSG).
+
+  (b) NovaTech's Data Processing Agreements with Swiss clients do not include
+      the updated Standard Contractual Clauses required under the nDSG since
+      September 2023. Fourteen (14) of 22 Swiss-related DPAs reference the
+      superseded clauses.
+
+  (c) Three client contracts authorize data processing in "EU/EEA" without
+      specifying Switzerland as a separate jurisdiction, creating ambiguity
+      under Swiss data protection law.
+
+4. GERMAN SUBSIDIARY — ADDITIONAL FINDINGS
+
+Our review of NovaTech GmbH (Munich) identified:
+
+  (a) The Munich office has 64 employees but has not established a formal
+      Betriebsrat (works council), despite exceeding the 5-employee threshold
+      under BetrVG Section 1. While formation is employee-initiated, the
+      absence creates risk in a change-of-control scenario where employees
+      may demand consultation rights.
+
+  (b) Severance liability estimates provided by management (EUR 1.8M) do not
+      account for German statutory requirements under the Kuendigungsschutzgesetz
+      for employees with >2 years tenure. Our estimate is EUR 4.1M — an
+      understatement of EUR 2.3M.
+
+5. REMEDIATION TIMELINE
+
+  FINMA Compliance:
+    - Registration and contract amendments: 3-4 months
+    - Audit rights and BCP implementation: 4-6 months
+    - Total estimated cost: EUR 800K - 1.2M
+
+  Data Transfer Compliance:
+    - DPA updates and SCC migration: 2-3 months
+    - Estimated cost: EUR 200K - 350K
+
+  Total remediation timeline: approximately 6 months
+  Total estimated cost: EUR 1.0M - 1.55M
+
+6. RISK ASSESSMENT
+
+The FINMA gap presents moderate regulatory risk. While no enforcement action
+is currently pending, FINMA has increased scrutiny of outsourcing arrangements
+since 2024. Discovery during post-acquisition integration could result in
+penalties of CHF 100K - 500K and mandatory operational changes.
+
+The data transfer issues present lower but non-trivial risk under the nDSG,
+with potential fines up to CHF 250K for individuals and reputational harm.
+
+Prepared by Dr. Andreas Keller, Walder Wyss AG, Zurich

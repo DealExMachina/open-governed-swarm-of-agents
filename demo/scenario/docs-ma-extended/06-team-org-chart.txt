@@ -1,0 +1,76 @@
+================================================================================
+CONFIDENTIAL — PROJECT HORIZON
+NovaTech AG: Team Structure & Organizational Overview
+Date: 2025-01-26
+Prepared by: Anna Berger, VP People & Culture — NovaTech AG
+================================================================================
+
+1. HEADCOUNT SUMMARY
+
+Total Employees:                   180 (as of January 2025)
+  Full-Time Employees:             168
+  Part-Time / Contract:             12
+
+  Zurich HQ:                        72 employees
+  Munich Office:                    64 employees
+  Dublin Office:                    28 employees
+  Remote (across EU):               16 employees
+
+2. EXECUTIVE LEADERSHIP TEAM
+
+  Dr. Lukas Meier         CEO & Co-Founder       Joined: 2017  Comp: CHF 380K + equity
+  Dr. Elena Voss          CTO & Co-Founder       Joined: 2017  Comp: CHF 340K + equity
+  Stefan Gruber           CFO                    Joined: 2020  Comp: CHF 290K + equity
+  Julia Hartmann          VP Sales               Joined: 2021  Comp: EUR 260K + commission
+  Dr. Martina Scholz      VP Legal               Joined: 2022  Comp: CHF 270K
+  Anna Berger             VP People & Culture    Joined: 2022  Comp: CHF 240K
+  Thomas Kessler          VP Engineering         Joined: 2019  Comp: EUR 280K + equity
+
+3. DEPARTMENT BREAKDOWN
+
+  Engineering & Product:            78 employees  (43%)
+    - Backend Engineering:          22
+    - Frontend Engineering:         12
+    - ML / AI Team:                 18
+    - DevOps / SRE:                  8
+    - Product Management:            6
+    - QA / Testing:                 12
+
+  Sales & Marketing:                32 employees  (18%)
+  Customer Success:                 24 employees  (13%)
+  General & Administrative:         22 employees  (12%)
+  Legal & Compliance:               12 employees  ( 7%)
+  Finance & Operations:             12 employees  ( 7%)
+
+4. KEY PERSON DEPENDENCIES
+
+The following individuals have been identified as critical to operations:
+
+  Dr. Elena Voss (CTO) — Primary architect of the ML pipeline and holds
+  inventor status on 4 of 7 granted patents. Her employment contract includes
+  a 12-month non-compete clause and 6-month notice period under Swiss law.
+  Dr. Voss has indicated her intent to remain through and beyond the transition.
+
+  Thomas Kessler (VP Engineering) — Manages all engineering teams. Has been
+  with NovaTech since 2019 and holds deep institutional knowledge of the
+  platform architecture. Currently under a 2-year retention agreement.
+
+  Dr. Friedrich Wendt (Lead ML Scientist) — Leads the 18-person AI team.
+  Responsible for all model training and deployment. Subject to standard
+  employment terms with 3-month notice period.
+
+5. EMPLOYEE RETENTION & SATISFACTION
+
+  Annual Voluntary Turnover:        11% (industry average: 15%)
+  Employee NPS Score:               42 (measured Q4 2024)
+  Average Tenure:                   2.8 years
+  Open Positions:                   14 (8 engineering, 4 sales, 2 G&A)
+
+6. EQUITY / OPTION POOL
+
+The 10% employee stock option pool (100,000 shares) has been allocated as
+follows: 72,000 shares granted to current employees, 28,000 shares reserved
+for future grants. Vesting is standard 4-year with 1-year cliff. Change-of-
+control provisions trigger single-trigger acceleration for all vested options.
+
+Prepared by Anna Berger, VP People & Culture — NovaTech AG

@@ -1,0 +1,189 @@
+MERIDIAN INSURANCE GROUP AG
+Internal Audit Follow-Up Report
+Reference Period: H1 2026
+Prepared by: Internal Auditor — Frau Sabine Kessler, CIA, CISA
+Classification: CONFIDENTIAL — Audit Committee Only
+Date of Issue: 20 September 2026
+Report Reference: IA-2026-011
+
+1. EXECUTIVE SUMMARY
+
+This report provides a follow-up on the three observations raised in
+the Q4 2025 Internal Audit Report (IA-2026-004) and assesses the
+status of management remediation actions. Additionally, this report
+raises one NEW observation identified during the H1 2026 thematic
+review of technical provisions.
+
+Summary of findings:
+  Observation 1 (Look-Through): CLOSED — Remediated
+  Observation 2 (Reinsurance Documentation): CLOSED — Remediated
+  Observation 3 (QRT Submission Timeline): OPEN — In Progress
+  NEW Observation 4 (Contract Boundary): MATERIAL — New Finding
+
+Overall assessment: PARTIALLY SATISFACTORY — progress on prior findings
+is acknowledged, but the new Material observation on contract boundary
+classification requires urgent attention.
+
+2. FOLLOW-UP: OBSERVATION 1 — LOOK-THROUGH APPROACH (WAS MATERIAL)
+
+Original Finding: Look-through data not obtained for 7 of 47 funds.
+Original Rating: MATERIAL
+Target Remediation Date: Q2 2026
+
+Current Status: CLOSED — REMEDIATED
+
+Evidence reviewed:
+  (a) Meridian now receives quarterly look-through data from all 47
+      fund managers. Contracts with 7 previously non-compliant managers
+      were amended to include mandatory quarterly data provision clauses.
+  (b) As at 30 June 2026, 100% of fund holdings (EUR 340,000,000)
+      are subject to full look-through. The mandate-based approach is
+      no longer applied to any fund.
+  (c) Data refresh frequency: quarterly, with maximum 25-day lag
+      (within the 30-day EIOPA requirement per EIOPA-BoS-26/142).
+  (d) Automated data quality checks implemented in the risk system
+      (Prophet) to flag missing or stale fund composition data.
+
+Internal Audit is satisfied that this observation has been fully
+remediated. The control framework for look-through is now robust.
+
+Note: While this observation is closed from an audit perspective,
+the FINANCIAL IMPACT of the original gap (approximately EUR 50,000,000
+additional SCR) has been a significant driver of Meridian's current
+capital position challenges. The cost of the governance failure
+should be noted by the Audit Committee.
+
+3. FOLLOW-UP: OBSERVATION 2 — REINSURANCE DOCUMENTATION (WAS SIGNIFICANT)
+
+Original Finding: Treaty parameters in actuarial system did not match
+  signed treaty documentation for 2 of 12 treaties.
+Original Rating: SIGNIFICANT
+Target Remediation Date: 28 February 2026
+
+Current Status: CLOSED — REMEDIATED
+
+Evidence reviewed:
+  (a) Full reconciliation of all 12 active reinsurance treaties
+      completed on 22 February 2026 (within deadline).
+  (b) The two discrepancies (RT-2024-007 and RT-2024-011) have been
+      corrected in Prophet. Corrected values verified by Internal Audit
+      against original treaty documentation.
+  (c) New control: quarterly four-eyes reconciliation of treaty
+      parameters between Reinsurance and Actuarial teams, with sign-off
+      by Head of Reinsurance (Frau Vogt) and Chief Actuary (Prof.
+      Bruckner).
+  (d) Impact on prior SCR calculations: immaterial (EUR 1,200,000
+      net impact on counterparty default risk module).
+
+4. FOLLOW-UP: OBSERVATION 3 — QRT SUBMISSION TIMELINE (WAS MINOR)
+
+Original Finding: Q3 2025 QRTs submitted 2 days before deadline
+  instead of required 5 days.
+Original Rating: MINOR
+Target Remediation Date: Ongoing (process improvement)
+
+Current Status: OPEN — IN PROGRESS
+
+Evidence reviewed:
+  (a) Additional FTE (Herr Andreas Muller) joined the regulatory
+      reporting team on 15 January 2026.
+  (b) Q4 2025 QRTs submitted 4 business days before deadline
+      (improvement, but still 1 day short of policy requirement).
+  (c) Q1 2026 QRTs submitted 3 business days before deadline
+      (deterioration, attributed to EIOPA look-through changes
+      requiring additional analysis).
+
+Revised target: Full compliance from Q3 2026 onwards. Herr Braun
+has committed to implementing a revised production timeline with
+5-day buffer built into each milestone.
+
+5. NEW OBSERVATION 4 — CONTRACT BOUNDARY CLASSIFICATION
+
+Rating: MATERIAL
+Risk Area: Solvency II Pillar 1 — Technical Provisions (Best Estimate)
+Reference: Art. 18 of Delegated Regulation (EU) 2015/35
+
+5.1 Description
+
+During a thematic review of Meridian's technical provisions calculation
+methodology, Internal Audit identified a potential misclassification of
+contract boundaries for a portfolio of group life insurance contracts.
+
+Specifically, Meridian's group life portfolio (EUR 420,000,000 in best
+estimate liabilities) includes 312 contracts where the policyholder
+has a unilateral right to terminate with 3 months' notice, but where
+the insurer has a contractual right to adjust premiums at each annual
+renewal. Meridian currently projects cash flows to the END of the
+contractual term (typically 5 years), treating these as fixed-term
+contracts.
+
+Under Art. 18 of the Delegated Regulation, the contract boundary is
+the point at which the insurer can unilaterally refuse premiums,
+reject claims, or adjust premiums to fully reflect the risk. If
+Meridian's annual premium adjustment right is deemed to "fully
+reflect the risk," the contract boundary should be set at the NEXT
+annual renewal date (not the end of the 5-year term).
+
+5.2 Quantitative Impact Assessment
+
+If contract boundaries are shortened to the next annual renewal:
+  Best estimate liabilities reduction: approximately EUR 85,000,000
+  Risk margin reduction: approximately EUR 8,000,000
+  Total technical provisions reduction: approximately EUR 93,000,000
+
+  HOWEVER, this also:
+  - Reduces future premium income projections (lower assets)
+  - Changes the lapse risk profile (lower lapse-down stress)
+  - Affects the transitional measure calculation (changes the
+    Solvency II / Solvency I difference)
+
+  Net SCR impact: estimated EUR -15,000,000 to EUR +10,000,000
+  (direction uncertain, depends on interaction effects)
+
+5.3 Regulatory Risk
+
+This is a known area of supervisory scrutiny. EIOPA published a
+supervisory statement on contract boundaries (EIOPA-BoS-25/456) in
+November 2025, calling for consistent application across Member States.
+BaFin has not yet issued national guidance.
+
+If BaFin determines that Meridian's current treatment is incorrect,
+a restatement of technical provisions could be required. This would
+represent a further contradiction in the solvency position narrative:
+the same portfolio would have different values depending on the
+contract boundary interpretation applied.
+
+5.4 Management Response (Herr Prof. Stefan Bruckner, Chief Actuary)
+  The current treatment is based on legal advice from Clifford Chance
+  LLP (Opinion dated 14 March 2024) that the premium adjustment clause
+  does NOT "fully reflect the risk" within the meaning of Art. 18.
+  However, the Chief Actuary acknowledges that this is a judgment call
+  and commits to:
+  (a) Engaging BaFin in a proactive dialogue on this topic;
+  (b) Preparing parallel calculations under both interpretations for
+      the Q3 2026 reporting cycle;
+  (c) Updating the ORSA to include a contract boundary stress scenario.
+
+  Target completion: 31 December 2026
+
+6. PRIOR PERIOD OBSERVATIONS (FROM Q2 2025)
+
+  IA-2025-009: Data quality controls for mortality — CLOSED (remediated
+    30 April 2026, validated by Internal Audit 15 May 2026)
+  IA-2025-012: Outsourcing register — CLOSED (remediated 28 March 2026,
+    one month ahead of revised deadline)
+
+7. RECOMMENDATIONS TO THE AUDIT COMMITTEE
+
+  (a) Note the closure of Observations 1 and 2 and the prior period
+      observations;
+  (b) Monitor Observation 3 (QRT timeline) at the next meeting;
+  (c) ESCALATE Observation 4 (contract boundary) to the Risk Committee
+      for joint consideration with the ongoing capital remediation;
+  (d) Request the Chief Actuary present both contract boundary scenarios
+      at the December 2026 meeting.
+
+8. SIGN-OFF
+
+  Frau Sabine Kessler — Head of Internal Audit
+  Approved for distribution: Herr Dr. Friedrich Maier — Audit Committee Chair

@@ -1,6 +1,8 @@
 import pg from "pg";
+import { z } from "zod";
 import type { FinalitySnapshot } from "./finalityEvaluator.js";
 import { getPool } from "./db.js";
+import { GoalMatchItemSchema } from "./modelConfig.js";
 
 export interface SemanticNode {
   node_id: string;
@@ -416,45 +418,18 @@ async function loadFinalitySnapshotImpl(scopeId: string): Promise<FinalitySnapsh
   );
   const scopeRiskScore = Math.min(1, Math.max(0, Number(assessmentRes.rows[0]?.risk_score ?? 0)));
 
-  // Contradiction count from edges (linked contradiction pairs)
-  const contraEdgeRes = await p.query(
-    `SELECT COUNT(*)::int AS total FROM edges e
-     JOIN nodes n1 ON n1.node_id = e.source_id AND n1.scope_id = e.scope_id AND n1.superseded_at IS NULL
-     JOIN nodes n2 ON n2.node_id = e.target_id AND n2.scope_id = e.scope_id AND n2.superseded_at IS NULL
-     WHERE e.scope_id = $1 AND e.edge_type = 'contradicts' AND e.superseded_at IS NULL AND (e.valid_to IS NULL OR e.valid_to > now())
-     AND (
-       (n1.valid_from IS NULL AND n1.valid_to IS NULL) OR (n2.valid_from IS NULL AND n2.valid_to IS NULL)
-       OR (n1.valid_from < COALESCE(n2.valid_to, 'infinity'::timestamptz) AND n2.valid_from < COALESCE(n1.valid_to, 'infinity'::timestamptz))
-     )`,
-    [scopeId],
-  );
-  const edgeContradictions = Number(contraEdgeRes.rows[0]?.total ?? 0);
-
-  // Also count contradiction nodes that couldn't be linked as edges (text-only contradictions from LLM)
+  // Contradiction counts from nodes only (canonical source)
   const contraNodeRes = await p.query(
-    `SELECT COUNT(*)::int AS total FROM nodes
-     WHERE scope_id = $1 AND type = 'contradiction' AND status = 'active' AND (${CURRENT_VIEW_NODES})`,
+    `SELECT
+       COUNT(*) FILTER (WHERE status = 'active')::int AS unresolved,
+       COUNT(*) FILTER (WHERE status IN ('active', 'resolved'))::int AS total
+     FROM nodes
+     WHERE scope_id = $1 AND type = 'contradiction' AND (${CURRENT_VIEW_NODES})`,
     [scopeId],
   );
-  const nodeContradictions = Number(contraNodeRes.rows[0]?.total ?? 0);
-
-  const contradictionsTotal = Math.max(edgeContradictions, nodeContradictions);
-
-  // Unresolved: edge-based contradictions without resolving edges + all unresolved contradiction nodes
-  const unresolvedEdgeRes = await p.query(
-    `SELECT COUNT(*)::int AS c FROM edges e
-     JOIN nodes n1 ON n1.node_id = e.source_id AND n1.scope_id = e.scope_id AND n1.superseded_at IS NULL
-     JOIN nodes n2 ON n2.node_id = e.target_id AND n2.scope_id = e.scope_id AND n2.superseded_at IS NULL
-     WHERE e.scope_id = $1 AND e.edge_type = 'contradicts' AND e.superseded_at IS NULL AND (e.valid_to IS NULL OR e.valid_to > now())
-     AND (
-       (n1.valid_from IS NULL AND n1.valid_to IS NULL) OR (n2.valid_from IS NULL AND n2.valid_to IS NULL)
-       OR (n1.valid_from < COALESCE(n2.valid_to, 'infinity'::timestamptz) AND n2.valid_from < COALESCE(n1.valid_to, 'infinity'::timestamptz))
-     )
-     AND NOT EXISTS (SELECT 1 FROM edges r WHERE r.scope_id = e.scope_id AND r.edge_type = 'resolves' AND r.superseded_at IS NULL AND (r.valid_to IS NULL OR r.valid_to > now()) AND (r.target_id = e.source_id OR r.target_id = e.target_id))`,
-    [scopeId],
-  );
-  const unresolvedEdges = Number(unresolvedEdgeRes.rows[0]?.c ?? edgeContradictions);
-  const contradictionsUnresolved = Math.max(unresolvedEdges, nodeContradictions);
+  const contraRow = contraNodeRes.rows[0] ?? {};
+  const contradictionsTotal = Number(contraRow.total ?? 0);
+  const contradictionsUnresolved = Number(contraRow.unresolved ?? 0);
 
   // Gate B: contradiction mass (severity weight per unresolved; default 1.0 each).
   const contradiction_mass = contradictionsUnresolved * 1.0;
@@ -510,12 +485,248 @@ async function getEvidenceCoverageForScope(
   }
 }
 
+/** Confidence for human-provided resolutions (treated as authoritative facts). */
+const HUMAN_RESOLUTION_CONFIDENCE = 0.95;
+
+/** Parse contradiction content into two sides for "choose A" / "choose B" UI. */
+function parseContradictionSides(content: string): [string, string] | null {
+  const s = content.trim();
+  const nli = /^NLI:\s*"(.*?)"\s+vs\s+"(.*?)"/s.exec(s);
+  if (nli) return [nli[1].replace(/\.\.\.$/, "").trim(), nli[2].replace(/\.\.\.$/, "").trim()];
+  const contradicts = /^(.*?)\s+contradicts?\s+(.*)$/i.exec(s);
+  if (contradicts) return [contradicts[1].trim(), contradicts[2].trim()];
+  const versus = /(.+?)\s+(?:versus|vs\.?)\s+(.+)/i.exec(s);
+  if (versus) return [versus[1].trim(), versus[2].trim()];
+  const butWhile = /(.+?),?\s+(?:but|while|whereas|however)\s+(.+)/i.exec(s);
+  if (butWhile) return [butWhile[1].trim(), butWhile[2].trim()];
+  return null;
+}
+
+export interface UnresolvedContradictionDetail {
+  node_id: string;
+  content: string;
+  side_a?: string;
+  side_b?: string;
+  related_claims?: string[];
+}
+
+/** Load unresolved contradiction details for HITL, resolver, and finality.
+ * Canonical source: contradiction nodes with status='active'.
+ * For contradicts edges without a matching node, creates the missing node
+ * so that all contradictions have a single resolution path via node. */
+export async function loadUnresolvedContradictionDetails(
+  scopeId: string,
+  pool?: pg.Pool,
+): Promise<UnresolvedContradictionDetail[]> {
+  const p = pool ?? getPool();
+  const seenPairs = new Set<string>();
+
+  function pairKey(a: string, b: string): string {
+    const [x, y] = [a.trim().toLowerCase(), b.trim().toLowerCase()];
+    return x <= y ? `${x}::${y}` : `${y}::${x}`;
+  }
+
+  const out: UnresolvedContradictionDetail[] = [];
+
+  const HITL_STOP = new Set([
+    "the","and","for","are","was","were","has","have","had","not","but","its",
+    "that","this","from","with","they","been","which","into","also","than",
+    "will","can","may","who","how","all","any","each","some","such","very",
+  ]);
+  function hitlSigWords(s: string): Set<string> {
+    return new Set(
+      s.toLowerCase().replace(/[^a-z0-9\s]/g, "").split(/\s+/)
+        .filter((w) => w.length > 2 && !HITL_STOP.has(w))
+        .map((w) => (w.length > 6 ? w.slice(0, 6) : w)),
+    );
+  }
+  function isDuplicateContent(candidate: string): boolean {
+    const cWords = hitlSigWords(candidate);
+    if (cWords.size === 0) return false;
+    for (const existing of out) {
+      const eWords = hitlSigWords(existing.content);
+      let overlap = 0;
+      for (const w of cWords) if (eWords.has(w)) overlap++;
+      if (overlap / Math.max(cWords.size, eWords.size) >= 0.5) return true;
+    }
+    return false;
+  }
+
+  // 1. Load contradiction nodes (canonical)
+  const nodeRes = await p.query(
+    `SELECT node_id, content, metadata FROM nodes
+     WHERE scope_id = $1 AND type = 'contradiction' AND status = 'active'
+     AND superseded_at IS NULL AND (valid_to IS NULL OR valid_to > now())
+     ORDER BY created_at DESC LIMIT 20`,
+    [scopeId],
+  );
+  for (const row of nodeRes.rows) {
+    const r = row as { node_id: string; content: string; metadata?: { claim_source_id?: string; claim_target_id?: string } };
+    if (isDuplicateContent(r.content)) continue;
+    const sides = parseContradictionSides(r.content);
+    const sa = sides?.[0] ?? "";
+    const sb = sides?.[1] ?? "";
+    if (sa || sb) seenPairs.add(pairKey(sa, sb));
+    let related_claims: string[] | undefined;
+    const srcId = (r.metadata as Record<string, unknown> | undefined)?.claim_source_id as string | undefined;
+    const tgtId = (r.metadata as Record<string, unknown> | undefined)?.claim_target_id as string | undefined;
+    if (srcId && tgtId) {
+      const claimRes = await p.query(
+        `SELECT content FROM nodes WHERE node_id = ANY($1::uuid[]) AND scope_id = $2`,
+        [[srcId, tgtId], scopeId],
+      );
+      related_claims = claimRes.rows.map((c: { content: string }) => c.content).filter(Boolean);
+    }
+    out.push({
+      node_id: r.node_id,
+      content: r.content,
+      side_a: sides?.[0],
+      side_b: sides?.[1],
+      related_claims,
+    });
+  }
+
+  // 2. Find contradicts edges without a matching node — create missing nodes
+  const edgeRes = await p.query(
+    `SELECT e.source_id, e.target_id, n1.content AS claim_a, n2.content AS claim_b
+     FROM edges e
+     JOIN nodes n1 ON n1.node_id = e.source_id AND n1.scope_id = e.scope_id AND n1.superseded_at IS NULL
+     JOIN nodes n2 ON n2.node_id = e.target_id AND n2.scope_id = e.scope_id AND n2.superseded_at IS NULL
+     WHERE e.scope_id = $1 AND e.edge_type = 'contradicts' AND e.superseded_at IS NULL
+     AND (e.valid_to IS NULL OR e.valid_to > now())
+     AND (
+       (n1.valid_from IS NULL AND n1.valid_to IS NULL) OR (n2.valid_from IS NULL AND n2.valid_to IS NULL)
+       OR (n1.valid_from < COALESCE(n2.valid_to, 'infinity'::timestamptz) AND n2.valid_from < COALESCE(n1.valid_to, 'infinity'::timestamptz))
+     )
+     AND NOT EXISTS (
+       SELECT 1 FROM edges r WHERE r.scope_id = e.scope_id AND r.edge_type = 'resolves'
+       AND r.superseded_at IS NULL AND (r.valid_to IS NULL OR r.valid_to > now())
+       AND (r.target_id = e.source_id OR r.target_id = e.target_id)
+     )
+     ORDER BY e.created_at DESC LIMIT 20`,
+    [scopeId],
+  );
+
+  for (const row of edgeRes.rows) {
+    const r = row as { source_id: string; target_id: string; claim_a: string; claim_b: string };
+    const key = pairKey(r.claim_a || "", r.claim_b || "");
+    if (seenPairs.has(key)) continue;
+    seenPairs.add(key);
+    const sideA = (r.claim_a || "").trim();
+    const sideB = (r.claim_b || "").trim();
+    const content = `${sideA} contradicts ${sideB}`;
+    if (!content.trim() || content === " contradicts ") continue;
+
+    // Create the missing contradiction node so it becomes the canonical record
+    const nodeId = await appendNode({
+      scope_id: scopeId,
+      type: "contradiction",
+      content,
+      status: "active",
+      source_ref: { source: "edge-backfill" },
+      metadata: { claim_source_id: r.source_id, claim_target_id: r.target_id },
+      created_by: "edge-backfill",
+    });
+
+    if (nodeId) {
+      out.push({
+        node_id: nodeId,
+        content,
+        side_a: sideA,
+        side_b: sideB,
+        related_claims: [sideA, sideB].filter(Boolean),
+      });
+    }
+  }
+
+  return out;
+}
+
+export interface ContradictionWithResolution {
+  node_id: string;
+  content: string;
+  status: string;
+  side_a?: string;
+  side_b?: string;
+  resolution?: { by: string; reason: string; resolved_at: string };
+}
+
+/** Load all contradiction nodes (active + resolved) with resolution info for narrative/story. */
+export async function loadAllContradictionsWithResolutions(
+  scopeId: string,
+  pool?: pg.Pool,
+): Promise<ContradictionWithResolution[]> {
+  const p = pool ?? getPool();
+  const res = await p.query(
+    `SELECT node_id, content, status, source_ref, metadata, updated_at
+     FROM nodes WHERE scope_id = $1 AND type = 'contradiction'
+     AND superseded_at IS NULL AND (valid_to IS NULL OR valid_to > now())
+     ORDER BY created_at ASC`,
+    [scopeId],
+  );
+  return res.rows.map((r: { node_id: string; content: string; status: string; source_ref?: Record<string, unknown> }) => {
+    const sides = parseContradictionSides(r.content);
+    const src = (r.source_ref as Record<string, unknown> | undefined) ?? {};
+    const resolution =
+      r.status === "resolved" && (src.resolved_by != null || src.resolution_reason != null)
+        ? {
+            by: String(src.resolved_by ?? ""),
+            reason: String(src.resolution_reason ?? ""),
+            resolved_at: String(src.resolved_at ?? ""),
+          }
+        : undefined;
+    return {
+      node_id: r.node_id,
+      content: r.content,
+      status: r.status,
+      side_a: sides?.[0],
+      side_b: sides?.[1],
+      resolution,
+    };
+  });
+}
+
+/**
+ * Add human resolution text as a claim (fact) with high confidence.
+ * Resolutions are authoritative so they get higher confidence than LLM-extracted claims.
+ */
+export async function appendResolutionAsClaim(
+  scopeId: string,
+  decision: string,
+  client?: pg.PoolClient,
+): Promise<string | null> {
+  const trimmed = decision.trim();
+  if (!trimmed) return null;
+  const q: Queryable = client ?? getPool();
+  // Avoid duplicate: resolution content may already exist
+  const exist = await q.query(
+    `SELECT node_id FROM nodes WHERE scope_id = $1 AND type = 'claim' AND created_by = 'resolution'
+     AND content = $2 AND status = 'active' LIMIT 1`,
+    [scopeId, trimmed],
+  );
+  if (exist.rowCount && exist.rows[0]) return (exist.rows[0] as { node_id: string }).node_id;
+  return appendNode(
+    {
+      scope_id: scopeId,
+      type: "claim",
+      content: trimmed,
+      confidence: HUMAN_RESOLUTION_CONFIDENCE,
+      status: "active",
+      source_ref: { source: "resolution" },
+      metadata: {},
+      created_by: "resolution",
+    },
+    client,
+  );
+}
+
 /**
  * Process a user resolution: one submission may contain multiple resolutions.
  *
  * Uses an LLM matching agent when available: sends the resolution text + active goals,
  * gets back which goals are addressed (fully/partially/not).
  * Falls back to deterministic tokenization + synonym matching when no LLM is configured.
+ * Also adds the resolution text as a high-confidence claim (fact).
  */
 export async function appendResolutionGoal(
   scopeId: string,
@@ -524,6 +735,8 @@ export async function appendResolutionGoal(
   client?: pg.PoolClient,
 ): Promise<string> {
   const q: Queryable = client ?? getPool();
+
+  await appendResolutionAsClaim(scopeId, decision, client);
 
   const activeGoals = await q.query(
     `SELECT node_id, content FROM nodes
@@ -581,6 +794,149 @@ export async function appendResolutionGoal(
   );
 }
 
+/**
+ * Evaluate active goals against current claims in the semantic graph.
+ * Marks goals as resolved or in_progress when evidence supports completion.
+ * Called by the planner agent to advance goal_completion dimension.
+ */
+export async function evaluateGoalsAgainstEvidence(
+  scopeId: string,
+  pool?: pg.Pool,
+): Promise<{ evaluated: number; resolved: number; in_progress: number }> {
+  const q: Queryable = pool ?? getPool();
+
+  const goalsRes = await q.query(
+    `SELECT node_id, content FROM nodes
+     WHERE scope_id = $1 AND type = 'goal' AND status = 'active'
+     AND superseded_at IS NULL AND (valid_to IS NULL OR valid_to > now())
+     ORDER BY created_at ASC LIMIT 20`,
+    [scopeId],
+  );
+  const goals = goalsRes.rows.map((r) => ({
+    node_id: (r as { node_id: string }).node_id,
+    content: (r as { content: string }).content,
+  }));
+  if (goals.length === 0) return { evaluated: 0, resolved: 0, in_progress: 0 };
+
+  const claimsRes = await q.query(
+    `SELECT content FROM nodes
+     WHERE scope_id = $1 AND type = 'claim' AND status = 'active'
+     AND superseded_at IS NULL AND (valid_to IS NULL OR valid_to > now())
+     ORDER BY confidence DESC LIMIT 20`,
+    [scopeId],
+  );
+  const claims = claimsRes.rows.map((r) => (r as { content: string }).content).filter(Boolean);
+  const evidenceText = claims.join(". ").slice(0, 4000);
+
+  let matches: GoalMatch[];
+  try {
+    matches = await matchGoalsAgainstEvidenceWithLLM(evidenceText, goals);
+  } catch {
+    matches = matchGoalsDeterministic(evidenceText, goals);
+  }
+
+  let resolved = 0;
+  let inProgress = 0;
+  for (const m of matches) {
+    if (m.status === "not_addressed") continue;
+    const newStatus = m.status === "fully_resolved" ? "resolved" : "in_progress";
+    await q.query(
+      `UPDATE nodes SET status = $2, updated_at = now(), version = version + 1,
+       source_ref = source_ref || $3::jsonb
+       WHERE node_id = $1`,
+      [
+        m.node_id,
+        newStatus,
+        JSON.stringify({
+          resolved_by: "planner_goal_eval",
+          match_confidence: m.confidence,
+          evidence_preview: evidenceText.slice(0, 200),
+        }),
+      ],
+    );
+    if (newStatus === "resolved") resolved++;
+    else inProgress++;
+  }
+
+  return { evaluated: goals.length, resolved, in_progress: inProgress };
+}
+
+async function matchGoalsAgainstEvidenceWithLLM(
+  evidenceText: string,
+  goals: Array<{ node_id: string; content: string }>,
+): Promise<GoalMatch[]> {
+  const { getChatModelConfig } = await import("./modelConfig.js");
+  const config = getChatModelConfig();
+  if (!config || goals.length === 0) return matchGoalsDeterministic(evidenceText, goals);
+
+  const goalsText = goals.map((g, i) => `${i + 1}. [${g.node_id}] ${g.content}`).join("\n");
+  const prompt = `Given these established facts (claims extracted from documents):
+
+"""
+${evidenceText.slice(0, 4000)}
+"""
+
+Here are the active goals:
+${goalsText}
+
+For each goal, decide if the evidence shows it is satisfied. A goal is satisfied when the facts clearly support its completion or the information needed is present.
+Reply with ONLY a JSON array: [{"id":"<node_id>","status":"fully_resolved"|"partially_resolved"|"not_addressed","confidence":0.0-1.0}]
+
+- "fully_resolved": the evidence clearly satisfies this goal
+- "partially_resolved": the evidence addresses it partially
+- "not_addressed": insufficient evidence
+
+Be conservative: only mark fully_resolved when the facts clearly support it. Reply with ONLY the JSON array, no other text.`;
+
+  const url = `${config.url.replace(/\/+$/, "")}/chat/completions`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${config.apiKey}`,
+    },
+    body: JSON.stringify({
+      model: config.id.replace(/^openai\//, ""),
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: 500,
+      temperature: 0,
+    }),
+    signal: AbortSignal.timeout(15000),
+  });
+
+  if (!res.ok) throw new Error(`LLM ${res.status}`);
+  const data = (await res.json()) as {
+    choices?: Array<{ message?: { content?: string } }>;
+    usage?: { prompt_tokens?: number; completion_tokens?: number };
+  };
+  const text = data.choices?.[0]?.message?.content ?? "";
+  const usage = data.usage;
+  if (usage) {
+    try {
+      const { recordLLMTokens } = await import("./metrics.js");
+      recordLLMTokens("planner_goal_eval", "input", usage.prompt_tokens ?? 0, config?.id);
+      recordLLMTokens("planner_goal_eval", "output", usage.completion_tokens ?? 0, config?.id);
+    } catch {
+      /* no-op */
+    }
+  }
+
+  const jsonMatch = text.match(/\[[\s\S]*\]/);
+  if (!jsonMatch) throw new Error("No JSON array in LLM response");
+
+  const validated = z.array(GoalMatchItemSchema).safeParse(JSON.parse(jsonMatch[0]));
+  if (!validated.success) throw new Error(`Goal match schema validation failed: ${validated.error.message}`);
+
+  const goalIds = new Set(goals.map((g) => g.node_id));
+  return validated.data
+    .filter((p) => goalIds.has(p.id))
+    .map((p) => ({
+      node_id: p.id,
+      status: p.status,
+      confidence: p.confidence,
+    }));
+}
+
 interface GoalMatch {
   node_id: string;
   status: "fully_resolved" | "partially_resolved" | "not_addressed";
@@ -634,16 +990,16 @@ async function matchGoalsWithLLM(
   const jsonMatch = text.match(/\[[\s\S]*\]/);
   if (!jsonMatch) throw new Error("No JSON array in LLM response");
 
-  const parsed = JSON.parse(jsonMatch[0]) as Array<{ id: string; status: string; confidence: number }>;
-  const validStatuses = ["fully_resolved", "partially_resolved", "not_addressed"];
-  const goalIds = new Set(goals.map(g => g.node_id));
+  const validated = z.array(GoalMatchItemSchema).safeParse(JSON.parse(jsonMatch[0]));
+  if (!validated.success) throw new Error(`Goal match schema validation failed: ${validated.error.message}`);
 
-  return parsed
-    .filter(p => goalIds.has(p.id) && validStatuses.includes(p.status))
+  const goalIds = new Set(goals.map(g => g.node_id));
+  return validated.data
+    .filter(p => goalIds.has(p.id))
     .map(p => ({
       node_id: p.id,
-      status: p.status as GoalMatch["status"],
-      confidence: typeof p.confidence === "number" ? p.confidence : 0.5,
+      status: p.status,
+      confidence: p.confidence,
     }));
 }
 
@@ -847,6 +1203,173 @@ export async function queryNodesByCreator(
 }
 
 /** Lightweight counts by type for feed / state graph display. */
+/**
+ * Returns active node content grouped by type, with counts for all statuses.
+ * Canonical source for UI panels that need both counts and text.
+ */
+export async function getKnowledgeState(scopeId: string): Promise<{
+  counts: { claims: number; goals: number; contradictions: number; risks: number; contradictions_resolved: number };
+  claims: string[];
+  goals: string[];
+  contradictions: string[];
+  risks: string[];
+}> {
+  const p = getPool();
+  const res = await p.query(
+    `SELECT type, status, content, created_by FROM nodes
+     WHERE scope_id = $1 AND type IN ('claim','goal','contradiction','risk') AND (${CURRENT_VIEW_NODES})
+     ORDER BY created_at ASC`,
+    [scopeId],
+  );
+  const claims: string[] = [];
+  const claimSources: string[] = [];
+  const goals: string[] = [];
+  const contradictions: string[] = [];
+  const risks: string[] = [];
+  let contraResolved = 0;
+
+  const KS_STOP = new Set([
+    "the","and","for","are","was","were","has","have","had","not","but","its",
+    "that","this","from","with","they","been","which","into","also","than",
+    "will","can","may","who","how","all","any","each","some","such","very",
+    "just","about","between","through","during","out","more","other",
+  ]);
+
+  function ksSigWords(s: string): Set<string> {
+    return new Set(
+      s.toLowerCase()
+        .replace(/[^a-z0-9\s]/g, "")
+        .split(/\s+/)
+        .filter((w) => w.length > 2 && !KS_STOP.has(w))
+        .map((w) => (w.length > 6 ? w.slice(0, 6) : w)),
+    );
+  }
+
+  function isDuplicateClaim(existing: string[], candidate: string, candidateSource: string): boolean {
+    const cw = ksSigWords(candidate);
+    if (cw.size === 0) return true;
+    for (let j = 0; j < existing.length; j++) {
+      if (candidateSource !== "resolution" && claimSources[j] === "resolution") continue;
+      const ew = ksSigWords(existing[j]);
+      let overlap = 0;
+      for (const w of cw) if (ew.has(w)) overlap++;
+      const maxSz = Math.max(cw.size, ew.size);
+      const minSz = Math.min(cw.size, ew.size);
+      if (maxSz > 0 && overlap / maxSz >= 0.5) return true;
+      if (minSz > 0 && overlap >= 2 && overlap / minSz >= 0.6) return true;
+    }
+    return false;
+  }
+
+  function isDuplicate(existing: string[], candidate: string): boolean {
+    const cw = ksSigWords(candidate);
+    if (cw.size === 0) return true;
+    for (const e of existing) {
+      const ew = ksSigWords(e);
+      let overlap = 0;
+      for (const w of cw) if (ew.has(w)) overlap++;
+      const maxSz = Math.max(cw.size, ew.size);
+      const minSz = Math.min(cw.size, ew.size);
+      if (maxSz > 0 && overlap / maxSz >= 0.5) return true;
+      if (minSz > 0 && overlap >= 2 && overlap / minSz >= 0.6) return true;
+    }
+    return false;
+  }
+
+  /**
+   * Detect when a newer claim supersedes an older one about the same topic.
+   * Returns the index of the superseded entry, or -1 if none.
+   * Triggers when the candidate contains explicit correction language AND
+   * shares key terms with an existing entry.
+   */
+  function findSuperseded(existing: string[], candidate: string): number {
+    if (!/\b(adjust\w*|revis\w*|correct\w*|overstat\w*|downward|previously stated|not the .{3,40}previously)\b/i.test(candidate))
+      return -1;
+    const cw = ksSigWords(candidate);
+    if (cw.size === 0) return -1;
+    for (let i = 0; i < existing.length; i++) {
+      const ew = ksSigWords(existing[i]);
+      let overlap = 0;
+      for (const w of cw) if (ew.has(w)) overlap++;
+      if (overlap >= 2 && overlap / Math.min(cw.size, ew.size) >= 0.25) return i;
+    }
+    return -1;
+  }
+
+  const resolvedContraTexts: string[] = [];
+  const resolutionClaimIndices: number[] = [];
+
+  for (const r of res.rows) {
+    const content = String(r.content ?? "").trim();
+    if (!content) continue;
+    const status = String(r.status ?? "active");
+    const createdBy = String(r.created_by ?? "");
+    switch (r.type) {
+      case "claim":
+        if (status === "active") {
+          if (createdBy !== "resolution") {
+            const supersededIdx = findSuperseded(claims, content);
+            if (supersededIdx >= 0) {
+              claims[supersededIdx] = content;
+              claimSources[supersededIdx] = createdBy;
+              break;
+            }
+          }
+          if (isDuplicateClaim(claims, content, createdBy)) break;
+          claims.push(content);
+          claimSources.push(createdBy);
+          if (createdBy === "resolution") resolutionClaimIndices.push(claims.length - 1);
+        }
+        break;
+      case "goal":
+        if (status === "active" && !isDuplicate(goals, content)) goals.push(content);
+        break;
+      case "contradiction":
+        if (status === "active" && !isDuplicate(contradictions, content)) contradictions.push(content);
+        else if (status === "resolved" && !isDuplicate(resolvedContraTexts, content)) {
+          resolvedContraTexts.push(content);
+          contraResolved++;
+        }
+        break;
+      case "risk":
+        if (status === "active" && !isDuplicate(risks, content)) risks.push(content);
+        break;
+    }
+  }
+
+  // Suppress resolution claims whose content is collectively covered by structured claims.
+  // Multi-statement resolution text may span multiple facts-sync claims, so check
+  // word-level coverage across ALL non-resolution claims rather than pairwise overlap.
+  const suppressedIndices = new Set<number>();
+  for (const ri of resolutionClaimIndices) {
+    const rw = ksSigWords(claims[ri]);
+    if (rw.size === 0) continue;
+    let coveredWords = 0;
+    for (const w of rw) {
+      for (let i = 0; i < claims.length; i++) {
+        if (i === ri || suppressedIndices.has(i) || claimSources[i] === "resolution") continue;
+        if (ksSigWords(claims[i]).has(w)) { coveredWords++; break; }
+      }
+    }
+    if (coveredWords >= 3 || (rw.size > 0 && coveredWords / rw.size >= 0.5)) suppressedIndices.add(ri);
+  }
+  const filteredClaims = claims.filter((_, i) => !suppressedIndices.has(i));
+
+  return {
+    counts: {
+      claims: filteredClaims.length,
+      goals: goals.length,
+      contradictions: contradictions.length,
+      risks: risks.length,
+      contradictions_resolved: contraResolved,
+    },
+    claims: filteredClaims,
+    goals,
+    contradictions,
+    risks,
+  };
+}
+
 export async function getGraphSummary(scopeId: string): Promise<{ nodes: Record<string, number>; edges: Record<string, number> }> {
   const p = getPool();
   const nodeRes = await p.query(

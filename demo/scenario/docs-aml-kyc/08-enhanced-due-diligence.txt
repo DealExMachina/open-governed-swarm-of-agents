@@ -1,0 +1,124 @@
+DOCUMENT: ENHANCED DUE DILIGENCE (EDD) REPORT
+CLASSIFICATION: CONFIDENTIAL — AML/KYC RESTRICTED — SENIOR MANAGEMENT
+INSTITUTION: EuroBank AG, Frankfurt am Main
+DATE: 2024-07-10
+REFERENCE: EDD-2024-CAST-0001
+LEAD ANALYST: Anna Berger, KYC Analyst (EB-4412)
+REVIEWING OFFICER: Claudia Richter, Head of Financial Crime (EB-2201)
+TRIGGER: CDD-2024-CAST-0006 + TXN-ALERT-2024-0287
+
+1. EDD TRIGGER EVENTS
+
+Enhanced Due Diligence has been initiated under 5AMLD Article 18(1) and
+EuroBank Internal Policy Section 6.2 due to:
+
+  (a) Addition of a PEP (Marco Castellan) as trust beneficiary without
+      timely notification (CDD-2024-CAST-0006)
+  (b) Anomalous transaction pattern — EUR 3.3M to newly incorporated
+      entity Cerberus Consulting AG (TXN-ALERT-2024-0287)
+  (c) Cumulative risk factors exceeding MEDIUM threshold
+
+2. CLIENT EXPLANATION — CERBERUS PAYMENTS
+
+Viktor Castellan provided the following explanation on 2024-06-20:
+
+  "Cerberus Consulting AG is a technology consultancy engaged to develop
+   an artificial intelligence platform for real estate valuation. The
+   project is codenamed 'Minerva.' Luca Ferretti is a trusted technology
+   expert I have worked with previously. The initial EUR 1.8M covered
+   platform architecture and licensing fees. Subsequent payments are
+   milestone-based. Total project budget is EUR 4.5M over 18 months."
+
+Documentation Provided by Client:
+  [x] Consulting Agreement (dated 2024-04-28, 23 pages)
+  [x] Project Minerva scope document (12 pages, technical specifications)
+  [x] Milestone schedule with payment terms
+  [ ] Independent valuation of consulting fees — NOT PROVIDED
+  [ ] Evidence of deliverables received — NOT PROVIDED
+  [ ] Cerberus capability documentation — NOT PROVIDED
+
+3. EDD FINDINGS
+
+3.1 Cerberus Consulting AG — Deep Dive
+  - Incorporated 2024-03-19, Canton Zurich
+  - Sole director and shareholder: Luca Ferretti (Italian, DOB 1969-07-22)
+  - No employees registered with Swiss social insurance (SVA)
+  - No website, no LinkedIn presence, no professional references
+  - Office address (Bahnhofstrasse 42) is a serviced office / virtual
+    address provider (Regus Switzerland GmbH)
+  - Tax filings: none yet (too recently incorporated)
+  - Banking relationship: Banque Cantonale de Zurich (confirmed)
+
+  Assessment: Cerberus has NO demonstrable capability to deliver a
+  EUR 4.5M AI technology platform. The entity appears to be a shell
+  or pass-through vehicle.
+
+3.2 Luca Ferretti — Background
+  - Co-founded CastleTech Solutions with Viktor Castellan in 2009
+  - Departed CastleTech in 2015 (2 years before the EUR 22M exit)
+  - No public technology ventures since 2015
+  - Resident in Zurich since 2018
+  - No adverse media, no sanctions matches, no PEP status
+  - CRITICAL: Viktor did NOT disclose the prior business relationship
+    with Ferretti during onboarding or in the transaction explanation
+
+3.3 Consulting Agreement Review
+  - Agreement signed 2024-04-28 but backdated project start to 2024-03-01
+  - Payment terms are heavily front-loaded: 60% paid in first 3 months
+  - Intellectual property clause assigns all outputs to Castellan Holdings
+  - No penalty clauses for non-delivery
+  - No independent oversight or audit provisions
+  - Fee benchmarking: EUR 4.5M for AI platform development is within
+    market range for enterprise software BUT requires a substantial team.
+    A sole-director company with no employees cannot credibly deliver.
+
+3.4 Source of Funds for Cerberus Payments
+  - Funds originated from Castellan Holdings operating account
+  - Ultimately sourced from CastleTech BVI dividend (EUR 2.0M) and
+    accumulated rental income
+  - No unusual inflow pattern preceding the outflows
+
+3.5 Cross-Reference with Marco Castellan (PEP)
+  - No direct link between Marco Castellan and Cerberus Consulting AG
+    identified at this time
+  - However, the temporal proximity of Marco's trust addition (Oct 2023)
+    and Cerberus incorporation (Mar 2024) is noted
+  - Indirect benefit to Marco through trust assets cannot be excluded
+
+4. EDD RISK ASSESSMENT
+
+  Category                    Finding              Risk Level
+  ──────────────────────────────────────────────────────────────
+  Commercial Rationale        Weak / Unverifiable   HIGH
+  Counterparty Legitimacy     Shell Entity Indicators HIGH
+  Client Transparency         Prior relationship     HIGH
+                              not disclosed
+  PEP Connection              Indirect, temporal     MEDIUM-HIGH
+  Documentation Quality       Incomplete            MEDIUM-HIGH
+  Source of Funds             Legitimate origin      LOW
+  Sanctions Exposure          None identified        LOW
+
+  Overall EDD Risk Assessment: HIGH
+
+5. CONCLUSIONS AND RECOMMENDATIONS
+
+  (a) The commercial rationale for EUR 3.3M in payments to Cerberus
+      Consulting AG is NOT satisfactorily established.
+  (b) Cerberus presents characteristics of a shell entity.
+  (c) The client has demonstrated a pattern of non-disclosure (trust
+      beneficiary, prior business relationship with Ferretti).
+  (d) The cumulative risk profile now exceeds the MEDIUM threshold.
+
+  RECOMMENDED ACTIONS:
+  [ ] Escalate to Compliance Committee for SAR filing consideration
+  [ ] Re-rate client risk to HIGH
+  [ ] Require independent third-party verification of Project Minerva
+  [ ] Request full bank statements for Cerberus (via Swiss cooperation)
+  [ ] Consider relationship termination if documentation not provided
+      within 30 days
+
+EDD conducted by:  Anna Berger, KYC Analyst (EB-4412)
+Reviewed by:       Claudia Richter, Head of Financial Crime (EB-2201)
+Date:              2024-07-10
+
+— END OF ENHANCED DUE DILIGENCE REPORT —

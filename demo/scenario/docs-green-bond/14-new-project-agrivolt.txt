@@ -1,0 +1,31 @@
+PROJECT ONBOARDING -- AGRIVOLT SAS
+
+Date: 2025-02-15
+Project: AgriVolt Provence Agrivoltaic Park
+Sponsor: AgriVolt SAS (France)
+Category: A -- Renewable energy (Solar PV, agrivoltaic)
+Taxonomy NACE: D35.11
+
+Project description:
+- Location: Bouches-du-Rhone, Provence, France
+- Capacity: 25 MW (elevated structure, agrivoltaic design allowing continued agricultural use)
+- EPC contractor: Voltalia S.A.
+- Grid connection: RTE, expected Q3 2025
+- Agricultural use: Lavender cultivation beneath panels (maintained by local cooperative)
+- Estimated annual generation: 35 GWh
+- Estimated avoided emissions: 9,800 tCO2e/year (French grid factor 0.28 tCO2e/MWh)
+
+Financial terms:
+- Total project cost: EUR 30,000,000
+- Bond allocation requested: EUR 25,000,000
+- Drawdown schedule: 50% at financial close (Mar 2025), 50% at COD (Q3 2025)
+- Revenue: Feed-in premium under French CRE5 tender at EUR 62/MWh
+
+Green Bond Committee assessment:
+- Substantial contribution: Agrivoltaic solar, life-cycle emissions 30 gCO2e/kWh. Aligned.
+- DNSH: Environmental impact assessment approved. Agricultural co-use preserves land utility (no LULUCF conflict).
+- Social safeguards: French labor code. Cooperative partnership agreement ensures local employment.
+
+Decision: APPROVED for allocation. This additional Category A project raises total allocated to EUR 140,200,000 and improves Taxonomy alignment.
+
+Claim: AgriVolt approved for EUR 25M. Category A, fully Taxonomy-aligned. Goal: Improve overall Taxonomy alignment by adding to renewable energy allocation.

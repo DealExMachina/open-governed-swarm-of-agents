@@ -19,6 +19,7 @@ Back to [README.md](../README.md).
 9. [Database schema](#9-database-schema)
 10. [Rust core (sgrs-core)](#10-rust-core-sgrs-core)
 11. [Agent Hatchery](#11-agent-hatchery)
+12. [Stage 2 (complete)](#12-stage-2-complete)
 
 ---
 
@@ -36,7 +37,9 @@ flowchart TB
   subgraph Agents["Reasoning agents"]
     FA[Facts Agent]
     DA[Drift Agent]
-    PA[Planner Agent]
+    PA[Propagation Agent]
+    DE[Deltas Agent]
+    PL[Planner Agent]
     SA[Status Agent]
   end
 
@@ -51,17 +54,17 @@ flowchart TB
     FIN[Finality Evaluator V monotonicity plateau HITL]
   end
 
-  NATS --> FA & DA & PA & SA
-  FA & DA & PA & SA --> WAL & S3 & SG
+  NATS --> FA & DA & PA & DE & PL & SA
+  FA & DA & PA & DE & PL & SA --> WAL & S3 & SG
   WAL & S3 & SG --> GOV
   GOV --> FIN
   FIN -.->|review_requested| NATS
 ```
 
-The system has no fixed pipeline. Four reasoning agents (facts, drift, planner,
-status) consume jobs from NATS, read shared state, and propose transitions.
-The governance agent evaluates proposals against declarative rules and
-authorization policy. The finality evaluator tracks convergence toward a
+The system has no fixed pipeline. Reasoning agents (facts, drift, propagation,
+deltas, planner, status) consume jobs from NATS, read shared state, and propose
+transitions. The governance agent evaluates proposals against declarative rules
+and authorization policy. The finality evaluator tracks convergence toward a
 terminal state (RESOLVED, ESCALATED, BLOCKED, or EXPIRED).
 
 ---
@@ -114,24 +117,28 @@ is drained (all pending messages flushed) before disconnect.
 
 **Source:** `src/stateGraph.ts`
 
-### Three-node cycle
+### Five-node cycle (Stage 2)
 
 ```mermaid
 stateDiagram-v2
   [*] --> ContextIngested
   ContextIngested --> FactsExtracted: facts agent
   FactsExtracted --> DriftChecked: drift agent
-  DriftChecked --> ContextIngested: planner/status, governance
+  DriftChecked --> EvidencePropagated: propagation agent
+  EvidencePropagated --> DeltasExtracted: deltas agent
+  DeltasExtracted --> ContextIngested: planner/status, governance
 ```
 
-The state machine has exactly three nodes forming a cycle. Each transition
-represents a phase of the agent processing loop:
+The state machine has five nodes forming a cycle. Each transition represents a
+phase of the agent processing loop:
 
 | Transition | What happens |
 |------------|-------------|
 | ContextIngested → FactsExtracted | Facts agent extracts claims, goals, risks from new context |
 | FactsExtracted → DriftChecked | Drift agent compares current vs. previous facts, computes drift |
-| DriftChecked → ContextIngested | Planner/status agents process drift, governance evaluates proposals, cycle resets |
+| DriftChecked → EvidencePropagated | Propagation agent runs sheaf diffusion step, publishes evidence |
+| EvidencePropagated → DeltasExtracted | Deltas agent extracts dimension deltas from evidence state |
+| DeltasExtracted → ContextIngested | Planner/status agents process drift, governance evaluates proposals, cycle resets |
 
 ### Epoch-based CAS (compare-and-swap)
 
@@ -455,7 +462,9 @@ result.
 
 | From | To | Block when | Reason |
 |------|-----|-----------|--------|
-| DriftChecked | ContextIngested | drift_level=critical | Critical drift blocks cycle reset -- human override required |
+| DriftChecked | EvidencePropagated | drift_level=high,critical | High/critical drift blocks leaving DriftChecked |
+| EvidencePropagated | DeltasExtracted | drift_level=high,critical | High/critical drift blocks evidence propagation advancement |
+| DeltasExtracted | ContextIngested | drift_level=high,critical | High/critical drift blocks cycle reset -- human override required |
 
 ### OpenFGA policy checks
 
@@ -790,18 +799,18 @@ flowchart LR
 
 ## 10. Rust core (sgrs-core)
 
-The formal core (convergence math, finality gates, governance lattice, reduction kernel) lives in a Rust crate `sgrs-core`, built as a napi-rs native addon. The TypeScript layer handles I/O, LLM calls, messaging, and storage; it calls into the Rust engine for deterministic, replayable decisions.
+The formal core (convergence math, finality gates, governance **product poset** M = L × A, reduction kernel) lives in a Rust crate `sgrs-core`, built as a napi-rs native addon. The TypeScript layer handles I/O, LLM calls, messaging, and storage; it calls into the Rust engine for deterministic, replayable decisions.
 
 ### Premise
 
-The theory defines a product lattice M = L x A: governance level L (permissiveness) and convergence rank A (per-dimension scores). Coordination is well-founded descent in M. V2 extracts this into a Rust engine so that invariants are enforced by the type system; the TS layer approximates this no longer—it delegates.
+The theory defines a product order M = L x A: governance level L (permissiveness) and convergence rank A (per-dimension scores). Coordination is well-founded descent in M. (Note: M is a product order / well-founded poset, not a product lattice -- the implementation uses only partial order for admissibility checks.) V2 extracts this into a Rust engine so that invariants are enforced by the type system; the TS layer approximates this no longer—it delegates.
 
 ### What lives in Rust vs TypeScript
 
 | In Rust (sgrs-core) | In TypeScript |
 |---------------------|---------------|
 | Governance lattice L (Yolo > Mitl > Master), convergence rank A (4 dimensions) | NATS, Postgres, S3, OpenFGA, agent loops, hatchery |
-| Product lattice M = L x A, admissibility check | Semantic graph sync, context WAL, decision persistence |
+| Product **poset** M = L x A, order admissibility | Semantic graph sync, context WAL, decision persistence |
 | Reduction kernel (proposal → Accept/Reject/Escalate), stateless, config as parameter | LLM oversight, MITL server, feed server |
 | Lyapunov V(t), dimension scores, pressure, trajectory quality Q(t), plateau detection | Load snapshot, call Rust, persist convergence history |
 | Five-gate finality predicate F(t), condition evaluator | Load finality config, call Rust, emit events |
@@ -933,3 +942,20 @@ AGENT_ROLE=hatchery pnpm run swarm
 AGENT_ROLE=facts pnpm run swarm
 ./scripts/swarm-hatchery.sh   # or: pnpm run swarm:start
 ```
+
+---
+
+## 12. Stage 2 (complete)
+
+Stage 2 extends the architecture with a **causal contribution layer** (content-addressed DAG), **evidence state space and sheaf operators** (support/refutation channels, sheaf Laplacian, governance projection, ISS cascade stability), and **governed propagation** (topology-aware diffusion, small-gain condition). Implementation is complete: Rust kernel, TypeScript/DB integration, 5-node state machine (EvidencePropagated, DeltasExtracted), and experiments E1–E12 all passing. See [stage-2-implementation-plan.md](stage-2-implementation-plan.md) for the design and [stage-2-status-and-experiments.md](stage-2-status-and-experiments.md) for status and runnable experiments.
+
+### Stage-2 architectural lock: causal DAG is audit-only
+
+- Contributions emitted via `emitContribution()` are persisted for lineage/audit
+  and replayability.
+- Runtime `EvidenceState` updates are **not** driven by DAG rows.
+- Any bridge from DAG to FCA is a read-only provenance/extraction path and does
+  not mutate live propagation state.
+
+This lock avoids hidden coupling between causal traceability and runtime
+consensus dynamics.

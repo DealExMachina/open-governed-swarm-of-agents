@@ -1,0 +1,34 @@
+ALLOCATION COMPLETION REPORT
+
+Date: 2026-06-30
+Bond: EuroVert Capital Green Bond Fund I (European Green Bond)
+
+FULL ALLOCATION ACHIEVED
+
+Total net proceeds: EUR 249,687,500
+Total allocated: EUR 249,687,500 (100.0%)
+
+Final allocation by project:
+1. SolarMed (Cat A, Solar PV, Italy): EUR 38,000,000 -- OPERATIONAL
+2. WindNorth (Cat A, Onshore wind, Denmark): EUR 62,000,000 -- OPERATIONAL
+3. RetroFit (Cat B, Building renovation, Germany): EUR 20,000,000 -- COMPLETE
+4. ChargeNet (Cat C, EV charging, Netherlands): EUR 18,000,000 -- OPERATIONAL (2,500 pts)
+5. AgriVolt (Cat A, Agrivoltaic, France): EUR 25,000,000 -- OPERATIONAL
+6. EolienSud (Cat A, Onshore wind, France): EUR 48,000,000 -- COD achieved June 2026
+7. StoragePlus (Cat A, Battery storage, Germany): EUR 12,000,000 -- OPERATIONAL
+8. Additional Cat A pipeline: EUR 26,687,500 -- allocated to two small solar projects (Portugal, Spain)
+
+TAXONOMY ALIGNMENT: 91.2% of proceeds in EU Taxonomy-aligned activities.
+Flexibility pocket usage: 0%.
+
+POST-ALLOCATION EXTERNAL REVIEW:
+Sustainalytics has completed the post-allocation verification under EUGBS Art. 14.
+Opinion: The allocation of proceeds is CONSISTENT with the EuroVert Green Bond Framework v1.1 and the European Green Bond designation requirements. All 85%+ of proceeds are allocated to Taxonomy-aligned activities. No material deviations identified.
+
+EUGBS COMPLIANCE: FULL. All four pillars satisfied:
+1. Use of proceeds: 91.2% Taxonomy-aligned (above 85%)
+2. External review: Pre-issuance SPO and post-allocation review completed
+3. Factsheet: Published and reviewed
+4. Reporting: Annual allocation and impact reports delivered
+
+Claim: Full allocation achieved. 91.2% Taxonomy-aligned. EUGBS compliance confirmed by external reviewer and CSSF. All 7 projects operational or in final commissioning. Goal: Maintain ongoing EUGBS compliance and annual reporting throughout bond life.

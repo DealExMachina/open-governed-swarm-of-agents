@@ -56,6 +56,9 @@ pub struct FinalitySnapshotFull {
     pub contradiction_mass: f64,
     /// Gate B: evidence coverage ratio (0-1).
     pub evidence_coverage: f64,
+    /// Gate F: whether all dimensions with refutation > θ have been formally eliminated.
+    /// Computed externally by the propagation layer. Default true (when elimination is not used).
+    pub elimination_complete: bool,
 }
 
 impl FinalitySnapshotFull {

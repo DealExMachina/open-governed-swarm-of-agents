@@ -1,0 +1,92 @@
+================================================================================
+CONFIDENTIAL — PROJECT HORIZON
+NovaTech AG: Technical Debt & Key Person Risk Assessment
+Date: 2025-03-22
+Prepared by: External Technical Advisors — Argon Consulting GmbH
+Engagement Lead: Dr. Markus Steiner
+================================================================================
+
+1. SCOPE
+
+Argon Consulting was engaged to perform an independent technical due diligence
+of NovaTech's RegAssure platform, including code quality analysis, architecture
+review, and assessment of key person dependencies within the engineering team.
+
+2. CRITICAL FINDING: CTO DEPARTURE
+
+During confidential interviews with NovaTech's leadership team, Dr. Elena Voss
+(CTO & Co-Founder) disclosed that she intends to resign effective Q4 2025,
+regardless of the acquisition outcome. Dr. Voss cited personal reasons and
+a desire to pursue academic research.
+
+This directly contradicts management representations in Document 06, which
+stated: "Dr. Voss has indicated her intent to remain through and beyond the
+transition."
+
+Furthermore, two senior engineers — Dr. Friedrich Wendt (Lead ML Scientist)
+and Andrej Kozlov (Principal Backend Engineer) — have indicated they will follow
+Dr. Voss to her next venture. Combined, these three individuals account for:
+
+  - 4 of 7 granted patents (Voss named inventor)
+  - 61% of commits to the ML pipeline repository (last 24 months)
+  - Sole knowledge holders for the custom model training infrastructure
+  - 8 of 18 ML team members have stated they would consider leaving if
+    Dr. Voss and Dr. Wendt depart
+
+3. CODE CONCENTRATION ANALYSIS
+
+Our automated code analysis (using git-fame and custom tooling) reveals
+concerning concentration in the codebase:
+
+  Repository: regassure-ml-pipeline
+    Dr. Elena Voss:       34% of all commits (last 24 months)
+    Dr. Friedrich Wendt:  27% of all commits
+    Combined:             61% of all commits
+    Next contributor:     8% (Andrej Kozlov)
+
+  Repository: regassure-core
+    Andrej Kozlov:        22% of all commits
+    Thomas Kessler:       18% of all commits
+    Combined top 4:       58% of all commits
+
+4. TECHNICAL DEBT FINDINGS
+
+Contrary to the self-reported estimate of 12% technical debt (Document 05),
+our assessment identifies significantly higher technical debt:
+
+  (a) Legacy Ingestion Pipeline:  Built in 2019, uses deprecated Python 3.8
+      patterns. Scheduled refactoring has been deferred three times.
+      Estimated remediation: 6-9 months, 4 FTE engineers.
+
+  (b) Test Coverage: Management reported >80%. Our analysis measured actual
+      statement coverage at 54% for regassure-ml-pipeline and 71% for
+      regassure-core. Integration test coverage is 38%.
+
+  (c) Dependency Vulnerabilities: 23 npm packages and 14 Python packages
+      with known CVEs, including 3 rated HIGH severity.
+
+  (d) Documentation: API documentation covers only 40% of endpoints. Internal
+      architecture documentation has not been updated since 2023.
+
+5. DISASTER RECOVERY GAPS
+
+  - Last successful DR test: November 2023 (14 months ago)
+  - RTO target: 4 hours. Last measured RTO: estimated 12-16 hours
+  - No documented runbook for ML model recovery
+  - Backup verification is manual and performed quarterly
+
+6. RISK QUANTIFICATION
+
+  CTO Departure Impact:           HIGH — EUR 15-25M estimated cost to replace
+                                  team and rebuild institutional knowledge
+  Technical Debt Remediation:     EUR 3-5M over 18 months
+  DR/Security Remediation:        EUR 1-2M over 12 months
+
+7. RECOMMENDATIONS
+
+  (a) Negotiate retention packages for Dr. Voss (minimum 24-month commitment)
+  (b) Immediate knowledge transfer program for ML pipeline
+  (c) Hire backup CTO / VP Engineering with ML expertise
+  (d) Budget EUR 5-7M for technical debt and security remediation
+
+Prepared by Dr. Markus Steiner, Argon Consulting GmbH

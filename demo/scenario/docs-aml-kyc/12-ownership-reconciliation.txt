@@ -1,0 +1,137 @@
+DOCUMENT: OWNERSHIP RECONCILIATION — UNDISCLOSED BVI MINORITY SHAREHOLDER
+CLASSIFICATION: CONFIDENTIAL — AML/KYC RESTRICTED
+INSTITUTION: EuroBank AG, Frankfurt am Main
+DATE: 2024-11-18
+REFERENCE: CDD-2024-CAST-0012
+INVESTIGATING ANALYST: Anna Berger, KYC Analyst (EB-4412)
+REVIEWED BY: Claudia Richter, Head of Financial Crime (EB-2201)
+
+1. DISCOVERY
+
+During the post-EDD investigation and SAR-related evidence gathering,
+the KYC team requested an updated confirmation of the CastleTech BVI Ltd
+shareholder register from the BVI registered agent (Trident Trust Company).
+
+The response, received 2024-11-12, revealed a MATERIAL DISCREPANCY with
+the corporate structure declared at onboarding.
+
+2. DISCREPANCY DETAIL
+
+  DECLARED AT ONBOARDING (CDD-2023-CAST-0002, dated 2023-03-15):
+    CastleTech BVI Ltd — 100% owned by Castellan Holdings S.a.r.l.
+    Sole Director: Viktor Castellan
+
+  CURRENT SHAREHOLDER REGISTER (Trident Trust confirmation, 2024-11-12):
+    CastleTech BVI Ltd:
+      70% — Castellan Holdings S.a.r.l.
+      30% — Cerberus Consulting AG (Switzerland, CHE-412.876.553)
+    Directors: Viktor Castellan, Luca Ferretti (appointed 2024-04-01)
+
+  CHANGE DATE: Share transfer registered 2024-04-01
+  NOTIFICATION TO EUROBANK: NONE
+
+3. CONTRADICTION ANALYSIS
+
+This discovery creates MULTIPLE contradictions with existing records:
+
+  (a) CDD-2023-CAST-0002: Stated CastleTech BVI was "100% held by
+      Castellan Holdings S.a.r.l." — this was accurate at onboarding
+      but is no longer true as of 2024-04-01.
+
+  (b) CDD-2023-CAST-0001: UBO analysis based on Viktor 78% / Elena 22%
+      ownership of Castellan Holdings, which held 100% of CastleTech BVI.
+      With 30% of BVI now held externally, the effective group ownership
+      and UBO calculations must be revised.
+
+  (c) TXN-2023-CAST-0001: BVI dividends (EUR 500K quarterly) were
+      profiled as intra-group transfers. With 30% external ownership,
+      dividend flows may be subject to third-party claims.
+
+  (d) EDD-2024-CAST-0001: Cerberus was assessed as a consulting
+      counterparty. It is now revealed to be a 30% SHAREHOLDER of
+      a group subsidiary — fundamentally different relationship.
+
+  (e) TXN-ALERT-2024-0287: The EUR 3.3M in "consulting payments" to
+      Cerberus must now be re-evaluated. Were these genuine consulting
+      fees, or were they connected to the share acquisition? The 30%
+      stake in CastleTech BVI has an estimated value of EUR 3-5M based
+      on BVI entity revenue — closely matching the payment amounts.
+
+4. CIRCULAR OWNERSHIP CONCERN
+
+The updated ownership creates the following structure:
+
+    Castellan Holdings S.a.r.l. ──(70%)──> CastleTech BVI Ltd
+                                                  ^
+    Cerberus Consulting AG ─────(30%)─────────────┘
+          |
+    (Received EUR 3.3M FROM Castellan Holdings)
+
+  This raises the question: did Castellan Holdings effectively fund the
+  acquisition of a 30% stake in its own subsidiary by a third party?
+
+  If so, this constitutes:
+  - Potential dilution of group assets without UBO/board disclosure
+  - Possible connected-party transaction in breach of fiduciary duties
+  - Money laundering red flag: circular flow of funds designed to obscure
+    the true nature of the transaction
+
+5. TIMELINE RECONSTRUCTION
+
+  2024-03-19   Cerberus Consulting AG incorporated (Zurich)
+  2024-04-01   Cerberus acquires 30% of CastleTech BVI; Luca Ferretti
+               appointed as director of CastleTech BVI
+  2024-04-28   Consulting agreement between Castellan Holdings and
+               Cerberus signed (backdated start to 2024-03-01)
+  2024-05-03   First payment EUR 1.8M from Castellan to Cerberus
+  2024-05-22   Second payment EUR 500K
+  2024-06-05   Third payment EUR 500K
+  2024-06-12   Fourth payment EUR 500K (total: EUR 3.3M)
+
+  Assessment: The share transfer preceded the consulting agreement and
+  payments. The "consulting fees" may in fact be purchase consideration
+  disguised as service payments, potentially to avoid tax or disclosure
+  obligations.
+
+6. REVISED UBO ANALYSIS
+
+  Original UBO Structure:
+    Viktor Castellan: 78% of Castellan Holdings → 100% of CastleTech BVI
+    Effective control of BVI: 78%
+
+  Revised UBO Structure:
+    Viktor Castellan: 100% of Castellan Holdings (post-divorce) → 70%
+    of CastleTech BVI. Effective control of BVI: 70%.
+    Luca Ferretti (via Cerberus): 30% of CastleTech BVI
+    Ferretti is now a de facto connected party and potential UBO of the
+    group's BVI operations.
+
+7. ACTIONS REQUIRED
+
+  [x] Update corporate structure records
+  [x] Add Luca Ferretti as connected party / potential UBO
+  [x] Full sanctions and PEP screening for Ferretti
+  [x] Supplementary SAR filing (undisclosed ownership change)
+  [ ] Request explanation from Viktor Castellan (via counsel given SAR)
+  [ ] Request full share purchase agreement for the 30% stake
+  [ ] Re-assess all BVI-related transaction flows since April 2024
+  [ ] Consider whether relationship termination criteria are met
+  [ ] Notify BaFin proactively (given pending inspection — see doc 13)
+
+8. COMPLIANCE IMPACT
+
+This undisclosed ownership change is the THIRD significant disclosure
+failure by the client:
+  (1) Trust beneficiary addition — not notified (190-day delay)
+  (2) Prior business relationship with Ferretti — not disclosed in CDD
+  (3) BVI minority shareholder — not disclosed (7+ months)
+
+The pattern of non-disclosure is now SYSTEMATIC rather than isolated.
+This materially affects the credibility of all client-provided information
+and the integrity of the entire CDD file.
+
+Investigated by:  Anna Berger, KYC Analyst (EB-4412)
+Reviewed by:      Claudia Richter, Head of Financial Crime (EB-2201)
+Date:             2024-11-18
+
+— END OF OWNERSHIP RECONCILIATION RECORD —

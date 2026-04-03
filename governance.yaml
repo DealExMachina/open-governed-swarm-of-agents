@@ -31,6 +31,16 @@ rules:
 
 transition_rules:
   - from: DriftChecked
+    to: EvidencePropagated
+    block_when:
+      drift_level: [high, critical]
+    reason: "High/critical drift blocks leaving DriftChecked — requires human override or LLM review"
+  - from: EvidencePropagated
+    to: DeltasExtracted
+    block_when:
+      drift_level: [high, critical]
+    reason: "High/critical drift blocks evidence propagation advancement"
+  - from: DriftChecked
     to: ContextIngested
     block_when:
       drift_level: [high, critical]

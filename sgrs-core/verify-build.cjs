@@ -8,6 +8,13 @@ const fns = [
   'analyzeConvergenceBridge',
   'computeGoalScoreBridge',
   'evaluateGatesBridge',
+  'computeContentHashBridge',
+  'validateContributionBridge',
+  'computeDisagreementBridge',
+  'analyzeSpectrumBridge',
+  'analyzeIssBridge',
+  'propagationStepBridge',
+  'extractContradictionsBridge',
 ];
 const missing = fns.filter(f => typeof m[f] !== 'function');
 if (missing.length) {

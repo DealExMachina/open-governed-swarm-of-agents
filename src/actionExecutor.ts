@@ -1,4 +1,5 @@
 import "dotenv/config";
+import { setMaxListeners } from "events";
 import { join } from "path";
 import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
@@ -9,10 +10,13 @@ import { getNextJobForNode } from "./agentRegistry.js";
 import { loadPolicies, getGovernanceForScope } from "./governance.js";
 import type { EventBus } from "./eventBus.js";
 import { logger, setLogContext } from "./logger.js";
-import { getChatModelConfig } from "./modelConfig.js";
+import { getChatModelConfig, DETERMINISTIC_SETTINGS, ExecutorOutputSchema } from "./modelConfig.js";
 import type { Action } from "./events.js";
 import { createSwarmEvent } from "./events.js";
+import { composeInstructions } from "./skills/loader.js";
+import { trackAgentTokens } from "./skills/tokenTracker.js";
 import { recordFinalityDecision } from "./finalityDecisions.js";
+import { recordStateTransition } from "./metrics.js";
 import type { FinalityOption } from "./finalityDecisions.js";
 import { CircuitBreaker } from "./resilience.js";
 
@@ -123,6 +127,7 @@ function createExecutorTools(
       }
       const fromNode = (Object.entries(transitions) as [Node, Node][]).find(([, to]) => to === newState.lastNode)?.[0];
       if (fromNode) {
+        recordStateTransition(fromNode, newState.lastNode);
         await bus.publishEvent(
           createSwarmEvent("state_transition", {
             from: fromNode,
@@ -170,7 +175,7 @@ async function processActionWithAgent(action: Action, bus: EventBus, s3: ReturnT
   const agent = new Agent({
     id: "executor-agent",
     name: "Executor Agent",
-    instructions: EXECUTOR_AGENT_INSTRUCTIONS,
+    instructions: composeInstructions(EXECUTOR_AGENT_INSTRUCTIONS, "executor"),
     model: modelConfig,
     tools: {
       readAction: tools.readAction,
@@ -180,11 +185,18 @@ async function processActionWithAgent(action: Action, bus: EventBus, s3: ReturnT
       declineExecute: tools.declineExecute,
     },
   });
-  const prompt = `Approved action: proposal_id=${action.proposal_id} payload=${JSON.stringify(action.payload)}. Decide whether to execute or decline and call the corresponding tool.`;
+  const prompt = `Action: proposal_id=${action.proposal_id}, payload=${JSON.stringify(action.payload)}. Execute or decline.`;
   const abortController = new AbortController();
+  setMaxListeners(64, abortController.signal);
   const timeoutId = setTimeout(() => abortController.abort(), 30000);
   try {
-    await llmBreaker.call(() => agent.generate(prompt, { maxSteps: 10, abortSignal: abortController.signal }));
+    const genResult = await llmBreaker.call(() => agent.generate(prompt, {
+      maxSteps: 5,
+      abortSignal: abortController.signal,
+      modelSettings: DETERMINISTIC_SETTINGS,
+      structuredOutput: { schema: ExecutorOutputSchema, jsonPromptInjection: true },
+    }));
+    trackAgentTokens("executor", genResult);
   } catch (e) {
     logger.warn("executor LLM failed or circuit open; falling back to inline execution", {
       proposal_id: action.proposal_id,
@@ -205,8 +217,8 @@ async function executeActionInline(
   if (action.result !== "approved" || !action.payload) return;
   const actionType = (action as Action & { action_type?: string }).action_type;
   if (actionType !== "advance_state") return;
-  const payload = action.payload as { expectedEpoch: number; scope_id?: string };
-  const { expectedEpoch } = payload;
+  const payload = action.payload as { expectedEpoch: number; from?: string; to?: string; scope_id?: string };
+  const { expectedEpoch, from: payloadFrom, to: payloadTo } = payload;
   const scopeId = payload.scope_id ?? process.env.SCOPE_ID ?? "default";
   const isHumanOverride = action.approved_by === "human";
   let newState: GraphState | null;
@@ -224,6 +236,7 @@ async function executeActionInline(
   }
   if (!newState) {
     const current = await loadState(scopeId);
+    const reason = current ? (current.epoch > expectedEpoch ? "already_advanced" : "blocked_or_cas_failed") : "no_state";
     if (current && current.epoch > expectedEpoch) {
       logger.info("executor advance skipped (state already advanced)", {
         proposal_id: action.proposal_id,
@@ -242,6 +255,7 @@ async function executeActionInline(
   }
   const fromNode = (Object.entries(transitions) as [Node, Node][]).find(([, to]) => to === newState.lastNode)?.[0];
   if (fromNode) {
+    recordStateTransition(fromNode, newState.lastNode);
     await bus.publishEvent(
       createSwarmEvent("state_transition", {
         from: fromNode,

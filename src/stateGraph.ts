@@ -1,13 +1,16 @@
+import { randomUUID } from "crypto";
 import pg from "pg";
-// #region agent log
-fetch("http://127.0.0.1:7243/ingest/43a26554-c058-4ee2-bffa-258ea712c1dc", { method: "POST", headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "346e93" }, body: JSON.stringify({ sessionId: "346e93", location: "stateGraph.ts:top", message: "stateGraph.ts top-level", data: {}, timestamp: Date.now(), hypothesisId: "H3" }) }).catch(() => {});
-// #endregion
 import { getPool, runInTransaction } from "./db.js";
 import { ensureContextTable } from "./contextWal.js";
 import { createSwarmEvent } from "./events.js";
 import { canTransition, type DriftInput, type GovernanceConfig } from "./governance.js";
 
-export type Node = "ContextIngested" | "FactsExtracted" | "DriftChecked";
+export type Node =
+  | "ContextIngested"
+  | "FactsExtracted"
+  | "DriftChecked"
+  | "EvidencePropagated"
+  | "DeltasExtracted";
 
 export interface GraphState {
   runId: string;
@@ -19,7 +22,9 @@ export interface GraphState {
 export const transitions: Record<Node, Node> = {
   ContextIngested: "FactsExtracted",
   FactsExtracted: "DriftChecked",
-  DriftChecked: "ContextIngested",
+  DriftChecked: "EvidencePropagated",
+  EvidencePropagated: "DeltasExtracted",
+  DeltasExtracted: "ContextIngested",
 };
 
 export function nextState(s: GraphState): GraphState {
@@ -94,6 +99,26 @@ export async function initState(
   };
 }
 
+/**
+ * Reset swarm state to a given node (e.g. ContextIngested). Used at bootstrap so the pipeline
+ * always starts with facts, not from a leftover node like DeltasExtracted.
+ */
+export async function resetStateTo(
+  scopeId: string,
+  node: Node,
+  runId?: string,
+  pool?: pg.Pool,
+): Promise<GraphState> {
+  const p = pool ?? getPool();
+  await ensureStateTable(p);
+  const newRunId = runId ?? randomUUID();
+  await p.query(
+    `UPDATE swarm_state SET run_id = $1, last_node = $2, epoch = 0, updated_at = now() WHERE scope_id = $3`,
+    [newRunId, node, scopeId],
+  );
+  return (await loadState(scopeId, p))!;
+}
+
 export interface AdvanceOptions {
   scopeId?: string;
   drift?: DriftInput;
@@ -125,13 +150,17 @@ export async function advanceState(
   await ensureStateTable(p);
 
   const current = await loadState(scopeId, p);
-  if (!current || current.epoch !== expectedEpoch) return null;
+  if (!current || current.epoch !== expectedEpoch) {
+    return null;
+  }
 
   const next = transitions[current.lastNode];
 
   if (opts.drift && opts.governance) {
     const decision = canTransition(current.lastNode, next, opts.drift, opts.governance);
-    if (!decision.allowed) return null;
+    if (!decision.allowed) {
+      return null;
+    }
   }
   const newEpoch = expectedEpoch + 1;
 
@@ -148,7 +177,9 @@ export async function advanceState(
       [next, newEpoch, scopeId, expectedEpoch],
     );
 
-    if (res.rowCount === 0) return null;
+    if (res.rowCount === 0) {
+      return null;
+    }
     const row = res.rows[0];
     const newState: GraphState = {
       runId: row.run_id,

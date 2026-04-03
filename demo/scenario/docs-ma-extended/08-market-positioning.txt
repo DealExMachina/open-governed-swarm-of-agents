@@ -1,0 +1,76 @@
+================================================================================
+CONFIDENTIAL — PROJECT HORIZON
+NovaTech AG: Market Positioning & Competitive Landscape
+Date: 2025-01-30
+Prepared by: Julia Hartmann, VP Sales & Marcus Reinhardt, Corp. Development
+================================================================================
+
+1. MARKET OVERVIEW
+
+The European Regulatory Technology (RegTech) market for life sciences is valued
+at EUR 2.1 billion (2025) and projected to reach EUR 5.7 billion by 2030,
+representing an 18.3% CAGR. Growth drivers include:
+
+  - EU MDR/IVDR transition deadlines creating compliance urgency
+  - Increasing regulatory complexity across EU member states
+  - Digitalization mandates from EMA and national competent authorities
+  - AI adoption in regulatory affairs departments
+
+2. NOVATECH MARKET POSITION
+
+  Current ARR:                EUR 50.0 million
+  Estimated Market Share:     2.4% of addressable market
+  Target Segment:             Mid-to-large enterprises (500+ employees)
+  Geographic Focus:           DACH, Nordics, Southern Europe
+
+NovaTech is positioned as a Tier 2 player in the European RegTech market,
+behind established incumbents but ahead of emerging point-solution providers.
+
+3. COMPETITIVE LANDSCAPE
+
+  Tier 1 (>EUR 200M revenue):
+    - Veeva Systems (US) — Dominant in pharma regulatory. EUR 2.4B global rev.
+    - IQVIA RegulatoryOne — Part of larger data/analytics offering
+    - MasterControl — Broad quality + regulatory suite
+
+  Tier 2 (EUR 20-100M revenue):
+    - NovaTech AG (Target) — EUR 50M ARR, EU MDR specialization
+    - Rimsys (US) — Medical device regulatory focus, EUR 35M ARR
+    - Compliance.ai (US) — AI-powered regulatory change management
+
+  Tier 3 (<EUR 20M revenue):
+    - RegDesk — Emerging competitor, raised Series B in 2024
+    - Kolabtree — Niche consultancy/platform hybrid
+    - Celegence — India-based, cost-competitive
+
+4. COMPETITIVE ADVANTAGES
+
+  (a) EU MDR Specialization: NovaTech is the only Tier 2 player with deep
+      native support for EU MDR 2017/745, including Annex mapping, EUDAMED
+      integration, and post-market surveillance automation.
+
+  (b) Multi-Language NLP: RegAssure processes regulatory documents in 14
+      European languages, a capability not matched by US-centric competitors.
+
+  (c) Data Network Effects: 4.2 TB of indexed regulatory documents create a
+      compounding advantage in ML model accuracy.
+
+  (d) European Data Residency: All processing within EU/Switzerland, critical
+      for regulated industries with data sovereignty requirements.
+
+5. COMPETITIVE THREATS
+
+  - Veeva Systems expanding EU MDR module (expected GA in Q3 2026)
+  - Axion Corp (Munich) has filed patent applications in adjacent areas and
+    has publicly announced intent to enter the MDR compliance automation space
+  - Open-source regulatory tools emerging from academic projects
+  - Large consulting firms (Deloitte, McKinsey) building proprietary tools
+
+6. WIN/LOSS ANALYSIS (Last 12 Months)
+
+  Competitive Win Rate:       62% (vs. 57% prior year)
+  Most Frequent Competitor:   Veeva Systems (lost 8 of 22 contested deals)
+  Primary Win Factor:         EU MDR depth, deployment speed, pricing
+  Primary Loss Factor:        Brand recognition, global coverage
+
+Prepared by Julia Hartmann & Marcus Reinhardt

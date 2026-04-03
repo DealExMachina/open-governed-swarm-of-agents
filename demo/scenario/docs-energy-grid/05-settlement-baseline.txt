@@ -1,0 +1,92 @@
+DOCUMENT: NorthGrid Utilities — December 2025 Settlement Report
+DATE: January 15, 2026
+CLASSIFICATION: Market Sensitive — Restricted Distribution
+AUTHOR: Market Settlements Division
+REF: NG-SETL-2025-12-005
+
+SETTLEMENT PERIOD: December 1-31, 2025
+
+ENERGY BALANCE SUMMARY
+
+Total metered generation:     8,912 GWh (8.912 TWh)
+Total metered load:           8,714 GWh (8.714 TWh)
+Net interchange (exports):      198 GWh (0.198 TWh)
+System losses:                  287 GWh (3.22% loss rate)
+Unaccounted for energy (UFE):    12 GWh (0.13%)
+
+UFE within acceptable threshold of +/-0.25% per NorthGrid Tariff
+Section 12.4. No settlement adjustments triggered.
+
+GENERATION BY FUEL TYPE
+
+  Fuel Type     | Generation (GWh) | Share  | Avg. LMP (€/MWh)
+  --------------|------------------|--------|------------------
+  Natural Gas   |    3,742         | 42.0%  |   48.20
+  Nuclear       |    2,807         | 31.5%  |   12.40
+  Wind          |      979         | 11.0%  |    0.00 (PTC)
+  Solar         |      178         |  2.0%  |    0.00 (PTC)
+  Hydro         |    1,206         | 13.5%  |   18.60
+
+LOCATIONAL MARGINAL PRICES (LMP)
+
+System-wide average LMP: €42.80/MWh
+Peak period average (HE07-HE22): €56.30/MWh
+Off-peak average (HE23-HE06): €24.10/MWh
+
+LMP by balancing area:
+  North:    €39.20/MWh (lower — nuclear baseload, wind surplus)
+  Central:  €44.60/MWh (system hub)
+  South:    €47.80/MWh (gas-dependent, transmission constrained)
+  Coastal:  €40.10/MWh (offshore wind depresses prices)
+
+Maximum LMP event: December 19, HE18 — €312.40/MWh at South area
+(gas unit trip + high winter demand, 3-hour duration)
+
+IMBALANCE CHARGES
+
+Total uninstructed deviation charges:  €4.2M
+  Generator deviations:                €2.8M
+  Load-serving entity deviations:      €1.1M
+  Interchange scheduling deviations:   €0.3M
+
+Top 3 deviation contributors:
+  1. Ridgeline Wind Farm III — €0.62M (wind forecast error)
+  2. Metro Gas CC Unit 2     — €0.41M (forced outage mid-schedule)
+  3. Eastern Load Zone LSE   — €0.38M (weather-driven demand error)
+
+CONGESTION REVENUE
+
+Total congestion revenue collected:  €12.8M
+Financial transmission rights (FTR) payments: €9.4M
+Surplus congestion revenue:  €3.4M (allocated per tariff)
+
+Primary congested paths:
+  1. North-to-Central (Ridgeline-Lakeside 345kV): €5.2M (41%)
+  2. South import corridor (Harborview 230kV):    €3.8M (30%)
+  3. Coastal-to-Central (Atlantic 345kV):         €2.1M (16%)
+  4. All other constraints:                        €1.7M (13%)
+
+SETTLEMENT METHODOLOGY
+
+Metering:
+  - Revenue-grade meters at all generator interconnection points
+  - Telemetry sampling: 15-minute interval reads (aligned to clock)
+  - Settlement interval: 5 minutes (interpolated from 15-min reads)
+  - Data source: SCADA/EMS telemetry system, validated by meter agents
+
+NOTE: The 15-minute metering interval is a known limitation for
+settlement accuracy during fast-changing conditions (e.g., wind ramps,
+demand response events). A proposal to upgrade to 4-second telemetry
+for settlement-grade metering is under review (NG-PROJ-2026-017).
+
+ADJUSTMENTS AND DISPUTES
+
+Open settlement disputes from December: 2
+  1. Ridgeline Wind III — disputes curtailment volume calculation
+     (claims 12 GWh curtailed vs. settlement system's 9 GWh)
+  2. Southern Plains Solar I — disputes behind-the-meter netting methodology
+
+Both disputes under review; target resolution by February 28, 2026.
+
+PREPARED BY: A. Bergstrom, Settlement Manager
+APPROVED BY: K. Williams, Director of Market Operations

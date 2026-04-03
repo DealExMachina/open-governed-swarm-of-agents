@@ -1,0 +1,131 @@
+DOCUMENT: NorthGrid Utilities — Q1 2026 NERC CIP Quarterly Compliance Filing
+DATE: March 28, 2026
+CLASSIFICATION: NERC CIP — Confidential / Regulatory Filing
+AUTHOR: Cybersecurity & Compliance Division
+REF: NG-CIP-2026-Q1-FILING-014
+
+FILING DEADLINE: April 15, 2026 (NERC ReliabilityFirst)
+STATUS: Draft for internal review — final submission pending legal approval
+
+COMPLIANCE PERIOD: January 1 — March 31, 2026
+
+EXECUTIVE SUMMARY
+
+NorthGrid Utilities submits this quarterly compliance filing covering
+NERC CIP standards CIP-002 through CIP-014 and NERC Reliability
+Standards BAL-001, BAL-003, and FAC-001 through FAC-014.
+
+Q1 2026 was a challenging quarter marked by Winter Storm Helios
+(February 12-14), a self-reported CIP-007 patch management violation,
+and a physical security incident during the storm. The weighted
+compliance index (WCI) declined from 94% to 91%.
+
+COMPLIANCE SCORECARD
+
+  Standard   | Q4 2025 | Q1 2026 | Change | New Findings
+  -----------|---------|---------|--------|-------------
+  CIP-002    |  100%   |  100%   |   --   |     0
+  CIP-003    |  100%   |  100%   |   --   |     0
+  CIP-004    |  100%   |  100%   |   --   |     0
+  CIP-005    |   97%   |   97%   |   --   |     0
+  CIP-006    |  100%   |   94%   |  -6%   |     1
+  CIP-007    |   85%   |   76%   | -9%    |     1
+  CIP-008    |  100%   |  100%   |   --   |     0
+  CIP-009    |  100%   |  100%   |   --   |     0
+  CIP-010    |   90%   |   95%   |  +5%   |     0
+  CIP-011    |  100%   |  100%   |   --   |     0
+  CIP-012    |  100%   |  100%   |   --   |     0
+  CIP-013    |  100%   |  100%   |   --   |     0
+  CIP-014    |   97%   |   97%   |   --   |     0
+  -----------|---------|---------|--------|-------------
+  Weighted   |   94%   |   91%   |  -3%   |     2
+
+NEW FINDINGS THIS QUARTER
+
+FINDING NF-2026-Q1-01: CIP-007-6 R2 Patch Management Failure
+  Severity: Medium-High
+  Self-reported: February 24, 2026 (RF-SR-2026-NG-0042)
+  Description: 34 of 247 BES Cyber Assets (13.8%) failed to receive
+  February security patches within the mandatory 35-day window.
+  Includes 3 high-impact relay protection IEDs.
+  Root cause: Vendor compatibility issue compounded by Winter Storm
+  Helios maintenance freeze.
+  Remediation: 31 of 34 assets patched by February 28. Remaining 3
+  relay IEDs patched March 12 during scheduled outage windows.
+  Status: CLOSED (remediated). Corrective Action Plan submitted.
+
+FINDING NF-2026-Q1-02: CIP-006-6 R1 Physical Security Incident
+  Severity: Medium
+  Self-reported: March 2, 2026 (RF-SR-2026-NG-0047)
+  Description: During Winter Storm Helios, physical security perimeter
+  at Harborview 345/230kV station was breached when storm damage
+  disabled 2 of 4 perimeter intrusion detection sensors and 1 access
+  control card reader. Physical security was degraded for approximately
+  18 hours (Feb 12, 14:00 UTC to Feb 13, 08:00 UTC).
+  Mitigating actions during event: Armed security guard posted at
+  disabled access point within 45 minutes of detection. CCTV coverage
+  maintained throughout.
+  Root cause: Sensor and card reader rated to -15C but exposed to
+  -18C with wind chill -28C.
+  Remediation: Equipment upgraded to arctic-rated models (-40C).
+  Status: CLOSED (remediated). Equipment replacement complete March 18.
+
+PRIOR FINDINGS STATUS
+
+  Finding    | Standard | Opened  | Status    | Notes
+  -----------|----------|---------|-----------|------------------------
+  F-007-01   | CIP-007  | Q4 2025 | CLOSED    | Relay patches applied
+  F-007-02   | CIP-007  | Q4 2025 | CLOSED    | AV agents restored
+  F-007-03   | CIP-007  | Q4 2025 | CLOSED    | SIEM forwarding fixed
+  F-010-01   | CIP-010  | Q4 2025 | CLOSED    | Change mgmt remediated
+  F-010-02   | CIP-010  | Q4 2025 | OPEN      | 2 of 6 RTUs pending
+  F-014-01   | CIP-014  | Q4 2025 | CLOSED    | Sensor replaced Jan 28
+
+Prior findings closed this quarter: 5 of 6
+Prior findings still open: 1 (F-010-02, target closure April 15)
+
+RELIABILITY STANDARDS COMPLIANCE
+
+BAL-001-2 (Real Power Balancing Control):
+  CPS1: 138% (minimum 100%) — COMPLIANT
+  CPS2: 98.7% (minimum 90%) — COMPLIANT
+
+BAL-003-2 (Frequency Response):
+  Frequency Response Obligation: -840 MW/0.1 Hz
+  Measured Q1 response: -896 MW/0.1 Hz — COMPLIANT (margin: 6.7%)
+
+  EXCEEDANCE EVENT: February 12, 2026 (Winter Storm Helios)
+    Frequency nadir: 59.82 Hz (PMU-corrected; original SCADA: 59.87 Hz)
+    Duration below trigger: 53 seconds
+    Self-reported: February 12, 2026 (OE-417)
+    Corrected report filed: March 8, 2026
+    Status: Under NERC review for enforcement disposition
+
+NET COMPLIANCE TRAJECTORY
+
+  Quarter  | WCI Score | Trend   | Major Events
+  ---------|-----------|---------|----------------------------
+  Q2 2025  |   92%     |         | Baseline
+  Q3 2025  |   92%     | Flat    | CIP-010 audit findings
+  Q4 2025  |   94%     | +2%     | Remediation progress
+  Q1 2026  |   91%     | -3%     | Storm Helios impact
+
+The 3-point decline in Q1 reverses the positive trend from Q4 2025.
+The compliance team projects recovery to 94% by Q2 2026 assuming:
+  - No additional findings
+  - F-010-02 closed on schedule
+  - CIP-007 corrective action plan fully implemented
+  - No NERC enforcement penalties from BAL-003 exceedance
+
+RISK REGISTER UPDATE
+
+  Risk                              | Likelihood | Impact | Mitigation
+  ----------------------------------|------------|--------|------------------
+  NERC penalty for BAL-003 event    | Medium     | High   | Cooperation, CAP
+  Additional CIP-007 patch failures | Medium     | Medium | Process overhaul
+  Repeat extreme weather event      | Low-Med    | High   | Resilience plan
+  Audit triggered by self-reports   | High       | Medium | Documentation
+
+PREPARED BY: M. Thornton, CISSP, Chief Compliance Officer
+REVIEWED BY: B. Whitfield, Senior Regulatory Counsel
+APPROVED BY: J. Nakamura, General Counsel (PENDING FINAL REVIEW)

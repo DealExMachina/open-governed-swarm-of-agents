@@ -4,7 +4,7 @@ use super::conditions::{evaluate_condition, parse_condition, FinalitySnapshotFul
 // Configuration
 // ---------------------------------------------------------------------------
 
-/// Configuration for the five finality gates.
+/// Configuration for the six finality gates (A–F).
 #[derive(Debug, Clone)]
 pub struct GateConfig {
     /// Gate B: enforce evidence coverage check. Default false (gradual rollout).
@@ -15,6 +15,11 @@ pub struct GateConfig {
     pub quiescence_max_unresolved: u32,
     /// Gate D: maximum active critical risks for quiescence. 0 = disabled.
     pub quiescence_max_risks: u32,
+    /// Gate F: enforce elimination completeness check. Default false.
+    pub gate_f_enforced: bool,
+    /// Gate F: refutation threshold — dimensions with refutation above this
+    /// must have been formally eliminated. Default 0.7.
+    pub elimination_refutation_threshold: f64,
 }
 
 impl Default for GateConfig {
@@ -24,6 +29,8 @@ impl Default for GateConfig {
             trajectory_quality_threshold: 0.7,
             quiescence_max_unresolved: 0,
             quiescence_max_risks: 0,
+            gate_f_enforced: false,
+            elimination_refutation_threshold: 0.7,
         }
     }
 }
@@ -32,7 +39,7 @@ impl Default for GateConfig {
 // Gate state
 // ---------------------------------------------------------------------------
 
-/// State of all five finality gates after evaluation.
+/// State of all six finality gates (A–F) after evaluation.
 #[derive(Debug, Clone, PartialEq)]
 pub struct GateState {
     /// Gate A: goal score is monotonically non-decreasing for beta rounds.
@@ -45,16 +52,20 @@ pub struct GateState {
     pub d_quiescent: bool,
     /// Gate E: minimum content (at least one claim or incomplete goals).
     pub e_has_content: bool,
+    /// Gate F: elimination completeness — all dimensions with refutation > θ_refute
+    /// have been formally eliminated (Phase 3, §6.8).
+    pub f_elimination_complete: bool,
 }
 
 impl GateState {
-    /// True if all five gates pass.
+    /// True if all six gates pass.
     pub fn all_passed(&self) -> bool {
         self.a_monotonic
             && self.b_evidence
             && self.c_trajectory
             && self.d_quiescent
             && self.e_has_content
+            && self.f_elimination_complete
     }
 }
 
@@ -82,7 +93,7 @@ impl ConditionMode {
 // Gate evaluation
 // ---------------------------------------------------------------------------
 
-/// Evaluate all five finality gates. Pure function.
+/// Evaluate all six finality gates (A–F). Pure function.
 ///
 /// - Gate A: `is_monotonic` — passthrough from convergence analysis
 /// - Gate B: `contradiction_mass == 0 && evidence_coverage >= 0.99`
@@ -90,6 +101,9 @@ impl ConditionMode {
 /// - Gate C: `trajectory_quality >= threshold` (default 0.7)
 /// - Gate D: quiescence — disabled when both params are 0
 /// - Gate E: has content (`claims_active_count > 0 || goals_completion_ratio < 1`)
+/// - Gate F: elimination completeness — all dimensions with mean refutation > θ
+///           must have support ≈ 0 (formally eliminated). Disabled when `gate_f_enforced` is false.
+///           `eliminated_dimensions`: set of dimension indices that have been formally eliminated.
 pub fn evaluate_gates(
     snapshot: &FinalitySnapshotFull,
     is_monotonic: bool,
@@ -111,6 +125,14 @@ pub fn evaluate_gates(
             && snapshot.risks_critical_active_count <= config.quiescence_max_risks
     };
 
+    // Gate F: elimination completeness
+    let gate_f = if config.gate_f_enforced {
+        // Check via eliminated_dimensions provided in snapshot
+        snapshot.elimination_complete
+    } else {
+        true // not enforced = auto-pass
+    };
+
     GateState {
         a_monotonic: is_monotonic,
         b_evidence: gate_b,
@@ -118,6 +140,7 @@ pub fn evaluate_gates(
         d_quiescent: gate_d,
         e_has_content: snapshot.claims_active_count > 0
             || snapshot.goals_completion_ratio < 1.0,
+        f_elimination_complete: gate_f,
     }
 }
 

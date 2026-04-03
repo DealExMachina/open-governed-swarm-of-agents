@@ -1,0 +1,26 @@
+PROJECT MILESTONE -- SOLARMED COMMERCIAL OPERATION DATE
+
+Date: 2025-06-15
+Subject: SolarMed Puglia Solar Park achieves COD
+
+Milestone achieved:
+- All 45 MW installed, tested, and connected to Terna grid
+- Provisional acceptance certificate issued by Enel Green Power (EPC)
+- First electricity delivered to grid on 2025-06-15 at 11:42 CET
+- GSE (Gestore dei Servizi Energetici) feed-in registration: pending (expected 30 days)
+
+Financial:
+- Final drawdown: EUR 11,400,000 disbursed on 2025-06-10
+- Total bond allocation deployed: EUR 38,000,000 (100% of project allocation)
+- Total project cost: EUR 41,800,000 (EUR 200,000 under budget)
+- PPA with Italian utility: Effective from COD
+
+Performance data (first 2 weeks):
+- Generation: 4.2 GWh (annualized rate: ~109 GWh -- above 68 GWh estimate due to June irradiance peak)
+- Availability: 99.1%
+
+Updated generation forecast:
+- Year 1 estimate: 70 GWh (revised upward from 68 GWh based on actual performance and updated P50)
+- Lifetime avoided emissions: Approximately 840,000 tCO2e
+
+Claim: SolarMed achieved COD on schedule. All EUR 38M deployed. Initial performance above revised forecast. Goal: Complete GSE registration and report in annual impact report.

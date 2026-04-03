@@ -24,6 +24,7 @@ fn make_full_snapshot() -> FinalitySnapshotFull {
         assessments_critical_unaddressed_count: 0,
         contradiction_mass: 0.0,
         evidence_coverage: 1.0,
+        elimination_complete: true,
     }
 }
 
@@ -444,6 +445,7 @@ fn make_passing_global_gates() -> GateState {
         c_trajectory: true,
         d_quiescent: true,
         e_has_content: true,
+        f_elimination_complete: true,
     }
 }
 

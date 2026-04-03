@@ -1,0 +1,74 @@
+================================================================================
+CONFIDENTIAL — PROJECT HORIZON
+NovaTech AG: Preliminary Risk Assessment
+Date: 2025-02-03
+Prepared by: Marcus Reinhardt, Head of Corporate Development
+Reviewed by: Investment Committee, Meridian Capital Partners
+================================================================================
+
+1. RISK ASSESSMENT FRAMEWORK
+
+This preliminary risk assessment evaluates NovaTech AG across six dimensions
+using a standardized LOW / MEDIUM / HIGH rating scale. This assessment is based
+on management-provided information and will be validated during Phase 2 deep
+dive diligence.
+
+2. RISK SUMMARY MATRIX
+
+  Dimension                    Rating    Confidence    Notes
+  ---------                    ------    ----------    -----
+  Financial Performance        LOW       Medium        Strong growth, unaudited
+  Intellectual Property        LOW       High          Clean FTO opinion, 7 patents
+  Customer Concentration       LOW       Medium        Top client 15.6% of ARR
+  Technology & Product         LOW       High          Modern stack, good velocity
+  Regulatory & Compliance      LOW       High          SOC 2, ISO 27001, GDPR clean
+  Team & Key Person            LOW       Medium        Founders committed, low churn
+
+  OVERALL ASSESSMENT:          LOW RISK — PROCEED TO FULL DILIGENCE
+
+3. DETAILED FINDINGS
+
+  3.1 Financial Performance
+  Management-reported figures show compelling growth (45% 3yr CAGR) with a clear
+  path to profitability by Q3 2026. Unit economics are strong (LTV/CAC 5.2x).
+  Note: figures are unaudited and will require independent verification.
+
+  3.2 Intellectual Property
+  Seven granted patents provide meaningful defensive IP. FTO opinion from
+  reputable counsel confirms no infringement risk. Two pending PCT applications
+  strengthen future position. All IP cleanly assigned to NovaTech AG.
+
+  3.3 Customer Concentration
+  Top customer Pharmakon GmbH represents 15.6% of ARR. While above the 10%
+  threshold for concentration risk, the relationship is long-standing (since
+  2019) and multi-year contracted. No single customer represents existential
+  risk. Logo retention at 96% is excellent.
+
+  3.4 Technology & Product
+  Modern cloud-native architecture on AWS with strong engineering practices.
+  Technical debt estimated at 12% (manageable). CTO Dr. Elena Voss provides
+  strong technical leadership. No material scalability concerns identified.
+
+  3.5 Regulatory & Compliance
+  Clean SOC 2 Type II report, ISO 27001 certification, and GDPR compliance.
+  EU MDR assessment confirms platform is out-of-scope (with minor caveats).
+  No pending regulatory matters in any jurisdiction.
+
+  3.6 Team & Key Person
+  Both founders are committed to remaining post-acquisition. VP Engineering
+  under 2-year retention agreement. Employee turnover (11%) below industry
+  average. No material key person risk identified.
+
+4. RECOMMENDATION
+
+Based on this preliminary assessment, the Investment Committee recommends
+proceeding to full due diligence with the following priority areas:
+
+  (a) Independent financial audit (engage Deloitte or KPMG)
+  (b) Technical architecture deep dive by external consultants
+  (c) Customer reference calls (minimum 5 top-10 accounts)
+  (d) IP deep dive with independent patent counsel
+
+No deal-breaking risks have been identified at this stage.
+
+Prepared by Marcus Reinhardt, Meridian Capital Partners

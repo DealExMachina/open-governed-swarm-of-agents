@@ -1,0 +1,95 @@
+================================================================================
+CONFIDENTIAL — PROJECT HORIZON
+NovaTech AG: Vendor Dependency & Infrastructure Risk Analysis
+Date: 2025-04-05
+Prepared by: Dr. Markus Steiner, Argon Consulting GmbH
+================================================================================
+
+1. SCOPE
+
+This analysis examines NovaTech AG's critical vendor dependencies, single
+points of failure in the infrastructure stack, and associated operational
+risks. This supplements the technical architecture review (Document 05)
+and cybersecurity assessment (Document 17).
+
+2. AWS DEPENDENCY — SINGLE-SOURCE RISK
+
+NovaTech's entire production infrastructure is hosted on Amazon Web Services
+(AWS). The company has no multi-cloud strategy and no on-premises failover
+capability.
+
+  Primary Region:        AWS eu-central-1 (Frankfurt)
+  Backup Region:         AWS eu-west-1 (Ireland)
+  Annual AWS Spend:      EUR 3.2 million (6.1% of TTM revenue)
+  Contract Type:         Enterprise Discount Program (EDP), 3-year commitment
+  Contract Expiry:       December 2026
+  Committed Spend:       EUR 2.8M/year minimum
+
+  Key Concern: Despite listing eu-west-1 as a "failover" region (Document 05),
+  our investigation reveals that the failover configuration has not been tested
+  since November 2023 — 14 months prior to this assessment. NovaTech's SRE
+  team confirmed that the last attempted failover test (August 2024) failed
+  due to database replication lag and was never re-attempted.
+
+  The stated 99.92% uptime (Document 05) includes a 4.5-hour outage in June
+  2025 caused by an AWS eu-central-1 availability zone failure. NovaTech
+  was unable to failover to eu-west-1 and waited for AWS to resolve the
+  issue. This incident was not disclosed to Meridian in management materials.
+
+3. CRITICAL VENDOR DEPENDENCIES
+
+  Vendor                 Service              Annual Cost   Alternatives
+  ------                 -------              -----------   ------------
+  AWS                    Cloud Infrastructure EUR 3.2M      Azure, GCP
+  Datadog                Monitoring/APM       EUR 380K      Grafana Cloud
+  GitHub Enterprise      Source Control/CI    EUR 120K      GitLab
+  Hugging Face           ML Model Hub         EUR  95K      Self-hosted
+  OpenAI                 GPT-4 API Access     EUR 210K      Anthropic, self-hosted
+  Snowflake              Data Warehouse       EUR 185K      BigQuery
+  PagerDuty              Incident Management  EUR  45K      OpsGenie
+  Twilio/SendGrid        Communications       EUR  62K      Multiple
+
+  Total Critical Vendor Spend: EUR 4.3M annually
+
+4. OPENAI API DEPENDENCY
+
+NovaTech uses OpenAI's GPT-4 API for several customer-facing features,
+including regulatory document summarization and draft generation. This
+creates multiple risks:
+
+  (a) OpenAI's Terms of Service prohibit use of outputs for regulated
+      decision-making in certain contexts — potential compliance issue
+  (b) No contractual SLA from OpenAI for API availability
+  (c) Latency spikes during peak usage (observed 3x in last 6 months)
+  (d) Data processing concerns: customer regulatory documents are sent to
+      OpenAI API endpoints (US-hosted), potentially violating EU data
+      residency commitments stated in Document 05
+
+5. LICENSE COMPLIANCE
+
+  - 3 open-source libraries used under AGPL-3.0 license, which may require
+    source code disclosure for the SaaS platform. NovaTech's legal team
+    has not conducted an OSS license audit.
+  - The custom fine-tuned Llama 2 model deployment may conflict with Meta's
+    Acceptable Use Policy if used for regulatory decision-making.
+
+6. DISASTER RECOVERY STATUS
+
+  DR Plan Last Updated:           March 2023 (2 years ago)
+  Last Successful DR Test:        November 2023 (14 months ago, per Doc 14)
+  Recovery Time Objective (RTO):  4 hours (target), 12-16 hours (actual)
+  Recovery Point Objective (RPO): 6 hours (target), up to 24 hours (actual)
+  DR Runbook Status:              Incomplete — does not cover ML model recovery
+
+  The gap between stated and actual RTO/RPO represents a material
+  misrepresentation in customer contracts, many of which guarantee 4-hour RTO.
+
+7. RECOMMENDATIONS
+
+  (a) Implement and test multi-region failover within 90 days
+  (b) Evaluate multi-cloud strategy for critical services (12-month timeline)
+  (c) Replace OpenAI dependency with self-hosted or EU-based alternative
+  (d) Conduct comprehensive OSS license audit
+  (e) Budget EUR 1.5-2.0M for infrastructure resilience improvements
+
+Prepared by Dr. Markus Steiner, Argon Consulting GmbH

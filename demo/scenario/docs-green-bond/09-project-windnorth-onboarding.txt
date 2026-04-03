@@ -1,0 +1,29 @@
+PROJECT ONBOARDING -- WINDNORTH APS
+
+Date: 2024-11-12
+Project: WindNorth Jutland Onshore Wind Farm
+Sponsor: WindNorth ApS (Denmark)
+Category: A -- Renewable energy (Onshore wind)
+Taxonomy NACE: D35.11
+
+Project description:
+- Location: North Jutland, Denmark
+- Capacity: 80 MW (20 x Vestas V150 turbines)
+- Status: OPERATIONAL since June 2024
+- Annual generation (actual): 210 GWh (capacity factor 30%)
+- Estimated avoided emissions: 29,400 tCO2e/year (Danish grid factor 0.14 tCO2e/MWh)
+
+Financial terms:
+- Total project cost: EUR 95,000,000 (fully funded at COD)
+- Bond allocation requested: EUR 62,000,000 (refinancing of existing bank facility)
+- Single drawdown at allocation
+- Revenue: Corporate PPA with Orsted at EUR 42/MWh (12 years, DKK-linked)
+
+Green Bond Committee assessment:
+- Substantial contribution: Onshore wind, life-cycle emissions 8 gCO2e/kWh.
+- DNSH: Danish Environmental Protection Agency approval (2023-03-15). Avian impact study completed; no endangered species conflict.
+- Social safeguards: Danish labor standards. Community benefit agreement in place.
+
+Decision: APPROVED for allocation. Drawdown: EUR 62,000,000 on 2024-11-20.
+
+Claim: WindNorth approved for EUR 62M refinancing allocation. Operational asset with proven generation. Goal: Refinance existing facility and report allocation.

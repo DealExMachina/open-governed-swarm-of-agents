@@ -1,5 +1,4 @@
 import "dotenv/config";
-import { randomUUID } from "crypto";
 import { setMaxListeners } from "events";
 import { join } from "path";
 import type { S3Client } from "@aws-sdk/client-s3";
@@ -11,18 +10,22 @@ import { loadState } from "../stateGraph.js";
 import { loadPolicies, getGovernanceForScope } from "../governance.js";
 import { evaluateKernel } from "../sgrsAdapter.js";
 import { getGovernancePolicyVersion } from "../policyVersions.js";
+import { buildDecisionRecordFromKernel } from "../governanceHelpers.js";
 import { persistDecisionRecord } from "../decisionRecorder.js";
 import { executeObligations } from "../obligationEnforcer.js";
 import { checkPermission } from "../policy.js";
 import { appendEvent } from "../contextWal.js";
+import { emitContribution } from "../causalEmit.js";
 import { addPending } from "../mitlServer.js";
 import { isProcessed, markProcessed } from "../messageDedup.js";
 import type { EventBus } from "../eventBus.js";
 import { logger, setLogContext } from "../logger.js";
-import { recordProposal, recordPolicyViolation } from "../metrics.js";
-import { getChatModelConfig, getOversightModelConfig } from "../modelConfig.js";
+import { recordProposal, recordPolicyViolation, recordGovernanceMode, recordGovernancePath, recordGovernanceLoopMs } from "../metrics.js";
+import { getChatModelConfig, getOversightModelConfig, DETERMINISTIC_SETTINGS, GovernanceOutputSchema } from "../modelConfig.js";
 import type { Proposal, Action } from "../events.js";
 import { makeReadGovernanceRulesTool } from "./sharedTools.js";
+import { composeInstructions } from "../skills/loader.js";
+import { trackAgentTokens } from "../skills/tokenTracker.js";
 
 /** Result of deterministic governance evaluation (no side effects). */
 export interface DeterministicResult {
@@ -90,11 +93,11 @@ Call exactly one of: publishApproval(reason) or publishRejection(reason). End wi
 
 const OVERSIGHT_AGENT_INSTRUCTIONS = `You are the oversight agent. You review a governance proposal and its deterministic check result.
 You must choose exactly one option:
-1. acceptDeterministic - Accept the deterministic result as-is (approve, reject, or pending will be applied accordingly). Use when the deterministic result is clearly correct and no additional review is needed.
-2. escalateToLLM - Send to the full governance LLM for richer reasoning before a final decision. Use when the deterministic result is technically correct but the context suggests nuance that rules may miss (e.g., obligations were triggered, drift is medium, or the proposal involves financial or legal claims).
-3. escalateToHuman - Send to human-in-the-loop (MITL) for manual approval. Use when the proposal involves critical risk factors (talent departure, IP disputes, material financial discrepancies), when obligations include open_investigation or halt_and_review, or when the deterministic result seems insufficient given the severity of the context.
+1. acceptDeterministic - Accept the deterministic result as-is (approve, reject, or pending will be applied). Use when the deterministic result is clearly correct and either (a) no obligations were triggered, or (b) obligations were triggered but the proposal is a routine technical operation (e.g., fact extraction, state sync) with no material business stakes.
+2. escalateToLLM - Send to the full governance LLM for richer reasoning. Use when obligations were triggered (open_investigation, request_source_refresh) AND the proposal involves genuine business stakes: financial exposure, unresolved contradictions in legal or compliance matters, probabilistic assessments, or contested claims. Use when acceptDeterministic would lose important context.
+3. escalateToHuman - Send to human-in-the-loop (MITL). Use only when obligations include halt_and_review, when the proposal explicitly flags material financial discrepancies or IP title disputes requiring human judgment, or when critical risk factors (talent departure, deal-blocking defects) are explicitly described.
 
-IMPORTANT: If the deterministic result includes obligations (e.g., open_investigation, request_source_refresh), this signals that the policy engine detected a concern but still allowed the transition. Consider whether the concern warrants human review (escalateToHuman) or deeper LLM analysis (escalateToLLM) rather than silently accepting.
+DECISION GUIDE: obligations triggered on a routine technical proposal → acceptDeterministic. Obligations triggered on a business governance proposal with financial/legal/compliance context → escalateToLLM. halt_and_review obligation or explicit request for human review → escalateToHuman.
 Call exactly one of these three tools.`;
 
 function createOversightTools(
@@ -145,7 +148,13 @@ function createOversightTools(
           type: "proposal_pending_approval",
           proposal_id,
           governance_path: "oversight_escalateToHuman",
+          scope_id: SCOPE_ID,
         });
+        await emitContribution("governance-agent", "assessment", {
+          type: "proposal_pending_approval",
+          proposal_id,
+          governance_path: "oversight_escalateToHuman",
+        }, { authorityTier: 2, governanceMode: proposal.mode });
         logger.info("proposal pending MITL approval (oversight)", { proposal_id });
       } else {
         await commitDeterministicResult(proposal, deterministicResult, env);
@@ -181,22 +190,27 @@ export async function runOversightAgent(
   const agent = new Agent({
     id: "oversight-agent",
     name: "Oversight Agent",
-    instructions: OVERSIGHT_AGENT_INSTRUCTIONS,
+    instructions: composeInstructions(OVERSIGHT_AGENT_INSTRUCTIONS, "oversight"),
     model: modelConfig,
     tools,
   });
   const summary = `${deterministicResult.outcome}: ${deterministicResult.reason}`;
   const obligations = deterministicResult.record?.obligations ?? [];
   const obligationStr = obligations.length > 0 ? ` Obligations triggered: ${obligations.join(", ")}.` : " No obligations triggered.";
-  const prompt = `Proposal: proposal_id=${proposal.proposal_id} agent=${proposal.agent} target_node=${proposal.target_node} payload=${JSON.stringify(proposal.payload)}. Deterministic result: ${summary}.${obligationStr} Choose one: acceptDeterministic, escalateToLLM, or escalateToHuman. Call the corresponding tool.`;
+  const jobType = proposal.proposed_action ?? "unknown";
+  const prompt = `Proposal: ${proposal.proposal_id} (job_type: ${jobType}), result: ${summary}.${obligationStr} Choose: acceptDeterministic, escalateToLLM, or escalateToHuman.`;
   const LLM_TIMEOUT_MS = 30000;
   const abortController = new AbortController();
   const timeoutId = setTimeout(() => abortController.abort(), LLM_TIMEOUT_MS);
   setMaxListeners(64, abortController.signal);
   try {
-    await llmBreaker.call(() => agent.generate(prompt, { maxSteps: 5, abortSignal: abortController.signal }));
+    const genResult = await llmBreaker.call(() => agent.generate(prompt, {
+      maxSteps: 3,
+      abortSignal: abortController.signal,
+      modelSettings: DETERMINISTIC_SETTINGS,
+    }));
+    trackAgentTokens("oversight", genResult);
   } catch (e) {
-    // If circuit breaker is open or LLM failed, fall back to deterministic
     if (!getChosen()) {
       logger.warn("oversight LLM failed or circuit open; committing deterministic result", {
         proposal_id: proposal.proposal_id,
@@ -283,17 +297,8 @@ function createGovernanceTools(proposal: Proposal, env: GovernanceAgentEnv) {
         { from_state: from, to_state: to, drift_level: drift.level, drift_types: drift.types, mode: governance.mode ?? "YOLO" },
         governance,
       );
+      const record = buildDecisionRecordFromKernel(kernelResult, policyVersion);
       const allowed = kernelResult.verdict !== "reject";
-      const record: import("../policyEngine.js").DecisionRecord = {
-        decision_id: randomUUID(),
-        timestamp: new Date().toISOString(),
-        policy_version: policyVersion,
-        result: allowed ? "allow" : "deny",
-        reason: kernelResult.reason,
-        obligations: [],
-        binding: "sgrs",
-        suggested_actions: kernelResult.suggested_actions,
-      };
       const scopeMode = governance.mode ?? "YOLO";
       try {
         await persistDecisionRecord(record, {
@@ -352,17 +357,8 @@ function createGovernanceTools(proposal: Proposal, env: GovernanceAgentEnv) {
         { from_state: from, to_state: to, drift_level: drift.level, drift_types: drift.types, mode: governance.mode ?? "YOLO" },
         governance,
       );
+      const transitionRecord = buildDecisionRecordFromKernel(kernelResult, policyVersion);
       const transitionAllowed = kernelResult.verdict !== "reject";
-      const transitionRecord: import("../policyEngine.js").DecisionRecord = {
-        decision_id: randomUUID(),
-        timestamp: new Date().toISOString(),
-        policy_version: policyVersion,
-        result: transitionAllowed ? "allow" : "deny",
-        reason: kernelResult.reason,
-        obligations: [],
-        binding: "sgrs",
-        suggested_actions: kernelResult.suggested_actions,
-      };
       const scopeModeForPublish = governance.mode ?? "YOLO";
       try {
         await persistDecisionRecord(transitionRecord, {
@@ -398,7 +394,14 @@ function createGovernanceTools(proposal: Proposal, env: GovernanceAgentEnv) {
         proposal_id: proposal.proposal_id,
         reason,
         governance_path: "processProposalWithAgent",
+        scope_id: SCOPE_ID,
       });
+      await emitContribution("governance-agent", "assessment", {
+        type: "proposal_approved",
+        proposal_id: proposal.proposal_id,
+        reason,
+        governance_path: "processProposalWithAgent",
+      }, { authorityTier: 2, governanceMode: proposal.mode });
       logger.info("proposal approved (agent)", { proposal_id: proposal.proposal_id, reason });
       return { ok: true };
     },
@@ -427,7 +430,14 @@ function createGovernanceTools(proposal: Proposal, env: GovernanceAgentEnv) {
         proposal_id: proposal.proposal_id,
         reason,
         governance_path: "processProposalWithAgent",
+        scope_id: SCOPE_ID,
       });
+      await emitContribution("governance-agent", "assessment", {
+        type: "proposal_rejected",
+        proposal_id: proposal.proposal_id,
+        reason,
+        governance_path: "processProposalWithAgent",
+      }, { authorityTier: 2, governanceMode: proposal.mode });
       logger.info("proposal rejected (agent)", { proposal_id: proposal.proposal_id, reason });
       return { ok: true };
     },
@@ -461,7 +471,7 @@ export async function processProposalWithAgent(
   const agent = new Agent({
     id: "governance-agent",
     name: "Governance Agent",
-    instructions: GOVERNANCE_AGENT_INSTRUCTIONS,
+    instructions: composeInstructions(GOVERNANCE_AGENT_INSTRUCTIONS, "governance"),
     model: modelConfig,
     tools: {
       readState: tools.readState,
@@ -473,15 +483,20 @@ export async function processProposalWithAgent(
       publishRejection: tools.publishRejection,
     },
   });
-  const prompt = `Proposal: proposal_id=${proposal.proposal_id} agent=${proposal.agent} target_node=${proposal.target_node} payload=${JSON.stringify(proposal.payload)}. Decide approve or reject and call the corresponding tool.`;
+  const prompt = `Proposal: ${proposal.proposal_id}, target: ${proposal.target_node}, payload: ${JSON.stringify(proposal.payload)}. Approve or reject.`;
   const LLM_TIMEOUT_MS = 30000;
   const abortController = new AbortController();
   const timeoutId = setTimeout(() => abortController.abort(), LLM_TIMEOUT_MS);
   setMaxListeners(64, abortController.signal);
   try {
-    await llmBreaker.call(() => agent.generate(prompt, { maxSteps: 12, abortSignal: abortController.signal }));
+    const genResult = await llmBreaker.call(() => agent.generate(prompt, {
+      maxSteps: 8,
+      abortSignal: abortController.signal,
+      modelSettings: DETERMINISTIC_SETTINGS,
+      structuredOutput: { schema: GovernanceOutputSchema, jsonPromptInjection: true },
+    }));
+    trackAgentTokens("governance", genResult);
   } catch (e) {
-    // If circuit breaker is open or LLM failed, fall back to deterministic
     if (!tools.isDecided()) {
       logger.warn("governance LLM failed or circuit open; falling back to rule-based", {
         proposal_id: proposal.proposal_id,
@@ -539,22 +554,9 @@ export async function evaluateProposalDeterministic(
     governance,
   );
 
-  // YOLO overrides: promote suggested_actions to obligations so the oversight
-  // agent sees them and can decide whether to escalate to Tier 3.
-  const isYoloOverride = kernelOutput.reason.startsWith("yolo_override:");
-  const obligations: import("../policyEngine.js").Obligation[] = isYoloOverride
-    ? kernelOutput.suggested_actions.map((a: string) => ({ type: a }))
-    : [];
-  const record: import("../policyEngine.js").DecisionRecord = {
-    decision_id: randomUUID(),
-    timestamp: new Date().toISOString(),
-    policy_version: policyVersion,
-    result: kernelOutput.verdict === "reject" ? "deny" : "allow",
-    reason: kernelOutput.reason,
-    obligations,
-    binding: "sgrs",
-    suggested_actions: kernelOutput.suggested_actions,
-  };
+  const record = buildDecisionRecordFromKernel(kernelOutput, policyVersion, {
+    promoteSuggestedToObligations: true,
+  });
 
   if (kernelOutput.verdict === "reject") {
     return {
@@ -629,6 +631,8 @@ export async function commitDeterministicResult(
 
   const govPath = process.env.GOVERNANCE_PATH ?? join(process.cwd(), "governance.yaml");
   const scopeMode = getGovernanceForScope(SCOPE_ID, loadPolicies(govPath)).mode ?? "YOLO";
+  recordGovernanceMode(SCOPE_ID, scopeMode);
+  recordGovernancePath(path);
   if (result.record) {
     try {
       await persistDecisionRecord(result.record, {
@@ -656,7 +660,14 @@ export async function commitDeterministicResult(
       proposal_id,
       reason: result.reason,
       governance_path: path,
+      scope_id: SCOPE_ID,
     });
+    await emitContribution("governance-agent", "assessment", {
+      type: "proposal_rejected",
+      proposal_id,
+      reason: result.reason,
+      governance_path: path,
+    }, { authorityTier: 2, governanceMode: proposal.mode });
     logger.info("proposal rejected", { proposal_id, reason: result.reason, governance_path: path });
     return;
   }
@@ -672,7 +683,13 @@ export async function commitDeterministicResult(
       type: "proposal_pending_approval",
       proposal_id,
       governance_path: path,
+      scope_id: SCOPE_ID,
     });
+    await emitContribution("governance-agent", "assessment", {
+      type: "proposal_pending_approval",
+      proposal_id,
+      governance_path: path,
+    }, { authorityTier: 2, governanceMode: proposal.mode });
     logger.info("proposal pending MITL approval", { proposal_id, governance_path: path });
     return;
   }
@@ -694,7 +711,14 @@ export async function commitDeterministicResult(
       proposal_id,
       reason: result.reason,
       governance_path: path,
+      scope_id: SCOPE_ID,
     });
+    await emitContribution("governance-agent", "assessment", {
+      type: "proposal_approved",
+      proposal_id,
+      reason: result.reason,
+      governance_path: path,
+    }, { authorityTier: 2, governanceMode: proposal.mode });
     logger.info("proposal approved", { proposal_id, reason: result.reason, governance_path: path });
   }
 }
@@ -828,6 +852,7 @@ export async function runGovernanceAgentLoop(bus: EventBus, s3: S3Client, bucket
           payload: (data.payload as Record<string, unknown>) ?? {},
           mode: (data.mode as "YOLO" | "MITL" | "MASTER") ?? "YOLO",
         };
+        const govLoopStart = Date.now();
         if (proposal.mode === "MASTER" || proposal.mode === "MITL") {
           await processProposal(proposal, env);
         } else {
@@ -838,6 +863,7 @@ export async function runGovernanceAgentLoop(bus: EventBus, s3: S3Client, bucket
             await runOversightAgent(proposal, deterministicResult, env);
           }
         }
+        recordGovernanceLoopMs(Date.now() - govLoopStart);
         await bus.publish("swarm.finality.evaluate", { scope_id: SCOPE_ID } as Record<string, string>);
         watchdogState.lastProposalAt = Date.now();
         await markProcessed(consumer, msg.id);

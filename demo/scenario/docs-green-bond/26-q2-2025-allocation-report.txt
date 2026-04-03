@@ -1,0 +1,36 @@
+QUARTERLY ALLOCATION REPORT -- Q2 2025
+
+Reporting period: 2025-04-01 to 2025-06-30
+Bond: EuroVert Capital Green Bond Fund I (European Green Bond, designated 2025-05-20)
+
+Allocation summary:
+- Total net proceeds: EUR 249,687,500
+- Allocated: EUR 176,100,000 (70.5%)
+  - SolarMed (Cat A): EUR 38,000,000 (COD achieved)
+  - WindNorth (Cat A): EUR 62,000,000 (operational)
+  - RetroFit (Cat B): EUR 20,000,000 (10 of 12 buildings complete)
+  - ChargeNet (Cat C): EUR 18,000,000 (87.2% deployed)
+  - AgriVolt (Cat A): EUR 25,000,000 (COD achieved)
+  - Pipeline/committed: EUR 13,100,000
+- Unallocated: EUR 73,587,500 (29.5%)
+
+Taxonomy alignment of allocated proceeds: 88.4%
+
+Impact metrics (annualized estimates based on operational data):
+- Total installed renewable capacity: 150 MW (SolarMed 45 MW, WindNorth 80 MW, AgriVolt 25 MW)
+- Estimated annual generation: 344 GWh
+- Estimated annual avoided emissions: 67,560 tCO2e
+- EV charging points operational: 1,950 (estimated avoided emissions: 2,400 tCO2e/year)
+- Buildings renovated: 10 of 12 (estimated energy savings: 4.2 GWh/year)
+
+EUGBS compliance status:
+- Designation: GRANTED (CSSF, 2025-05-20)
+- Factsheet: PUBLISHED (Luxembourg Stock Exchange)
+- External reviewer: Sustainalytics (ESMA-notified)
+- Post-allocation review: Scheduled for Q4 2025 (when >85% allocated)
+
+Pipeline under GBC review:
+- EolienSud (wind, France): EUR 48M, GBC approved pending final due diligence
+- StoragePlus (battery, Germany): EUR 12M, deferred to H2 2025 pending TSC clarification
+
+Claim: 70.5% allocated. Taxonomy alignment at 88.4%. EUGBS designation active. Three operational renewable projects delivering 344 GWh/year. Goal: Reach 85% allocation by Q4 2025 for post-allocation verification.

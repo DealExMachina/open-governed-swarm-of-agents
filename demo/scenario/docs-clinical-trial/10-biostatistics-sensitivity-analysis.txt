@@ -1,0 +1,110 @@
+BIOSTATISTICS SENSITIVITY ANALYSIS — DATA CORRECTION IMPACT
+================================================================================
+Protocol:           ONCO-RESOLVE-301
+Analysis Date:      2024-11-12
+Data Cutoff:        2024-09-30 (same as Document 07)
+Requested by:       DSMB (Meeting DSMB-002, Document 09)
+Agent:              Dr. Kenji Watanabe, Lead Biostatistician
+================================================================================
+
+PURPOSE:
+  To assess whether the data correction described in DCN-07-2024-001 (Document
+  08) affects the primary efficacy conclusions reported in Document 07, and to
+  quantify the impact on the integrated safety-efficacy profile.
+
+ANALYSIS 1: EFFICACY SENSITIVITY (PRIMARY ENDPOINT — PFS)
+
+  The corrected ALT values affect safety grading only. No patients were removed
+  from the efficacy analysis, and tumor assessments for the three affected
+  patients (07-012, 07-019, 07-024) are unchanged.
+
+  PFS Analysis — Pre-correction data:
+    ORX-4471 median PFS:  6.8 months (95% CI: 5.4-8.2)
+    Docetaxel median PFS: 4.1 months (95% CI: 3.2-5.4)
+    HR: 0.62 (95% CI: 0.45-0.85), p = 0.003
+
+  PFS Analysis — Post-correction data (identical, no PFS events reclassified):
+    ORX-4471 median PFS:  6.8 months (95% CI: 5.4-8.2)
+    Docetaxel median PFS: 4.1 months (95% CI: 3.2-5.4)
+    HR: 0.62 (95% CI: 0.45-0.85), p = 0.003
+
+  CONCLUSION: Primary efficacy results UNCHANGED by data correction.
+
+ANALYSIS 2: ORR SENSITIVITY
+
+  Patient 07-024 discontinued ORX-4471 due to hepatotoxicity (now correctly
+  graded) and switched to docetaxel. Tumor response at discontinuation was SD.
+  This was already captured correctly in Document 07.
+
+  ORR — Pre-correction:  39/116 = 33.6% (95% CI: 25.2-42.8%)
+  ORR — Post-correction: 39/116 = 33.6% (95% CI: 25.2-42.8%)
+
+  CONCLUSION: ORR UNCHANGED.
+
+ANALYSIS 3: SAFETY PROFILE COMPARISON
+
+  ┌─────────────────────────────┬──────────────┬──────────────┬──────────────┐
+  │ Parameter                   │ Pre-correct  │ Post-correct │ Delta        │
+  ├─────────────────────────────┼──────────────┼──────────────┼──────────────┤
+  │ Grade 3+ AE rate            │ 12.9%        │ 15.5%        │ +2.6%        │
+  │ Grade 3+ hepatotoxicity     │ 5.2%         │ 7.8%         │ +2.6%        │
+  │ SAE rate                    │ 6.9%         │ 6.9%         │ 0            │
+  │ Discontinuation due to AE   │ 4.3%         │ 4.3%         │ 0            │
+  │ Dose reduction rate         │ 8.6%         │ 8.6%         │ 0            │
+  │ Treatment-related death     │ 0%           │ 0%           │ 0            │
+  └─────────────────────────────┴──────────────┴──────────────┴──────────────┘
+
+  NOTE: SAE rate unchanged because all three patients had dose holds initiated
+  based on clinical judgment (symptoms, other lab values) prior to correction.
+  The correction changes the GRADE of the event, not whether it was an SAE.
+
+ANALYSIS 4: BENEFIT-RISK ASSESSMENT (Quantitative Framework)
+
+  Using the BRAT (Benefit-Risk Action Team) framework:
+
+  Benefit metric (PFS HR):         0.62 [unchanged]
+  Risk metric (Gr3+ hepatotox):    7.8% [increased from 5.2%]
+
+  Net clinical benefit score:
+    Pre-correction:   NNT = 4.2, NNH = 19.2, NNT/NNH ratio = 0.22
+    Post-correction:  NNT = 4.2, NNH = 12.8, NNT/NNH ratio = 0.33
+
+  Interpretation: Benefit-risk ratio modestly less favorable but still
+  strongly positive. For every patient harmed by Grade 3+ hepatotoxicity,
+  approximately 3 patients benefit from progression-free survival advantage.
+
+ANALYSIS 5: COMPARISON WITH HISTORICAL BENCHMARKS
+
+  Hepatotoxicity rates for approved checkpoint inhibitors in NSCLC:
+    Nivolumab (CheckMate-017):     3.2% Grade 3+ hepatotoxicity
+    Pembrolizumab (KEYNOTE-010):   3.8% Grade 3+ hepatotoxicity
+    Atezolizumab (OAK):           1.6% Grade 3+ hepatotoxicity
+    ORX-4471 (pre-correction):     5.2% Grade 3+ hepatotoxicity
+    ORX-4471 (post-correction):    7.8% Grade 3+ hepatotoxicity
+
+  ORX-4471 post-correction rate is higher than approved monotherapies, consistent
+  with dual checkpoint mechanism (anti-PD-L1 + anti-CTLA-4). Comparable to
+  ipilimumab/nivolumab combination (CheckMate-227: 9.2%).
+
+ANALYSIS 6: WHICH ANALYSES USED WHICH DATA VERSION
+
+  ┌──────────────────────────────┬────────────────┬──────────────────────────┐
+  │ Document                     │ Data Version   │ Requires Update?         │
+  ├──────────────────────────────┼────────────────┼──────────────────────────┤
+  │ 02 - Phase I Safety          │ N/A (locked)   │ NO — immutable baseline  │
+  │ 06 - DSMB Review #1          │ Pre-correction │ NOTE appended            │
+  │ 07 - Phase II Efficacy       │ Pre-correction │ NO — efficacy unchanged  │
+  │ 08 - Data Correction         │ Both versions  │ Source document          │
+  │ 09 - DSMB Emergency          │ Post-correction│ Current                  │
+  │ 10 - This analysis           │ Both versions  │ Current                  │
+  └──────────────────────────────┴────────────────┴──────────────────────────┘
+
+BIOSTATISTICIAN CONCLUSIONS:
+  1. Data correction does NOT change primary efficacy conclusions.
+  2. Safety profile is worse than initially reported but remains within
+     the range observed for dual checkpoint inhibitor combinations.
+  3. Benefit-risk assessment remains favorable.
+  4. The Phase I safety baseline (Document 02) is preserved as-is.
+  5. All downstream analyses must specify which data version was used.
+
+STATE: EPOCH_2 | SENSITIVITY: COMPLETE | EFFICACY_IMPACT: NONE | SAFETY_IMPACT: MODERATE

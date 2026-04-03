@@ -1,0 +1,69 @@
+DOCUMENT: NorthGrid Utilities — Grid Topology Baseline
+DATE: January 5, 2026
+CLASSIFICATION: NERC CIP — Internal Use Only
+AUTHOR: Grid Operations Engineering Division
+REF: NG-TOPO-2026-Q1-001
+
+SYSTEM OVERVIEW
+
+NorthGrid Utilities operates as a Regional Transmission Operator (RTO)
+serving approximately 6.2 million customers across a four-state service
+territory. The bulk electric system (BES) encompasses 12.4 GW of peak
+generating capacity distributed across four balancing areas.
+
+BALANCING AREAS
+
+  Area       | Nodes | Peak Cap. | Primary Generation
+  -----------|-------|-----------|----------------------------
+  North      |  214  |  3.1 GW   | Nuclear (Millstone 1&2), Wind
+  Central    |  287  |  4.2 GW   | Natural gas (combined cycle)
+  South      |  198  |  2.8 GW   | Gas peakers, Solar farms
+  Coastal    |  148  |  2.3 GW   | Offshore wind, Gas turbines
+
+Total transmission nodes: 847
+Total transmission line-miles: 14,200 (345kV: 3,800; 230kV: 5,100; 115kV: 5,300)
+
+INTERCONNECTIONS
+
+NorthGrid maintains AC tie-lines with three neighboring ISOs:
+  1. MidAtlantic ISO — 4 x 345kV ties, 2,800 MW transfer capacity
+  2. Great Lakes ISO — 2 x 345kV ties, 1,400 MW transfer capacity
+  3. Southeast Pool  — 3 x 230kV ties, 1,100 MW transfer capacity
+
+Total import capability:  5,300 MW (firm), 6,800 MW (emergency)
+Total export capability:  4,200 MW (firm), 5,500 MW (emergency)
+
+GENERATION MIX (as of January 1, 2026)
+
+  Fuel Type         | Capacity (GW) | Share  | Units
+  ------------------|---------------|--------|------
+  Natural Gas       |    5.21       | 42.0%  |  38
+  Nuclear           |    3.47       | 28.0%  |   4
+  Wind (onshore)    |    1.74       | 14.0%  |  12 farms
+  Solar (utility)   |    0.50       |  4.0%  |   8 farms
+  Hydro             |    1.49       | 12.0%  |   6
+
+Total installed capacity: 12.41 GW
+Minimum system load (spring shoulder): 4.8 GW
+Peak summer load (forecast): 11.2 GW
+
+CRITICAL SUBSTATIONS
+
+The following substations are classified as Critical Facilities under
+NERC CIP-014 (physical security):
+  - Granite Falls 345kV Switching Station
+  - Harborview 345/230kV Autotransformer Station
+  - River Bend Nuclear Switchyard
+  - Lakeside Central Hub (5-bus, 345kV)
+
+SYSTEM CONDITION
+
+All four balancing areas operating within NERC reliability standards as
+of this baseline date. N-1 contingency analysis shows no thermal
+overloads. Voltage profiles within +/-5% of nominal at all monitored
+buses. Phase angle differences across tie-lines within stability limits.
+
+Next topology review scheduled: April 2026 (post-winter assessment).
+
+PREPARED BY: D. Okonkwo, P.E., Senior Transmission Planning Engineer
+APPROVED BY: R. Vasquez, VP Grid Operations

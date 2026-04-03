@@ -1,0 +1,25 @@
+REGULATORY UPDATE -- EU TAXONOMY TSC AMENDMENT
+
+Date: 2025-08-05
+Subject: Complementary Climate Delegated Act -- Energy Storage TSC
+
+The European Commission has published the amended Complementary Climate Delegated Act, effective 2025-07-15, adding technical screening criteria (TSC) for standalone energy storage systems (NACE E38.12):
+
+New TSC for energy storage (substantial contribution to climate change mitigation):
+- Battery energy storage systems connected to the electricity grid
+- Must demonstrate life-cycle GHG emissions below 100 gCO2e/kWh of storage capacity
+- Minimum 2,000 charge-discharge cycles over economic life
+- DNSH: Hazardous waste management plan for battery end-of-life (Waste Framework Directive compliance)
+
+Impact on StoragePlus (Germany):
+- The 20 MWh lithium-ion battery project can now be assessed against finalized TSC
+- StoragePlus claims 4,000 cycles (LFP chemistry) and life-cycle emissions of 45 gCO2e/kWh
+- If confirmed, the project moves from the 15% flexibility pocket to the 85% Taxonomy-aligned allocation
+
+Previous status: StoragePlus was deferred pending TSC. The deferral is now resolved.
+
+Updated classification:
+- StoragePlus is eligible under the 85% Taxonomy-aligned allocation (no longer consuming the flexibility pocket)
+- This improves the effective Taxonomy alignment ratio for the overall portfolio
+
+Claim: New TSC for energy storage published. StoragePlus is now Taxonomy-eligible under the 85% allocation. Contradiction: Previous assessment classified StoragePlus under the flexibility pocket -- this is now superseded. Goal: Proceed with StoragePlus GBC approval and allocation.

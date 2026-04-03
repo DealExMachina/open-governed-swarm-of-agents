@@ -1,0 +1,26 @@
+OPERATIONAL PERFORMANCE REPORT -- WINDNORTH JUTLAND
+
+Date: 2025-04-01
+Reporting period: H2 2024 (July - December 2024)
+
+Performance summary:
+- Net generation: 118.5 GWh (annualized: 237 GWh)
+- Capacity factor: 33.8% (above 30% estimate at onboarding)
+- Availability: 97.2%
+- Revenue: EUR 4,977,000 (PPA at EUR 42/MWh)
+- Avoided emissions: 16,590 tCO2e (H2 2024)
+
+Maintenance:
+- Scheduled maintenance: 3 turbines (routine gear oil change and blade inspection)
+- Unscheduled downtime: 14 hours total (1 turbine, pitch system fault, resolved)
+- No material defects
+
+Grid curtailment: 2.1% of potential generation curtailed by Energinet (grid congestion in North Jutland). Expected to improve after grid reinforcement (2026).
+
+PPA counterparty risk: Orsted remains investment-grade (BBB+/Baa1). No payment delays.
+
+Environmental monitoring:
+- Avian mortality: 0 recorded incidents (radar-based shutdown system operational)
+- Noise compliance: Within Danish regulatory limits at all monitoring points
+
+Claim: WindNorth performing above projections. Capacity factor 33.8% vs 30% estimate. Revenue and avoided emissions on track. Goal: Maintain operational excellence for annual impact report.

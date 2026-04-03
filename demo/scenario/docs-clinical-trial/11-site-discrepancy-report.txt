@@ -1,0 +1,92 @@
+CROSS-SITE DISCREPANCY REPORT — TUMOR RESPONSE ASSESSMENTS
+================================================================================
+Protocol:           ONCO-RESOLVE-301
+Report Date:        2024-11-28
+Prepared by:        Central Imaging Core, ICON Medical Imaging
+Agent:              Dr. Anika Patel, Central Radiology Reviewer
+================================================================================
+
+BACKGROUND:
+  During routine blinded independent central review (BICR) of tumor response
+  assessments, discrepancies were identified between site-level and central
+  assessments for patients who transferred care between participating sites.
+  This report documents contradictory RECIST v1.1 assessments for 6 patients
+  with cross-site transfers involving Site 01 (Memorial Sloan Kettering) and
+  Site 07 (Cedars-Sinai).
+
+DISCREPANT CASES:
+
+  CASE 1: Patient 01-022 (transferred to Site 07 at Month 6)
+    Site 01 assessment (Cycle 4):  Partial Response (PR)
+      Target lesion sum: 42mm (baseline 68mm, -38.2%)
+    Site 07 assessment (Cycle 6):  Stable Disease (SD)
+      Target lesion sum: 48mm (baseline recalculated as 62mm, -22.6%)
+    DISCREPANCY: Different baseline measurements used. Site 01 measured right
+    upper lobe lesion at 32mm; Site 07 re-measured at 26mm on same scan.
+
+  CASE 2: Patient 01-034 (transferred to Site 07 at Month 8)
+    Site 01 assessment (Cycle 6):  Stable Disease (SD)
+      No new lesions identified
+    Site 07 assessment (Cycle 8):  Progressive Disease (PD)
+      New lesion identified: left adrenal, 12mm
+    DISCREPANCY: Site 07 identified adrenal lesion as NEW. Review of Site 01
+    Cycle 4 scan shows 8mm adrenal abnormality not reported as lesion.
+
+  CASE 3: Patient 07-008 (transferred to Site 01 at Month 5)
+    Site 07 assessment (Cycle 3):  Partial Response (PR)
+      Target lesion sum: 38mm (baseline 64mm, -40.6%)
+    Site 01 assessment (Cycle 5):  Partial Response (PR)
+      Target lesion sum: 44mm (baseline 64mm, -31.3%)
+    DISCREPANCY: Both report PR but measurements differ by 6mm on comparable
+    scans. Within 5mm measurement variability threshold? Borderline.
+
+  CASE 4: Patient 01-041 (transferred to Site 07 at Month 7)
+    Site 01 assessment (Cycle 5):  Partial Response (PR)
+      Two target lesions measured per RECIST
+    Site 07 assessment (Cycle 7):  Partial Response (PR)
+      Three target lesions measured per RECIST
+    DISCREPANCY: Site 07 added a third target lesion (mediastinal lymph node)
+    not tracked by Site 01. Different target lesion selection violates RECIST
+    v1.1 Section 4.4.4 (consistency of target lesion assessment).
+
+  CASE 5: Patient 07-031 (transferred to Site 01 at Month 9)
+    Site 07 assessment (Cycle 6):  Stable Disease (SD)
+      Non-target lesions: present, not unequivocal progression
+    Site 01 assessment (Cycle 8):  Progressive Disease (PD)
+      Non-target lesions: unequivocal progression per investigator
+    DISCREPANCY: Contradictory assessment of non-target lesion progression.
+    RECIST v1.1 Section 4.4.6 "unequivocal" criterion subjectively applied.
+
+  CASE 6: Patient 01-039 (transferred to Site 07 at Month 6)
+    Site 01 assessment (Cycle 4):  Not Evaluable (NE)
+      Scan quality insufficient per Site 01 radiologist
+    Site 07 assessment (Cycle 4):  Stable Disease (SD)
+      Same scan re-read by Site 07 radiologist as evaluable
+    DISCREPANCY: Same imaging study assessed as evaluable by one site and
+    not evaluable by another.
+
+ROOT CAUSE ANALYSIS:
+  1. RECIST v1.1 measurement variability: Known inter-reader variability of
+     10-15% for target lesion measurements (Schwartz et al., Eur J Cancer 2009).
+  2. Target lesion selection: Protocol Section 8.3 requires consistent target
+     lesion tracking, but transfers create ambiguity.
+  3. Non-target assessment subjectivity: "Unequivocal progression" criterion
+     inherently subjective per RECIST v1.1 guidelines.
+  4. No standardized transfer-of-care imaging protocol in the current protocol.
+
+IMPACT ASSESSMENT:
+  Of 6 discrepant cases:
+    - 2 cases affect response classification (Cases 1, 2)
+    - 1 case affects PFS event determination (Case 5)
+    - 3 cases are measurement discrepancies within expected variability
+
+  Total discrepant assessments across study: 17 of 348 assessments (4.9%)
+  Discrepancies involving transferred patients: 6 of 17 (35.3%)
+
+RECOMMENDATIONS:
+  1. Central radiology review (BICR) adjudication for all 6 cases.
+  2. Protocol amendment to include transfer-of-care imaging SOP.
+  3. All transferred patients to have BICR as primary assessment going forward.
+  4. Cross-site imaging harmonization workshop (see Document 16).
+
+STATE: EPOCH_2 | DISCREPANCIES: 6_PATIENTS | RECIST: CONFLICTING | BICR: PENDING

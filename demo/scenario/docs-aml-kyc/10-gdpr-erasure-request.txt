@@ -1,0 +1,139 @@
+DOCUMENT: GDPR ARTICLE 17 — RIGHT TO ERASURE REQUEST
+CLASSIFICATION: CONFIDENTIAL — DATA PROTECTION / AML CONFLICT
+INSTITUTION: EuroBank AG, Frankfurt am Main
+DATE: 2024-09-12
+REFERENCE: DPO-2024-CAST-0001
+DATA PROTECTION OFFICER: Dr. Markus Lehmann (EB-1105)
+REQUESTER: Elena Castellan (via legal counsel)
+
+1. REQUEST DETAILS
+
+On 2024-09-10, EuroBank AG received a formal GDPR Article 17 Right to
+Erasure ("Right to be Forgotten") request from the law firm Bonelli Erede
+(Milan office) acting on behalf of Elena Castellan.
+
+  Requester:           Elena Castellan (DOB: 1975-08-23)
+  Legal Representative: Avv. Francesca Vitale, Bonelli Erede, Milan
+  Date of Request:     2024-09-10
+  Received by:         EuroBank Data Protection Office
+  Acknowledgment Sent: 2024-09-11 (within 24-hour SLA)
+  Response Deadline:   2024-10-10 (30 calendar days per GDPR Art. 12(3))
+
+2. SCOPE OF ERASURE REQUEST
+
+The request demands deletion of "all personal data relating to Elena
+Castellan held by EuroBank AG in any form, including but not limited to:
+
+  (a) Identification documents (passport copies, proof of address)
+  (b) Tax residency certificates and financial information
+  (c) KYC/CDD records referencing Elena Castellan
+  (d) Transaction records where Elena Castellan is named
+  (e) Internal notes, risk assessments, or reports naming Elena Castellan
+  (f) Communications with or about Elena Castellan
+  (g) Any derived data, profiles, or risk scores relating to Elena Castellan"
+
+3. FACTUAL BACKGROUND
+
+  - Elena Castellan is a 22% UBO of Castellan Holdings S.a.r.l.
+  - Legal counsel confirms Elena and Viktor Castellan finalized divorce
+    proceedings in Milan Civil Court on 2024-07-15
+  - As part of the divorce settlement, Elena's 22% shareholding in
+    Castellan Holdings was transferred to Viktor Castellan
+  - Elena is therefore no longer a UBO or connected party
+  - Elena has no independent banking relationship with EuroBank AG
+  - Legal counsel asserts Elena's data is "no longer necessary in relation
+    to the purposes for which it was collected" (GDPR Art. 17(1)(a))
+
+4. LEGAL CONFLICT ANALYSIS
+
+The erasure request creates a direct conflict between two binding legal
+obligations:
+
+  GDPR ARTICLE 17(1) — RIGHT TO ERASURE:
+  "The data subject shall have the right to obtain from the controller
+   the erasure of personal data concerning him or her without undue delay."
+
+  Grounds cited by requester:
+  - Art. 17(1)(a): Data no longer necessary for original purpose
+  - Art. 17(1)(c): Data subject withdraws consent
+
+  5AMLD ARTICLE 40 — RECORD RETENTION:
+  "Member States shall require obliged entities to retain... copies of
+   the documents and information which are necessary to comply with the
+   customer due diligence requirements... for a period of five years
+   after the end of the business relationship."
+
+  German GwG Section 8(4) — RETENTION:
+  "Records referred to in subsections 1 to 3 shall be retained for a
+   period of five years... Documents required for CDD shall be retained
+   for five years after the end of the business relationship."
+
+  GDPR ARTICLE 17(3)(b) — EXEMPTION:
+  "Paragraphs 1 and 2 shall not apply to the extent that processing is
+   necessary... for compliance with a legal obligation which requires
+   processing by Union or Member State law to which the controller is
+   subject."
+
+5. KEY QUESTIONS FOR RESOLUTION
+
+  (a) Has the "business relationship" ended with respect to Elena?
+      Elena is no longer a UBO, but the relationship with Castellan
+      Holdings continues. Elena's CDD data was collected as part of
+      the ongoing client relationship.
+
+  (b) When does the 5-year retention period begin?
+      If measured from Elena's cessation as UBO: 2024-07-15 + 5 years
+      = 2029-07-15 (earliest possible deletion).
+      If measured from end of Castellan Holdings relationship: unknown
+      future date + 5 years.
+
+  (c) Is the AML retention obligation a valid Article 17(3)(b) exemption?
+      Legal analysis: YES — 5AMLD record retention is a "legal obligation
+      which requires processing" and constitutes a valid exemption to
+      the right of erasure.
+
+  (d) Can partial erasure be applied?
+      Some data (e.g., marketing consents, non-CDD communications) may
+      not be subject to AML retention requirements and could be deleted.
+
+6. ADDITIONAL COMPLICATIONS
+
+  - Elena Castellan is named in the ongoing EDD investigation
+    (EDD-2024-CAST-0001) as a former 22% UBO
+  - Her CDD records form part of the historical risk assessment chain
+  - If a SAR is filed, her data becomes part of a regulatory record
+    with separate (longer) retention requirements
+  - BaFin may request historical CDD records during any inspection
+  - Deleting Elena's data would create gaps in the audit trail that
+    could expose EuroBank to regulatory sanctions
+
+7. INTERIM MEASURES
+
+Pending formal DPO decision:
+  [x] Acknowledge receipt of request
+  [x] Legal team (Dr. Fischer, General Counsel) consulted
+  [x] AML Compliance team (Claudia Richter) notified
+  [ ] Formal response to requester's legal counsel
+  [ ] Data inventory — catalog all Elena Castellan personal data held
+  [ ] Segregation analysis — identify data subject to AML retention
+      vs. data eligible for erasure
+  [ ] Decision memo for DPO sign-off
+
+8. PRELIMINARY DPO ASSESSMENT
+
+The right to erasure is NOT absolute. The AML/KYC record retention
+obligation under 5AMLD and GwG constitutes a valid legal basis for
+continued processing under GDPR Article 17(3)(b). However, the bank
+must minimize data processing to what is strictly necessary for AML
+compliance and must implement appropriate technical and organizational
+measures to restrict access to retained data.
+
+A balanced resolution must be found that respects both Elena's data
+protection rights and EuroBank's legal obligations.
+
+Request logged by:  Dr. Markus Lehmann, DPO (EB-1105)
+Legal consultation: Dr. Heinrich Fischer, General Counsel (EB-0042)
+AML notification:   Claudia Richter, Head of Financial Crime (EB-2201)
+Date:               2024-09-12
+
+— END OF GDPR ERASURE REQUEST RECORD —

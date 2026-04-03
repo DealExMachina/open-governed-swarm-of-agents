@@ -1,0 +1,125 @@
+BUNDESANSTALT FUR FINANZDIENSTLEISTUNGSAUFSICHT (BaFin)
+Versicherungsaufsicht — Abteilung VA 4
+
+Meridian Insurance Group AG
+z.Hd. Herrn Martin Schreiber, Vorstandsvorsitzender
+Kaiserstrasse 42
+60311 Frankfurt am Main
+
+Bonn, 22 May 2026
+
+Reference: VA 44-I 4000-2026/0087
+Subject: Supervisory Assessment Following EIOPA Look-Through
+  Guidelines Update — Request for Remediation Plan
+
+Dear Herr Schreiber,
+
+1. CONTEXT
+
+BaFin has reviewed Meridian Insurance Group AG's ("Meridian") ad hoc
+report dated 30 April 2026 concerning the recalculation of the
+Solvency Capital Requirement (SCR) following publication of EIOPA's
+updated look-through guidelines (EIOPA-BoS-26/142).
+
+We note that Meridian's SCR ratio has decreased from 142% (Q4 2025)
+to 128% (Q1 2026), and that the Art. 308c transitional deduction has
+been reduced from EUR 45,000,000 to EUR 28,000,000.
+
+2. SUPERVISORY CONCERNS
+
+BaFin has the following specific concerns:
+
+2.1 Adequacy of Technical Provisions
+  The reduction in the transitional measure, combined with the
+  enhanced look-through revealing previously unidentified concentrated
+  exposures, raises questions about the adequacy of Meridian's
+  technical provisions. BaFin requests that the Appointed Actuary,
+  Herr Prof. Stefan Bruckner, provide a supplementary opinion on
+  the adequacy of technical provisions under Art. 48 of Directive
+  2009/138/EC, specifically addressing:
+  (a) Whether the look-through changes affect the best estimate
+      liability calculation;
+  (b) Whether the risk margin requires adjustment given the revised
+      SCR;
+  (c) Whether contract boundary assumptions remain appropriate.
+
+2.2 Internal Model Alignment
+  BaFin notes from the Internal Model Calibration Report (dated
+  24 January 2026) that Meridian's partial internal model produced
+  a LOWER SCR than the standard formula (by 3.2%). Given the
+  significant changes to market risk charges under the look-through
+  revision, BaFin requests confirmation that:
+  (a) The internal model validation remains valid;
+  (b) The internal model has been or will be recalibrated to reflect
+      the enhanced look-through data;
+  (c) Any divergence between internal model and standard formula
+      results is explained and justified.
+
+2.3 Governance and Risk Management
+  The Internal Audit observation (IA-2026-004, Observation 1) that
+  look-through data was available but not incorporated raises concerns
+  about the effectiveness of Meridian's system of governance under
+  Art. 41-50 of Directive 2009/138/EC. BaFin expects Meridian to
+  demonstrate that:
+  (a) The root cause of the data gap has been identified;
+  (b) Appropriate accountability measures have been taken;
+  (c) Controls have been strengthened to prevent recurrence.
+
+3. REQUIRED ACTIONS
+
+BaFin requires Meridian to submit the following within 90 CALENDAR
+DAYS of this letter (i.e., by 20 August 2026):
+
+3.1 Capital Remediation Plan
+  A Board-approved plan to restore the SCR ratio to at least the
+  internal target of 135% within a reasonable timeframe (not to
+  exceed 12 months from the date of this letter).
+
+3.2 Supplementary Appointed Actuary Opinion
+  As described in Section 2.1 above.
+
+3.3 Internal Model Update
+  A plan and timeline for recalibrating the partial internal model
+  to incorporate enhanced look-through data, including a gap analysis
+  comparing internal model and standard formula results.
+
+3.4 Governance Enhancement Plan
+  Remedial actions addressing the governance concerns in Section 2.3,
+  including updated policies, procedures, and control documentation.
+
+4. TRANSITIONAL MEASURE CONFIRMATION
+
+Regarding Meridian's request for confirmation of the Q4 2025
+transitional figure: BaFin confirms that the Q4 2025 Art. 308c
+transitional deduction of EUR 45,000,000 was calculated in accordance
+with the regulatory requirements then in force and remains the
+official figure for the Q4 2025 reporting period. No restatement
+is required.
+
+The revised figure of EUR 28,000,000 is acknowledged as applying
+from Q1 2026 onwards, subject to formal approval by BaFin following
+submission of the recalculated transitional documentation.
+
+5. SUPERVISORY ESCALATION
+
+BaFin notes that while the SCR ratio of 128% remains above the 100%
+regulatory minimum, it is below Meridian's own internal target of
+135%. Failure to submit a satisfactory remediation plan within the
+stipulated timeframe may result in supervisory measures under
+Art. 138-139 of Directive 2009/138/EC, including but not limited to:
+  - Restriction on dividend distributions
+  - Requirement to hold additional capital add-on under Art. 37
+  - Enhanced supervisory reporting requirements
+
+We expect Meridian's full cooperation and transparency throughout
+this process.
+
+Yours sincerely,
+
+Dr. Hans-Werner Klement
+Abteilungsdirektor, VA 4 — Solvency Supervision
+Bundesanstalt fur Finanzdienstleistungsaufsicht
+
+cc: Frau Monika Adler — Chief Risk Officer, Meridian Insurance Group AG
+    Herr Prof. Stefan Bruckner — Appointed Actuary
+    Frau Sabine Kessler — Head of Internal Audit

@@ -1,0 +1,26 @@
+FRAMEWORK UPDATE -- EUROVERT GREEN BOND FRAMEWORK V1.1
+
+Date: 2025-01-25
+Changes from v1.0:
+
+1. CATEGORY B -- ENERGY EFFICIENCY (updated):
+- Building renovations: Mandatory Energy Performance Certificate (EPC) before and after renovation, documenting the improvement. The post-renovation EPC must show at least class B or a two-class improvement.
+- Industrial process efficiency: Added DNSH water use disclosure requirement per Taxonomy Delegated Act Annex I, Section 7.2.
+- Added: Circular economy impact assessment for building demolition waste (target: 70% reuse/recycling by weight).
+
+2. EUGBS TRANSITION (new section):
+- The issuer commits to applying for European Green Bond designation under Regulation 2023/2631 once all preconditions are met.
+- A green bond factsheet per EUGBS Annex I will be prepared and submitted to the external reviewer.
+- Post-allocation verification by a registered external reviewer will be obtained.
+
+3. PROJECT SUBSTITUTION (clarified):
+- Any project that becomes Taxonomy-ineligible (e.g., fails updated TSC, or is no longer operational) must be substituted within 90 days.
+- Substitution disclosed in the next quarterly allocation report.
+
+4. REPORTING (enhanced):
+- Annual allocation report to include Taxonomy alignment percentage per category, with external assurance.
+- Impact report methodology aligned with ICMA Harmonized Framework for Impact Reporting (2024 edition).
+
+External reviewer confirmation: Sustainalytics has confirmed notification to ESMA under the EUGBS transitional provisions. Updated SPO expected Q1 2025.
+
+Claim: Framework v1.1 addresses all SPO reservations (EPC, DNSH water, circular economy). Goal: Obtain updated SPO and prepare for EUGBS factsheet.

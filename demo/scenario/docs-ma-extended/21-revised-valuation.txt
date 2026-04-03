@@ -1,0 +1,95 @@
+================================================================================
+CONFIDENTIAL — PROJECT HORIZON
+Revised Valuation Analysis: NovaTech AG
+Date: 2025-06-15
+Prepared by: Marcus Reinhardt, Head of Corporate Development
+Reviewed by: Investment Committee, Meridian Capital Partners
+================================================================================
+
+1. VALUATION REVISION SUMMARY
+
+Based on findings from Phase 2 diligence, the indicative valuation of NovaTech
+AG has been revised materially downward from the initial EUR 420 million.
+
+  Initial Indicative Valuation:     EUR 420 million
+  Revised Valuation Range:          EUR 270 - 290 million
+  Reduction:                        EUR 130 - 150 million (31-36%)
+  Midpoint:                         EUR 280 million
+
+2. KEY DRIVERS OF VALUATION ADJUSTMENT
+
+  (a) Revenue Restatement (Document 11):
+      ARR adjusted from EUR 50.0M to EUR 38.0M. At a revised multiple of
+      7.0-7.5x ARR (reflecting lower growth profile and increased risk),
+      the ARR-based valuation is EUR 266-285M.
+
+  (b) IP Risk Discount:
+      Patent disputes (Documents 12, 19) create estimated contingent
+      liability of EUR 15-25M. Applied as a direct reduction to enterprise
+      value: -EUR 15M at midpoint.
+
+  (c) Key Person Risk (Document 14):
+      CTO departure and associated talent flight risk. Estimated replacement
+      and knowledge transfer cost: EUR 15-25M. Applied as EUR 10M discount
+      (weighted probability).
+
+  (d) Customer Concentration (Documents 13, 20):
+      Pharmakon renewal at 15% discount plus performance exit clause.
+      Revenue risk of EUR 2-3M annually. DCF impact: -EUR 12M.
+
+  (e) Remediation Costs:
+      - Cybersecurity remediation (Document 17):      EUR 0.5-0.7M
+      - Regulatory compliance (Document 15):          EUR 1.0-1.6M
+      - Technical debt (Document 14):                 EUR 3.0-5.0M
+      - EU MDR compliance (if required):              EUR 1.5M
+      - Infrastructure resilience (Document 18):      EUR 1.5-2.0M
+      Total estimated remediation:                    EUR 7.5-10.8M
+
+3. REVISED DCF MODEL
+
+  Assumptions (revised):
+    Base Year ARR:                EUR 38.0 million (Deloitte-adjusted)
+    5-Year Revenue CAGR:          22% (down from 32% management, 45% reported)
+    Terminal Gross Margin:         75%
+    Terminal EBITDA Margin:        22%
+    WACC:                         12.5% (increased from 10% due to risk)
+    Terminal Growth Rate:          3.0%
+
+  Projected Revenue (revised):
+    FY2025: EUR 44.1M | FY2026: EUR 54.2M | FY2027: EUR 66.7M
+    FY2028: EUR 79.4M | FY2029: EUR 91.3M
+
+  DCF Enterprise Value:           EUR 282 million
+  Comparable Transaction Range:   EUR 266-304 million (7.0-8.0x adj. ARR)
+
+4. MULTIPLE ANALYSIS
+
+                            Initial         Revised
+  EV/ARR (adj.):            11.1x           7.1-7.6x
+  EV/Revenue (FY2025):      8.0x            6.1-6.6x
+  EV/Revenue (FY2027):      3.8x            4.0-4.3x
+  EV/EBITDA (FY2029):       10.9x           13.5-14.4x
+
+  The revised multiples are at the lower end of comparable European SaaS
+  transactions, reflecting the elevated risk profile.
+
+5. COMPARABLE TRANSACTIONS (2024-2025)
+
+  Target                 EV/ARR    Growth    Context
+  Rimsys (US)            9.2x      38%       Clean diligence, no IP issues
+  ComplianceAI (UK)      6.8x      25%       Customer concentration flagged
+  RegScience (DE)        7.5x      30%       Post-acquisition restructuring
+  MedTech360 (CH)        8.1x      35%       Strategic premium, clean deal
+
+  NovaTech's revised risk profile places it between ComplianceAI and
+  RegScience in terms of comparable valuation.
+
+6. DEAL STRUCTURE RECOMMENDATIONS
+
+  (a) Base consideration:        EUR 280 million (cash at closing)
+  (b) Holdback / Escrow:         EUR 25 million (for IP and litigation)
+  (c) Earn-out:                  Up to EUR 30M tied to FY2026-2027 ARR targets
+  (d) Retention pool:            EUR 15M for key employee retention
+  Total potential consideration:  EUR 350 million (if all targets met)
+
+Prepared by Marcus Reinhardt, Meridian Capital Partners

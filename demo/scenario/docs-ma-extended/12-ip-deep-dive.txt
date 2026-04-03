@@ -1,0 +1,82 @@
+================================================================================
+CONFIDENTIAL — PROJECT HORIZON
+NovaTech AG: IP Deep Dive — Independent Patent Counsel Review
+Date: 2025-03-15
+Prepared by: Dr. Hans-Jurgen Falk, Patent Attorney — Falk & Weber IP, Munich
+Engagement Reference: FW-2025-IP-0093
+================================================================================
+
+1. SCOPE
+
+Falk & Weber IP was retained by Meridian Capital Partners to conduct an
+independent review of NovaTech AG's patent portfolio, with particular focus on
+chain of title, encumbrances, and freedom-to-operate validation.
+
+2. PORTFOLIO OVERVIEW — CONFIRMED
+
+We confirm that NovaTech AG is the registered proprietor of seven (7) granted
+European patents and two (2) pending PCT applications, as described in the
+management-provided IP summary (Document 03).
+
+3. CRITICAL FINDING: CO-OWNERSHIP DISPUTES
+
+Our title search revealed material issues with two (2) of the seven granted
+patents:
+
+  (a) EP3512644 — "Federated Learning for Cross-Border Regulatory Analysis"
+      Named inventors: Dr. Klaus Haber, Dr. Elena Voss
+      ISSUE: Dr. Haber's invention assignment agreement, dated 2019-04-15,
+      contains a carve-out for "inventions conceived outside the scope of
+      employment duties." Dr. Haber's counsel (Rechtsanwalt Peter Lindner)
+      has formally asserted that EP3512644 was conceived during Dr. Haber's
+      prior academic research at ETH Zurich and that NovaTech's assignment
+      is invalid. A formal opposition has not yet been filed but is threatened.
+
+  (b) EP3847291 — "Predictive Risk Scoring for Regulatory Submissions"
+      Named inventor: Dr. Klaus Haber (sole inventor)
+      ISSUE: This patent is encumbered by a competing ownership claim. Dr.
+      Haber's separation agreement (dated March 2024) includes an IP
+      assignment clause, but our review of the agreement reveals that the
+      assignment was conditioned on payment of a "fair compensation" amount
+      of CHF 150,000 which NovaTech has not yet paid. Under Swiss employment
+      law (Art. 332 OR), the assignment may therefore be voidable.
+
+      Additionally, Axion Corp (Munich) has contacted Dr. Haber regarding
+      licensing of EP3847291, suggesting potential third-party interest in
+      challenging NovaTech's ownership.
+
+4. FREEDOM-TO-OPERATE UPDATE
+
+The original FTO opinion from Bauer & Richter (dated 2024-12-01) did not
+consider Axion Corp's recently published patent application EP4102883
+("AI-Driven Regulatory Risk Assessment Framework"), filed 2024-09-30. Our
+preliminary review indicates potential overlap between Axion's claims and
+NovaTech's Predictive Risk Scoring module. A full FTO update is recommended.
+
+5. SEPARATION AGREEMENT DEFICIENCIES
+
+We reviewed Dr. Klaus Haber's separation agreement and identified the following
+deficiencies:
+
+  - IP assignment consideration (CHF 150,000) remains unpaid after 12 months
+  - Non-compete clause is limited to 6 months (expired September 2024)
+  - No explicit waiver of moral rights under Swiss copyright law
+  - Agreement does not reference EP3512644 by patent number
+
+6. REMAINING PORTFOLIO
+
+The remaining five (5) granted patents (EP3215847, EP3389102, EP3627891,
+EP3741023, EP3952417) have clean chain of title with no identified
+encumbrances. The two pending PCT applications are also unencumbered.
+
+7. RECOMMENDATIONS
+
+  (a) Immediately resolve the CHF 150,000 payment to Dr. Haber to cure the
+      EP3847291 assignment deficiency
+  (b) Engage Dr. Haber's counsel to negotiate a comprehensive IP settlement
+      covering both disputed patents
+  (c) Commission updated FTO analysis covering Axion Corp's EP4102883
+  (d) Consider escrow or indemnification provisions in the SPA to cover
+      IP-related contingencies (estimated exposure: EUR 5-15M)
+
+Prepared by Dr. Hans-Jurgen Falk, Patent Attorney — Falk & Weber IP, Munich

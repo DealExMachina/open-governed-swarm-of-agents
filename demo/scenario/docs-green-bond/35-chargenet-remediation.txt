@@ -1,0 +1,25 @@
+REMEDIATION PLAN -- CHARGENET B.V.
+
+Date: 2026-01-15
+Subject: ChargeNet utilization improvement and deployment completion
+
+Following the utilization alert (June 2025), ChargeNet has implemented the following measures:
+
+1. DEPLOYMENT COMPLETION:
+- Remaining 320 charging points installed (total: 2,500)
+- Grid connections completed for all units (Stedin backlog resolved December 2025)
+- All 2,500 points now operational
+
+2. UTILIZATION IMPROVEMENT:
+- Relocated 180 underperforming suburban chargers to higher-traffic locations (urban centers, highway rest areas)
+- Partnership with fleet operators (PostNL, DHL Express) for dedicated fleet charging
+- Dynamic pricing introduced (lower off-peak rates to improve load factor)
+
+Updated metrics (Q4 2025):
+- Average utilization: 11.8% (up from 8.2% in June 2025)
+- Revenue per point: EUR 2,650/year (up from EUR 1,840/year; business plan target: EUR 3,200/year)
+- Estimated annual sessions: 425,000 (up from 285,000)
+
+The utilization improvement narrows the gap to business plan projections. Full network deployment and fleet partnerships are expected to sustain the improvement trend.
+
+Claim: ChargeNet fully deployed (2,500 points operational). Utilization improved to 11.8% (from 8.2%). Still below business plan but trending positively. Goal: Reach 14% utilization by Q2 2026 through fleet partnerships and dynamic pricing.

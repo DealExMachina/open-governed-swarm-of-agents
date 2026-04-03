@@ -1,0 +1,106 @@
+DOCUMENT: BENEFICIAL OWNERSHIP CHANGE NOTIFICATION — CRITICAL
+CLASSIFICATION: CONFIDENTIAL — AML/KYC RESTRICTED — PRIORITY REVIEW
+INSTITUTION: EuroBank AG, Frankfurt am Main
+DATE: 2024-04-22
+REFERENCE: CDD-2024-CAST-0006
+KYC ANALYST: Anna Berger (EB-4412)
+TRIGGER: Annual CDD Review (due 2024-03-20, completed 2024-04-22)
+
+1. CHANGE IDENTIFIED
+
+During the annual CDD refresh for Castellan Holdings S.a.r.l., a material
+change in the beneficial ownership structure was identified that was NOT
+proactively reported by the client.
+
+CHANGE: Castellan Trust (Liechtenstein) has added Marco Castellan as a
+named discretionary beneficiary.
+
+  Previous Beneficiary Status:   Undisclosed ("members of the Castellan
+                                 family" per trustee comfort letter)
+  Current Beneficiary List:      Viktor Castellan (primary beneficiary)
+                                 Elena Castellan (secondary beneficiary)
+                                 Marco Castellan (added 2023-10-15)
+
+  Marco Castellan is a POLITICALLY EXPOSED PERSON (municipal councilor,
+  Milan). His addition as a trust beneficiary constitutes a MATERIAL
+  CHANGE to the AML risk profile of the entire group structure.
+
+2. NOTIFICATION FAILURE
+
+Per EuroBank Terms of Business (Clause 14.3) and 5AMLD Article 30(5),
+the client is obligated to notify the bank of any change in beneficial
+ownership within 30 calendar days of the change.
+
+  Date of Trust Amendment:       2023-10-15
+  Date of Bank Notification:     NOT notified by client
+  Date Discovered by Bank:       2024-04-22 (annual review)
+  Notification Delay:            190 days (6+ months)
+
+This constitutes a BREACH of the client's contractual notification
+obligations and raises concerns about the client's transparency and
+willingness to cooperate with AML/KYC requirements.
+
+3. CONTRADICTION WITH PRIOR CDD RECORDS
+
+The following contradictions are noted against the onboarding CDD:
+
+  (a) CDD-2023-CAST-0001 (Onboarding): Stated "No close business ties
+      between brothers declared." Marco is now a beneficiary of the
+      family trust, creating a direct financial tie.
+
+  (b) SCR-2023-CAST-0001 (Sanctions Screening): PEP assessment concluded
+      "LOW-level PEP family association" based on the absence of
+      financial ties. Marco's trust beneficiary status elevates this
+      to a DIRECT PEP financial relationship.
+
+  (c) RSK-2023-CAST-0001 (Risk Rating): PEP Proximity scored 35/100
+      (LOW). This score is NO LONGER VALID. The direct financial
+      benefit to a PEP requires re-scoring.
+
+  (d) CDD-2023-CAST-0002 (Corporate Structure): Trust beneficiaries
+      listed as "undisclosed." Trustee comfort letter stated "no PEPs
+      among beneficiaries." This statement was TRUE at the time but is
+      now FALSE and the trustee did not issue an updated disclosure.
+
+4. CLIENT RESPONSE
+
+Viktor Castellan was contacted on 2024-04-23. His response:
+
+  "Marco was added to the trust as part of family succession planning.
+   I understood this to be a private trust matter handled by the trustee
+   and did not consider it a banking notification requirement. I apologize
+   for the oversight."
+
+Assessment of Response: The explanation is PARTIALLY CREDIBLE — trust
+amendments are often handled by trustees without client awareness of
+banking notification requirements. However, Viktor is the settlor and
+must have consented to adding Marco. The 30-day notification obligation
+is clearly stated in the signed Terms of Business.
+
+5. IMMEDIATE ACTIONS REQUIRED
+
+  [x] Update UBO register to reflect Marco Castellan as trust beneficiary
+  [x] Re-run full sanctions and PEP screening (Marco now a DIRECT party)
+  [ ] Trigger Enhanced Due Diligence (EDD) review — PEP financial link
+  [ ] Re-assess risk rating (MEDIUM rating under review)
+  [ ] Request full trust deed amendment documentation
+  [ ] Request trustee confirmation of all current beneficiaries
+  [ ] Issue formal breach notification letter to Viktor Castellan
+  [ ] Escalate to Compliance Committee if EDD reveals further concerns
+
+6. PRELIMINARY RISK IMPACT
+
+  PEP Proximity Factor:   35 → estimated 70+ (HIGH)
+  Composite Risk Score:    54 → estimated 65+ (HIGH threshold: 65)
+  Potential Rating Change: MEDIUM → HIGH
+
+  NOTE: The delayed disclosure is itself an aggravating risk factor
+  under EuroBank policy. Deliberate concealment would warrant immediate
+  relationship termination. Current assessment: negligent omission
+  rather than deliberate concealment, but this assessment is provisional.
+
+Identified by:    Anna Berger, KYC Analyst (EB-4412)
+Escalated to:     Claudia Richter, Head of Financial Crime (EB-2201)
+Date:             2024-04-22
+
+— END OF BENEFICIAL OWNERSHIP CHANGE RECORD —

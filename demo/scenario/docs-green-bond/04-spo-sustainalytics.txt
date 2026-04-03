@@ -1,0 +1,27 @@
+SECOND PARTY OPINION -- SUSTAINALYTICS
+
+Date: 2024-10-01
+Issuer: EuroVert Capital S.a r.l.
+Framework: EuroVert Green Bond Framework v1.0
+
+OPINION SUMMARY
+
+Sustainalytics is of the opinion that the EuroVert Green Bond Framework is credible and impactful and aligns with the four core components of the ICMA Green Bond Principles 2021.
+
+Use of proceeds: ALIGNED. The three eligible categories (renewable energy, energy efficiency, clean transportation) are recognized green categories under ICMA GBP and are expected to advance UN SDGs 7 (Affordable and Clean Energy), 11 (Sustainable Cities), and 13 (Climate Action).
+
+EU Taxonomy alignment assessment:
+- Category A (Renewable energy): ALIGNED with Taxonomy NACE D35.11; life-cycle threshold of 100 gCO2e/kWh is consistent with Technical Screening Criteria.
+- Category B (Energy efficiency): PARTIALLY ALIGNED. The 30% primary energy demand reduction threshold meets the Taxonomy requirement for building renovations. However, the framework does not specify whether the Energy Performance Certificate (EPC) rating improvement will be documented per the Delegated Act requirement.
+- Category C (Clean transportation): ALIGNED for zero-emission vehicles and charging infrastructure.
+
+DNSH assessment: Adequate for Categories A and C. Category B requires additional disclosure on water use and circular economy impacts for industrial process efficiency projects.
+
+Recommendation: The issuer should supplement the framework with:
+1. EPC documentation requirements for Category B building projects.
+2. DNSH disclosure for water use in Category B industrial projects.
+3. Transition plan for EUGBS designation after December 2024.
+
+Overall assessment: ALIGNED (with reservations on Category B completeness).
+
+Claim: SPO confirms framework alignment with ICMA GBP. Contradiction: Category B (energy efficiency) is only partially aligned -- missing EPC documentation and DNSH water disclosures. Risk: Taxonomy alignment below 85% threshold if Category B issues are not addressed.

@@ -1,0 +1,138 @@
+DOCUMENT: REGULATORY INSPECTION — BaFin ON-SITE EXAMINATION
+CLASSIFICATION: CONFIDENTIAL — REGULATORY — SENIOR MANAGEMENT ONLY
+INSTITUTION: EuroBank AG, Frankfurt am Main
+DATE: 2025-01-20
+REFERENCE: REG-2025-CAST-0001
+REGULATORY AFFAIRS OFFICER: Dr. Heinrich Fischer, General Counsel (EB-0042)
+INSPECTION TYPE: Targeted AML/KYC Examination (GwG Section 51)
+
+1. INSPECTION NOTICE
+
+On 2025-01-06, EuroBank AG received formal notification from the
+Bundesanstalt fuer Finanzdienstleistungsaufsicht (BaFin) of a targeted
+on-site AML/KYC examination.
+
+  BaFin Reference:     AML-INS-2025-EBK-0034
+  Inspection Period:   2025-01-20 to 2025-01-31 (10 business days)
+  Lead Inspector:      Dr. Sabine Weidner, BaFin AML Supervision Division
+  Inspection Team:     4 BaFin examiners + 2 external auditors (Deloitte)
+  Scope:               "Review of AML/KYC controls, CDD processes, and
+                       transaction monitoring effectiveness with focus on
+                       complex multi-jurisdictional client relationships"
+
+  Note: While framed as a general examination, the focus on "complex
+  multi-jurisdictional client relationships" is understood to include
+  Castellan Holdings as a specific case study.
+
+2. INFORMATION REQUESTS RECEIVED
+
+BaFin submitted a pre-inspection data request (received 2025-01-08):
+
+  2.1 General AML Framework:
+    [x] AML/KYC policy manual (current version)
+    [x] Risk appetite statement
+    [x] Compliance organizational chart
+    [x] Training records (last 24 months)
+    [x] Internal audit reports on AML (last 3 years)
+
+  2.2 Castellan Holdings — Specific Requests:
+    [x] Complete CDD file (all versions, from onboarding to present)
+    [x] All risk assessments and risk rating decisions with timestamps
+    [x] Transaction monitoring reports and alert dispositions
+    [x] SAR filings and supporting documentation
+    [x] EDD reports and working papers
+    [x] Sanctions and PEP screening records (all runs)
+    [x] Correspondence with client regarding CDD updates
+    [x] Compliance Committee minutes related to Castellan
+    [x] Audit trail of all changes to the CDD file
+    [x] GDPR erasure request and DPO decision (if any)
+
+3. KEY AREAS OF REGULATORY CONCERN (ANTICIPATED)
+
+Based on pre-inspection conversations with BaFin liaison:
+
+  (a) TIMELINESS OF EDD TRIGGER
+  BaFin may question why EDD was not triggered EARLIER:
+    - Marco Castellan was identified as PEP-adjacent at onboarding
+      (March 2023) but only as "low-level association"
+    - Trust beneficiary disclosure was requested at onboarding but
+      follow-up was not escalated until annual review (April 2024)
+    - EDD was formally triggered in July 2024 — 16 months after
+      onboarding, 9 months after trust amendment
+    - BaFin guidance (BaFin Journal, March 2022) states that undisclosed
+      trust beneficiaries should trigger EDD "without delay"
+
+  (b) RISK RATING ADEQUACY
+  The initial MEDIUM risk rating may be scrutinized:
+    - BVI entity + Liechtenstein trust + undisclosed beneficiaries
+      arguably warranted HIGH risk from the start
+    - The PEP family association, even at LOW level, combined with
+      the BVI/trust complexity could justify EDD at onboarding
+    - EuroBank's risk matrix may be challenged as insufficiently
+      conservative for this client profile
+
+  (c) TRANSACTION MONITORING THRESHOLDS
+  BaFin may question whether monitoring thresholds were appropriate:
+    - The EUR 600K single-transaction alert threshold permitted
+      a EUR 500K quarterly dividend without alerts
+    - The new counterparty threshold (EUR 100K) caught the Cerberus
+      payments but only after the initial EUR 1.8M was already sent
+
+  (d) RECORD INTEGRITY
+  BaFin will verify that historical records are maintained intact:
+    - Original MEDIUM risk rating must be preserved as contemporaneous
+    - Subsequent HIGH rating must be a separate dated record
+    - All CDD versions must show clear version history
+    - No retroactive amendments to historical documents
+
+4. EuroBANK RESPONSE PREPARATION
+
+  4.1 Documentation Package Assembled:
+    Complete chronological CDD file with version control — 847 pages
+    Transaction monitoring data export — 12,400 transaction records
+    Alert disposition records — 6 alerts (3 closed, 3 open)
+    SAR file — restricted access, delivered under separate cover
+    Risk rating audit trail — 2 versions (MEDIUM → HIGH)
+
+  4.2 Key Defense Points:
+    - CDD at onboarding was thorough and compliant with 5AMLD
+    - Initial MEDIUM risk rating was a reasonable professional judgment
+      given the information available at that time
+    - EDD was triggered promptly upon discovery of material changes
+    - SAR was filed within 30 days of Compliance Committee decision
+    - Transaction monitoring system detected the anomaly correctly
+    - Record retention and version control are demonstrably intact
+
+  4.3 Acknowledged Weaknesses:
+    - Trust beneficiary follow-up could have been more aggressive
+    - Annual review cycle may be insufficient for MEDIUM-risk clients
+      with undisclosed trust structures
+    - Client notification obligations could be more rigorously enforced
+
+5. INSPECTION TIMELINE
+
+  2025-01-20: Opening meeting with BaFin team
+  2025-01-21-22: General AML framework review
+  2025-01-23-24: Client file deep-dive (Castellan + 2 other selected)
+  2025-01-27-28: Transaction monitoring system review
+  2025-01-29: SAR process and filing review (restricted session)
+  2025-01-30: Management interviews (Richter, Brandt, Berger)
+  2025-01-31: Closing meeting and preliminary findings
+
+6. RETENTION AND AUDIT TRAIL VERIFICATION
+
+Per 7-year retention test requirements, the following must be demonstrated:
+
+  - Year 1 CDD records (2023): INTACT, unmodified, timestamped
+  - Original risk rating (MEDIUM, 2023-03-20): PRESERVED as separate
+    record from current rating (HIGH)
+  - All intermediate documents maintain chain of custody
+  - No records deleted, overwritten, or retroactively modified
+  - GDPR erasure request properly documented with retention justification
+  - SAR records segregated with appropriate access controls
+
+Prepared by:   Dr. Heinrich Fischer, General Counsel (EB-0042)
+Coordinated by: Claudia Richter, Head of Financial Crime (EB-2201)
+Date:           2025-01-20
+
+— END OF REGULATORY INSPECTION RECORD —

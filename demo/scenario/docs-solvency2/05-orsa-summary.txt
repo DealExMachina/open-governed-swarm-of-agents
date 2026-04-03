@@ -1,0 +1,118 @@
+MERIDIAN INSURANCE GROUP AG
+Own Risk and Solvency Assessment (ORSA) — Summary Report
+Reference Date: 31 December 2025
+Prepared by: Risk Actuary — Dr. Lukas Feldmann
+              Capital Model Analyst — Dr. Katharina Engel
+Classification: CONFIDENTIAL — Board and BaFin Submission
+Date of Issue: 15 February 2026
+ORSA Reference: ORSA-2026-001
+
+1. PURPOSE
+
+This ORSA summary report is prepared in accordance with Art. 45 of
+Directive 2009/138/EC and EIOPA Guidelines on ORSA (EIOPA-BoS-14/259).
+It presents Meridian's assessment of its overall solvency needs in
+relation to its risk profile, approved risk tolerance limits, and
+business strategy over the 3-year planning horizon (2026-2028).
+
+2. CURRENT SOLVENCY POSITION (AS AT 31 DECEMBER 2025)
+
+SCR ratio:            142% (see SCR Baseline Report dated 18 January 2026)
+MCR ratio:            412% (MCR = EUR 216,000,000)
+Eligible own funds:   EUR 890,000,000
+SCR:                  EUR 627,000,000
+Surplus:              EUR 263,000,000
+
+The Board's risk appetite statement (approved 12 November 2025) sets:
+  - Minimum SCR ratio: 120% (hard floor)
+  - Target SCR ratio: 135% (operating range: 135%-160%)
+  - Maximum SCR ratio: 170% (above which excess capital to be returned)
+
+3. FORWARD PROJECTIONS — BASE SCENARIO
+
+                        2026E       2027E       2028E
+Eligible own funds     EUR 920M    EUR 955M    EUR 995M
+SCR                    EUR 645M    EUR 668M    EUR 690M
+SCR ratio              142.6%      142.9%      144.2%
+Dividends assumed      EUR 40M     EUR 42M     EUR 45M
+
+Key assumptions:
+  - Premium growth: 3.5% p.a. (life), 4.2% p.a. (non-life)
+  - Investment return: 2.8% p.a. (fixed income), 7.0% p.a. (equity)
+  - No material change in regulatory framework
+  - Transitional measure Art. 308c: linear reduction continues
+  - No change in reinsurance programme structure
+
+4. STRESS SCENARIOS
+
+4.1 Interest Rate Shock (parallel shift +200bps)
+  SCR ratio impact: -18 percentage points (142% -> 124%)
+  Own funds impact: EUR -72,000,000
+  Breach of target? YES (below 135%)
+  Breach of minimum? NO
+
+4.2 Pandemic Event (200-year return period)
+  SCR ratio impact: -14 percentage points (142% -> 128%)
+  Own funds impact: EUR -56,000,000
+  Breach of target? YES (below 135%)
+  Breach of minimum? NO
+
+4.3 Financial Crisis (combined equity -40%, spreads +250bps)
+  SCR ratio impact: -31 percentage points (142% -> 111%)
+  Own funds impact: EUR -134,000,000
+  Breach of target? YES
+  Breach of minimum? YES (below 120%)
+  Recovery time to 120%: 18 months (with management actions)
+
+4.4 Mass Lapse (25% of unit-linked portfolio)
+  SCR ratio impact: -9 percentage points (142% -> 133%)
+  Own funds impact: EUR -38,000,000
+  Breach of target? YES (marginal)
+  Breach of minimum? NO
+
+4.5 Regulatory Change (loss of transitional measure)
+  SCR ratio impact: -7 percentage points (142% -> 135%)
+  Own funds impact: EUR 0 (own funds unchanged, SCR recalculated)
+  Breach of target? NO (exactly at target)
+  Breach of minimum? NO
+
+5. REVERSE STRESS TEST
+
+The reverse stress test identifies the combination of events that
+would render Meridian non-viable (SCR ratio below 100%):
+  - Scenario: equity markets fall 35%, credit spreads widen 200bps,
+    mass lapse of 20%, AND a 1-in-100 year natural catastrophe
+  - Combined probability: approximately 1-in-500 years
+  - This is beyond the Board's risk tolerance
+
+6. ASSESSMENT OF CONTINUOUS COMPLIANCE
+
+Meridian expects to maintain continuous compliance with SCR and MCR
+requirements over the 3-year planning horizon under the base scenario
+and all individual stress scenarios except Scenario 4.3 (Financial
+Crisis). For Scenario 4.3, the capital contingency plan (approved
+12 November 2025) includes:
+  - Dividend suspension (EUR 40M-45M annual savings)
+  - Reduction of equity allocation (EUR 60M capital release)
+  - Subordinated debt issuance (pre-approved facility: EUR 200M)
+
+7. OVERALL SOLVENCY NEEDS
+
+Meridian's overall solvency needs, taking into account risks not
+captured by the standard formula (reputational risk, strategic risk,
+liquidity risk), are assessed at EUR 690,000,000 — approximately
+10% above the regulatory SCR of EUR 627,000,000.
+
+The current eligible own funds of EUR 890,000,000 provide adequate
+coverage of overall solvency needs (ratio: 129%).
+
+8. SIGN-OFF AND BOARD APPROVAL
+
+This ORSA was presented to the Management Board on 10 February 2026
+and approved on 15 February 2026.
+
+  Herr Martin Schreiber — CEO
+  Frau Monika Adler — CRO
+  Dr. Lukas Feldmann — Risk Actuary
+
+Filed with BaFin on 20 February 2026 per Art. 45(6) notification.

@@ -62,7 +62,7 @@ export function makeReadContextTool(limitDefault: number = 200) {
   });
 }
 
-export function makeReadFactsHistoryTool(s3: S3Client, bucket: string, maxKeys: number = 20) {
+export function makeReadFactsHistoryTool(s3: S3Client, bucket: string, maxKeys: number = 5) {
   return createTool({
     id: "readFactsHistory",
     description: "Read recent facts snapshots from history for comparison (facts/history/*.json).",

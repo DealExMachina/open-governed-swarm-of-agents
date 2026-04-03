@@ -1,0 +1,105 @@
+DOCUMENT: NorthGrid Utilities — Renewable Curtailment Incident Report
+DATE: February 20, 2026
+CLASSIFICATION: Market Sensitive — Restricted Distribution
+AUTHOR: Renewable Integration Planning Group / Market Settlements Division
+REF: NG-REN-2026-02-18-008
+
+INCIDENT DATE: February 18, 2026
+
+EVENT SUMMARY
+
+On February 18, 2026, sustained high winds across the North and Coastal
+balancing areas drove aggregate wind generation to 3,100 MW — exceeding
+the Q1 forecast maximum of 2,800 MW by 300 MW (10.7% above forecast
+peak capacity factor). Coinciding with low overnight demand (system load
+5,200 MW), curtailment was required to maintain system stability.
+
+CURTAILMENT DISPATCH
+
+At 02:15 UTC, NorthGrid dispatch issued curtailment orders to the
+following wind farms via the Automatic Generation Control (AGC) system:
+
+  Wind Farm           | Installed | Pre-Curtail | Curtailed To | Reduction
+  --------------------|-----------|-------------|--------------|----------
+  Ridgeline II        |   280 MW  |    265 MW   |    145 MW    |   120 MW
+  Ridgeline III       |   320 MW  |    298 MW   |    148 MW    |   150 MW
+  Northern Gale       |   250 MW  |    241 MW   |    101 MW    |   140 MW
+  Atlantic Breeze I   |   350 MW  |    332 MW   |    142 MW    |   190 MW
+  Prairie Wind        |   220 MW  |    211 MW   |     11 MW    |   200 MW
+  --------------------|-----------|-------------|--------------|----------
+  TOTAL               | 1,420 MW  |  1,347 MW   |    547 MW    |   800 MW
+
+Curtailment duration: 02:15 UTC to 09:45 UTC (7.5 hours)
+Total curtailed energy: approximately 6,000 MWh
+
+SETTLEMENT SYSTEM DISCREPANCY
+
+The settlement system (using SCADA telemetry at 15-minute intervals)
+recorded a total curtailment of only 500 MW — a discrepancy of 300 MW
+from the actual dispatched curtailment of 800 MW.
+
+Investigation reveals the following root cause:
+
+  1. Settlement metering relies on 15-minute interval reads from revenue
+     meters at the point of interconnection.
+
+  2. During the curtailment period, wind speed was highly variable
+     (gusting between 12 m/s and 22 m/s), causing the available wind
+     generation to fluctuate significantly within each 15-minute window.
+
+  3. The settlement system calculates curtailment as:
+       Curtailment = (Available Generation) - (Metered Output)
+     where "Available Generation" is estimated from a 15-minute average
+     wind speed applied to the manufacturer's power curve.
+
+  4. Because the 15-minute averaged wind speed understates peak gusts
+     and overstates lull periods, the estimated "available generation"
+     was systematically lower than actual available generation.
+
+  5. Actual available generation, measured by the farms' own 4-second
+     SCADA systems, showed consistently higher output capability than
+     the 15-minute average implied.
+
+FINANCIAL IMPACT
+
+  Curtailment compensation methodology:
+    Settlement system calculation:  500 MW x 7.5 hrs x €35/MWh = €131,250
+    Actual curtailment (metered):   800 MW x 7.5 hrs x €35/MWh = €210,000
+    Underpayment to wind farms:     €78,750 for this single event
+
+  Annualized impact if methodology not corrected:
+    Estimated 12-18 similar events per year
+    Potential cumulative underpayment: €0.9M - €2.1M annually
+
+AFFECTED PARTIES AND DISPUTE STATUS
+
+Four wind farm operators have filed formal settlement disputes:
+
+  1. Ridgeline Wind Partners LLC (Ridgeline II & III)
+     Dispute amount: €28,400    Filed: February 19, 2026
+  2. Northern Gale Energy Inc.
+     Dispute amount: €18,200    Filed: February 19, 2026
+  3. Atlantic Offshore Wind LLC (Atlantic Breeze I)
+     Dispute amount: €22,100    Filed: February 20, 2026
+  4. Prairie Wind Holdings
+     Dispute amount: €10,050    Filed: February 20, 2026
+
+Total disputed amount for this event: €78,750
+Wind farm operators are requesting an independent metering review and
+methodology correction for all curtailment events in Q1 2026.
+
+PRELIMINARY ASSESSMENT
+
+The 15-minute telemetry sampling rate is inadequate for accurate
+curtailment settlement during variable wind conditions. The 4-second
+data from the wind farms' own SCADA systems provides materially
+different — and more accurate — curtailment volumes.
+
+This issue was flagged in the December 2025 settlement report
+(NG-SETL-2025-12-005) as a known limitation. Project NG-PROJ-2026-017
+(telemetry upgrade to 4-second settlement metering) is pending budget
+approval.
+
+PREPARED BY: L. Chen, Renewable Integration Manager
+              A. Bergstrom, Settlement Manager
+REVIEWED BY: K. Williams, Director of Market Operations

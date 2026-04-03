@@ -1,0 +1,134 @@
+MERIDIAN INSURANCE GROUP AG
+Reinsurance Counterparty Credit Quality Assessment
+Subject: Impact of Swiss Re Credit Rating Downgrade on SCR
+Prepared by: External Communications Monitor — Herr Markus Baumann
+              Capital Model Analyst — Dr. Katharina Engel
+Classification: CONFIDENTIAL — Risk Committee
+Date of Issue: 10 June 2026
+Reference: RI-2026-003
+
+1. EVENT SUMMARY
+
+On 5 June 2026, Standard & Poor's downgraded Swiss Reinsurance Company
+Ltd ("Swiss Re") from A+ (stable outlook) to A- (negative outlook),
+citing increased exposure to climate-related catastrophe losses and
+deterioration in reserve adequacy. This represents a two-notch
+downgrade.
+
+AM Best concurrently revised Swiss Re's Financial Strength Rating from
+A+ (Superior) to A (Excellent) with a negative outlook on 6 June 2026.
+
+Moody's has placed Swiss Re's Aa3 rating on review for downgrade.
+
+2. MERIDIAN'S EXPOSURE TO SWISS RE
+
+Meridian maintains the following reinsurance treaties with Swiss Re:
+
+  Treaty RT-2024-007 (Excess of Loss — Property Cat)
+    Ceded premium:       EUR 18,400,000 p.a.
+    Attachment point:    EUR 55,000,000
+    Limit:               EUR 200,000,000
+    Collateral held:     None
+    Recoverables:        EUR 42,000,000 (current outstanding)
+
+  Treaty RT-2025-002 (Quota Share — Motor)
+    Ceded premium:       EUR 23,600,000 p.a.
+    Cession rate:        20%
+    Collateral held:     EUR 10,000,000 (letter of credit)
+    Recoverables:        EUR 67,000,000 (current outstanding)
+
+  Treaty RT-2025-009 (Aggregate Stop Loss — Life)
+    Ceded premium:       EUR 8,200,000 p.a.
+    Attachment:          105% loss ratio
+    Limit:               EUR 50,000,000
+    Collateral held:     None
+    Recoverables:        EUR 0 (not yet triggered)
+
+  Total Swiss Re exposure:
+    Gross recoverables:  EUR 109,000,000
+    Collateral:          EUR  10,000,000
+    Net exposure:        EUR  99,000,000
+
+3. SCR COUNTERPARTY DEFAULT RISK MODULE IMPACT
+
+Under Art. 189-202 of Delegated Regulation (EU) 2015/35, the
+counterparty default risk module calculates the loss-given-default
+(LGD) and probability of default (PD) for each reinsurance exposure.
+
+3.1 Previous Calculation (Swiss Re rated A+)
+  Credit quality step: 2 (per EIOPA mapping table)
+  Probability of default: 0.10%
+  Loss-given-default:     EUR 49,500,000 (50% of net exposure)
+  Capital charge (Type 1): EUR 4,200,000
+
+3.2 Revised Calculation (Swiss Re rated A-)
+  Credit quality step: 3 (per EIOPA mapping table)
+  Probability of default: 0.25%
+  Loss-given-default:     EUR 49,500,000 (50% of net exposure)
+  Capital charge (Type 1): EUR 16,200,000
+
+  INCREASE IN CAPITAL CHARGE:  EUR 12,000,000
+
+3.3 Interaction with Other Counterparties
+  Meridian's other major reinsurance counterparties:
+    Munich Re (AA-/Aa3):     EUR 78,000,000 net exposure — unchanged
+    Hannover Re (AA-/Aa3):   EUR 45,000,000 net exposure — unchanged
+    SCOR (A+/A1):            EUR 31,000,000 net exposure — unchanged
+
+  Concentration risk: Swiss Re now represents the lowest-rated
+  counterparty and 38% of total reinsurance exposure.
+
+4. CUMULATIVE SCR IMPACT
+
+Combining with the look-through changes from Q1 2026:
+
+  Q4 2025 SCR:                   EUR 627,000,000  (ratio: 142%)
+  Q1 2026 SCR (look-through):   EUR 677,000,000  (ratio: 128%)
+  Swiss Re downgrade impact:    EUR +12,000,000
+  Estimated current SCR:         EUR 689,000,000
+  Current own funds (est.):      EUR 896,000,000
+  Estimated current ratio:       130.0%
+
+  Note: The estimated ratio of 130% differs slightly from the
+  transitional-adjusted figure of ~130% in doc 08 due to timing
+  differences and rounding. A full reconciliation will be performed
+  at Q2 close.
+
+5. RISK MITIGATION OPTIONS
+
+5.1 Collateral Enhancement
+  Request additional collateral from Swiss Re under treaty RT-2024-007.
+  Estimated capital release: EUR 4,000,000. Timeline: 30 days.
+
+5.2 Treaty Restructuring
+  Novate a portion of Swiss Re exposure to Munich Re or Hannover Re.
+  Estimated capital release: EUR 8,000,000. Timeline: 90 days.
+  Cost: additional premium of approximately EUR 1,200,000 p.a.
+
+5.3 Credit Derivative
+  Purchase credit protection on Swiss Re exposure via CDS.
+  Estimated capital release: EUR 10,000,000. Timeline: 15 days.
+  Cost: approximately EUR 800,000 p.a. at current spreads (180bps).
+
+6. MONITORING REQUIREMENTS
+
+  - Daily monitoring of Swiss Re CDS spreads (currently 185bps)
+  - Weekly review of rating agency actions and outlooks
+  - Trigger for escalation: further downgrade to BBB+ or CDS > 300bps
+  - Next treaty renewal date: 1 January 2027 (all three treaties)
+
+7. CONTRADICTION FLAG
+
+Note for the record: The ORSA stress scenarios (ORSA-2026-001,
+Section 4) assumed all reinsurance counterparties rated A+ or above.
+The Swiss Re downgrade means this assumption is NO LONGER VALID.
+The ORSA projections should be updated to reflect the revised
+counterparty credit quality. This represents a contradiction between
+the current ORSA and actual market conditions.
+
+8. SIGN-OFF
+
+  Herr Markus Baumann — External Communications Monitor
+  Dr. Katharina Engel — Capital Model Analyst
+  Frau Elena Vogt — Head of Reinsurance
+  Frau Monika Adler — Chief Risk Officer

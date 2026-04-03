@@ -3,7 +3,9 @@ pub mod policy;
 #[cfg(test)]
 mod tests;
 
-pub use kernel::{evaluate_kernel, KernelInput, KernelOutput, ReductionVerdict};
+pub use kernel::{
+    evaluate_kernel, EliminationCertificate, KernelInput, KernelOutput, ReductionVerdict,
+};
 pub use policy::{
     can_transition, evaluate_rules, DriftLevel, PolicyRule, TransitionDecision, TransitionRule,
 };

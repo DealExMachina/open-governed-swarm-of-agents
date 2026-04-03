@@ -4,7 +4,6 @@
  * to treat approve_finality as RESOLVED and skip re-sending HITL.
  */
 
-import pg from "pg";
 import { getPool } from "./db.js";
 
 export type FinalityOption = "approve_finality" | "provide_resolution" | "escalate" | "defer";
@@ -45,4 +44,20 @@ export async function getLatestFinalityDecision(
     [scopeId],
   );
   return res.rows[0] ?? null;
+}
+
+/**
+ * Return all finality decisions for the scope, oldest first.
+ * Used by the due-diligence view and feed summary for the "documented human corrections" report section.
+ */
+export async function getAllFinalityDecisions(
+  scopeId: string,
+): Promise<FinalityDecisionRow[]> {
+  const pool = getPool();
+  const res = await pool.query<FinalityDecisionRow>(
+    `SELECT scope_id, option, days, created_at FROM scope_finality_decisions
+     WHERE scope_id = $1 ORDER BY created_at ASC`,
+    [scopeId],
+  );
+  return res.rows;
 }

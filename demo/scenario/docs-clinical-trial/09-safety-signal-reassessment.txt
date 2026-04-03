@@ -1,0 +1,99 @@
+DATA SAFETY MONITORING BOARD — EMERGENCY SAFETY REASSESSMENT
+================================================================================
+Protocol:           ONCO-RESOLVE-301
+DSMB Meeting:       Emergency Teleconference, 2024-11-04
+Meeting Number:     DSMB-002 (Unscheduled)
+Classification:     CONFIDENTIAL — DSMB Members Only
+Triggered by:       Data Correction Notice DCN-07-2024-001
+Agent:              Dr. Margaret Sullivan, DSMB Chair
+================================================================================
+
+REASON FOR EMERGENCY MEETING:
+  Per DSMB Charter Section 4.3 (Unscheduled Reviews), an emergency meeting is
+  convened when a data correction materially affects a safety threshold. Data
+  Correction Notice DCN-07-2024-001 (Document 08) reports that three patients
+  at Site 07 had ALT values corrected from 180 U/L to 378-384 U/L, changing
+  their hepatotoxicity grade from Grade 2 to Grade 3.
+
+RECALCULATED SAFETY DATA:
+
+  HEPATOTOXICITY — 80-Patient Landmark (original DSMB-001 population):
+    Pre-correction (reported in DSMB-001):
+      Grade 3+ hepatotoxicity:   3/54 (5.6%) in ORX-4471 arm
+    Post-correction:
+      Grade 3+ hepatotoxicity:   6/54 (11.1%) in ORX-4471 arm
+
+    ** EXCEEDS protocol-specified stopping boundary of 8% **
+    Delta: +5.5 percentage points (from 5.6% to 11.1%)
+
+  HEPATOTOXICITY — Full Phase II Population (n=116 ORX-4471 mITT):
+    Pre-correction:
+      Grade 3+ hepatotoxicity:   6/116 (5.2%)
+    Post-correction:
+      Grade 3+ hepatotoxicity:   9/116 (7.8%)
+      Exact 95% CI:              3.6% - 14.2%
+
+    ** Rate approaches but does not definitively exceed 8% boundary **
+    ** Upper bound of 95% CI (14.2%) exceeds boundary **
+
+  NOTE ON RATE DISCREPANCY: The rate of 8.4% referenced in the DSMB's initial
+  alert notification was calculated using an intermediate evaluable population
+  of 107 patients (9/107 = 8.4%). The mITT population of 116 yields 7.8%.
+  Both calculations are presented for transparency.
+
+HEPATOTOXICITY — COMPARISON TO PHASE I BASELINE (Document 02):
+  Phase I Grade 3+ hepatotoxicity:   1/18 (5.6%)  [LOCKED, immutable]
+  Phase II pre-correction:           5.2%          [consistent with Phase I]
+  Phase II post-correction:          7.8%          [higher than Phase I]
+
+  The DSMB notes that Phase I data (Document 02) remains the foundational
+  safety baseline and is NOT subject to revision. The increased Phase II
+  rate represents NEW safety information, not a correction of Phase I data.
+
+OVERALL GRADE 3+ ADVERSE EVENT PROFILE (post-correction):
+  ORX-4471 arm (n=116):
+    Any Grade 3+ AE:           18/116 (15.5%)  [was 15/116 = 12.9%]
+    Hepatotoxicity Gr3+:       9/116 (7.8%)    [was 6/116 = 5.2%]
+    Pneumonitis Gr3+:          3/116 (2.6%)    [unchanged]
+    Colitis Gr3+:              2/116 (1.7%)    [unchanged]
+    Other irAE Gr3+:           4/116 (3.4%)    [unchanged]
+
+PATIENT DISPOSITION FOR CORRECTED CASES:
+  Patient 07-012: Dose held at Cycle 4, resumed Cycle 6 at 150mg (dose
+    reduction per protocol). Currently on treatment, disease stable.
+  Patient 07-019: Dose held at Cycle 4, resumed Cycle 7 at 150mg. Currently
+    on treatment, partial response maintained.
+  Patient 07-024: Dose permanently discontinued at Cycle 4 due to concurrent
+    AST elevation (AST 312 U/L). Switched to docetaxel. Progressive disease.
+
+DSMB DELIBERATION:
+  The Board reviewed the following considerations:
+  1. Corrected hepatotoxicity rate (7.8%) approaches but may not definitively
+     exceed the 8% stopping boundary depending on evaluable population used.
+  2. The stopping boundary was designed for prospective monitoring, not
+     retroactive recalculation after data corrections.
+  3. All three affected patients were managed appropriately at the clinical
+     level regardless of the transcription error.
+  4. Efficacy signal remains strong (PFS HR 0.62, Document 07).
+  5. No hepatic deaths or Grade 4 hepatotoxicity events.
+
+DSMB RECOMMENDATIONS:
+  1. ** DO NOT STOP ENROLLMENT ** (Vote: 4-1, Dr. Osei dissenting)
+  2. Implement expanded hepatic monitoring protocol:
+     - ALT/AST monitoring every cycle (q3w) plus Day 8 of Cycles 1-6
+     - Pre-defined dose modification algorithm for ALT >3x ULN
+     - Mandatory hepatology consultation for ALT >5x ULN
+  3. Request sponsor file protocol amendment (v3.2) incorporating enhanced
+     hepatic monitoring within 30 days.
+  4. Request sensitivity analysis from biostatistics (Document 10) to confirm
+     efficacy conclusions unchanged by correction.
+  5. Full audit of all safety laboratory data across all 12 sites.
+
+DISSENTING OPINION (Dr. William Osei):
+  "The corrected rate exceeds the pre-specified stopping boundary at the
+  80-patient landmark. Protocol fidelity requires enrollment pause pending
+  full audit. I recommend temporary enrollment hold until cross-site audit
+  is complete."
+
+STATE: EPOCH_2 | DSMB_REVIEW: EMERGENCY | RECOMMENDATION: CONTINUE_WITH_MODIFICATIONS
+SAFETY_THRESHOLD: BOUNDARY_APPROACHED | HEPATOTOX_RATE: 7.8_PCT_CORRECTED

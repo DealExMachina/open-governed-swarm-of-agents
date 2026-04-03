@@ -1,0 +1,126 @@
+DOCUMENT: TRANSACTION MONITORING — ANOMALY ALERT
+CLASSIFICATION: CONFIDENTIAL — AML/KYC RESTRICTED — URGENT
+INSTITUTION: EuroBank AG, Frankfurt am Main
+DATE: 2024-06-14
+REFERENCE: TXN-ALERT-2024-0287
+MONITORING OFFICER: Petra Vogel, Transaction Monitoring Officer (EB-6634)
+ALERT SEVERITY: HIGH
+SYSTEM ALERT ID: AML-MON-2024-06-14-0287
+
+1. ALERT TRIGGER
+
+The automated transaction monitoring system flagged the following sequence
+of transactions as anomalous based on the established behavioral baseline
+(TXN-2023-CAST-0001):
+
+  TRIGGER RULES ACTIVATED:
+  - Rule TM-04: New counterparty wire exceeding EUR 100,000
+  - Rule TM-07: Cumulative outflows exceeding 150% of monthly baseline
+  - Rule TM-11: Multiple large payments to same new counterparty within
+    60-day window
+
+2. TRANSACTION DETAIL
+
+  Txn 1:
+    Date:           2024-05-03
+    Type:           Outgoing SWIFT wire (MT103)
+    Amount:         EUR 1,800,000.00
+    From:           Castellan Holdings (DE89 3704 0044 0532 0130 00)
+    To:             Cerberus Consulting AG
+    Beneficiary Acct: CH93 0076 2011 6238 5295 7
+    Beneficiary Bank: Banque Cantonale de Zurich
+    Reference:       "Strategic advisory services — Project Minerva"
+    Ordering Party:  Viktor Castellan
+
+  Txn 2:
+    Date:           2024-05-22
+    Amount:         EUR 500,000.00
+    To:             Cerberus Consulting AG (same account)
+    Reference:       "Project Minerva — Phase 2 milestone"
+
+  Txn 3:
+    Date:           2024-06-05
+    Amount:         EUR 500,000.00
+    To:             Cerberus Consulting AG (same account)
+    Reference:       "Project Minerva — Phase 3 milestone"
+
+  Txn 4:
+    Date:           2024-06-12
+    Amount:         EUR 500,000.00
+    To:             Cerberus Consulting AG (same account)
+    Reference:       "Project Minerva — Phase 4 completion"
+
+  TOTAL TO CERBERUS CONSULTING AG: EUR 3,300,000.00
+  PERIOD: 40 days (May 3 — June 12, 2024)
+
+3. ANOMALY ANALYSIS
+
+3.1 Deviation from Baseline
+  Baseline monthly outflow range: EUR 150,000 — EUR 350,000
+  May 2024 outflows:              EUR 2,530,000 (723% of upper baseline)
+  June 2024 outflows (to date):   EUR 1,215,000 (347% of upper baseline)
+
+3.2 Counterparty Analysis — Cerberus Consulting AG
+  Jurisdiction:      Switzerland (Canton Zurich)
+  Registration:      CHE-412.876.553 (Handelsregister Zurich)
+  Date of Incorporation: 2024-03-19 (45 days before first payment)
+  Share Capital:     CHF 100,000
+  Sole Director:     Luca Ferretti
+  Registered Address: Bahnhofstrasse 42, 8001 Zurich
+  Activity:          "Management and technology consulting"
+
+  RED FLAGS:
+  (a) Entity incorporated only 45 days before receiving EUR 1.8M
+  (b) Minimal share capital (CHF 100K) relative to payment size
+  (c) No prior relationship or transaction history with Castellan
+  (d) No verifiable track record of consulting activity
+  (e) Sole director — no public profile or professional history found
+  (f) Four payments in rapid succession suggests urgency or structuring
+
+3.3 Counterparty Director — Luca Ferretti
+  Open-source research reveals Luca Ferretti was a co-founder of
+  CastleTech Solutions (pre-2017 exit). Viktor Castellan's former
+  business partner. No current public business activity identified.
+
+  This prior relationship was NOT declared in any CDD documentation
+  and raises questions about the arm's-length nature of the payments.
+
+4. PATTERN INDICATORS
+
+  Layering Risk:       MEDIUM-HIGH — Large payment followed by structured
+                       equal payments could indicate layering
+  Front Company Risk:  HIGH — Newly incorporated, minimal capitalization,
+                       sole director with undisclosed prior relationship
+  Round-Tripping Risk: UNKNOWN — Requires investigation of Cerberus
+                       downstream fund flows
+  Trade-Based ML:      LOW — No goods or trade documentation involved
+
+5. ACTIONS TAKEN
+
+  [x] Alert escalated to Compliance (Claudia Richter, EB-2201)
+  [x] Cerberus Consulting AG added to enhanced monitoring counterparty list
+  [x] All future transactions to/from Cerberus placed on manual review hold
+  [x] Request sent to Viktor Castellan for commercial rationale and
+      supporting documentation (invoices, contracts, deliverables)
+  [ ] Consider SAR filing — pending EDD outcome
+  [ ] Cross-reference with beneficial ownership change (CDD-2024-CAST-0006)
+
+6. PRELIMINARY ASSESSMENT
+
+These transactions, when viewed in conjunction with the concurrent
+beneficial ownership disclosure failure (CDD-2024-CAST-0006), present
+a CONCERNING pattern. The combination of:
+  - Undisclosed PEP trust beneficiary
+  - Large unexplained payments to a newly formed entity
+  - Entity controlled by an undisclosed former business associate
+collectively warrant ENHANCED DUE DILIGENCE with urgency.
+
+Alert Status:      OPEN — Pending EDD
+Recommended Action: Initiate EDD immediately
+
+Prepared by:  Petra Vogel, Transaction Monitoring Officer (EB-6634)
+Escalated to: Klaus Brandt, Head of Transaction Monitoring (EB-3301)
+              Claudia Richter, Head of Financial Crime (EB-2201)
+Date:         2024-06-14
+
+— END OF TRANSACTION ANOMALY ALERT —

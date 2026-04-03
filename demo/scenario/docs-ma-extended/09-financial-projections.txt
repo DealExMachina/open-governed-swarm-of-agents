@@ -1,0 +1,72 @@
+================================================================================
+CONFIDENTIAL — PROJECT HORIZON
+NovaTech AG: Five-Year Financial Projections
+Date: 2025-02-01
+Prepared by: Stefan Gruber, CFO — NovaTech AG
+Model reviewed by: Marcus Reinhardt, Meridian Capital Partners
+================================================================================
+
+1. PROJECTION METHODOLOGY
+
+The following projections are based on a bottom-up revenue model incorporating:
+  - Existing contract backlog and renewal assumptions
+  - Pipeline-weighted new logo acquisition targets
+  - Historical expansion rates applied to existing customers
+  - Planned pricing increases (5% annually from FY2026)
+
+2. REVENUE PROJECTIONS (EUR millions)
+
+                        FY2025E   FY2026E   FY2027E   FY2028E   FY2029E
+  Subscription ARR:      50.0      68.0      89.0     108.0     120.0
+  Platform Usage:          8.0      12.0      18.0      24.0      30.0
+  Prof. Services:          2.3       3.0       3.5       4.0       4.5
+  ----------------------------------------------------------------
+  Total Revenue:          60.3      83.0     110.5     136.0     154.5
+
+  YoY Growth:              --       37.6%     33.1%     23.1%     13.6%
+
+3. PROFITABILITY PATH
+
+                        FY2025E   FY2026E   FY2027E   FY2028E   FY2029E
+  Gross Margin:          72.0%     74.0%     76.0%     78.0%     79.0%
+  EBITDA Margin:         -8.0%      2.0%     12.0%     20.0%     25.0%
+  EBITDA (EUR M):        -4.8       1.7      13.3      27.2      38.6
+  Free Cash Flow:        -6.2      -1.0       8.5      21.0      32.0
+
+  Breakeven Quarter:     Q3 FY2026 (projected)
+  Cash Flow Positive:    FY2027
+
+4. HEADCOUNT PLAN
+
+                        FY2025E   FY2026E   FY2027E   FY2028E   FY2029E
+  Total Headcount:        180       220       260       290       310
+  Engineering %:          43%       45%       44%       42%       40%
+  Revenue/Employee:      335K      377K      425K      469K      498K
+
+5. KEY ASSUMPTIONS
+
+  - Net Revenue Retention remains above 115%
+  - New logo acquisition: 12-15 per year
+  - No significant competitive disruption from Tier 1 players
+  - EU MDR transition continues to drive demand through 2028
+  - No material changes to regulatory framework
+  - EUR/CHF exchange rate stable at 0.95-1.00
+
+6. SENSITIVITY ANALYSIS
+
+  Base Case:    EUR 120M ARR by 2029 (as modeled above)
+  Bull Case:    EUR 145M ARR — assumes Veeva competitive win, 2 large logos
+  Bear Case:    EUR  85M ARR — assumes 2 top-10 customer losses, slower NRR
+
+7. VALUATION IMPLICATIONS
+
+At the indicative offer of EUR 420M, the implied multiples are:
+  EV/ARR (FY2025):     8.4x
+  EV/ARR (FY2027):     4.7x
+  EV/Revenue (FY2029): 2.7x
+  EV/EBITDA (FY2029):  10.9x
+
+These multiples are within the range of comparable European SaaS transactions
+(6-12x ARR for growth-stage companies with >30% growth rates).
+
+Prepared by Stefan Gruber, CFO — NovaTech AG

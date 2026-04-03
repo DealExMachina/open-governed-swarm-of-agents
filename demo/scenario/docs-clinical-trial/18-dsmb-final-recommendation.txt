@@ -1,0 +1,165 @@
+DATA SAFETY MONITORING BOARD — FINAL RECOMMENDATION
+================================================================================
+Protocol:           ONCO-RESOLVE-301
+DSMB Meeting:       Scheduled Teleconference, 2025-06-18
+Meeting Number:     DSMB-004
+Classification:     CONFIDENTIAL — DSMB Members Only
+Agent:              Dr. Margaret Sullivan, DSMB Chair
+================================================================================
+
+ATTENDEES:
+  Dr. Margaret Sullivan (Chair, Bioethicist, Georgetown University)
+  Dr. Robert Tanaka (Medical Oncologist, Stanford University)
+  Dr. Lisa Chen (Biostatistician, Harvard T.H. Chan School)
+  Dr. William Osei (Pulmonologist, Emory University)
+  Dr. Francesca Moretti (Pharmacologist, University of Pittsburgh)
+  Unblinded statistician: Dr. Amy Richardson (Meridian Therapeutics)
+  Guest: Dr. Thomas Fischer (Hepatologist, Mount Sinai — invited consultant)
+
+MEETING HISTORY:
+  DSMB-001 (2024-06-14): Scheduled review at 80 patients. CONTINUE.
+  DSMB-002 (2024-11-04): Emergency review re: ALT data correction. CONTINUE
+    WITH MODIFICATIONS. (Dr. Osei dissenting.)
+  DSMB-003 (2025-02-20): Scheduled review at 180 patients. CONTINUE.
+    Enhanced monitoring adequacy confirmed.
+  DSMB-004 (2025-06-18): Scheduled review at 300 patients. THIS MEETING.
+
+EVALUABLE PATIENTS:
+  Safety population:       298 (ORX-4471: 200, Docetaxel: 98)
+  Minimum follow-up:       3 months
+  Median follow-up:        10.8 months (range 3.1-22.4)
+
+SAFETY OVERVIEW (ORX-4471 arm, n=200):
+
+  Any AE:                          196/200 (98.0%)
+  Grade 3+ AE:                     34/200 (17.0%)
+  SAE:                             22/200 (11.0%)
+  Treatment-related death:          1/200 (0.5%)
+    Patient 05-044: Grade 5 pneumonitis (onset Cycle 8, fatal Day 62
+    despite methylprednisolone and infliximab). Reported per 21 CFR 312.32.
+  Discontinuation due to AE:       14/200 (7.0%)
+
+  HEPATOTOXICITY (with enhanced monitoring per Amendment v3.2):
+    Any grade:                      38/200 (19.0%)
+    Grade 1:                        16/200 (8.0%)
+    Grade 2:                        8/200 (4.0%)
+    Grade 3:                        14/200 (7.0%)
+    Grade 4:                        0/200 (0%)
+
+    Grade 3+ hepatotoxicity:        14/200 = 7.0%
+    95% CI:                         3.9% - 11.5%
+
+    ** BELOW Phase III stopping boundary of 10% (Amendment v3.2) **
+    ** BELOW original Phase II boundary of 8% **
+
+  Hepatotoxicity management outcomes (n=14 Grade 3 events):
+    Resolved with dose hold:         10 (71.4%)
+    Resumed at reduced dose (150mg):  8 (57.1%)
+    Permanent discontinuation:        4 (28.6%)
+    Required corticosteroids:         6 (42.9%)
+    Median time to resolution:        18 days (range 8-42)
+
+  PNEUMONITIS:
+    Grade 3+:                        6/200 (3.0%)
+    Grade 5 (fatal):                 1/200 (0.5%)
+
+COMPARATIVE SAFETY (Docetaxel arm, n=98):
+  Grade 3+ AE:                     28/98 (28.6%)
+  Neutropenia Grade 3+:            14/98 (14.3%)
+  Febrile neutropenia:              6/98 (6.1%)
+  Treatment-related death:          1/98 (1.0%) — sepsis in neutropenia
+
+DATA INTEGRITY ASSESSMENT:
+
+  Cross-site laboratory audit (completed 2025-03-31):
+    Sites audited:                   12/12 (100%)
+    Total ALT/AST values verified:   4,218
+    Transcription errors identified: 8 (0.19%)
+    Clinically significant errors:   3 (original Site 07 correction only)
+    New Grade-changing errors:       0
+
+  Enhanced data integrity procedures (CAPA-07-001, CAPA-07-002):
+    Laboratory-EDC interface:        Implemented at 8 of 12 sites
+    Dual data entry:                 Implemented at all 12 sites
+    SDV frequency increased:         Monthly at all sites
+    Error rate post-CAPA:            0.04% (4/9,842 values, all Grade 1)
+
+  DSMB ASSESSMENT: Data integrity issue RESOLVED. Enhanced procedures are
+  effective. Error rate post-CAPA is within industry benchmarks (< 0.5%).
+
+EFFICACY OVERVIEW (interim, Phase III portion):
+
+  Per protocol interim analysis plan (60% information fraction):
+    PFS events observed:            184 of 302 required (60.9%)
+    Interim efficacy boundary (Lan-DeMets O'Brien-Fleming): p < 0.005
+
+    ORX-4471 arm median PFS:        7.4 months
+    Docetaxel arm median PFS:       4.1 months
+    HR: 0.59 (95% CI: 0.44-0.79), p = 0.0004
+
+    ** CROSSES interim efficacy boundary (p=0.0004 < 0.005) **
+
+    OS:
+    ORX-4471 arm median OS:         15.2 months
+    Docetaxel arm median OS:        10.8 months
+    OS HR: 0.66 (95% CI: 0.48-0.91), p = 0.011
+
+DSMB DELIBERATION:
+
+  The Board considered the following:
+
+  1. SAFETY: One treatment-related death (pneumonitis) in the ORX-4471 arm.
+     This is within the expected range for checkpoint inhibitors (0.5-1.0%).
+     The docetaxel arm also had one treatment-related death (sepsis). Overall
+     safety profile acceptable and consistent with class effects.
+
+  2. HEPATOTOXICITY: Grade 3+ rate of 7.0% is below both the original Phase
+     II boundary (8%) and the Phase III boundary (10%). Enhanced monitoring
+     has reduced severity and improved early detection. No Grade 4 events.
+     Dr. Fischer (hepatology consultant) confirms management adequate.
+
+  3. DATA INTEGRITY: The Site 07 transcription error has been fully resolved.
+     Cross-site audit revealed no additional significant errors. Enhanced
+     procedures are working effectively.
+
+  4. EFFICACY: The interim analysis crosses the pre-specified efficacy boundary.
+     Both PFS and OS favor ORX-4471. The Board notes that per the alpha-spending
+     plan, the trial CAN be stopped early for efficacy.
+
+  5. PHASE I BASELINE INTEGRITY: Phase I safety data (Document 02) remains
+     unchanged and immutable. All Phase II/III safety findings documented as
+     new information. The DSMB confirms no retroactive modifications have
+     been made to Phase I data.
+
+  6. BENEFIT-RISK: The benefit-risk profile is favorable. PFS and OS benefits
+     are clinically meaningful. Safety is manageable with enhanced monitoring.
+
+DSMB RECOMMENDATIONS:
+
+  1. ** TRIAL CONTINUES TO PRIMARY ENDPOINT ** (Vote: Unanimous, 5-0)
+     Despite crossing the interim efficacy boundary, the Board recommends
+     continuing to the primary OS analysis to strengthen the dataset for
+     regulatory submission and long-term safety characterization.
+
+  2. ** BENEFIT-RISK ASSESSMENT: FAVORABLE ** (Vote: Unanimous, 5-0)
+     The hepatotoxicity signal, while real, is manageable with enhanced
+     monitoring. The efficacy benefit clearly outweighs the safety risk.
+
+  3. ** HEPATIC MONITORING: ADEQUATE ** (Vote: Unanimous, 5-0)
+     Enhanced monitoring per Amendment v3.2 is sufficient. No further
+     modifications recommended.
+
+  4. ** DATA INTEGRITY: RESOLVED ** (Vote: Unanimous, 5-0)
+     Enhanced data entry and verification procedures are effective.
+     No further action required beyond ongoing monitoring.
+
+  5. The Board notes Dr. Osei's previous dissent (DSMB-002) is now moot
+     given the completed cross-site audit, resolution of data integrity
+     concerns, and hepatotoxicity rate below all stopping boundaries.
+     Dr. Osei concurs.
+
+NEXT REVIEW:
+  Final analysis review upon completion of primary endpoint (estimated Q4 2026).
+
+STATE: EPOCH_3 | DSMB_REVIEW: FAVORABLE | RECOMMENDATION: CONTINUE_TO_PRIMARY
+HEPATOTOX: 7.0_PCT | INTEGRITY: RESOLVED | EFFICACY: BOUNDARY_CROSSED

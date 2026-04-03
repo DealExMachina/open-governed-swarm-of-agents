@@ -1,0 +1,134 @@
+DOCUMENT: NorthGrid Utilities — Winter Storm Helios Resilience Remediation Plan
+DATE: March 5, 2026
+CLASSIFICATION: Board Approved — Internal Distribution
+AUTHOR: Grid Resilience Task Force
+REF: NG-RESIL-2026-03-PLAN-011
+
+BOARD RESOLUTION: BR-2026-008 (approved March 3, 2026)
+TOTAL INVESTMENT: EUR 45M over 18 months
+
+EXECUTIVE SUMMARY
+
+Following the Winter Storm Helios event (February 12-14, 2026), the
+NorthGrid Board of Directors has approved a comprehensive grid resilience
+remediation plan. The plan addresses the four primary failure modes
+identified in the event investigation: gas supply dependency, insufficient
+energy storage, weather forecasting gaps, and measurement system
+limitations.
+
+PROGRAM 1: BATTERY ENERGY STORAGE SYSTEM (BESS)
+Investment: EUR 22M | Timeline: 12 months to COD
+
+Scope:
+  - 200 MW / 400 MWh lithium iron phosphate (LFP) BESS installation
+  - Location: Lakeside Central Hub (Central balancing area)
+  - Grid services: frequency response (primary and secondary),
+    spinning reserve, renewable curtailment absorption
+
+Performance requirements:
+  - Full power response within 200 milliseconds of frequency trigger
+  - 2-hour discharge at rated capacity (400 MWh)
+  - Round-trip efficiency >= 88%
+  - Operational temperature range: -25C to +45C
+
+Procurement: RFP issued March 1, 2026 (NG-PROC-2026-BESS-001)
+  Shortlisted vendors: Tesla Megapack, BYD Cube, Fluence Gridstack
+  Contract award target: April 30, 2026
+  Construction start: June 2026
+  Commercial operation date: March 2027
+
+Impact on system resilience:
+  - Provides 200 MW of fast frequency response (replaces gas governor)
+  - 400 MWh can cover 30 minutes of 800 MW generation shortfall
+  - Reduces minimum gas dependency by 200 MW during extreme cold events
+
+PROGRAM 2: DUAL-FUEL CAPABILITY RETROFIT
+Investment: EUR 15M | Timeline: 18 months
+
+Scope:
+  - Retrofit 4 Central area gas combined-cycle units with No. 2 fuel oil
+    backup capability:
+      Lakeside CC Unit 1 (400 MW) — dual-fuel conversion
+      Lakeside CC Unit 2 (400 MW) — dual-fuel conversion
+      Lakeside CC Unit 3 (400 MW) — dual-fuel conversion
+      Flatlands CT Unit 1 (150 MW) — dual-fuel conversion
+  - On-site fuel oil storage: 5-day supply at full output (42,000 barrels
+    per unit, total 168,000 barrels)
+
+Engineering:
+  - Combustion system modification (new fuel nozzles, fuel forwarding)
+  - Environmental permits required (USEPA Title V amendment)
+  - Air quality permit modifications (NOx, SOx, PM emission limits)
+
+Timeline:
+  - Engineering design: March - June 2026
+  - Environmental permitting: April - September 2026
+  - Construction (phased): October 2026 - August 2027
+  - Full capability: September 2027
+
+Impact on system resilience:
+  - 1,350 MW of gas generation can operate independently of gas pipeline
+  - Eliminates single-point-of-failure dependency on TransCon Pipeline
+
+PROGRAM 3: ENHANCED WEATHER FORECASTING INTEGRATION
+Investment: EUR 3M | Timeline: 6 months
+
+Scope:
+  - Integration of ensemble weather forecasting models into dispatch
+    optimization system
+  - Automated pre-positioning of reserves based on probabilistic severe
+    weather forecasts (72-hour and 168-hour horizons)
+  - Partnership with NOAA/NWS for enhanced regional mesoscale modeling
+  - Machine learning model for gas supply risk scoring based on weather,
+    pipeline conditions, and historical patterns
+
+Deliverables:
+  - Automated severe weather playbook activation (replaces manual process)
+  - Pipeline gas supply risk dashboard (real-time)
+  - Enhanced wind and solar forecasting (target: 15% MAPE reduction)
+
+Timeline:
+  - Vendor selection: March 2026
+  - Development and integration: April - July 2026
+  - Testing and validation: August 2026
+  - Operational deployment: September 2026
+
+PROGRAM 4: MEASUREMENT SYSTEM UPGRADE
+Investment: EUR 5M | Timeline: 9 months
+
+Scope:
+  - Expand PMU deployment from 12 to 36 units across all critical
+    substations (all CIP-014 facilities and major generation POIs)
+  - Upgrade SCADA frequency measurement from 2-second to 100ms scan rate
+  - Implement PMU-based real-time frequency monitoring as primary source
+    (replacing SCADA as primary for disturbance analysis)
+  - Deploy synchrophasor-based oscillation detection and early warning
+
+Timeline:
+  - PMU procurement: March - April 2026
+  - Installation phase 1 (12 units, high-impact sites): May - July 2026
+  - Installation phase 2 (12 units, remaining critical): Aug - Oct 2026
+  - SCADA upgrade and integration: November 2026
+  - Full operational capability: December 2026
+
+FUNDING AND COST RECOVERY
+
+Total program cost: EUR 45M
+Funding sources:
+  - Rate base investment (FERC-jurisdictional): EUR 32M
+  - Insurance recovery (storm damage): EUR 4M
+  - TransCon litigation settlement (anticipated): EUR 5M
+  - Operational savings reallocation: EUR 4M
+
+Rate impact: approximately EUR 0.42/MWh surcharge for 36 months
+(subject to FERC approval under Formula Rate, Attachment H)
+
+GOVERNANCE
+
+Program sponsor: R. Vasquez, VP Grid Operations
+Program manager: D. Okonkwo, P.E., Senior Transmission Planning Engineer
+Steering committee: Monthly review, Board quarterly updates
+Next milestone: BESS vendor selection (April 30, 2026)
+
+PREPARED BY: Grid Resilience Task Force
+APPROVED BY: NorthGrid Board of Directors (BR-2026-008)

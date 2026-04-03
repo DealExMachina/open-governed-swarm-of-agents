@@ -1,6 +1,10 @@
 use napi_derive::napi;
+use std::time::Instant;
 
+use crate::causal;
+use crate::concept;
 use crate::convergence::{self, ConvergenceConfig, ConvergencePointInput, SnapshotInput};
+use crate::propagation;
 use crate::finality::{self, ConditionMode, FinalitySnapshotFull, GateConfig, GateState};
 use crate::governance;
 use crate::types::{
@@ -106,6 +110,7 @@ pub struct FinalitySnapshotFullDto {
     pub assessments_critical_unaddressed_count: Option<u32>,
     pub contradiction_mass: Option<f64>,
     pub evidence_coverage: Option<f64>,
+    pub elimination_complete: Option<bool>,
 }
 
 /// Finality gate configuration.
@@ -115,9 +120,11 @@ pub struct GateConfigDto {
     pub trajectory_quality_threshold: f64,
     pub quiescence_max_unresolved: u32,
     pub quiescence_max_risks: u32,
+    pub gate_f_enforced: Option<bool>,
+    pub elimination_refutation_threshold: Option<f64>,
 }
 
-/// State of all five finality gates.
+/// State of all six finality gates (A–F).
 #[napi(object)]
 pub struct GateStateDto {
     pub a_monotonic: bool,
@@ -125,6 +132,7 @@ pub struct GateStateDto {
     pub c_trajectory: bool,
     pub d_quiescent: bool,
     pub e_has_content: bool,
+    pub f_elimination_complete: bool,
     pub all_passed: bool,
 }
 
@@ -157,6 +165,31 @@ pub struct ConvergenceOutputDto {
     // Per-dimension gates (Issue #18: non-scalar finality)
     pub per_dimension_monotonic: Vec<bool>,
     pub per_dimension_trajectory_quality: Vec<f64>,
+}
+
+// ---------------------------------------------------------------------------
+// Phase 3: Concept lattice DTOs
+// ---------------------------------------------------------------------------
+
+#[napi(object)]
+pub struct ConceptLatticeResultDto {
+    pub concept_count: u32,
+    pub overflow: bool,
+    pub compute_ms: f64,
+}
+
+#[napi(object)]
+pub struct ConceptFinalityResultDto {
+    pub is_final: bool,
+    pub concept_count: u32,
+    pub overflow: bool,
+    pub lattice_threshold: u32,
+}
+
+#[napi(object)]
+pub struct ConceptProvenanceDto {
+    pub intent_mask: u32,
+    pub extent_size: u32,
 }
 
 // ---------------------------------------------------------------------------
@@ -260,6 +293,7 @@ fn full_snapshot_from_dto(dto: &FinalitySnapshotFullDto) -> FinalitySnapshotFull
         assessments_critical_unaddressed_count: dto.assessments_critical_unaddressed_count.unwrap_or(0),
         contradiction_mass: dto.contradiction_mass.unwrap_or(0.0),
         evidence_coverage: dto.evidence_coverage.unwrap_or(1.0),
+        elimination_complete: dto.elimination_complete.unwrap_or(true),
     }
 }
 
@@ -269,6 +303,8 @@ fn gate_config_from_dto(dto: &GateConfigDto) -> GateConfig {
         trajectory_quality_threshold: dto.trajectory_quality_threshold,
         quiescence_max_unresolved: dto.quiescence_max_unresolved,
         quiescence_max_risks: dto.quiescence_max_risks,
+        gate_f_enforced: dto.gate_f_enforced.unwrap_or(false),
+        elimination_refutation_threshold: dto.elimination_refutation_threshold.unwrap_or(0.7),
     }
 }
 
@@ -279,6 +315,7 @@ fn gate_state_to_dto(state: &GateState) -> GateStateDto {
         c_trajectory: state.c_trajectory,
         d_quiescent: state.d_quiescent,
         e_has_content: state.e_has_content,
+        f_elimination_complete: state.f_elimination_complete,
         all_passed: state.all_passed(),
     }
 }
@@ -755,6 +792,7 @@ pub fn evaluate_vector_finality_bridge(
         c_trajectory: global_gates.c_trajectory,
         d_quiescent: global_gates.d_quiescent,
         e_has_content: global_gates.e_has_content,
+        f_elimination_complete: global_gates.f_elimination_complete,
     };
 
     let result = finality::evaluate_vector_finality(
@@ -791,4 +829,837 @@ pub fn evaluate_vector_finality_bridge(
         finality_reached: result.finality_reached,
         compensation_detected: result.compensation_detected,
     }
+}
+
+// ---------------------------------------------------------------------------
+// Causal contribution layer — DTOs and bridge functions
+// ---------------------------------------------------------------------------
+
+#[napi(object)]
+pub struct ContentHashResultDto {
+    /// Hex-encoded SHA-256 hash.
+    pub hash: String,
+    /// Whether the computation succeeded.
+    pub valid: bool,
+    /// Error message if computation failed.
+    pub error: Option<String>,
+}
+
+#[napi(object)]
+pub struct CausalValidationResultDto {
+    /// Overall validity.
+    pub valid: bool,
+    /// Whether the rid matches the computed content hash.
+    pub rid_matches: bool,
+    /// Hex-encoded parent IDs that are not in the known set.
+    pub missing_parents: Vec<String>,
+    /// Error message if validation failed.
+    pub error: Option<String>,
+}
+
+/// Compute the content-addressed hash for a contribution.
+///
+/// Input: hex-encoded parent IDs, JSON payload string, kind string.
+/// Output: hex-encoded SHA-256 hash.
+#[napi]
+pub fn compute_content_hash_bridge(
+    parents: Vec<String>,
+    payload: String,
+    kind: String,
+) -> ContentHashResultDto {
+    let parent_ids: Result<Vec<causal::ContributionId>, _> = parents
+        .iter()
+        .map(|p| causal::ContributionId::from_hex(p))
+        .collect();
+
+    let parent_ids = match parent_ids {
+        Ok(ids) => ids,
+        Err(e) => {
+            return ContentHashResultDto {
+                hash: String::new(),
+                valid: false,
+                error: Some(format!("invalid parent hex: {}", e)),
+            };
+        }
+    };
+
+    let content: serde_json::Value = match serde_json::from_str(&payload) {
+        Ok(v) => v,
+        Err(e) => {
+            return ContentHashResultDto {
+                hash: String::new(),
+                valid: false,
+                error: Some(format!("invalid JSON payload: {}", e)),
+            };
+        }
+    };
+
+    let contribution_kind = match causal::ContributionKind::from_str(&kind) {
+        Ok(k) => k,
+        Err(e) => {
+            return ContentHashResultDto {
+                hash: String::new(),
+                valid: false,
+                error: Some(format!("{}", e)),
+            };
+        }
+    };
+
+    let contribution_payload = causal::ContributionPayload { content };
+
+    match causal::compute_content_hash(&parent_ids, &contribution_payload, &contribution_kind) {
+        Ok(id) => ContentHashResultDto {
+            hash: id.to_hex(),
+            valid: true,
+            error: None,
+        },
+        Err(e) => ContentHashResultDto {
+            hash: String::new(),
+            valid: false,
+            error: Some(format!("{}", e)),
+        },
+    }
+}
+
+/// Validate a contribution against a set of known contribution IDs.
+///
+/// Checks:
+/// 1. rid matches the content hash of (parents, payload, kind)
+/// 2. All parents are in the known_rids set
+#[napi]
+pub fn validate_contribution_bridge(
+    rid: String,
+    parents: Vec<String>,
+    payload: String,
+    kind: String,
+    known_rids: Vec<String>,
+) -> CausalValidationResultDto {
+    // Parse rid
+    let contribution_rid = match causal::ContributionId::from_hex(&rid) {
+        Ok(id) => id,
+        Err(e) => {
+            return CausalValidationResultDto {
+                valid: false,
+                rid_matches: false,
+                missing_parents: vec![],
+                error: Some(format!("invalid rid hex: {}", e)),
+            };
+        }
+    };
+
+    // Parse parents
+    let parent_ids: Result<Vec<causal::ContributionId>, _> = parents
+        .iter()
+        .map(|p| causal::ContributionId::from_hex(p))
+        .collect();
+    let parent_ids = match parent_ids {
+        Ok(ids) => ids,
+        Err(e) => {
+            return CausalValidationResultDto {
+                valid: false,
+                rid_matches: false,
+                missing_parents: vec![],
+                error: Some(format!("invalid parent hex: {}", e)),
+            };
+        }
+    };
+
+    // Parse payload
+    let content: serde_json::Value = match serde_json::from_str(&payload) {
+        Ok(v) => v,
+        Err(e) => {
+            return CausalValidationResultDto {
+                valid: false,
+                rid_matches: false,
+                missing_parents: vec![],
+                error: Some(format!("invalid JSON payload: {}", e)),
+            };
+        }
+    };
+
+    // Parse kind
+    let contribution_kind = match causal::ContributionKind::from_str(&kind) {
+        Ok(k) => k,
+        Err(e) => {
+            return CausalValidationResultDto {
+                valid: false,
+                rid_matches: false,
+                missing_parents: vec![],
+                error: Some(format!("{}", e)),
+            };
+        }
+    };
+
+    // Check content hash
+    let contribution_payload = causal::ContributionPayload { content };
+    let computed =
+        match causal::compute_content_hash(&parent_ids, &contribution_payload, &contribution_kind) {
+            Ok(id) => id,
+            Err(e) => {
+                return CausalValidationResultDto {
+                    valid: false,
+                    rid_matches: false,
+                    missing_parents: vec![],
+                    error: Some(format!("hash computation failed: {}", e)),
+                };
+            }
+        };
+
+    let rid_matches = computed == contribution_rid;
+
+    // Check parents against known set
+    let known_set: std::collections::HashSet<&str> =
+        known_rids.iter().map(|s| s.as_str()).collect();
+    let missing_parents: Vec<String> = parents
+        .iter()
+        .filter(|p| !known_set.contains(p.as_str()))
+        .cloned()
+        .collect();
+
+    let valid = rid_matches && missing_parents.is_empty();
+
+    CausalValidationResultDto {
+        valid,
+        rid_matches,
+        missing_parents,
+        error: None,
+    }
+}
+
+// ─── Propagation Layer Bridge ───────────────────────────────────────────────
+
+/// DTO for spectral analysis results.
+#[napi(object)]
+pub struct SpectralAnalysisDto {
+    pub eigenvalues: Vec<f64>,
+    pub spectral_gap: f64,
+    pub lambda_max: f64,
+    pub optimal_alpha: f64,
+    pub contraction_rate: f64,
+    pub mixing_time_estimate: f64,
+    pub is_connected: bool,
+}
+
+/// DTO for ISS analysis results.
+#[napi(object)]
+pub struct ISSAnalysisDto {
+    pub contraction_rate: f64,
+    pub contraction_rate_squared: f64,
+    pub propagation_gain: f64,
+    pub contradiction_rate: f64,
+    pub small_gain_satisfied: bool,
+    pub small_gain_margin: f64,
+    pub steady_state_disagreement: f64,
+    pub steady_state_contradictions: f64,
+    pub convergence_time_estimate: f64,
+}
+
+/// DTO for a single detected contradiction.
+#[napi(object)]
+pub struct DetectedContradictionDto {
+    pub role_i: u32,
+    pub role_j: u32,
+    pub dimension: u32,
+    pub channel: String,
+    pub magnitude: f64,
+}
+
+/// DTO for propagation step results.
+#[napi(object)]
+pub struct PropagationStepResultDto {
+    pub disagreement_before: f64,
+    pub disagreement_after: f64,
+    pub contraction_ratio: f64,
+    pub perturbation_norm: f64,
+    pub contraction_achieved: bool,
+    /// Flattened new state (same layout as input) for chaining steps from TS.
+    pub flat_new_state: Vec<f64>,
+}
+
+/// Compute disagreement Ω(x) = Σᵢ ‖xᵢ − x̄‖² for an evidence state.
+///
+/// flat_state: flattened evidence vectors (length = num_roles * 2 * num_dims)
+/// num_roles: number of roles
+/// num_dims: evidence dimensions per role (support + refutation → 2·num_dims values per role)
+#[napi]
+pub fn compute_disagreement_bridge(flat_state: Vec<f64>, num_roles: u32, num_dims: u32) -> f64 {
+    let state = propagation::EvidenceState::from_flat(
+        &flat_state,
+        num_roles as usize,
+        num_dims as usize,
+    );
+    propagation::compute_disagreement(&state)
+}
+
+/// Per-dimension disagreement: returns a Vec of length num_dims where each entry
+/// is Σᵢ [(s_{i,d} - s̄_d)² + (r_{i,d} - r̄_d)²].
+#[napi]
+pub fn per_dimension_disagreement_bridge(
+    flat_state: Vec<f64>,
+    num_roles: u32,
+    num_dims: u32,
+) -> Vec<f64> {
+    let state = propagation::EvidenceState::from_flat(
+        &flat_state,
+        num_roles as usize,
+        num_dims as usize,
+    );
+    propagation::per_dimension_disagreement(&state)
+}
+
+/// Analyze the spectrum of a sheaf Laplacian built from identity restriction maps
+/// on a complete graph with the given number of roles and stalk dimension.
+///
+/// Returns spectral gap, optimal α, contraction rate, etc.
+#[napi]
+pub fn analyze_spectrum_bridge(num_roles: u32, stalk_dim: u32) -> SpectralAnalysisDto {
+    use propagation::{CellularSheaf, RestrictionMap};
+    use nalgebra::DMatrix;
+
+    let n = num_roles as usize;
+    let d = stalk_dim as usize;
+    let stalk_dims = vec![d; n];
+    let identity = DMatrix::identity(d, d);
+
+    // Build complete graph with identity restriction maps
+    let mut maps = Vec::new();
+    for i in 0..n {
+        for j in (i + 1)..n {
+            maps.push(RestrictionMap {
+                source_role: i,
+                target_role: j,
+                edge_dim: d,
+                source_map: identity.clone(),
+                target_map: identity.clone(),
+            });
+        }
+    }
+
+    let sheaf = CellularSheaf {
+        num_roles: n,
+        stalk_dims,
+        restriction_maps: maps,
+    };
+
+    let analysis = propagation::spectral_analysis(&sheaf);
+
+    SpectralAnalysisDto {
+        eigenvalues: analysis.eigenvalues,
+        spectral_gap: analysis.spectral_gap,
+        lambda_max: analysis.lambda_max,
+        optimal_alpha: analysis.optimal_alpha,
+        contraction_rate: analysis.contraction_rate,
+        mixing_time_estimate: analysis.mixing_time_estimate,
+        is_connected: analysis.is_connected,
+    }
+}
+
+/// ISS cascade analysis: check the small-gain condition κ/(1 − ρ²) < 1.
+#[napi]
+pub fn analyze_iss_bridge(
+    spectral_gap: f64,
+    alpha: f64,
+    noise_bound: f64,
+    contradiction_rate: f64,
+    initial_disagreement: f64,
+) -> ISSAnalysisDto {
+    let analysis = propagation::analyze_iss(
+        spectral_gap,
+        alpha,
+        noise_bound,
+        contradiction_rate,
+        initial_disagreement,
+    );
+
+    ISSAnalysisDto {
+        contraction_rate: analysis.contraction_rate,
+        contraction_rate_squared: analysis.contraction_rate_squared,
+        propagation_gain: analysis.propagation_gain,
+        contradiction_rate: analysis.contradiction_rate,
+        small_gain_satisfied: analysis.small_gain_satisfied,
+        small_gain_margin: analysis.small_gain_margin,
+        steady_state_disagreement: analysis.steady_state_disagreement,
+        steady_state_contradictions: analysis.steady_state_contradictions,
+        convergence_time_estimate: analysis.convergence_time_estimate,
+    }
+}
+
+/// Run one propagation step on a complete-graph sheaf with identity restriction maps.
+///
+/// flat_state / flat_perturbation: flattened evidence vectors
+/// num_roles, num_dims: dimensions
+/// alpha: diffusion rate
+/// support_min/max, refutation_min/max: admissible projection bounds
+#[napi]
+pub fn propagation_step_bridge(
+    flat_state: Vec<f64>,
+    flat_perturbation: Vec<f64>,
+    num_roles: u32,
+    num_dims: u32,
+    alpha: f64,
+    support_min: f64,
+    support_max: f64,
+    refutation_min: f64,
+    refutation_max: f64,
+) -> PropagationStepResultDto {
+    use propagation::{CellularSheaf, RestrictionMap, AdmissibleProjection};
+    use nalgebra::DMatrix;
+
+    let n = num_roles as usize;
+    let d = num_dims as usize;
+    let stalk_dim = 2 * d; // support + refutation
+
+    let state = propagation::EvidenceState::from_flat(&flat_state, n, d);
+    let perturbation = propagation::EvidenceState::from_flat(&flat_perturbation, n, d);
+
+    // Build complete-graph sheaf with identity maps
+    let stalk_dims = vec![stalk_dim; n];
+    let identity = DMatrix::identity(stalk_dim, stalk_dim);
+    let mut maps = Vec::new();
+    for i in 0..n {
+        for j in (i + 1)..n {
+            maps.push(RestrictionMap {
+                source_role: i,
+                target_role: j,
+                edge_dim: stalk_dim,
+                source_map: identity.clone(),
+                target_map: identity.clone(),
+            });
+        }
+    }
+
+    let sheaf = CellularSheaf {
+        num_roles: n,
+        stalk_dims,
+        restriction_maps: maps,
+    };
+
+    let projection = AdmissibleProjection::new(
+        vec![(support_min, support_max); d],
+        vec![(refutation_min, refutation_max); d],
+    );
+
+    let result = propagation::propagation_step(&sheaf, &state, &perturbation, &projection, alpha);
+
+    PropagationStepResultDto {
+        disagreement_before: result.disagreement_before,
+        disagreement_after: result.disagreement_after,
+        contraction_ratio: result.contraction_ratio,
+        perturbation_norm: result.perturbation_norm,
+        contraction_achieved: result.contraction_achieved,
+        flat_new_state: result.new_state.to_flat(),
+    }
+}
+
+/// Extract contradictions from an evidence state.
+///
+/// Returns all role-dimension pairs where disagreement exceeds threshold.
+#[napi]
+pub fn extract_contradictions_bridge(
+    flat_state: Vec<f64>,
+    num_roles: u32,
+    num_dims: u32,
+    threshold: f64,
+) -> Vec<DetectedContradictionDto> {
+    let state = propagation::EvidenceState::from_flat(
+        &flat_state,
+        num_roles as usize,
+        num_dims as usize,
+    );
+
+    let contradictions = propagation::extract_contradictions(&state, threshold);
+
+    contradictions
+        .into_iter()
+        .map(|c| DetectedContradictionDto {
+            role_i: c.role_i as u32,
+            role_j: c.role_j as u32,
+            dimension: c.dimension as u32,
+            channel: format!("{:?}", c.channel),
+            magnitude: c.magnitude,
+        })
+        .collect()
+}
+
+/// Compute concept lattice size on the 31-attribute FCA context.
+#[napi]
+pub fn compute_concept_lattice_bridge(
+    flat_support: Vec<f64>,
+    flat_refutation: Vec<f64>,
+    governance_levels: Vec<String>,
+    num_roles: u32,
+    num_dims: u32,
+    max_concepts: u32,
+) -> ConceptLatticeResultDto {
+    let governance: Vec<concept::GovernanceAttr> = governance_levels
+        .iter()
+        .map(|g| match g.as_str() {
+            "MASTER" => concept::GovernanceAttr::Master,
+            "MITL" => concept::GovernanceAttr::Mitl,
+            _ => concept::GovernanceAttr::Yolo,
+        })
+        .collect();
+
+    let cfg = concept::ThresholdConfig::default();
+    let rows = concept::build_context_rows(
+        &flat_support,
+        &flat_refutation,
+        &governance,
+        num_roles as usize,
+        num_dims as usize,
+        &cfg,
+    );
+
+    let t0 = Instant::now();
+    let (count, overflow) = concept::concept_lattice_size(&rows, 31, max_concepts as usize);
+    let dt = t0.elapsed().as_secs_f64() * 1000.0;
+
+    ConceptLatticeResultDto {
+        concept_count: count as u32,
+        overflow,
+        compute_ms: dt,
+    }
+}
+
+/// Check concept-space finality proxy against a lattice cardinality threshold.
+#[napi]
+pub fn check_finality_on_concepts_bridge(
+    flat_support: Vec<f64>,
+    flat_refutation: Vec<f64>,
+    governance_levels: Vec<String>,
+    num_roles: u32,
+    num_dims: u32,
+    lattice_threshold: u32,
+    max_concepts: u32,
+) -> ConceptFinalityResultDto {
+    let governance: Vec<concept::GovernanceAttr> = governance_levels
+        .iter()
+        .map(|g| match g.as_str() {
+            "MASTER" => concept::GovernanceAttr::Master,
+            "MITL" => concept::GovernanceAttr::Mitl,
+            _ => concept::GovernanceAttr::Yolo,
+        })
+        .collect();
+
+    let cfg = concept::ThresholdConfig::default();
+    let rows = concept::build_context_rows(
+        &flat_support,
+        &flat_refutation,
+        &governance,
+        num_roles as usize,
+        num_dims as usize,
+        &cfg,
+    );
+    let (is_final, count, overflow) = concept::check_finality_on_concepts(
+        &rows,
+        31,
+        lattice_threshold as usize,
+        max_concepts as usize,
+    );
+
+    ConceptFinalityResultDto {
+        is_final,
+        concept_count: count as u32,
+        overflow,
+        lattice_threshold,
+    }
+}
+
+/// Return concept intents with extent sizes for provenance/debugging.
+#[napi]
+pub fn get_concept_provenance_bridge(
+    flat_support: Vec<f64>,
+    flat_refutation: Vec<f64>,
+    governance_levels: Vec<String>,
+    num_roles: u32,
+    num_dims: u32,
+    max_concepts: u32,
+) -> Vec<ConceptProvenanceDto> {
+    let governance: Vec<concept::GovernanceAttr> = governance_levels
+        .iter()
+        .map(|g| match g.as_str() {
+            "MASTER" => concept::GovernanceAttr::Master,
+            "MITL" => concept::GovernanceAttr::Mitl,
+            _ => concept::GovernanceAttr::Yolo,
+        })
+        .collect();
+
+    let cfg = concept::ThresholdConfig::default();
+    let rows = concept::build_context_rows(
+        &flat_support,
+        &flat_refutation,
+        &governance,
+        num_roles as usize,
+        num_dims as usize,
+        &cfg,
+    );
+
+    concept::concept_provenance(&rows, 31, max_concepts as usize)
+        .into_iter()
+        .map(|(intent_mask, extent_size)| ConceptProvenanceDto {
+            intent_mask,
+            extent_size: extent_size as u32,
+        })
+        .collect()
+}
+
+// ─── Topology-Aware Propagation Bridge ─────────────────────────────────────
+
+/// Topology preset names accepted by the topology bridge functions.
+/// "complete" | "star" | "ring" | "chain" | "random_regular"
+/// For "random_regular", a `degree` and `seed` parameter are required.
+
+/// Spectral analysis on an arbitrary topology.
+///
+/// topology: "complete" | "star" | "ring" | "chain" | "random_regular"
+/// num_roles: number of vertices
+/// stalk_dim: dimension of each vertex stalk (2D for bilattice encoding)
+/// degree: required for "random_regular", ignored otherwise
+/// seed: RNG seed for "random_regular", ignored otherwise
+#[napi]
+pub fn analyze_spectrum_topology_bridge(
+    topology: String,
+    num_roles: u32,
+    stalk_dim: u32,
+    degree: Option<u32>,
+    seed: Option<u32>,
+) -> SpectralAnalysisDto {
+    let n = num_roles as usize;
+    let d = stalk_dim as usize;
+
+    let edges = build_topology(&topology, n, degree.map(|x| x as usize), seed.map(|x| x as u64));
+    let sheaf = propagation::CellularSheaf::constant(n, d, &edges);
+    let analysis = propagation::spectral_analysis(&sheaf);
+
+    SpectralAnalysisDto {
+        eigenvalues: analysis.eigenvalues,
+        spectral_gap: analysis.spectral_gap,
+        lambda_max: analysis.lambda_max,
+        optimal_alpha: analysis.optimal_alpha,
+        contraction_rate: analysis.contraction_rate,
+        mixing_time_estimate: analysis.mixing_time_estimate,
+        is_connected: analysis.is_connected,
+    }
+}
+
+/// Run one propagation step on a sheaf with configurable topology.
+///
+/// topology: "complete" | "star" | "ring" | "chain" | "random_regular"
+/// edges: optional explicit edge list as flat [u, v, u, v, ...] — overrides topology preset
+/// support_bounds / refutation_bounds: per-dimension bounds as flat [min, max, min, max, ...]
+///   If empty, defaults to uniform [0, 1] on all dimensions.
+#[napi]
+pub fn propagation_step_topology_bridge(
+    flat_state: Vec<f64>,
+    flat_perturbation: Vec<f64>,
+    num_roles: u32,
+    num_dims: u32,
+    alpha: f64,
+    topology: String,
+    degree: Option<u32>,
+    seed: Option<u32>,
+    edges: Option<Vec<u32>>,
+    support_bounds: Option<Vec<f64>>,
+    refutation_bounds: Option<Vec<f64>>,
+) -> PropagationStepResultDto {
+    let n = num_roles as usize;
+    let d = num_dims as usize;
+    let stalk_dim = 2 * d;
+
+    let state = propagation::EvidenceState::from_flat(&flat_state, n, d);
+    let perturbation = propagation::EvidenceState::from_flat(&flat_perturbation, n, d);
+
+    // Build sheaf from explicit edges or topology preset
+    let edge_list = if let Some(ref flat_edges) = edges {
+        flat_edges
+            .chunks_exact(2)
+            .map(|pair| (pair[0] as usize, pair[1] as usize))
+            .collect()
+    } else {
+        build_topology(&topology, n, degree.map(|x| x as usize), seed.map(|x| x as u64))
+    };
+
+    let sheaf = propagation::CellularSheaf::constant(n, stalk_dim, &edge_list);
+
+    // Build projection with per-dimension bounds or uniform defaults
+    let projection = build_projection(d, support_bounds, refutation_bounds);
+
+    let result = propagation::propagation_step(&sheaf, &state, &perturbation, &projection, alpha);
+
+    PropagationStepResultDto {
+        disagreement_before: result.disagreement_before,
+        disagreement_after: result.disagreement_after,
+        contraction_ratio: result.contraction_ratio,
+        perturbation_norm: result.perturbation_norm,
+        contraction_achieved: result.contraction_achieved,
+        flat_new_state: result.new_state.to_flat(),
+    }
+}
+
+/// DTO for topology metadata (edge count, type, etc.).
+#[napi(object)]
+pub struct TopologyInfoDto {
+    pub topology: String,
+    pub num_roles: u32,
+    pub num_edges: u32,
+    pub edge_list: Vec<u32>,
+}
+
+/// Get edge list and metadata for a topology preset.
+/// Useful for experiments that need to inspect the graph structure.
+#[napi]
+pub fn get_topology_info_bridge(
+    topology: String,
+    num_roles: u32,
+    degree: Option<u32>,
+    seed: Option<u32>,
+) -> TopologyInfoDto {
+    let n = num_roles as usize;
+    let edges = build_topology(&topology, n, degree.map(|x| x as usize), seed.map(|x| x as u64));
+    let flat: Vec<u32> = edges.iter().flat_map(|(u, v)| [*u as u32, *v as u32]).collect();
+
+    TopologyInfoDto {
+        topology,
+        num_roles: num_roles,
+        num_edges: edges.len() as u32,
+        edge_list: flat,
+    }
+}
+
+// ─── Projection Sheaf Bridge (sheaf grounding) ─────────────────────────────
+
+/// Spectral analysis on a sheaf with projection restriction maps.
+///
+/// role_observed_dims: per-role observed dimension indices (e.g. [[0], [1], [0,1,2,3]])
+/// edges: flat edge list [u0, v0, u1, v1, ...]
+/// num_roles, num_dims: system dimensions
+#[napi]
+pub fn analyze_spectrum_sheaf_bridge(
+    num_roles: u32,
+    num_dims: u32,
+    role_observed_dims: Vec<Vec<u32>>,
+    edges: Vec<u32>,
+) -> SpectralAnalysisDto {
+    let n = num_roles as usize;
+    let d = num_dims as usize;
+
+    let obs: Vec<Vec<usize>> = role_observed_dims
+        .iter()
+        .map(|dims| dims.iter().map(|&x| x as usize).collect())
+        .collect();
+
+    let edge_list: Vec<(usize, usize)> = edges
+        .chunks_exact(2)
+        .map(|pair| (pair[0] as usize, pair[1] as usize))
+        .collect();
+
+    let sheaf = propagation::CellularSheaf::from_role_observations(n, d, &obs, &edge_list);
+    let analysis = propagation::spectral_analysis(&sheaf);
+
+    SpectralAnalysisDto {
+        eigenvalues: analysis.eigenvalues,
+        spectral_gap: analysis.spectral_gap,
+        lambda_max: analysis.lambda_max,
+        optimal_alpha: analysis.optimal_alpha,
+        contraction_rate: analysis.contraction_rate,
+        mixing_time_estimate: analysis.mixing_time_estimate,
+        is_connected: analysis.is_connected,
+    }
+}
+
+/// Run one propagation step on a sheaf with projection restriction maps.
+///
+/// role_observed_dims: per-role observed dimension indices
+/// edges: flat edge list [u0, v0, u1, v1, ...]
+/// support_bounds / refutation_bounds: per-dimension [min, max, min, max, ...] or empty for [0,1]
+#[napi]
+pub fn propagation_step_sheaf_bridge(
+    flat_state: Vec<f64>,
+    flat_perturbation: Vec<f64>,
+    num_roles: u32,
+    num_dims: u32,
+    alpha: f64,
+    role_observed_dims: Vec<Vec<u32>>,
+    edges: Vec<u32>,
+    support_bounds: Option<Vec<f64>>,
+    refutation_bounds: Option<Vec<f64>>,
+) -> PropagationStepResultDto {
+    let n = num_roles as usize;
+    let d = num_dims as usize;
+
+    let state = propagation::EvidenceState::from_flat(&flat_state, n, d);
+    let perturbation = propagation::EvidenceState::from_flat(&flat_perturbation, n, d);
+
+    let obs: Vec<Vec<usize>> = role_observed_dims
+        .iter()
+        .map(|dims| dims.iter().map(|&x| x as usize).collect())
+        .collect();
+
+    let edge_list: Vec<(usize, usize)> = edges
+        .chunks_exact(2)
+        .map(|pair| (pair[0] as usize, pair[1] as usize))
+        .collect();
+
+    let sheaf = propagation::CellularSheaf::from_role_observations(n, d, &obs, &edge_list);
+    let projection = build_projection(d, support_bounds, refutation_bounds);
+    let result = propagation::propagation_step(&sheaf, &state, &perturbation, &projection, alpha);
+
+    PropagationStepResultDto {
+        disagreement_before: result.disagreement_before,
+        disagreement_after: result.disagreement_after,
+        contraction_ratio: result.contraction_ratio,
+        perturbation_norm: result.perturbation_norm,
+        contraction_achieved: result.contraction_achieved,
+        flat_new_state: result.new_state.to_flat(),
+    }
+}
+
+// ─── Internal helpers ──────────────────────────────────────────────────────
+
+fn build_topology(
+    topology: &str,
+    n: usize,
+    degree: Option<usize>,
+    seed: Option<u64>,
+) -> Vec<(usize, usize)> {
+    use propagation::topology;
+    match topology {
+        "complete" => topology::complete(n),
+        "star" => topology::star(n),
+        "ring" => topology::ring(n),
+        "chain" => topology::chain(n),
+        "random_regular" => {
+            let d = degree.unwrap_or(3);
+            let s = seed.unwrap_or(42);
+            topology::random_regular(n, d, s)
+                .unwrap_or_else(|| topology::complete(n))
+        }
+        _ => topology::complete(n), // fallback
+    }
+}
+
+fn build_projection(
+    num_dims: usize,
+    support_bounds: Option<Vec<f64>>,
+    refutation_bounds: Option<Vec<f64>>,
+) -> propagation::AdmissibleProjection {
+    let support_range = match support_bounds {
+        Some(ref flat) if flat.len() == 2 * num_dims => {
+            flat.chunks_exact(2)
+                .map(|pair| (pair[0], pair[1]))
+                .collect()
+        }
+        _ => vec![(0.0, 1.0); num_dims],
+    };
+
+    let refutation_range = match refutation_bounds {
+        Some(ref flat) if flat.len() == 2 * num_dims => {
+            flat.chunks_exact(2)
+                .map(|pair| (pair[0], pair[1]))
+                .collect()
+        }
+        _ => vec![(0.0, 1.0); num_dims],
+    };
+
+    propagation::AdmissibleProjection::new(support_range, refutation_range)
 }

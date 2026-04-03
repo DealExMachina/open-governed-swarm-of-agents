@@ -1,0 +1,25 @@
+QUARTERLY ALLOCATION REPORT -- Q4 2024
+
+Reporting period: 2024-10-22 to 2024-12-31
+Bond: EuroVert Capital Green Bond Fund I
+
+Allocation summary:
+- Total net proceeds: EUR 249,687,500
+- Allocated: EUR 115,200,000 (46.1%)
+  - SolarMed (Cat A, Solar): EUR 15,200,000 (first drawdown)
+  - WindNorth (Cat A, Wind): EUR 62,000,000 (refinancing, full drawdown)
+  - RetroFit (Cat B, Energy efficiency): EUR 20,000,000 (first tranche)
+  - ChargeNet (Cat C, Clean transport): EUR 18,000,000 (full allocation)
+- Unallocated: EUR 134,487,500 (53.9%)
+- Interim investment: EUR 130M in German Bunds (3m), EUR 4.5M in ECB green MMF
+
+Taxonomy alignment (estimated):
+- Category A (renewable): EUR 77,200,000 (67.0% of allocated) -- ALIGNED
+- Category B (energy efficiency): EUR 20,000,000 (17.4%) -- PARTIALLY ALIGNED (EPC documentation pending for 4 of 12 buildings)
+- Category C (clean transport): EUR 18,000,000 (15.6%) -- ALIGNED
+
+Overall Taxonomy alignment of allocated proceeds: approximately 82.6%. Below the 85% target due to Category B partial alignment.
+
+Note: The EUGBS Regulation (2023/2631) became applicable on 21 December 2024. The issuer has not yet applied for EuGB designation. Framework v1.1 addressing Sustainalytics reservations is in preparation.
+
+Claim: 46.1% of proceeds allocated across 4 projects. Contradiction: Taxonomy alignment at 82.6%, below the 85% minimum target. Category B partial alignment is the bottleneck. Risk: If EPC documentation is not completed, EUGBS designation may not be achievable.

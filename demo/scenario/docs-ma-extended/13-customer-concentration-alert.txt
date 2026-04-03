@@ -1,0 +1,77 @@
+================================================================================
+CONFIDENTIAL — PROJECT HORIZON
+ALERT: Customer Concentration Risk — NovaTech AG
+Date: 2025-03-18
+Prepared by: Julia Hartmann, VP Sales — NovaTech AG
+Classification: HIGH PRIORITY — MATERIAL UPDATE
+================================================================================
+
+1. PURPOSE
+
+This memo provides an urgent update to the customer concentration analysis
+(Document 04) following recent developments with NovaTech's largest customer.
+
+2. REVISED CUSTOMER REVENUE DATA
+
+Following the independent financial review (Document 11), customer ARR figures
+have been restated based on adjusted revenue recognition. The revised top-5
+customer breakdown is as follows:
+
+  Rank  Customer                   Adjusted ARR    % of Adj. ARR   Change
+  ----  --------                   ------------    -------------   ------
+   1    Pharmakon GmbH              EUR 8.2M         21.6%         UP*
+   2    BioVantage AG               EUR 4.8M         12.6%         DOWN
+   3    MedCore Instruments         EUR 3.9M         10.3%         DOWN
+   4    Helvetia Diagnostics        EUR 3.5M          9.2%         FLAT
+   5    Rheingold Therapeutics      EUR 3.2M          8.4%         FLAT
+
+  * Pharmakon's absolute ARR increased from EUR 7.8M to EUR 8.2M due to a
+    mid-contract upsell in Q3 2025. However, the adjusted total ARR base
+    (EUR 38.0M per Deloitte review) increases Pharmakon's concentration to
+    21.6% — significantly above the 15.6% previously reported.
+
+3. CRITICAL DEVELOPMENT: PHARMAKON CONTRACT STATUS
+
+Through customer reference calls conducted during diligence, we have learned
+the following material developments regarding Pharmakon GmbH:
+
+  (a) Pharmakon's current contract expires June 30, 2026 — only 15 months
+      from signing. The contract includes a 90-day termination-for-convenience
+      clause (confirmed in Document 04).
+
+  (b) Pharmakon's Head of Regulatory Affairs, Dr. Sabine Vogel, confirmed
+      that Pharmakon is conducting a competitive evaluation of alternative
+      platforms, including Veeva Systems RegulatoryOne and Rimsys.
+
+  (c) The evaluation was triggered by Pharmakon's recent merger with
+      HelixBio AG, which uses Veeva Systems for US regulatory submissions.
+      The merged entity seeks platform consolidation across geographies.
+
+  (d) Dr. Vogel stated: "We value our relationship with NovaTech but need
+      to assess whether a single global platform would be more efficient
+      for the combined organization."
+
+4. IMPACT ASSESSMENT
+
+  Scenario A (Pharmakon Renews):     No material impact
+  Scenario B (Pharmakon Churns):     EUR 8.2M ARR loss (21.6% of base)
+                                     Adjusted ARR falls to EUR 29.8M
+                                     Implied valuation impact: EUR 60-80M
+
+5. ADDITIONAL CONCENTRATION CONCERNS
+
+With the adjusted ARR base, the top 3 customers now represent 44.5% of total
+ARR. This exceeds the 40% threshold typically flagged in SaaS due diligence.
+
+  Combined Top 3:    EUR 16.9M / EUR 38.0M = 44.5%
+  Combined Top 5:    EUR 23.6M / EUR 38.0M = 62.1%
+  Combined Top 10:   EUR 30.2M / EUR 38.0M = 79.5%
+
+6. RECOMMENDED ACTIONS
+
+  (a) Schedule executive-level meeting between Meridian and Pharmakon
+  (b) Request NovaTech to present Pharmakon retention strategy
+  (c) Model deal economics under both renewal and churn scenarios
+  (d) Consider earn-out or holdback provisions tied to Pharmakon retention
+
+Prepared by Julia Hartmann, VP Sales — NovaTech AG

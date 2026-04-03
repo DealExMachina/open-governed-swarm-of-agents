@@ -1,0 +1,166 @@
+DOCUMENT: GDPR ERASURE REQUEST — DPO RESOLUTION DECISION
+CLASSIFICATION: CONFIDENTIAL — DATA PROTECTION / AML COMPLIANCE
+INSTITUTION: EuroBank AG, Frankfurt am Main
+DATE: 2024-10-08
+REFERENCE: DPO-2024-CAST-0002
+DATA PROTECTION OFFICER: Dr. Markus Lehmann (EB-1105)
+LEGAL REVIEW: Dr. Heinrich Fischer, General Counsel (EB-0042)
+RESPONSE TO: DPO-2024-CAST-0001 (Elena Castellan erasure request)
+
+1. DECISION SUMMARY
+
+Following comprehensive legal analysis, cross-functional consultation,
+and balancing of the competing legal obligations, the Data Protection
+Officer issues the following decision:
+
+  REQUEST STATUS: PARTIALLY GRANTED, PARTIALLY DENIED
+
+  Elena Castellan's personal data will be RETAINED where required by
+  anti-money laundering legislation, but will be subject to enhanced
+  access restrictions. Data not required for AML compliance will be
+  DELETED.
+
+2. LEGAL BASIS FOR RETENTION
+
+The DPO relies on the following legal bases for continued processing
+of Elena Castellan's personal data:
+
+  Primary Basis: GDPR Article 17(3)(b)
+  "The right to erasure shall not apply to the extent that processing
+   is necessary for compliance with a legal obligation which requires
+   processing by Union or Member State law to which the controller is
+   subject."
+
+  Applicable Legal Obligations:
+  (a) 5AMLD (Directive 2015/849) Article 40: 5-year retention of CDD
+      records after end of business relationship or last transaction
+  (b) German GwG Section 8(4): 5-year retention of CDD documentation
+  (c) German AO (Abgabenordnung) Section 147: 6-year retention of
+      commercially relevant correspondence; 10-year for accounting records
+  (d) German HGB Section 257: 10-year retention for certain commercial
+      records
+
+  The DPO determines that Elena Castellan's CDD data falls squarely
+  within the scope of 5AMLD/GwG mandatory retention. The bank is
+  legally prohibited from deleting this data during the retention period.
+
+3. DATA CATEGORIZATION AND DISPOSITION
+
+  Category A — AML/CDD RETAINED DATA (erasure denied):
+    - Passport copy and identification documents
+    - UBO declaration and beneficial ownership records
+    - Source of wealth documentation
+    - Tax residency certificates
+    - CDD assessment records naming Elena as UBO
+    - Risk assessments referencing Elena's ownership stake
+    - Transaction records where Elena is identified as connected party
+    - Correspondence regarding CDD verification
+    - EDD records referencing Elena
+
+    Retention Period: Until 2029-07-15 (5 years from cessation of UBO
+    status on 2024-07-15) OR 5 years after end of Castellan Holdings
+    relationship, whichever is LATER.
+
+    Legal Basis: GDPR Art. 6(1)(c) (legal obligation) + Art. 17(3)(b)
+
+  Category B — NON-AML DATA TO BE DELETED (erasure granted):
+    - Marketing preferences and consent records
+    - Event invitation history
+    - Personal lifestyle notes in RM file (art interests, travel)
+    - Non-essential email correspondence not related to CDD/AML
+    - Cookie and website tracking data (EuroBank online portal)
+
+    Deletion Deadline: 2024-10-22 (14 days from decision)
+
+  Category C — DERIVED DATA TO BE ANONYMIZED:
+    - Internal risk model training data incorporating Elena's profile
+    - Statistical and analytical datasets
+    - Management reporting aggregates
+
+    Anonymization Deadline: 2024-10-22
+
+4. ACCESS RESTRICTION MEASURES
+
+For Category A retained data, the following restrictions are implemented
+to comply with GDPR data minimization principles (Art. 5(1)(c)):
+
+  (a) Access Control:
+    - Elena Castellan's data reclassified to "AML Retention Only"
+    - Access restricted to: Head of Financial Crime, DPO, General
+      Counsel, assigned KYC analyst, and BaFin/FIU upon request
+    - Relationship Manager access REVOKED (no ongoing client need)
+    - All access logged with timestamp and purpose justification
+
+  (b) Purpose Limitation:
+    - Retained data may ONLY be processed for:
+      * AML/KYC regulatory compliance
+      * Responding to FIU or BaFin requests
+      * Legal proceedings related to the Castellan relationship
+      * Internal or external audit of AML compliance
+    - Any other processing requires fresh DPO approval
+
+  (c) Technical Measures:
+    - Data moved to restricted compliance archive (separate from
+      active client file)
+    - Encryption at rest (AES-256) with separate key management
+    - Automated access alerts to DPO for any retrieval
+    - Quarterly access review by DPO
+
+  (d) Retention Schedule:
+    - Automated reminder set for 2029-04-15 (90 days before earliest
+      possible deletion date) to reassess retention necessity
+    - If no ongoing regulatory obligation exists at that time,
+      Category A data will be permanently deleted
+    - If SAR-related obligations extend the period, retention will
+      continue with documented justification
+
+5. COMMUNICATION TO DATA SUBJECT
+
+A formal response has been prepared for Elena Castellan's legal counsel
+(Avv. Francesca Vitale, Bonelli Erede):
+
+  Key Points of Response:
+  - Acknowledge the request and Elena's rights under GDPR
+  - Explain the Art. 17(3)(b) exemption in clear, non-technical language
+  - Confirm partial deletion of non-essential data (Category B)
+  - Confirm anonymization of derived data (Category C)
+  - Explain retention necessity without referencing SAR or investigation
+    (tipping-off prohibition)
+  - Provide details of access restrictions implemented
+  - Inform of right to lodge complaint with competent supervisory
+    authority (BfDI — Bundesbeauftragte fuer den Datenschutz)
+  - Offer to provide full data inventory upon request (Art. 15 access)
+
+  NOTE: The response must NOT reference the SAR filing, ongoing
+  investigation, or BaFin inspection. The retention justification is
+  framed solely on the statutory 5AMLD/GwG obligations, which is
+  sufficient and accurate without disclosing the additional factors.
+
+6. GDPR DOCUMENTATION (Art. 30 RECORDS)
+
+  Processing Activity:   AML/KYC record retention (former UBO)
+  Data Subject:          Elena Castellan
+  Categories of Data:    Identity, financial, ownership, risk assessment
+  Legal Basis:           Art. 6(1)(c) — legal obligation
+  Retention Period:      Until 2029-07-15 (minimum), subject to extension
+  Recipients:            BaFin, FIU Germany (upon request only)
+  International Transfer: None (data held in Germany)
+  DPIA Required:         No (standard regulatory retention, no new risk)
+
+7. PRECEDENT NOTE
+
+This decision establishes internal precedent for handling GDPR erasure
+requests from former UBOs or connected parties of active AML clients.
+The balanced approach — retain what is legally required, delete what is
+not, restrict access to retained data — should be applied consistently.
+
+However, each request must be assessed on its individual merits. The
+existence of an active SAR in this case adds additional retention weight
+that may not apply in other situations.
+
+Decision issued by:  Dr. Markus Lehmann, DPO (EB-1105)
+Legal approval:      Dr. Heinrich Fischer, General Counsel (EB-0042)
+AML consultation:    Claudia Richter, Head of Financial Crime (EB-2201)
+Date:                2024-10-08
+
+— END OF GDPR RESOLUTION DECISION —

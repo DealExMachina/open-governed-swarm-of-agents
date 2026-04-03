@@ -1,0 +1,130 @@
+MERIDIAN INSURANCE GROUP AG
+Capital Remediation Plan
+In Response to BaFin Letter Ref. VA 44-I 4000-2026/0087
+Approved by the Management Board on 15 July 2026
+Approved by the Supervisory Board on 22 July 2026
+Classification: CONFIDENTIAL — Board, BaFin, and Appointed Actuary Only
+Date of Issue: 25 July 2026
+Reference: CRP-2026-001
+
+1. EXECUTIVE SUMMARY
+
+This Capital Remediation Plan ("the Plan") is submitted to the
+Bundesanstalt fur Finanzdienstleistungsaufsicht (BaFin) in response
+to the supervisory letter dated 22 May 2026 (Ref. VA 44-I 4000-2026/
+0087). The Plan sets out concrete measures to restore Meridian's SCR
+ratio from its current level of approximately 128% to the internal
+target of 155% within 6 months (by 31 December 2026).
+
+Note: The internal target has been raised from 135% to 155% by Board
+decision on 15 July 2026, reflecting the increased regulatory
+uncertainty and the need for a larger buffer.
+
+2. CURRENT POSITION (AS AT 30 JUNE 2026)
+
+Eligible own funds:        EUR 892,000,000
+SCR:                       EUR 689,000,000
+SCR ratio:                 129.5% (approximately 130%)
+MCR ratio:                 388%
+Surplus above SCR:         EUR 203,000,000
+Deficit to 155% target:    EUR 176,000,000
+
+3. REMEDIATION MEASURES
+
+MEASURE 1 — SUBORDINATED DEBT ISSUANCE
+  Instrument: Tier 2 subordinated notes, 10-year maturity,
+              callable after 5 years
+  Target amount:        EUR 150,000,000
+  Expected coupon:      4.75% (based on current market conditions)
+  Lead arrangers:       Deutsche Bank AG, BNP Paribas SA
+  Expected completion:  September 2026
+  Regulatory treatment: Tier 2 own funds (subject to 50% limit test)
+  SCR ratio impact:     +21.8 percentage points
+
+  Tier compliance check:
+    Current Tier 2:     EUR 80,000,000
+    After issuance:     EUR 230,000,000
+    Tier 2 limit (50% of SCR): EUR 344,500,000
+    COMPLIANT
+
+MEASURE 2 — DIVIDEND SUSPENSION
+  FY2025 final dividend: SUSPENDED (was EUR 40,000,000)
+  FY2026 interim dividend: NOT DECLARED
+  Capital retained:     EUR 30,000,000 (estimated, net of tax)
+  SCR ratio impact:     +4.4 percentage points
+  Shareholder communication: Ad hoc announcement on 16 July 2026
+    via DGAP, referencing regulatory capital management priorities
+
+MEASURE 3 — INVESTMENT PORTFOLIO DE-RISKING
+  Action: Reduce equity allocation from EUR 180,000,000 to
+          EUR 120,000,000 (reinvest into investment-grade corporate
+          bonds and covered bonds)
+  Capital release:      EUR 25,000,000 (reduced market risk charge)
+  SCR ratio impact:     +3.6 percentage points
+  Expected return drag: approximately EUR 3,000,000 p.a.
+  Timeline:             Phased over August-September 2026
+
+MEASURE 4 — REINSURANCE OPTIMIZATION
+  Action: Novate EUR 30,000,000 of Swiss Re exposure to Munich Re
+  Action: Purchase catastrophe bond protection (EUR 50,000,000 cover)
+  Capital release:      EUR 15,000,000 (reduced counterparty and
+                        underwriting risk charges)
+  SCR ratio impact:     +2.2 percentage points
+  Additional cost:      EUR 2,800,000 p.a.
+  Timeline:             September 2026
+
+4. PROJECTED TRAJECTORY
+
+              Own Funds    SCR         Ratio     Target
+Q2 2026       EUR 892M     EUR 689M    129.5%    155%
+Q3 2026 (E)   EUR 1,047M   EUR 674M    155.3%    155%
+Q4 2026 (E)   EUR 1,065M   EUR 670M    158.9%    155%
+
+The projected Q3 improvement is driven by:
+  - Subordinated debt:     +EUR 150M own funds
+  - Dividend suspension:   +EUR 15M own funds (half-year)
+  - De-risking:           -EUR 15M SCR
+  - Reinsurance:          -EUR 10M SCR (estimated, partial effect)
+  - Organic earnings:     +EUR 5M own funds
+
+5. KEY RISKS TO THE PLAN
+
+5.1 Market Conditions for Debt Issuance
+  Risk: Subordinated debt market closes or spreads widen materially
+  Mitigation: Pre-arranged bridge facility of EUR 100M from Deutsche
+  Bank AG (term sheet signed 10 July 2026)
+  Probability: LOW
+
+5.2 Further Regulatory Changes
+  Risk: EIOPA or BaFin issues further guidelines affecting SCR
+  Mitigation: Conservative buffer in the 155% target
+  Probability: MEDIUM
+
+5.3 Swiss Re Further Downgrade
+  Risk: Swiss Re downgraded to BBB+ or below
+  Mitigation: Active novation program (Measure 4)
+  Probability: MEDIUM (Moody's review still pending)
+
+5.4 Adverse Claims Experience
+  Risk: Large loss event depletes own funds
+  Mitigation: Catastrophe bond protection (Measure 4)
+  Probability: LOW (within normal frequency expectations)
+
+6. GOVERNANCE AND REPORTING
+
+  - Monthly CRP progress report to the Risk Committee (first report:
+    31 August 2026)
+  - Quarterly update to BaFin (first update: 30 September 2026)
+  - CRO has delegated authority to accelerate measures if SCR ratio
+    falls below 125%
+  - CEO escalation trigger: SCR ratio falls below 115%
+
+7. SIGN-OFF
+
+  Herr Martin Schreiber — CEO
+  Frau Monika Adler — CRO
+  Herr Dr. Friedrich Maier — Chair, Supervisory Board
+  Herr Prof. Stefan Bruckner — Chief Actuary
+
+Filed with BaFin on 28 July 2026 (within 90-day deadline of
+20 August 2026).

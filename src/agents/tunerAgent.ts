@@ -3,7 +3,9 @@ import { createTool } from "@mastra/core/tools";
 import { Agent } from "@mastra/core/agent";
 import { z } from "zod";
 import { toErrorString } from "../errors.js";
-import { getChatModelConfig } from "../modelConfig.js";
+import { getChatModelConfig, DETERMINISTIC_SETTINGS } from "../modelConfig.js";
+import { composeInstructions } from "../skills/loader.js";
+import { trackAgentTokens } from "../skills/tokenTracker.js";
 import { logger } from "../logger.js";
 import {
   loadAllFilterConfigs,
@@ -88,14 +90,15 @@ export async function runTunerCycle(
     const agent = new Agent({
       id: "tuner-agent",
       name: "Tuner Agent",
-      instructions: TUNER_INSTRUCTIONS,
+      instructions: composeInstructions(TUNER_INSTRUCTIONS, "tuner"),
       model: modelConfig,
       tools: { readFilterStats, writeFilterConfig },
     });
-    await agent.generate(
-      "Review all filter statistics and apply parameter adjustments where they would reduce waste or improve responsiveness.",
-      { maxSteps: 15 },
-    );
+    const genResult = await agent.generate("Review filter stats and tune parameters.", {
+      maxSteps: 5,
+      modelSettings: DETERMINISTIC_SETTINGS,
+    });
+    trackAgentTokens("tuner", genResult);
     return { cycle: "ok", ts: new Date().toISOString() };
   } catch (err) {
     const msg = toErrorString(err);

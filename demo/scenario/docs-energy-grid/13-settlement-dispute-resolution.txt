@@ -1,0 +1,134 @@
+DOCUMENT: NorthGrid Utilities — Wind Farm Curtailment Settlement Dispute Resolution
+DATE: March 15, 2026
+CLASSIFICATION: Market Sensitive — Restricted Distribution
+AUTHOR: Market Settlements Division / Dispute Resolution Panel
+REF: NG-SETL-2026-03-DISP-013
+
+DISPUTE REFERENCE: NG-DRP-2026-004 through NG-DRP-2026-007
+HEARING DATE: March 12, 2026
+PANEL: Independent Dispute Resolution Panel (3 members)
+
+BACKGROUND
+
+Four wind farm operators filed formal settlement disputes on February
+19-20, 2026, challenging the curtailment compensation calculations for
+the February 18, 2026 curtailment event. Total disputed amount: EUR 78,750
+across four disputes. The wind farms contended that the settlement system
+understated actual curtailment by 300 MW (recording 500 MW vs. actual
+800 MW dispatched curtailment).
+
+INDEPENDENT METERING REVIEW
+
+The Dispute Resolution Panel retained GridMetrics LLC (independent
+metering consultant) to perform a forensic analysis of the February 18
+curtailment event. GridMetrics analyzed data from three independent
+sources:
+
+  Source 1: NorthGrid SCADA (15-minute interval settlement telemetry)
+  Source 2: Wind farm SCADA (4-second interval operational telemetry)
+  Source 3: Revenue meter pulse accumulator data (1-minute resolution)
+
+FINDINGS
+
+GridMetrics Report (GM-2026-NG-018, dated March 8, 2026):
+
+  Data Source          | Curtailment Volume | Avg. MW Curtailed
+  ---------------------|--------------------|-----------------
+  NorthGrid 15-min     |    3,750 MWh       |    500 MW
+  Revenue meter 1-min  |    5,640 MWh       |    752 MW
+  Wind farm 4-sec      |    6,012 MWh       |    802 MW
+
+The independent review confirms that actual curtailment was approximately
+800 MW, consistent with the dispatch instruction issued by NorthGrid's
+control room at 02:15 UTC.
+
+ROOT CAUSE OF SETTLEMENT DISCREPANCY
+
+GridMetrics identified the following technical chain of error:
+
+  1. AVAILABLE GENERATION ESTIMATION
+     The settlement system estimates available (uncurtailed) wind
+     generation using a static power curve model applied to 15-minute
+     average wind speed data from met masts at each wind farm.
+
+  2. TEMPORAL AVERAGING EFFECT
+     During the curtailment period (02:15 - 09:45 UTC), wind speeds
+     were highly variable. The 15-minute averaging:
+       - Understated peak wind speeds by 8-15% (gusts smoothed out)
+       - Overstated lull periods by 5-10%
+       - Net effect: available generation underestimated by ~300 MW
+
+  3. POWER CURVE NON-LINEARITY
+     Wind power is proportional to wind speed cubed (P ~ v^3). This
+     means averaging wind speed before applying the power curve yields
+     a LOWER result than averaging power output directly.
+
+     Example from Ridgeline III (15-minute window 03:00-03:15):
+       15-min avg wind speed: 14.2 m/s --> power curve output: 248 MW
+       4-sec power outputs averaged: 298 MW
+       Difference: 50 MW (20% understatement)
+
+  4. QUANTIFIED IMPACT
+     Across all 5 curtailed wind farms over 7.5 hours:
+       15-min method: total available = 4,250 MWh, output = 3,750 MWh,
+                      curtailment = 500 MW avg (3,750 MWh)
+       4-sec method:  total available = 9,762 MWh, output = 3,750 MWh,
+                      curtailment = 802 MW avg (6,012 MWh)
+
+PANEL DETERMINATION
+
+The Dispute Resolution Panel rules in favor of the wind farm operators
+on all four disputes. Determinations:
+
+  1. The 4-second wind farm SCADA data provides materially more accurate
+     curtailment measurement than the 15-minute settlement telemetry.
+
+  2. The settlement system's 15-minute averaging methodology introduces
+     a systematic negative bias in curtailment calculation during
+     variable wind conditions.
+
+  3. Total additional compensation owed to wind farm operators:
+
+     Operator                | Original  | Corrected | Additional Due
+     ------------------------|-----------|-----------|---------------
+     Ridgeline Wind Partners |  €70,875  | €141,750  |   €70,875
+     (Ridgeline II & III)    |           |           |
+     Northern Gale Energy    |  €36,750  |  €73,500  |   €36,750
+     Atlantic Offshore Wind  |  €49,875  |  €99,750  |   €49,875
+     (Atlantic Breeze I)     |           |           |
+     Prairie Wind Holdings   |  €52,500  | €105,000  |   €52,500
+     ------------------------|-----------|-----------|---------------
+     TOTAL                   | €210,000  | €420,000  |  €210,000
+
+  4. The Panel further orders NorthGrid to:
+     a. Review all Q1 2026 curtailment events for similar methodology
+        errors and issue corrective settlements where applicable.
+     b. Estimated total Q1 correction: EUR 2.1M across 14 events.
+
+SETTLEMENT METHODOLOGY REFORM
+
+The Panel recommends NorthGrid implement the following reforms:
+
+  1. IMMEDIATE (by April 15, 2026): Use 4-second wind farm SCADA data
+     as the primary source for curtailment volume calculation, replacing
+     the 15-minute averaged methodology.
+
+  2. SHORT-TERM (by Q3 2026): Complete deployment of 4-second telemetry
+     settlement metering at all renewable generation points of
+     interconnection (Project NG-PROJ-2026-017, now elevated to
+     mandatory status).
+
+  3. METHODOLOGY: Replace the "wind speed to power curve" estimation
+     with direct measurement of available power via the wind farm's
+     own available power signal (per IEC 61400-26-2).
+
+FINANCIAL IMPACT
+
+  Single event additional payment:          EUR   210,000
+  Q1 retrospective corrections (est.):      EUR 2,100,000
+  Settlement system upgrade (NG-PROJ-017):  EUR   800,000
+  Total financial impact:                   EUR 3,100,000
+
+PREPARED BY: A. Bergstrom, Settlement Manager
+              Independent Dispute Resolution Panel (Chair: Prof. W. Hayes)
+APPROVED BY: K. Williams, Director of Market Operations

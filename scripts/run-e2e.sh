@@ -5,6 +5,7 @@ cd "$(dirname "$0")/.."
 if [ -f .env ]; then set -a; . ./.env; set +a; fi
 # Prefer pnpm when lockfile is pnpm (repo is pnpm-managed)
 if command -v pnpm >/dev/null 2>&1 && [ -f pnpm-lock.yaml ]; then RUNNER=pnpm; else RUNNER=npm; fi
+E2E_SCOPE_ID="${E2E_SCOPE_ID:-${SCOPE_ID:-default}}"
 
 # Facts-worker in Docker: use OpenAI from .env when available, else local Ollama on host
 # - OPENAI_API_KEY set: worker uses OpenAI (no host Ollama needed)
@@ -64,17 +65,17 @@ echo "[E2E] Hatchery started. Waiting 50s for pipeline..."
 sleep 50
 
 echo "[E2E] 7. Summary (after bootstrap)..."
-curl -s http://localhost:3002/summary | head -80
+curl -s "http://localhost:3002/summary?scope_id=${E2E_SCOPE_ID}" | head -80
 
 echo "[E2E] 8. POST a doc..."
 curl -s -X POST http://localhost:3002/context/docs -H "Content-Type: application/json" \
-  -d '{"title":"E2E doc","body":"We use TypeScript and Postgres. Goal: run full E2E. Claim: the system has a semantic graph."}'
+  -d "{\"scope_id\":\"${E2E_SCOPE_ID}\",\"title\":\"E2E doc\",\"body\":\"We use TypeScript and Postgres. Goal: run full E2E. Claim: the system has a semantic graph.\"}"
 echo ""
 echo "[E2E] Waiting 40s for facts to run..."
 sleep 40
 
 echo "[E2E] 9. Summary (after doc)..."
-curl -s http://localhost:3002/summary | head -80
+curl -s "http://localhost:3002/summary?scope_id=${E2E_SCOPE_ID}" | head -80
 
 echo "[E2E] 10. Nodes in DB (semantic graph)..."
 PGPASSWORD="${POSTGRES_PASSWORD:-swarm}" psql -h localhost -p 5433 -U "${POSTGRES_USER:-swarm}" -d "${POSTGRES_DB:-swarm}" -t -c "SELECT type, COUNT(*) FROM nodes GROUP BY type;"

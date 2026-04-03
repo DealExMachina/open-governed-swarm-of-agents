@@ -1,0 +1,35 @@
+EXTERNAL IP COUNSEL OPINION — Project Horizon Core Module
+Date: Week 5
+
+Re: IP title for [REDACTED] software module.
+
+Summary opinion: Title is PROBABLY valid but NOT CERTAIN. The chain of
+assignment from the original developer to the current holding entity contains
+one undated assignment agreement. Under German law (applicable jurisdiction),
+undated assignments are not automatically invalid, but they create a rebuttable
+presumption of dispute in contested proceedings.
+
+The third-party claimant's position: The claimant asserts that the undated
+assignment post-dates their own license agreement, which (if true) would give
+them a co-ownership claim. We have not been able to independently verify the
+date of the license agreement.
+
+Our assessment:
+- Probability that title is fully clear and uncontested at closing: 65%
+- Probability that title requires remediation (escrow or indemnity): 30%
+- Probability that title is materially defective: 5%
+
+IMPORTANT: This is a probabilistic assessment, not a legal opinion of title.
+We cannot provide a definitive title opinion on the current documentation.
+A clean title opinion would require either: (a) a dated and notarized version of
+the assignment agreement, or (b) a waiver from the third-party claimant.
+
+Neither document has been obtained.
+
+Implication for risk assessment: The IP risk cannot be scored deterministically.
+The range remains: 5% chance of material defect (deal-blocking), 30% chance of
+remediation cost (€0.5M–€2M), 65% chance of clean outcome.
+
+This opinion DOES NOT resolve the contradiction in prior assessments. It
+replaces binary certainty with a probability distribution. Governance decision
+required on whether to proceed under this residual uncertainty.

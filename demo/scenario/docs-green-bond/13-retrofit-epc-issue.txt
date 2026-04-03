@@ -1,0 +1,20 @@
+COMPLIANCE ALERT -- RETROFIT GMBH EPC DOCUMENTATION
+
+Date: 2025-02-05
+Subject: Missing EPC certificates for RetroFit GmbH building projects
+
+Issue:
+RetroFit GmbH was allocated EUR 20M under Category B (energy efficiency) for 12 commercial building renovations in Germany. Framework v1.1 requires pre- and post-renovation EPCs for all building projects.
+
+Current status of EPC documentation:
+- 8 of 12 buildings: Pre-renovation EPC available. Post-renovation EPC pending (works in progress).
+- 3 of 12 buildings: Pre-renovation EPC available. Works completed. Post-renovation EPC delivered. Result: Class D improved to Class B (two-class improvement). ALIGNED.
+- 1 of 12 buildings (Alexanderplatz office, Berlin): Pre-renovation EPC shows Class E. Renovation scope reduced due to heritage building restrictions. Post-renovation EPC expected Class D. This is only a one-class improvement, which does NOT meet the two-class minimum in Framework v1.1.
+
+Financial impact:
+- Alexanderplatz building allocation: EUR 3,200,000 (16% of Category B allocation)
+- If excluded from eligible allocation: overall Taxonomy alignment drops from 82.6% to approximately 79.8%
+
+Recommendation: (a) Expand Alexanderplatz renovation scope to achieve two-class improvement (additional cost EUR 400,000-600,000, sponsor to fund), or (b) substitute with an alternative building from the pipeline meeting EPC requirements, or (c) accept the shortfall and document in the allocation report.
+
+Claim: 11 of 12 RetroFit buildings are on track for EPC compliance. Contradiction: Alexanderplatz building fails the two-class EPC improvement requirement. Risk: Taxonomy alignment could drop to 79.8% if not resolved, further from the 85% target.

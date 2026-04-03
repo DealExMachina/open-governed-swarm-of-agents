@@ -7,13 +7,14 @@
  * progression in sequence — useful for live demos.
  *
  * Usage:
- *   npm run seed:demo                        # all docs in scenario/docs, 20s gap
- *   DEMO_DELAY_MS=5000 npm run seed:demo     # faster (5s gap, less visible processing)
- *   DEMO_DOC=01 npm run seed:demo            # single doc by prefix
+ *   DEMO_SCOPE_ID=default pnpm run seed:demo                        # all docs in scenario/docs, 20s gap
+ *   DEMO_SCOPE_ID=default DEMO_DELAY_MS=5000 pnpm run seed:demo     # faster (5s gap, less visible processing)
+ *   DEMO_SCOPE_ID=default DEMO_DOC=01 pnpm run seed:demo            # single doc by prefix
  *
  * After seeding, check the feed at http://localhost:3002 or GET /summary.
  */
 import "dotenv/config";
+import { execSync } from "child_process";
 import { readFileSync, readdirSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
@@ -22,15 +23,29 @@ import { createSwarmEvent } from "../src/events.js";
 import { makeEventBus } from "../src/eventBus.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+const REPO_ROOT = join(__dirname, "..");
 const DEMO_DOCS_DIR = join(__dirname, "..", "demo", "scenario", "docs");
 const DELAY_MS = parseInt(process.env.DEMO_DELAY_MS ?? "20000", 10);
 const SINGLE_DOC = process.env.DEMO_DOC ?? "";
+const RESET_BEFORE_SEED = process.env.DEMO_RESET_BEFORE_SEED ?? "1";
+const DEMO_SCOPE_ID = process.env.DEMO_SCOPE_ID ?? "";
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 async function main(): Promise<void> {
+  if (!DEMO_SCOPE_ID) {
+    console.error("DEMO_SCOPE_ID is required (strict scope isolation).");
+    process.exit(1);
+  }
+  if (RESET_BEFORE_SEED === "1") {
+    console.log("Resetting demo state before seeding (DEMO_RESET_BEFORE_SEED=1)...");
+    execSync("pnpm run reset-e2e", { cwd: REPO_ROOT, stdio: "inherit" });
+  } else {
+    console.log(`Skipping reset before seeding (DEMO_RESET_BEFORE_SEED=${RESET_BEFORE_SEED}).`);
+  }
+
   const allFiles = readdirSync(DEMO_DOCS_DIR)
     .filter((f) => f.endsWith(".txt"))
     .sort();
@@ -58,7 +73,7 @@ async function main(): Promise<void> {
 
     const event = createSwarmEvent(
       "context_doc",
-      { text, title, filename: file, source: "demo-seed" },
+      { text, title, filename: file, source: "demo-seed", scope_id: DEMO_SCOPE_ID },
       { source: "seed-demo" },
     );
 

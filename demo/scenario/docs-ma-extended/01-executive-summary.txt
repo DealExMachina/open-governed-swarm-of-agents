@@ -1,0 +1,62 @@
+================================================================================
+CONFIDENTIAL — PROJECT HORIZON
+Executive Summary: Proposed Acquisition of NovaTech AG
+Date: 2025-01-15
+Prepared by: Marcus Reinhardt, Head of Corporate Development
+Distribution: Board of Directors, Executive Committee
+================================================================================
+
+1. TRANSACTION OVERVIEW
+
+Meridian Capital Partners ("Meridian" or "Acquirer") proposes the acquisition of
+NovaTech AG ("NovaTech" or "Target"), a Zurich-headquartered SaaS company
+specializing in regulatory compliance automation for the European life sciences
+sector. The indicative offer is EUR 420 million on a cash-free, debt-free basis,
+representing approximately 8.4x trailing annual recurring revenue (ARR).
+
+NovaTech was founded in 2017 by Dr. Lukas Meier (CEO) and Dr. Elena Voss (CTO).
+The company is incorporated under Swiss law (Handelsregister Kanton Zurich,
+CHE-114.637.829) with wholly-owned subsidiaries in Germany (NovaTech GmbH,
+Munich) and Ireland (NovaTech Europe Ltd, Dublin).
+
+2. STRATEGIC RATIONALE
+
+The acquisition positions Meridian to enter the EUR 2.1 billion European
+regulatory technology market, which is projected to grow at 18.3% CAGR through
+2030. NovaTech's platform addresses EU MDR (Medical Device Regulation) and IVDR
+compliance, a segment experiencing acute demand following the May 2024 transition
+deadline.
+
+3. OWNERSHIP STRUCTURE
+
+NovaTech AG share capital comprises 1,000,000 registered shares (CHF 1.00 par).
+Current ownership as reported by management:
+  - Dr. Lukas Meier (CEO):           34.0%
+  - Dr. Elena Voss (CTO):            22.0%
+  - Bernstein Ventures (Series A):   18.0%
+  - Alpenglow Capital (Series B):    16.0%
+  - Employee Stock Option Pool:      10.0%
+
+4. KEY FINANCIAL HIGHLIGHTS (Self-Reported, Unaudited)
+
+  - ARR (as of Q3 2025):    EUR 50.0 million
+  - Revenue CAGR (3yr):     45%
+  - Gross Margin:           72%
+  - Net Revenue Retention:  118%
+  - Burn Rate:              EUR 1.2 million/month
+  - Cash on Hand:           EUR 14.5 million
+
+5. INDICATIVE TIMELINE
+
+  Phase 1 — Initial Extraction (Weeks 1-4):    Data room review, management meetings
+  Phase 2 — Deep Dive Diligence (Weeks 4-8):   Financial audit, IP review, regulatory
+  Phase 3 — Negotiation & Close (Weeks 8-18):  SPA drafting, regulatory approvals, signing
+
+6. RECOMMENDATION
+
+Based on preliminary analysis, the Investment Committee recommends proceeding to
+full due diligence. NovaTech represents a compelling growth asset with strong
+product-market fit, defensible IP, and a proven management team. Risk factors
+are assessed as LOW across all dimensions at this preliminary stage.
+
+Prepared by Marcus Reinhardt, Meridian Capital Partners

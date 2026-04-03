@@ -1,0 +1,28 @@
+COMPLIANCE ALERT -- EOLIENSUD CONSTRUCTION DELAY
+
+Date: 2025-12-10
+Subject: EolienSud Occitanie wind farm construction delay
+
+Issue:
+- Turbine delivery from Siemens Gamesa delayed by 3 months due to nacelle component shortage (rare earth magnet supply disruption)
+- Original delivery: December 2025. Revised: March 2026.
+- Impact on COD: Delayed from Q1 2026 to Q2 2026.
+
+Financial impact:
+- Second drawdown (EUR 19,200,000) deferred from December 2025 to March 2026
+- No additional cost to the project; delay covered by EPC contractor's liquidated damages clause
+- Construction financing (bridge loan) extended at sponsor's expense
+
+Impact on bond allocation:
+- Current allocation to EolienSud: EUR 14,400,000 (first drawdown only)
+- Remaining committed: EUR 33,600,000
+- Delay does not affect Taxonomy eligibility of the project
+
+Impact on overall allocation timeline:
+- Total allocated: EUR 202,500,000 (81.1% of net proceeds)
+- Expected to reach 85%+ when second EolienSud drawdown occurs (Q1 2026)
+- Post-allocation review by Sustainalytics may be delayed by one quarter
+
+Contradiction: Previous reports projected EolienSud COD in Q1 2026; now delayed to Q2 2026. The 85% allocation milestone for post-allocation verification is delayed.
+
+Claim: EolienSud construction delayed 3 months due to supply chain disruption. No cost overrun. Taxonomy alignment unaffected. Risk: Post-allocation review timeline slips to Q2 2026. Goal: Monitor turbine delivery and update allocation schedule.
