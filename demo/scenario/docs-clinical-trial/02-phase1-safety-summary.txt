@@ -1,0 +1,74 @@
+PHASE I SAFETY AND DOSE-FINDING SUMMARY
+================================================================================
+Protocol:           P1-ORX-4471 (completed, LOCKED)
+IND Number:         IND-178432
+Sponsor:            Meridian Therapeutics, Inc.
+Date Finalized:     2023-09-28
+Agent:              Dr. James Okonkwo, Phase I Principal Investigator
+================================================================================
+
+STUDY OVERVIEW:
+  Phase I, open-label, 3+3 dose-escalation study of ORX-4471 in patients with
+  advanced solid tumors refractory to standard therapy. Conducted at Memorial
+  Sloan Kettering Cancer Center (single site).
+
+DOSE LEVELS EVALUATED:
+  Level 1:  50mg IV q3w   (n=3, 0 DLTs)
+  Level 2: 100mg IV q3w   (n=3, 0 DLTs)
+  Level 3: 150mg IV q3w   (n=3, 0 DLTs)
+  Level 4: 200mg IV q3w   (n=6, 2 DLTs)  <-- MTD
+  Level 5: 300mg IV q3w   (n=3, 3 DLTs)  <-- exceeded MTD
+
+DOSE-LIMITING TOXICITIES at 200mg (n=6):
+  Patient P1-016: Grade 3 pneumonitis (onset Day 22, resolved Day 41 with
+    methylprednisolone 1mg/kg). Per CTCAE v5.0 criteria.
+  Patient P1-018: Grade 3 hepatitis (ALT 287 U/L, 7.2x ULN; onset Day 15,
+    resolved Day 38 with dose hold and supportive care).
+
+  DLT rate at 200mg: 2/6 (33%) — within protocol-specified MTD definition
+  (< 33% with >= 6 evaluable patients, boundary inclusive).
+
+PHARMACOKINETICS AT 200mg (n=6):
+  Cmax:     142.3 mcg/mL (CV 28%)
+  AUC0-21d: 18,420 mcg*h/mL (CV 31%)
+  t1/2:     14.2 days (range 11.8-17.1)
+  Trough:   22.4 mcg/mL (above target receptor occupancy of 15 mcg/mL)
+
+OVERALL SAFETY PROFILE (N=18, all dose levels):
+  Any AE:                    18/18 (100%)
+  Grade 3+ AE:                4/18 (22.2%)
+  Immune-related AE (irAE):   7/18 (38.9%)
+  Hepatotoxicity (any grade):  3/18 (16.7%)
+  Pneumonitis (any grade):     2/18 (11.1%)
+  Infusion-related reaction:   4/18 (22.2%)
+
+HEPATOTOXICITY DETAIL (BASELINE REFERENCE):
+  Grade 1 (ALT 1-3x ULN):    1/18 (5.6%)   — Patient P1-009 (ALT 98 U/L)
+  Grade 2 (ALT 3-5x ULN):    1/18 (5.6%)   — Patient P1-012 (ALT 178 U/L)
+  Grade 3 (ALT 5-20x ULN):   1/18 (5.6%)   — Patient P1-018 (ALT 287 U/L)
+  Grade 4 (ALT >20x ULN):    0/18 (0%)
+
+  NOTE: Upper limit of normal (ULN) for ALT = 40 U/L per central lab reference.
+  Grade 3 threshold = ALT > 200 U/L (>5x ULN).
+
+RECOMMENDED PHASE II DOSE (RP2D):
+  ORX-4471 200mg IV every 3 weeks
+
+CONCLUSIONS:
+  1. MTD established at 200mg q3w with manageable toxicity profile.
+  2. DLTs were immune-mediated and resolved with standard management.
+  3. Hepatotoxicity signal present but within expected range for checkpoint
+     inhibitors (cf. KEYNOTE-001, CheckMate-017 historical rates 5-10%).
+  4. PK supports q3w dosing with adequate trough concentrations.
+
+DATA LOCK:
+  Phase I database locked 2023-09-28. All values in this summary are FINAL
+  and SHALL NOT be modified. Per ICH E6(R2) Section 5.5.3, any queries
+  arising from Phase II/III observations must reference this document without
+  alteration to recorded Phase I measurements.
+
+INVARIANT: This document represents the Phase I knowledge state at database
+lock. It is immutable. Phase II/III findings that appear to contradict Phase I
+observations must be recorded as NEW evidence, not corrections to this record.
+
+STATE: LOCKED | EPOCH: PRE-TRIAL | IMMUTABLE: TRUE

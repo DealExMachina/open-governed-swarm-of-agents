@@ -4,6 +4,7 @@
 set -e
 cd "$(dirname "$0")/.."
 if [ -f .env ]; then set -a; . ./.env; set +a; fi
+export OTEL_SERVICE_NAME="${OTEL_SERVICE_NAME:-swarm}"
 export OTEL_EXPORTER_OTLP_ENDPOINT="${OTEL_EXPORTER_OTLP_ENDPOINT:-http://localhost:4318}"
 export DISABLE_FEED_AUTH="${DISABLE_FEED_AUTH:-1}"
 export FACTS_WORKER_TIMEOUT_MS="${FACTS_WORKER_TIMEOUT_MS:-300000}"
@@ -40,8 +41,8 @@ fi
 echo "Purging stale NATS consumers..."
 node --loader ts-node/esm scripts/purge-consumers.ts || echo "purge-consumers failed (non-fatal, continuing)."
 
-# Kill old agent processes and free ports before starting fresh
-for port in 3001; do
+# Kill old agent processes and free ports (MITL 3001, resolution-mcp 3005) before starting fresh
+for port in 3001 3005; do
   lsof -ti :$port 2>/dev/null | xargs kill -9 2>/dev/null || true
 done
 pkill -f "AGENT_ROLE=" 2>/dev/null || true
@@ -50,4 +51,7 @@ sleep 1
 export AGENT_ROLE=hatchery
 export AGENT_ID=hatchery-1
 echo "Starting hatchery (single-process orchestrator). Log: $LOG_DIR/swarm-hatchery.log"
-exec $RUNNER run swarm 2>&1 | tee "$LOG_DIR/swarm-hatchery.log"
+(
+  echo $BASHPID > "$LOG_DIR/swarm-hatchery.pid"
+  exec $RUNNER run swarm 2>&1
+) | tee "$LOG_DIR/swarm-hatchery.log"

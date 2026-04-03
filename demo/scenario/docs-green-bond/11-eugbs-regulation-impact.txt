@@ -1,0 +1,33 @@
+REGULATORY IMPACT ASSESSMENT -- EUGBS APPLICATION
+
+Date: 2025-01-10
+Subject: Impact of EU Green Bond Standard (Regulation 2023/2631) on EuroVert Green Bond Fund I
+
+The EUGBS became applicable on 21 December 2024. Key requirements and gaps for EuroVert:
+
+1. USE OF PROCEEDS (Art. 4-7):
+Current status: Framework v1.0 targets 85% Taxonomy alignment. Actual allocation is 82.6%.
+Gap: Must reach 85% before seeking EuGB designation. The 15% flexibility pocket (Art. 6) can cover activities without existing TSC, but only if they comply with DNSH.
+Action: Complete EPC documentation for Category B buildings. If 4 buildings cannot demonstrate alignment, reallocate EUR 5-8M to a Category A project from the pipeline.
+
+2. EXTERNAL REVIEWER (Art. 21-23):
+Current status: Sustainalytics provided ICMA GBP SPO. Not yet registered under EUGBS.
+Gap: External reviewers must register with ESMA by 21 June 2026. During the transitional period, reviewers must notify ESMA and make best efforts to comply with Arts. 24-38.
+Action: Confirm Sustainalytics has notified ESMA. If not, identify alternative registered reviewer.
+
+3. GREEN BOND FACTSHEET (Art. 8-13):
+Current status: No EuGB factsheet prepared. The existing term sheet and framework do not meet the prescribed format.
+Gap: A pre-issuance factsheet must be prepared and reviewed by the external reviewer. For bonds already issued, the factsheet is required before EuGB designation, not before issuance.
+Action: Prepare factsheet per Annex I template. Engage external reviewer for pre-designation review.
+
+4. ALLOCATION REPORT (Art. 14):
+Current status: Quarterly allocation reports prepared internally.
+Gap: Post-allocation report must be reviewed by external reviewer. Must use prescribed format per ESMA RTS.
+Action: Align report format with ESMA RTS (expected H1 2025). Engage external reviewer for post-allocation verification.
+
+5. SUPERVISORY CONSEQUENCES:
+NCA (CSSF Luxembourg) has powers to suspend prospectus, withdraw EuGB label, and impose fines up to 0.5% of turnover.
+
+RECOMMENDATION: Proceed with EUGBS designation once (a) Taxonomy alignment reaches 85%, (b) factsheet is prepared and reviewed, and (c) external reviewer has notified ESMA. Target: Q2 2025.
+
+Claim: EUGBS introduces four new requirements not met by current ICMA GBP compliance. Contradiction: Current framework (v1.0) and allocation (82.6%) are insufficient for EuGB designation. The bond was issued under ICMA GBP, not EUGBS. Goal: Close all EUGBS gaps and obtain designation by Q2 2025.

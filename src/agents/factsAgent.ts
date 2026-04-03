@@ -6,6 +6,7 @@ import { logger } from "../logger.js";
 import { toErrorString } from "../errors.js";
 import { s3GetText, s3PutJson } from "../s3.js";
 import { tailEvents } from "../contextWal.js";
+import { emitContribution } from "../causalEmit.js";
 
 /** Default 5 min: local LLM (e.g. Ollama) can take several minutes per document; avoid client abort before worker finishes. */
 const FACTS_WORKER_TIMEOUT_MS = Math.max(
@@ -113,15 +114,27 @@ function createFactsTools(
       lastWriteResult.current = { wrote, facts_hash };
 
       const scopeId = process.env.SCOPE_ID ?? "default";
+      let syncResult: { nodesCreated: number; edgesCreated: number; nodesUpdated: number; nodesStaled: number } | null = null;
       try {
         const factsPayload = JSON.parse(JSON.stringify(context.facts ?? {})) as Record<string, unknown>;
         const { syncFactsToSemanticGraph } = await import("../factsToSemanticGraph.js");
-        await syncFactsToSemanticGraph(scopeId, factsPayload, {
+        syncResult = await syncFactsToSemanticGraph(scopeId, factsPayload, {
           embedClaims: process.env.FACTS_SYNC_EMBED === "1",
         });
       } catch (e) {
         logger.warn("writeFacts: semantic graph sync failed", { scopeId, error: toErrorString(e) });
       }
+
+      // Wire into causal DAG: every facts extraction is a claim contribution
+      await emitContribution("facts-agent", "claim", {
+        facts_hash: facts_hash ?? null,
+        nodes_created: syncResult?.nodesCreated ?? 0,
+        edges_created: syncResult?.edgesCreated ?? 0,
+        nodes_updated: syncResult?.nodesUpdated ?? 0,
+        contradictions_extracted: Array.isArray((context.facts as Record<string, unknown>)?.contradictions)
+          ? ((context.facts as Record<string, unknown>).contradictions as unknown[]).length
+          : 0,
+      }, { scopeId });
 
       return { wrote, facts_hash };
     },
@@ -130,7 +143,9 @@ function createFactsTools(
   return { readContextTool, extractFactsTool, writeFactsTool };
 }
 
-import { getChatModelConfig, type ChatModelConfig } from "../modelConfig.js";
+import { getChatModelConfig, DETERMINISTIC_SETTINGS, type ChatModelConfig } from "../modelConfig.js";
+import { composeInstructions } from "../skills/loader.js";
+import { trackAgentTokens } from "../skills/tokenTracker.js";
 
 /**
  * Returns a Mastra-safe model config (chat/completions path).
@@ -153,11 +168,11 @@ export function createFactsMastraAgent(
   const agent = new Agent({
     id: "facts-agent",
     name: "Facts Agent",
-    instructions: `You are a facts extraction agent. Your task is to extract structured facts from the current context and persist them.
+    instructions: composeInstructions(`You are a facts extraction agent. Your task is to extract structured facts from the current context and persist them.
 1. Use readContext to get the latest context events and previous facts from storage.
 2. Use extractFacts with that context and previous_facts to get new facts and drift from the worker.
 3. Use writeFacts with the returned facts and drift to persist them.
-Always perform these steps in order: readContext, then extractFacts, then writeFacts.`,
+Always perform these steps in order: readContext, then extractFacts, then writeFacts.`, "facts"),
     model: modelConfig,
     tools: {
       readContext: readContextTool,
@@ -217,10 +232,11 @@ export async function runFactsAgent(
   if (process.env.FACTS_USE_MASTRA === "1" && process.env.OPENAI_API_KEY) {
     try {
       const { agent, getLastResult } = createFactsMastraAgent(s3, bucket);
-      await agent.generate(
-        "Extract structured facts from the current context and persist them using readContext, extractFacts, and writeFacts.",
-        { maxSteps: 10 },
-      );
+      const genResult = await agent.generate("Extract and persist facts now.", {
+        maxSteps: 4,
+        modelSettings: DETERMINISTIC_SETTINGS,
+      });
+      trackAgentTokens("facts", genResult);
       const last = getLastResult();
       return last ?? { wrote: [], facts_hash: undefined };
     } catch (err) {

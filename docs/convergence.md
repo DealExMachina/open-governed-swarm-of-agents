@@ -2,7 +2,7 @@
 
 > Formal convergence tracking for finality gradient descent in governed agent swarms.
 
-Back to [README.md](../README.md).
+Back to [README.md](../README.md). **Stage 2** extends this layer with sheaf-based propagation dynamics, evidence state space (support/refutation), and ISS cascade stability; see [stage-2-implementation-plan.md](stage-2-implementation-plan.md) and [stage-2-status-and-experiments.md](stage-2-status-and-experiments.md).
 
 ---
 
@@ -129,7 +129,7 @@ where epsilon = 0.001 (tolerance for floating-point noise). The default beta is 
 - The gate requires at least beta data points; with fewer, `is_monotonic` is false.
 - This is a purely local property: it only examines the last beta rounds, not the entire history.
 
-**Literature.** Duan et al. (2025) describe coordination invariants for state machine replication in the Aegean protocol. The monotonicity gate adapts their requirement that committed state must not regress -- applied here to the goal score rather than a replicated log.
+**Literature.** Ruan et al. (2025) introduce the Aegean consensus protocol for multi-agent reasoning, with incremental quorum convergence and provable refinement monotonicity. The monotonicity gate adapts their requirement that solution quality is non-decreasing---applied here to the goal score rather than a replicated log.
 
 ### 2.4 Plateau detection
 
@@ -401,13 +401,13 @@ Each scenario validates a specific failure mode or edge case. Together they cove
 1. **Olfati-Saber, R. & Murray, R. M.** (2004). Consensus Problems in Networks of Agents With Switching Topology and Time-Delays. *IEEE Transactions on Automatic Control*, 49(9), 1520--1533. doi:[10.1109/TAC.2004.834113](https://doi.org/10.1109/TAC.2004.834113)
    -- Lyapunov stability framework for multi-agent consensus. Foundation for the disagreement function V(t) and the convergence guarantee: if V is a common Lyapunov function that decreases along system trajectories, the system converges to consensus.
 
-2. **Duan, S., Reiter, M. K., & Zhang, H.** (2025). Aegean: Making State Machine Replication Fast without Compromise. *arXiv preprint* arXiv:[2512.20184](https://arxiv.org/abs/2512.20184)
-   -- Monotonicity gates and coordination invariants for state machine replication. The Aegean protocol requires that committed state does not regress; we adapt this as the monotonicity gate for the goal score.
+2. **Ruan, C., Wang, Y., Shi, Z., & Li, J.** (2025). Reaching Agreement Among Reasoning LLM Agents. *arXiv preprint* arXiv:[2512.20184](https://arxiv.org/abs/2512.20184)
+   -- Multi-agent reasoning consensus; Aegean protocol with incremental quorum convergence and refinement monotonicity. We adapt their monotonicity principle as the monotonicity gate for the goal score.
 
 3. **Camacho, D. et al.** (2024). MACI: Multi-Agent Collective Intelligence. *arXiv preprint* arXiv:[2510.04488](https://arxiv.org/abs/2510.04488)
    -- EMA-based stagnation detection for multi-agent systems. The MACI framework uses progress ratio monitoring to detect when collective improvement has stalled; we adapt their approach for plateau detection in the finality gradient.
 
-4. **Laddad, S. et al.** (2024). CodeCRDT: A Conflict-Free Replicated Data Type for Collaborative Code Editing. *arXiv preprint* arXiv:[2510.18893](https://arxiv.org/abs/2510.18893)
+4. **Laddad, S., Cheung, A., & Hellerstein, J. M.** (2022). Keep CALM and CRDT On. *arXiv preprint* arXiv:[2210.12605](https://arxiv.org/abs/2210.12605) (VLDB 2023).
    -- CRDT monotonic merge operations. The principle that merge must be commutative, associative, and idempotent underlies our monotonic graph upserts.
 
 5. **Dorigo, M., Theraulaz, G., & Trianni, V.** (2024). Swarm Intelligence: Past, Present, and Future. *Proceedings of the Royal Society B*, 291(2024). doi:[10.1098/rspb.2024.0856](https://doi.org/10.1098/rspb.2024.0856)

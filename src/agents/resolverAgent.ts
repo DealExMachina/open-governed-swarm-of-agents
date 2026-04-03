@@ -3,13 +3,18 @@ import { createTool } from "@mastra/core/tools";
 import { Agent } from "@mastra/core/agent";
 import { z } from "zod";
 import { setMaxListeners } from "events";
-import { getChatModelConfig } from "../modelConfig.js";
+import { getChatModelConfig, REASONING_SETTINGS, ResolverOutputSchema } from "../modelConfig.js";
 import { logger } from "../logger.js";
 import { s3GetText } from "../s3.js";
-import { getPool } from "../db.js";
-import { appendEdge, updateNodeStatus } from "../semanticGraph.js";
+import { loadUnresolvedContradictionDetails } from "../semanticGraph.js";
+import { markResolved } from "../resolutionService.js";
+import { addPending } from "../mitlServer.js";
+import { emitContribution } from "../causalEmit.js";
+import { composeInstructions } from "../skills/loader.js";
+import { trackAgentTokens } from "../skills/tokenTracker.js";
 
 const RESOLVER_LLM_TIMEOUT_MS = 60_000;
+const RESOLVER_BATCH_SIZE = 15;
 const SCOPE_ID = process.env.SCOPE_ID ?? "default";
 
 const RESOLVER_INSTRUCTIONS = `You are a contradiction resolver agent. Your job is to examine active contradictions in a semantic graph and determine which are genuinely unresolved vs which have been addressed by available evidence.
@@ -30,34 +35,12 @@ interface ContradictionInfo {
 }
 
 async function loadActiveContradictions(): Promise<ContradictionInfo[]> {
-  const pool = getPool();
-  const res = await pool.query(
-    `SELECT n.node_id, n.content
-     FROM nodes n
-     WHERE n.scope_id = $1 AND n.type = 'contradiction' AND n.status = 'active'
-       AND n.superseded_at IS NULL AND (n.valid_to IS NULL OR n.valid_to > now())
-     ORDER BY n.created_at DESC
-     LIMIT 10`,
-    [SCOPE_ID],
-  );
-
-  const contradictions: ContradictionInfo[] = [];
-  for (const row of res.rows) {
-    const claimsRes = await pool.query(
-      `SELECT n.content FROM nodes n
-       WHERE n.scope_id = $1 AND n.type = 'claim' AND n.status = 'active'
-         AND n.superseded_at IS NULL AND (n.valid_to IS NULL OR n.valid_to > now())
-       ORDER BY n.confidence DESC
-       LIMIT 10`,
-      [SCOPE_ID],
-    );
-    contradictions.push({
-      node_id: row.node_id,
-      content: row.content,
-      related_claims: claimsRes.rows.map((r: { content: string }) => r.content),
-    });
-  }
-  return contradictions;
+  const details = await loadUnresolvedContradictionDetails(SCOPE_ID);
+  return details.map((d) => ({
+    node_id: d.node_id,
+    content: d.content,
+    related_claims: d.related_claims ?? [],
+  }));
 }
 
 export async function runResolverAgent(
@@ -82,6 +65,11 @@ export async function runResolverAgent(
   const driftRaw = await s3GetText(s3, bucket, "drift/latest.json");
   const drift = driftRaw ? JSON.parse(driftRaw) : {};
 
+  const resolutionResults: Array<{ id: string; judgment: string; reason: string; requires_hitl?: boolean }> = [];
+
+  // Mutable ref so the readContradictions tool returns the current batch
+  let currentBatch: ContradictionInfo[] = [];
+
   const readContradictionsTool = createTool({
     id: "readContradictions",
     description: "Read active contradictions, related claims, and current evidence.",
@@ -96,7 +84,7 @@ export async function runResolverAgent(
       facts_summary: z.string(),
     }),
     execute: async () => ({
-      contradictions: contradictions.map((c) => ({
+      contradictions: currentBatch.map((c) => ({
         id: c.node_id,
         content: c.content,
         related_claims: c.related_claims.slice(0, 5),
@@ -109,21 +97,21 @@ export async function runResolverAgent(
     }),
   });
 
-  const resolutionResults: Array<{ id: string; judgment: string; reason: string }> = [];
-
   const writeResolutionsTool = createTool({
     id: "writeResolutions",
-    description: "Write resolution judgments for each contradiction. Each must have id, judgment (confirmed|resolved|noise), and reason.",
+    description: "Write resolution judgments for each contradiction. Each must have id, judgment (confirmed|resolved|noise), reason, and optionally requires_hitl.",
     inputSchema: z.object({
       resolutions: z.array(z.object({
         id: z.string(),
         judgment: z.enum(["confirmed", "resolved", "noise"]),
         reason: z.string(),
+        requires_hitl: z.boolean().optional().default(false)
+          .describe("True when resolution requires business/legal human judgment"),
       })),
     }),
     outputSchema: z.object({ ok: z.boolean(), count: z.number() }),
     execute: async ({ context }) => {
-      const resolutions = (context as { resolutions: Array<{ id: string; judgment: string; reason: string }> }).resolutions;
+      const resolutions = (context as { resolutions: Array<{ id: string; judgment: string; reason: string; requires_hitl?: boolean }> }).resolutions;
       for (const r of resolutions) {
         resolutionResults.push(r);
       }
@@ -134,64 +122,100 @@ export async function runResolverAgent(
   const agent = new Agent({
     id: "resolver-agent",
     name: "Contradiction Resolver",
-    instructions: RESOLVER_INSTRUCTIONS,
+    instructions: composeInstructions(RESOLVER_INSTRUCTIONS, "resolver"),
     model: modelConfig,
     tools: { readContradictions: readContradictionsTool, writeResolutions: writeResolutionsTool },
   });
 
-  const prompt = `There are ${contradictions.length} active contradictions. Read them with readContradictions, analyze each against the available evidence, then call writeResolutions with your judgments.`;
+  // Process contradictions in batches to stay within LLM token/timeout budget
+  const totalBatches = Math.ceil(contradictions.length / RESOLVER_BATCH_SIZE);
+  for (let batchStart = 0; batchStart < contradictions.length; batchStart += RESOLVER_BATCH_SIZE) {
+    currentBatch = contradictions.slice(batchStart, batchStart + RESOLVER_BATCH_SIZE);
+    const batchLabel = `batch ${batchStart / RESOLVER_BATCH_SIZE + 1}/${totalBatches}`;
+    const prompt = `${currentBatch.length} contradictions (${batchLabel}). Analyze and resolve.`;
 
-  const abortController = new AbortController();
-  const timeoutId = setTimeout(() => abortController.abort(), RESOLVER_LLM_TIMEOUT_MS);
-  setMaxListeners(64, abortController.signal);
-  try {
-    await agent.generate(prompt, { maxSteps: 5, abortSignal: abortController.signal });
-  } catch (e) {
-    logger.warn("resolver LLM failed", { error: String(e) });
-  } finally {
-    clearTimeout(timeoutId);
+    const abortController = new AbortController();
+    const timeoutId = setTimeout(() => abortController.abort(), RESOLVER_LLM_TIMEOUT_MS);
+    setMaxListeners(64, abortController.signal);
+    try {
+      const genResult = await agent.generate(prompt, {
+        maxSteps: 5,
+        abortSignal: abortController.signal,
+        modelSettings: REASONING_SETTINGS,
+        structuredOutput: { schema: ResolverOutputSchema, jsonPromptInjection: true },
+      });
+      trackAgentTokens("resolver", genResult);
+    } catch (e) {
+      logger.warn("resolver LLM failed", { error: String(e), batch: batchLabel });
+    } finally {
+      clearTimeout(timeoutId);
+    }
   }
 
   let resolved = 0;
   let noise = 0;
   let confirmed = 0;
-
-  const mcpPort = parseInt(process.env.RESOLUTION_MCP_PORT ?? "3005", 10);
+  let hitlRequested = 0;
 
   for (const r of resolutionResults) {
     const contra = contradictions.find((c) => c.node_id === r.id);
     if (!contra) continue;
 
-    if (r.judgment === "resolved" || r.judgment === "noise") {
-      // Use MCP server to mark resolved (handles graph update + embedding + S3 artifact)
+    if (r.requires_hitl) {
+      hitlRequested++;
+      const proposalId = `hitl-resolver-${contra.node_id}-${Date.now()}`;
       try {
-        const resp = await fetch(`http://127.0.0.1:${mcpPort}/mark-resolved`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+        await addPending(proposalId, {
+          proposal_id: proposalId,
+          agent: "resolver-agent",
+          proposed_action: "resolve_contradiction",
+          target_node: contra.node_id,
+          payload: {
             scope_id: SCOPE_ID,
             node_id: contra.node_id,
+            content: contra.content,
             judgment: r.judgment,
             reason: r.reason,
-          }),
+          },
+        } as Record<string, unknown> & { proposal_id: string; agent: string; proposed_action: string; target_node: string; payload: Record<string, unknown> }, {
+          scope_id: SCOPE_ID,
+          node_id: contra.node_id,
+          content: contra.content,
+          reason: r.reason,
         });
-        if (!resp.ok) throw new Error(await resp.text());
+        await emitContribution("resolver-agent", "resolution", {
+          type: "resolver_hitl_requested",
+          proposal_id: proposalId,
+          node_id: contra.node_id,
+          reason: r.reason,
+        }, { authorityTier: 1 });
       } catch (err) {
-        // Fallback: direct graph update if MCP unavailable
-        await updateNodeStatus(contra.node_id, "resolved");
-        try {
-          await appendEdge({
-            scope_id: SCOPE_ID,
-            source_id: contra.node_id,
-            target_id: contra.node_id,
-            edge_type: "resolves",
-            weight: 1,
-            metadata: { source: "resolver-agent", judgment: r.judgment, reason: r.reason },
-            created_by: "resolver-agent",
-          });
-        } catch { /* edge may fail */ }
-        logger.warn("resolver: MCP unavailable, used direct fallback", { error: String(err) });
+        logger.warn("resolver: HITL pending creation failed", { error: String(err), node_id: contra.node_id });
       }
+      logger.info("resolver: HITL requested", { node_id: contra.node_id, reason: r.reason });
+      confirmed++;
+      continue;
+    }
+
+    if (r.judgment === "resolved" || r.judgment === "noise") {
+      try {
+        await markResolved({
+          scope_id: SCOPE_ID,
+          node_id: contra.node_id,
+          judgment: r.judgment,
+          reason: r.reason,
+          s3Client: s3,
+          bucket,
+        });
+      } catch (err) {
+        logger.warn("resolver: markResolved failed", { error: String(err), node_id: contra.node_id });
+      }
+      await emitContribution("resolver-agent", "resolution", {
+        type: "contradiction_resolved",
+        node_id: contra.node_id,
+        judgment: r.judgment,
+        reason: r.reason,
+      }, { authorityTier: 1 });
       if (r.judgment === "resolved") resolved++;
       else noise++;
       logger.info("resolver: contradiction resolved", { node_id: contra.node_id, judgment: r.judgment, reason: r.reason });
@@ -200,6 +224,6 @@ export async function runResolverAgent(
     }
   }
 
-  logger.info("resolver: completed", { resolved, noise, confirmed, total: contradictions.length });
-  return { resolved, noise, confirmed };
+  logger.info("resolver: completed", { resolved, noise, confirmed, hitlRequested, total: contradictions.length });
+  return { resolved, noise, confirmed, hitlRequested };
 }

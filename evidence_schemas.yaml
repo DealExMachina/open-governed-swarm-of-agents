@@ -1,6 +1,6 @@
 # Evidence schemas for Gate B (evidence coverage) and staleness.
 # Phase 0: stub. Phase 1: domain schemas with temporal_constraint; coverage computation.
-# See docs/finality-design.md and docs/dual-temporality-design.md.
+# See docs/architecture.md for bitemporal semantics and finality integration.
 
 schemas:
   # Example: required evidence types per domain (M&A due diligence).

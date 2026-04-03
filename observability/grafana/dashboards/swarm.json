@@ -7,35 +7,53 @@
   "links": [],
   "panels": [
     {
-      "title": "Proposals (approved / rejected / pending)",
-      "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "title": "Swarm Overview",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "collapsed": false
+    },
+    {
+      "title": "Active Governance Mode",
+      "description": "Current governance mode per scope (MASTER / MITL / YOLO)",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 1 },
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "fieldConfig": {
-        "defaults": { "color": { "mode": "palette-classic" }, "custom": { "lineWidth": 2, "fillOpacity": 15 } },
+        "defaults": {
+          "mappings": [
+            { "type": "value", "options": { "1": { "text": "MASTER", "color": "red" } } },
+            { "type": "value", "options": { "2": { "text": "MITL", "color": "orange" } } },
+            { "type": "value", "options": { "3": { "text": "YOLO", "color": "green" } } }
+          ],
+          "color": { "mode": "thresholds" },
+          "thresholds": { "steps": [{ "color": "text", "value": null }] }
+        },
         "overrides": []
       },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "textMode": "value", "colorMode": "background", "graphMode": "none" },
       "targets": [
         {
-          "expr": "rate(swarm_swarm_proposal_count_total[1m])",
-          "legendFormat": "{{result}} ({{type}})",
-          "refId": "A"
+          "expr": "swarm_governance_mode_active{mode=\"MASTER\"} * 1 + swarm_governance_mode_active{mode=\"MITL\"} * 2 + swarm_governance_mode_active{mode=\"YOLO\"} * 3",
+          "legendFormat": "{{scope_id}}",
+          "refId": "A",
+          "instant": true
         }
       ]
     },
     {
-      "title": "Policy Violations",
-      "type": "stat",
-      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 0 },
+      "title": "State Transitions",
+      "description": "State graph transitions rate (resolution cycles)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 10, "x": 6, "y": 1 },
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "fieldConfig": {
-        "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 1 }] } },
+        "defaults": { "color": { "mode": "palette-classic" }, "custom": { "lineWidth": 2, "fillOpacity": 15, "stacking": { "mode": "normal" } } },
         "overrides": []
       },
       "targets": [
         {
-          "expr": "swarm_swarm_policy_violation_count_total",
-          "legendFormat": "violations",
+          "expr": "increase(swarm_state_transition_total[5m])",
+          "legendFormat": "{{from_state}} -> {{to_state}}",
           "refId": "A"
         }
       ]
@@ -43,7 +61,7 @@
     {
       "title": "Agent Errors",
       "type": "stat",
-      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 0 },
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 1 },
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "fieldConfig": {
         "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 1 }, { "color": "red", "value": 5 }] } },
@@ -51,8 +69,25 @@
       },
       "targets": [
         {
-          "expr": "swarm_swarm_agent_error_count_total",
-          "legendFormat": "{{role}}",
+          "expr": "sum(increase(swarm_agent_error_count_total[1h]))",
+          "legendFormat": "errors (1h)",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Policy Violations",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 1 }] } },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "expr": "swarm_policy_violation_count_total",
+          "legendFormat": "violations",
           "refId": "A"
         }
       ]
@@ -60,7 +95,7 @@
     {
       "title": "Governance Loop Latency (ms)",
       "type": "stat",
-      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 0 },
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 5 },
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "fieldConfig": {
         "defaults": { "unit": "ms", "color": { "mode": "thresholds" }, "thresholds": { "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 1000 }, { "color": "red", "value": 5000 }] } },
@@ -68,42 +103,220 @@
       },
       "targets": [
         {
-          "expr": "rate(swarm_swarm_governance_loop_ms_sum[5m]) / rate(swarm_swarm_governance_loop_ms_count[5m])",
+          "expr": "rate(swarm_governance_loop_ms_milliseconds_sum[5m]) / rate(swarm_governance_loop_ms_milliseconds_count[5m])",
           "legendFormat": "avg",
           "refId": "A"
         }
       ]
     },
     {
-      "title": "Agent Latency by Role (ms)",
-      "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "title": "Goal Score (finality progress)",
+      "type": "gauge",
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 5 },
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "fieldConfig": {
-        "defaults": { "unit": "ms", "color": { "mode": "palette-classic" }, "custom": { "lineWidth": 2, "fillOpacity": 10 } },
+        "defaults": { "unit": "percentunit", "min": 0, "max": 1, "color": { "mode": "thresholds" }, "thresholds": { "steps": [{ "color": "red", "value": null }, { "color": "yellow", "value": 0.6 }, { "color": "green", "value": 0.85 }] } },
         "overrides": []
       },
       "targets": [
         {
-          "expr": "rate(swarm_swarm_agent_latency_ms_milliseconds_sum[5m]) / rate(swarm_swarm_agent_latency_ms_milliseconds_count[5m])",
-          "legendFormat": "{{role}} avg",
+          "expr": "swarm_convergence_goal_score",
+          "legendFormat": "{{scope_id}}",
           "refId": "A"
         }
       ]
     },
     {
-      "title": "Agent Latency p95 by Role",
-      "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "title": "Mode Timeline",
+      "description": "Which mode was active over time (1=MASTER, 2=MITL, 3=YOLO)",
+      "type": "state-timeline",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 5 },
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "fieldConfig": {
-        "defaults": { "unit": "ms", "color": { "mode": "palette-classic" }, "custom": { "lineWidth": 2, "fillOpacity": 10 } },
+        "defaults": {
+          "mappings": [
+            { "type": "value", "options": { "1": { "text": "MASTER", "color": "red" } } },
+            { "type": "value", "options": { "2": { "text": "MITL", "color": "orange" } } },
+            { "type": "value", "options": { "3": { "text": "YOLO", "color": "green" } } }
+          ],
+          "color": { "mode": "thresholds" },
+          "thresholds": { "steps": [{ "color": "text", "value": null }] }
+        },
         "overrides": []
       },
       "targets": [
         {
-          "expr": "histogram_quantile(0.95, rate(swarm_swarm_agent_latency_ms_milliseconds_bucket[5m]))",
-          "legendFormat": "p95 {{role}}",
+          "expr": "swarm_governance_mode_active{mode=\"MASTER\"} * 1 + swarm_governance_mode_active{mode=\"MITL\"} * 2 + swarm_governance_mode_active{mode=\"YOLO\"} * 3",
+          "legendFormat": "{{scope_id}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Token Economics",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 9 },
+      "collapsed": false
+    },
+    {
+      "title": "Token Consumption by Role",
+      "description": "Input + output tokens stacked by agent role",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 10 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": { "unit": "short", "color": { "mode": "palette-classic" }, "custom": { "lineWidth": 2, "fillOpacity": 30, "stacking": { "mode": "normal" } } },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "expr": "increase(swarm_llm_tokens_total{direction=\"input\"}[5m])",
+          "legendFormat": "{{role}} input",
+          "refId": "A"
+        },
+        {
+          "expr": "increase(swarm_llm_tokens_total{direction=\"output\"}[5m])",
+          "legendFormat": "{{role}} output",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "title": "Cumulative Tokens by Role",
+      "description": "Total tokens consumed since start, by role",
+      "type": "bargauge",
+      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 10 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": { "unit": "short", "color": { "mode": "palette-classic" }, "min": 0 },
+        "overrides": []
+      },
+      "options": { "orientation": "horizontal", "displayMode": "gradient" },
+      "targets": [
+        {
+          "expr": "sum by (role) (swarm_llm_tokens_total)",
+          "legendFormat": "{{role}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "LLM Calls by Role",
+      "description": "Number of LLM invocations per agent role",
+      "type": "bargauge",
+      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 10 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": { "unit": "short", "color": { "mode": "palette-classic" }, "min": 0 },
+        "overrides": []
+      },
+      "options": { "orientation": "horizontal", "displayMode": "gradient" },
+      "targets": [
+        {
+          "expr": "sum by (role) (swarm_llm_calls_total)",
+          "legendFormat": "{{role}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Token Rate (tokens/min)",
+      "description": "Rate of token consumption per role",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 18 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": { "unit": "short", "color": { "mode": "palette-classic" }, "custom": { "lineWidth": 2, "fillOpacity": 10 } },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "expr": "rate(swarm_llm_tokens_total[5m]) * 60",
+          "legendFormat": "{{role}} ({{direction}})",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Tokens by Model",
+      "description": "Total tokens consumed by model provider",
+      "type": "piechart",
+      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 18 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": { "legend": { "displayMode": "table", "placement": "right" } },
+      "targets": [
+        {
+          "expr": "sum by (model) (swarm_llm_tokens_total)",
+          "legendFormat": "{{model}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Avg Tokens per LLM Call",
+      "description": "Average token consumption per LLM invocation, by role",
+      "type": "stat",
+      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 18 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": { "unit": "short", "color": { "mode": "thresholds" }, "thresholds": { "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 2000 }, { "color": "red", "value": 5000 }] } },
+        "overrides": []
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "textMode": "value_and_name", "colorMode": "value" },
+      "targets": [
+        {
+          "expr": "sum by (role) (swarm_llm_tokens_total) / (sum by (role) (swarm_llm_calls_total) > 0)",
+          "legendFormat": "{{role}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Governance Pipeline",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 26 },
+      "collapsed": false
+    },
+    {
+      "title": "Proposals (approved / rejected / pending)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 27 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" }, "custom": { "lineWidth": 2, "fillOpacity": 15 } },
+        "overrides": [
+          { "matcher": { "id": "byRegexp", "options": "approved.*" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+          { "matcher": { "id": "byRegexp", "options": "rejected.*" }, "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] },
+          { "matcher": { "id": "byRegexp", "options": "pending.*" }, "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }] }
+        ]
+      },
+      "targets": [
+        {
+          "expr": "rate(swarm_proposal_count_total[1m])",
+          "legendFormat": "{{result}} ({{type}})",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Governance Decision Path",
+      "description": "Distribution of how proposals were decided (deterministic, oversight, HITL escalation, etc.)",
+      "type": "piechart",
+      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 27 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": { "legend": { "displayMode": "table", "placement": "right" } },
+      "targets": [
+        {
+          "expr": "sum by (path) (swarm_governance_path_total)",
+          "legendFormat": "{{path}}",
           "refId": "A"
         }
       ]
@@ -111,7 +324,7 @@
     {
       "title": "Proposal Throughput (per minute)",
       "type": "bargauge",
-      "gridPos": { "h": 6, "w": 12, "x": 0, "y": 16 },
+      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 27 },
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "fieldConfig": {
         "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "steps": [{ "color": "blue", "value": null }] } },
@@ -119,8 +332,31 @@
       },
       "targets": [
         {
-          "expr": "increase(swarm_swarm_proposal_count_total[1m])",
+          "expr": "increase(swarm_proposal_count_total[1m])",
           "legendFormat": "{{result}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Agent Performance",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 35 },
+      "collapsed": false
+    },
+    {
+      "title": "Agent Latency by Role (ms)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 36 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": { "unit": "ms", "color": { "mode": "palette-classic" }, "custom": { "lineWidth": 2, "fillOpacity": 10 } },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "expr": "rate(swarm_agent_latency_ms_milliseconds_sum[5m]) / rate(swarm_agent_latency_ms_milliseconds_count[5m])",
+          "legendFormat": "{{role}} avg",
           "refId": "A"
         }
       ]
@@ -128,7 +364,7 @@
     {
       "title": "Agent Invocations (total)",
       "type": "bargauge",
-      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 16 },
+      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 36 },
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "fieldConfig": {
         "defaults": { "color": { "mode": "palette-classic" } },
@@ -136,15 +372,146 @@
       },
       "targets": [
         {
-          "expr": "swarm_swarm_agent_latency_ms_milliseconds_count",
+          "expr": "swarm_agent_latency_ms_milliseconds_count",
           "legendFormat": "{{role}}",
           "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Productive vs Wasted Activations",
+      "type": "piechart",
+      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 36 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          { "matcher": { "id": "byRegexp", "options": "true" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+          { "matcher": { "id": "byRegexp", "options": "false" }, "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] }
+        ]
+      },
+      "options": { "legend": { "displayMode": "table", "placement": "right" } },
+      "targets": [
+        {
+          "expr": "sum by (productive) (swarm_progress_activations_total)",
+          "legendFormat": "{{productive}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Convergence Details",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 44 },
+      "collapsed": true,
+      "panels": [
+        {
+          "title": "Goal Score (progress toward finality)",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 45 },
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "fieldConfig": {
+            "defaults": { "unit": "percentunit", "min": 0, "max": 1, "color": { "mode": "palette-classic" }, "custom": { "lineWidth": 2, "fillOpacity": 15 } },
+            "overrides": []
+          },
+          "targets": [
+            {
+              "expr": "swarm_convergence_goal_score",
+              "legendFormat": "{{scope_id}}",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "title": "Lyapunov V (disagreement)",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 45 },
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "fieldConfig": {
+            "defaults": { "color": { "mode": "palette-classic" }, "custom": { "lineWidth": 2, "fillOpacity": 15 } },
+            "overrides": []
+          },
+          "targets": [
+            {
+              "expr": "swarm_convergence_lyapunov_v",
+              "legendFormat": "{{scope_id}}",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "title": "Convergence Rate",
+          "type": "stat",
+          "gridPos": { "h": 4, "w": 4, "x": 0, "y": 53 },
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "fieldConfig": {
+            "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "steps": [{ "color": "red", "value": null }, { "color": "yellow", "value": 0 }, { "color": "green", "value": 0.01 }] } },
+            "overrides": []
+          },
+          "targets": [
+            {
+              "expr": "swarm_convergence_rate",
+              "legendFormat": "alpha",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "title": "Trajectory Quality",
+          "type": "stat",
+          "gridPos": { "h": 4, "w": 4, "x": 4, "y": 53 },
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "fieldConfig": {
+            "defaults": { "unit": "percentunit", "min": 0, "max": 1, "color": { "mode": "thresholds" }, "thresholds": { "steps": [{ "color": "red", "value": null }, { "color": "yellow", "value": 0.7 }, { "color": "green", "value": 0.85 }] } },
+            "overrides": []
+          },
+          "targets": [
+            {
+              "expr": "swarm_convergence_trajectory_quality",
+              "legendFormat": "quality",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "title": "Est. Rounds to Finality",
+          "type": "stat",
+          "gridPos": { "h": 4, "w": 4, "x": 8, "y": 53 },
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "fieldConfig": {
+            "defaults": { "color": { "mode": "thresholds" } },
+            "overrides": []
+          },
+          "targets": [
+            {
+              "expr": "swarm_convergence_estimated_rounds",
+              "legendFormat": "rounds",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "title": "Propagation Steps",
+          "type": "stat",
+          "gridPos": { "h": 4, "w": 4, "x": 12, "y": 53 },
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "fieldConfig": {
+            "defaults": { "color": { "mode": "thresholds" } },
+            "overrides": []
+          },
+          "targets": [
+            {
+              "expr": "swarm_propagation_steps_total",
+              "legendFormat": "steps",
+              "refId": "A"
+            }
+          ]
         }
       ]
     }
   ],
   "schemaVersion": 39,
-  "tags": ["swarm", "agents"],
+  "tags": ["swarm", "agents", "governance"],
   "templating": {
     "list": [
       {
@@ -162,5 +529,5 @@
   "timezone": "browser",
   "title": "Swarm Governance",
   "uid": "swarm-governance",
-  "version": 1
+  "version": 2
 }

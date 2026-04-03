@@ -1,10 +1,10 @@
 # Proposed Experimental Protocol
 
-> Back to [README](../README.md) | See also [publication/swarm-governed-agents.tex](../publication/swarm-governed-agents.tex) Section 9, [validation.md](validation.md)
+> Back to [README](../README.md) | See also [publications/publication_1/swarm-governed-agents.tex](../publications/publication_1/swarm-governed-agents.tex) Section 9 and [validation.md](validation.md).
 
 The paper defines five experimental protocols designed to address open questions in the literature---particularly those identified by de la Chica Rodriguez and Vera Diaz (SECP). These experiments are **designed to be reproducible** using the reference implementation.
 
-**Implementation:** Seed scripts, drivers, result collection, and analysis are in place. Run via `./scripts/run-experiment.sh exp<N>` or batch with `./scripts/run-experiment-batch.sh`. See [docs/experiments/README.md](experiments/README.md) for per-experiment setup and result locations. Experiments run under **per-dimension (vector) finality** when `per_dimension_finality.enabled: true` in `finality.yaml`; see [docs/formal-hardening.md](formal-hardening.md) Section 7 (E1–E5) and Section 3 (assumptions).
+**Implementation:** Seed scripts, drivers, result collection, and analysis are in place. Run via `./scripts/run-experiment.sh exp<N>` or batch with `./scripts/run-experiment-batch.sh`. Experiments run under **per-dimension (vector) finality** when `per_dimension_finality.enabled: true` in `finality.yaml`.
 
 | Experiment | GitHub Issue |
 |------------|--------------|
@@ -18,99 +18,68 @@ The paper defines five experimental protocols designed to address open questions
 | 8. Cooperative agent model (Assumption 5) | [#22](https://github.com/DealExMachina/swarm-of-governed-agents/issues/22) |
 | 9. Local confluence (Assumption 2) | [#23](https://github.com/DealExMachina/swarm-of-governed-agents/issues/23) |
 
-**Domain demos (use cases):** M&A (Project Horizon), Financial consolidation, Insurance onboarding and pricing are documented in [docs/demos/](demos/README.md). They use the same driver and run via `run-experiment.sh financial`, `insurance`, `demo-baseline`; they are not assertion-validation experiments.
+**Domain demos (use cases):** M&A (Project Horizon), Financial consolidation, Insurance onboarding and pricing, and European Green Bond Standard (EUGBS) lifecycle are documented in [docs/demos/](demos/README.md). They use the same driver and run via `run-experiment.sh financial`, `insurance`, `demo-baseline`, `green-bond`.
+
+### Stage 2 evidence diffusion results
+
+All four domain demos now produce real evidence diffusion trajectories through the sheaf propagation engine. The propagation agent fires at `DriftChecked`, builds perturbation vectors from convergence dimension scores, runs one sheaf diffusion step, and publishes evidence along sheaf edges via the evidence bus.
+
+| Demo | Rounds | Prop. epochs | Omega(0) | Omega(final) | Reduction | rho range | ISS |
+|------|--------|-------------|----------|-------------|-----------|-----------|-----|
+| M&A baseline | 14 | 2 | 6.86 | 3.16 | 53.9% | 0.46 | satisfied |
+| Financial | 16 | 3 | 6.86 | 1.72 | 74.9% | 0.46-0.54 | satisfied |
+| Insurance | 22 | 3 | 6.86 | 0.50 | 92.8% | 0.26-0.28 | satisfied |
+| Green Bond (EUGBS) | 38 | 8 | 6.86 | 0.20 | 97.1% | 0.20-0.31 (contraction), 38.2 (divergence) | satisfied |
+
+Key observations:
+- Contraction ratio rho < 1 at every step (Theorem 1 holds empirically).
+- ISS small-gain condition satisfied throughout (Theorem 2).
+- Spectral gap = 7.0 (7-node complete graph, maximum for this topology).
+- Evidence bus publishes 14-28 objects per epoch along the 7 sheaf edges.
+- Insurance shows strongest contraction: more documents build richer convergence signal.
+- Scalability: propagation runs proportional to state machine cycles (not NATS events). 22 docs produce 3 propagation epochs and 21 evidence_states rows (previously 37K+ epochs and 263K rows).
+
+### Green Bond demo (European Green Bond Standard lifecycle)
+
+The green-bond demo is a 38-document corpus simulating the full lifecycle of a EUR 250M European Green Bond (EuroVert Capital Green Bond Fund I): SPV incorporation, framework publication, SPO, investor roadshow, pricing, project onboarding (solar, wind, agrivoltaic, building retrofit, EV charging, battery storage), EUGBS regulatory transition, factsheet, CSSF designation, annual reporting, performance issues, and full allocation.
+
+Run: `./scripts/run-experiment.sh green-bond`. Results in `docs/experiments/green-bond/results/`.
+
+**Drain phase:** The driver uses `--drain=300` (5 minutes). After all 38 documents are injected, it keeps polling `swarm_state` until the target epoch is reached or the drain timeout fires. This allows the pipeline to finish backlog processing and yields more propagation epochs (8 instead of ~5 without drain).
+
+Propagation trajectory (8 epochs with drain):
+
+| Epoch | Omega | rho | Narrative |
+|-------|-------|------|-----------|
+| 0-4 | 6.86 -> 0.15 | 0.26-0.31 | Contraction -- projects onboarded, EUGBS gap analysis, designation |
+| 5 | 38.2 | 38.2 | Divergence -- regulatory shock (TSC amendment, construction delay, underperformance) |
+| 6-7 | 0.20 | 0.20 | Re-contraction -- system settles after perturbation |
+
+Key observations:
+- Geometric contraction (epochs 0-4) reduces disagreement by 97.9%.
+- Epoch 5 demonstrates correct ISS behavior: new contradictions (TSC reclassification, EolienSud delay, ChargeNet underperformance) inject fresh evidence that temporarily increases disagreement.
+- Epochs 6-7 show re-contraction; the system settles after the regulatory shock.
+- `cascade_stable = true` throughout: the ISS small-gain condition holds even during the divergent epoch, meaning the system is bounded.
+- Evidence bus published 14-28 objects per epoch along 7 sheaf edges.
+
+### Why the state machine might not advance (epoch stays 0, lastNode=ContextIngested)
+
+The pipeline advances only when agents successfully process events and the executor applies approved transitions. If you see **Final state: epoch=0, lastNode=ContextIngested** after a run:
+
+1. **Facts agent cannot reach the facts-worker**  
+   The facts agent is the first step: it consumes `context_doc` events, calls `FACTS_WORKER_URL/extract`, and on success proposes `ContextIngested -> FactsExtracted`. If `FACTS_WORKER_URL` is unset or the worker is unreachable (e.g. wrong host/port when hatchery runs on host and worker in Docker), the agent throws, NAKs the message, and the cycle never advances. **Fix:** Set `FACTS_WORKER_URL` (e.g. `http://127.0.0.1:8010`) in `.env` and ensure the facts-worker container (or process) is running. `./scripts/run-experiment.sh` now runs `check-services` before the driver; if it fails, fix the reported service before re-running.
+
+2. **Facts-worker returns 5xx or times out**  
+   If the worker responds with 500 or the request times out, the facts agent NAKs the message. After `max_deliver` (3) redeliveries NATS discards the message and the pipeline stalls. **Fix:** Check facts-worker logs and LLM config (OpenAI/Ollama); increase `FACTS_WORKER_TIMEOUT_MS` if needed.
+
+3. **Hatchery log**  
+   Errors (e.g. "FACTS_WORKER_URL is required", "fetch failed", "message handler failed") are written to the hatchery log. For experiments this is `$LOG_DIR/swarm-exp-hatchery.log` (default `/tmp/swarm-exp-hatchery.log`). Inspect it after a run to see why the facts agent (or later agents) failed.
 
 ---
 
-## Experiment 1: Multi-Iteration Convergence Dynamics
+## Proposed experiments (1–5)
 
-**Goal:** Demonstrate multi-iteration convergence behavior that SECP explicitly could not evaluate (single-iteration design).
-
-**Protocol:**
-
-- Run 20 convergence cycles on a fixed scope with incremental context injection
-- Vary contradiction density: 0, 1, 3, 5 contradictions per injection
-- Measure: V(t) trajectory, alpha(t) convergence rate, gate satisfaction per round
-- Report: convergence time (rounds to RESOLVED), V(t) monotonicity violations, oscillation frequency
-
-**Expected outcome:** Characteristic trajectory shapes: exponential decay (easy cases), plateau-then-resolution (hard cases), oscillation-then-escalation (irreconcilable conflicts).
-
-**Script:** Extend `scripts/benchmark-convergence.ts` or create `scripts/experiment-convergence-dynamics.ts`
-
----
-
-## Experiment 2: Scalability
-
-**Goal:** First empirical data on how governed agent coordination scales. Addresses SECP Section 8.6 item 4.
-
-**Protocol:**
-
-- Vary claims: 10, 50, 100, 500, 1000
-- Vary contradiction rate: 10%, 30%, 50%
-- Vary agent count: 3, 5, 7, 12
-- Fixed: governance mode (YOLO), finality thresholds
-- Measure: rounds to convergence, wall-clock time, LLM token consumption, audit event count
-
-**Expected outcome:** Identification of scaling bottleneck (likely contradiction resolution, not claim extraction); empirical validation of O(n * k) complexity bound.
-
-**Script:** Create `scripts/experiment-scalability.ts`
-
----
-
-## Experiment 3: Finality Robustness
-
-**Goal:** Demonstrate that the 5-gate mechanism prevents false finality under adversarial conditions.
-
-**Protocol:**
-
-- Inject adversarial evidence patterns:
-  - Spike-and-drop: sudden high confidence followed by contradiction
-  - Oscillating claims: alternating contradictory evidence
-  - Stale evidence: exceeds max_age_days during convergence
-  - Empty scope: trivial initialization
-- Measure: false finality rate (RESOLVED despite unresolved contradictions), gate trigger frequency, ESCALATED rate
-
-**Expected outcome:** Gate C (oscillation detection) catches patterns simple thresholds miss; Gate B (evidence freshness) blocks finality on stale data.
-
-**Script:** Extend `scripts/benchmark-convergence.ts` or create `scripts/experiment-finality-robustness.ts`
-
----
-
-## Experiment 4: Multi-Level Governance
-
-**Goal:** Demonstrate governance at multiple levels, extending both our and SECP's single-level models.
-
-**Protocol:**
-
-- Define 3 governance levels:
-  - Level 1 (Operational): YOLO mode, per-agent activation filters
-  - Level 2 (Compliance): MITL mode, drift-triggered rules
-  - Level 3 (Regulatory): MASTER mode, immutable invariants
-- Run M&A scenario with cross-level escalation:
-  - Financial claims escalate L1 to L2 on contradiction
-  - Patent disputes escalate L2 to L3
-  - L3 decisions immutable (cannot be overridden)
-- Measure: decision distribution across levels, escalation frequency, time-to-finality per level
-
-**Expected outcome:** >80% of decisions resolved at operational level; L3 decisions rare but critical; separation of duties traceable through certificate chain.
-
-**Script:** Create `scripts/experiment-governance-levels.ts`
-
----
-
-## Experiment 5: Coverage-Autonomy Trade-off
-
-**Goal:** Empirically map the coverage-autonomy trade-off that SECP identified, using governance modes as the control variable.
-
-**Protocol:**
-
-- Run identical document set through 3 governance modes: YOLO, MITL, MASTER
-- Measure: claims accepted, contradictions resolved autonomously, human escalations, convergence rate alpha
-- Map to SECP framework: YOLO ~ scalar aggregation (high coverage), MASTER ~ hard veto (low coverage), MITL ~ intermediate
-
-**Expected outcome:** Lyapunov convergence rate alpha differs characteristically across modes, providing a formal metric for the trade-off SECP identified empirically.
-
-**Script:** Create `scripts/experiment-coverage-autonomy.ts`
+Experiments 1–5 (convergence dynamics, scalability, finality robustness, multi-level governance, coverage-autonomy) are defined in the paper and linked to GitHub issues above. Per-experiment setup, run commands, and result locations: [experiments/README.md](experiments/README.md). Stage 2 propagation experiments E1–E7: [stage-2-status-and-experiments.md](stage-2-status-and-experiments.md). Formal assumption validation (E1–E5 program): [formal-hardening.md](formal-hardening.md) Section 7.
 
 ---
 
@@ -129,59 +98,22 @@ The paper defines five experimental protocols designed to address open questions
 
 **Expected outcome:** Baseline stays ESCALATED. Inflate is caught by honest drift agent. Collude achieves false finality (RESOLVED with fake scores), confirming the cooperative model is structurally necessary.
 
-**Run:** `./scripts/run-experiment.sh exp8`. Results: `docs/experiments/exp8/results/<timestamp>`. See [docs/experiments/exp8/README.md](experiments/exp8/README.md) for the full attack model and defense analysis.
+**Run:** `./scripts/run-experiment.sh exp8`. See [experiments/exp8/README.md](experiments/exp8/README.md).
 
 ---
 
-## Experiment 9: Local Confluence (exp9)
+## Experiment 9 (exp9)
 
-**Goal:** Validate Assumption #2 (local confluence) by testing whether CRDT-inspired semantic graph operations commute and whether the governance kernel is deterministic.
+Local confluence (Assumption A2): CRDT commutativity, eventual consistency, monotonic confidence ratchet, idempotency, kernel determinism, cross-epoch convergence. No LLM or Docker.
 
-**Protocol:**
-
-- Six sub-tests, no LLM or Docker required (Postgres + Rust kernel only):
-  1. **CRDT commutativity**: Apply 4 synthetic M&A due diligence payloads in all 24 permutations. Compare finality snapshots — if all identical, operations are fully commutative
-  2. **Eventual consistency**: Apply payloads in different orders, then apply a canonical "complete re-extraction" payload. All orderings must converge to identical state
-  3. **Monotonic confidence ratchet**: Apply confidence 0.7 then 0.92 vs 0.92 then 0.7 for same claim. Both must reach 0.92 (max semantics)
-  4. **Idempotency**: Apply same payload twice — graph must be unchanged after second application
-  5. **Governance kernel determinism**: Evaluate 8 proposal types (YOLO/MITL/MASTER × drift levels) 10 times each. All evaluations must produce identical output
-  6. **Cross-epoch convergence**: Interleaved partial extractions followed by complete extraction must converge
-
-**Expected outcome:** Partial confluence validated — core CRDT operations (confidence ratchet, contradiction irreversibility, idempotency) are fully commutative. Stale marking introduces order-dependence for intermediate states, but the system is eventually consistent after complete re-extraction. This matches the paper's claim that "only certified compatible transitions are guaranteed to commute."
-
-**Run:** `./scripts/run-experiment.sh exp9`. Results: `docs/experiments/exp9/results/<timestamp>`. See [docs/experiments/exp9/README.md](experiments/exp9/README.md).
+**Run:** `./scripts/run-experiment.sh exp9`. See [experiments/exp9/README.md](experiments/exp9/README.md).
 
 ---
 
-## Noisy corpus (noisy)
+## Noisy corpus, Financial
 
-**Goal:** Test behaviour on ambiguous/hedging documents (noisy corpus) as noted in the paper's internal validity and future work.
-
-**Protocol:**
-
-- Use corpus from `demo/scenario/docs-noisy` (5 documents with ambiguous language).
-- Run with same hatchery and simulate-mitl as exp4; collect convergence history and decision records.
-- Measure: V(t), resolution rate, finality, pipeline progression.
-
-**Run:** `./scripts/run-experiment.sh noisy`. Results: `docs/experiments/noisy/results/<timestamp>`.
-
----
-
-## Financial Consolidation (financial)
-
-**Goal:** Demonstrate that the bitemporal semantic graph correctly handles multi-period financial statement reconciliation -- where dual temporality (valid time vs. transaction time) is structurally necessary, restatements supersede earlier figures, and accounting methodology differences create genuine (not artifactual) ambiguity.
-
-**Protocol:**
-
-- Use corpus from `demo/scenario/docs-financial` (8 documents: 1 consolidated summary, 3 subsidiary reports, 1 restatement, 1 cross-period comparative, 1 auditor review, 1 management response).
-- Documents arrive sequentially but reference overlapping and distinct valid-time windows (Q1 2025, Q2 2025, H1 2025). Document 5 (Alpha restated, tx May 22) supersedes document 2 (Alpha original, tx April 14) for the same valid period.
-- Contradictions span three categories: hard numerical disagreements (revenue, margin, headcount), temporal restatements (same valid time, later transaction time), and methodology-dependent ambiguity (ranges, classification judgment).
-- Run with hatchery and simulate-mitl; collect convergence history and decision records.
-- Measure: V(t) trajectory (expected non-monotonic: rise on contradiction arrival, partial decrease on restatement, re-rise on auditor observations), gate satisfaction (especially Gate B on stale evidence and Gate C on oscillation), temporal supersession correctness, finality state.
-
-**Expected outcome:** Characteristic non-monotonic V(t) trajectory distinct from clean demo (few contradictions) and noisy corpus (ambiguity without temporal structure). Gate B should fire on stale original figures after restatement. Final state: ESCALATED due to unresolved classification issues (equity vs. loan, methodology alignment).
-
-**Run:** `./scripts/run-experiment.sh financial --rounds=8`. Results: `docs/experiments/financial/results/<timestamp>`. See [docs/demos/financial/README.md](demos/financial/README.md) for the full scenario and contradiction map.
+- **noisy:** Ambiguous/hedging documents; `./scripts/run-experiment.sh noisy`.
+- **financial:** Bitemporal reconciliation, restatements; `./scripts/run-experiment.sh financial --rounds=8`. See [demos/financial/README.md](demos/financial/README.md).
 
 ---
 

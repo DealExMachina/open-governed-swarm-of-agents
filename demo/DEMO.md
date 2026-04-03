@@ -1,7 +1,6 @@
-# Project Horizon — Enterprise Demo
+# Governed Swarm Demo — Enterprise Scenario
 
-A governed agent swarm processes an M&A due diligence package in real time.
-Five documents. Multiple contradictions. One human decision at the right moment.
+A governed agent swarm processes domain documents in real time. Four scenarios available (M&A, Financial, Insurance, Green Bond). This walkthrough uses **Project Horizon (M&A)**: five documents, multiple contradictions, evidence propagation along sheaf topology, and one human decision at the right moment.
 
 ---
 
@@ -17,7 +16,9 @@ Specifically, the demo covers:
 |---|---|
 | Structured knowledge extraction | Claims, goals, and risks extracted from documents as addressable graph nodes |
 | Contradiction detection | The system identifies when two documents say incompatible things about the same fact |
+| Evidence propagation | Sheaf-based diffusion of support/refutation evidence along role topology; ISS cascade stability |
 | Declarative governance rules | A YAML file blocks state transitions when drift exceeds policy thresholds |
+| Per-dimension finality | Claim confidence, contradiction resolution, goal completion, risk inverse scored independently |
 | Audit trail | Every transition has a proposer, approver, rationale, and timestamp |
 | Human-in-the-loop at finality | When the system is confident but not certain, it queues a structured review |
 | Governed escalation | ESCALATED, BLOCKED, and EXPIRED states have defined semantics and recovery paths |
@@ -46,7 +47,7 @@ The swarm processes each document as it arrives, maintains a structured knowledg
 
 ## Architecture in plain language
 
-Before running the demo, here is what each component does — in business terms:
+The swarm operates in a **5-node state cycle**: ContextIngested → FactsExtracted → DriftChecked → EvidencePropagated → DeltasExtracted, then back to ContextIngested. Each node triggers the corresponding agents. Before running the demo, here is what each component does — in business terms:
 
 **Facts agent**
 Reads each incoming document and extracts structured information: factual claims (with confidence scores), active goals, and risks. This is not keyword extraction — it is semantic understanding. The output is a set of typed, addressable nodes in a shared knowledge graph.
@@ -54,14 +55,20 @@ Reads each incoming document and extracts structured information: factual claims
 **Drift agent**
 After each extraction cycle, compares the current knowledge state against the prior state. Detects contradictions (two claims that cannot both be true), goal shifts (a goal that changed between documents), and factual drift (a claim that changed significantly). Classifies drift severity: none, low, medium, or high.
 
+**Propagation agent**
+Propagates support/refutation evidence along a sheaf topology (role graph). Stabilizes the knowledge state via an ISS (Input-to-State Stability) cascade. Metrics for propagation depth, coverage, and stability are exposed in Grafana.
+
+**Deltas agent**
+Extracts delta updates from propagated state (new facts, resolved contradictions, updated goals). Feeds the planner with the minimal change set.
+
 **Governance agent**
 Reads `governance.yaml` (or `governance-demo.yaml`) to decide whether a proposed state transition should proceed, be blocked, or trigger a remediation action. It does not decide the sequence — it decides whether each transition is currently safe given the known state. Every decision is logged. The governance agent is the control point that makes the system auditable.
 
 **Planner agent**
-Synthesizes the current facts, drift analysis, and governance recommendations into a ranked set of proposed next actions. It does not execute — it proposes. Execution happens only after governance approval.
+Synthesizes the current facts, drift analysis, deltas, and governance recommendations into a ranked set of proposed next actions. It does not execute — it proposes. Execution happens only after governance approval.
 
 **Finality evaluator**
-After each governance cycle, scores the knowledge state across four dimensions: claim confidence, contradiction resolution, goal completion, and risk score. When the score passes the near-finality threshold (default: 75%), the system queues a structured human review rather than auto-resolving. When it passes the auto-finality threshold (default: 92%), it resolves the scope without human input.
+After each governance cycle, scores the knowledge state across four dimensions (claim confidence, contradiction resolution, goal completion, risk inverse). Per-dimension finality is enabled: each dimension contributes to the aggregate score. When the score passes the near-finality threshold (default: 75%), the system queues a structured human review rather than auto-resolving. When it passes the auto-finality threshold (default: 92%), it resolves the scope without human input.
 
 **MITL server (human-in-the-loop queue)**
 Holds pending finality reviews and (in MITL mode) pending proposals. A human reviews the system's explanation of what it knows, what is blocking resolution, and what would resolve each blocker. Four structured options: approve, provide resolution, escalate, or defer. The decision is recorded regardless of which option is chosen.
@@ -185,7 +192,7 @@ The system has no prior context. The facts agent extracts the baseline claims fr
 
 Check the summary:
 ```bash
-curl -s http://localhost:3002/summary?raw=1 | python3 -m json.tool | grep -A5 '"facts"'
+curl -s "http://localhost:3002/summary?raw=1&scope_id=default" | python3 -m json.tool | grep -A5 '"facts"'
 ```
 
 Expected knowledge graph after Step 1:
@@ -225,7 +232,7 @@ These appear in `GET /summary → drift.suggested_actions`.
 
 Check the drift state:
 ```bash
-curl -s http://localhost:3002/summary?raw=1 | python3 -m json.tool | grep -A10 '"drift"'
+curl -s "http://localhost:3002/summary?raw=1&scope_id=default" | python3 -m json.tool | grep -A10 '"drift"'
 ```
 
 Expected state after Step 2:
@@ -251,7 +258,7 @@ The finality evaluator's `risk_score_inverse` dimension degrades as the number o
 
 Check the semantic graph:
 ```bash
-curl -s http://localhost:3002/summary?raw=1 | python3 -m json.tool | grep -A10 '"state_graph"'
+curl -s "http://localhost:3002/summary?raw=1&scope_id=default" | python3 -m json.tool | grep -A10 '"state_graph"'
 ```
 
 Expected state after Step 3:
@@ -280,7 +287,7 @@ This is not a pipeline failure — it is a defined finality state with clear rec
 
 Check the finality dimension breakdown:
 ```bash
-curl -s http://localhost:3002/summary?raw=1 | python3 -m json.tool | grep -A20 '"finality"'
+curl -s "http://localhost:3002/summary?raw=1&scope_id=default" | python3 -m json.tool | grep -A20 '"finality"'
 ```
 
 Expected state after Step 4:
@@ -311,7 +318,7 @@ The review includes:
 
 Check the MITL queue:
 ```bash
-curl -s http://localhost:3001/pending | python3 -m json.tool
+curl -s "http://localhost:3001/pending?scope_id=default" | python3 -m json.tool
 ```
 
 Or open [http://localhost:3002](http://localhost:3002) — the "Pending reviews" section shows the review card with action buttons.
@@ -349,7 +356,7 @@ To approve from the terminal:
 PROPOSAL_ID="<id from GET /pending>"
 curl -X POST http://localhost:3002/finality-response \
   -H "Content-Type: application/json" \
-  -d "{\"proposal_id\": \"${PROPOSAL_ID}\", \"option\": \"approve_finality\"}"
+  -d "{\"scope_id\": \"default\", \"proposal_id\": \"${PROPOSAL_ID}\", \"option\": \"approve_finality\"}"
 ```
 
 Or use the web UI at [http://localhost:3002](http://localhost:3002).
@@ -364,6 +371,7 @@ After the HITL decision, feed the final board decision back as a resolution even
 curl -X POST http://localhost:3002/context/resolution \
   -H "Content-Type: application/json" \
   -d '{
+    "scope_id": "default",
     "decision": "Board approved proceeding to exclusivity with NovaTech AG at a revised offer of €280M. Three conditions must be met before signing: (1) Axion Corp licensing settlement executed, (2) Dr. Haber IP buyout completed, (3) CTO retention package for 12 months post-close signed.",
     "summary": "Project Horizon approved at €280M with three pre-signing conditions"
   }'
@@ -413,6 +421,36 @@ mode: MASTER
 ```
 
 The governance mode is a one-line change. The agents, the semantic graph, and the finality evaluator are unchanged.
+
+---
+
+## Agent skills — behavioral guarantees
+
+Agents are equipped with **skills**: modular playbooks composed into each agent's system prompt at construction time. Skills enforce consistent behavior across the swarm without relying on ad-hoc prompt engineering per agent. Three skills are active:
+
+**Swarm protocol** (`skills/00-swarm-protocol.md`) -- all agents
+- Coordination is stigmergic: agents read/write shared state (WAL, S3, semantic graph), never message each other.
+- Every output must be justified from tool output. "Insufficient evidence" is a valid answer.
+
+**Bitemporal semantics** (`skills/01-bitemporal.md`) -- facts, drift, resolver, propagation, status
+- Claims carry two time axes: valid time (when true in the world) and transaction time (when recorded).
+- Restatements produce a new node with `superseded_at` on the old one -- not a silent overwrite.
+
+**Contradictions and HITL** (`skills/02-contradictions-hitl.md`) -- facts, drift, resolver, planner, governance
+- Facts agent: extract both sides of a conflict as separate claims; never pick a winner.
+- Resolver: mark "confirmed" when evidence is ambiguous; output `requires_hitl: true` when business judgment is needed.
+- Planner/governance: unresolved contradiction with material impact maps to `escalateToHuman`.
+- Global rule: never fabricate emails, approvals, or numbers to close a contradiction.
+
+### Observable skill effects in the demo
+
+| Step | Without skills | With skills |
+|------|---------------|-------------|
+| Step 2 (ARR contradiction) | Drift agent may report high drift without explicit HITL recommendation | Drift agent explicitly recommends human resolution in notes; flags `contradiction` type |
+| Step 4 (patent dispute) | Resolver may mark contradictions "resolved" based on partial evidence | Resolver marks as `confirmed` with `requires_hitl: true` when resolution requires legal judgment |
+| Step 5 (near-finality) | HITL review focuses on score thresholds | HITL review includes bitemporal context about which claims are superseded vs current |
+
+Skills can be disabled for A/B comparison by setting `SKILLS_DISABLED=1`. See `docs/experiments/exp-skills/README.md` for the evaluation protocol.
 
 ---
 
@@ -519,6 +557,9 @@ The summary API and demo UI expose governance and finality context so reviewers 
 | `governance.yaml` | Default governance config (not M&A-specific) |
 | `finality.yaml` | Finality thresholds and state conditions |
 | `src/feed.ts` | Feed server source (port 3002) |
-| `src/agents/governanceAgent.ts` | Governance agent — the policy enforcement point |
+| `src/agents/governanceAgent.ts` | Governance agent -- the policy enforcement point |
 | `src/finalityEvaluator.ts` | Finality scoring and HITL routing |
 | `src/semanticGraph.ts` | Semantic graph operations |
+| `skills/` | Agent skill playbooks (swarm protocol, bitemporal, contradictions/HITL) |
+| `src/skills/loader.ts` | Skill composition into agent instructions |
+| `src/skills/registry.ts` | Skill-to-role mapping |

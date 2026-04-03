@@ -1,0 +1,77 @@
+================================================================================
+CONFIDENTIAL — PROJECT HORIZON
+NovaTech AG: Regulatory & Compliance Status (Initial Assessment)
+Date: 2025-01-28
+Prepared by: Dr. Martina Scholz, VP Legal — NovaTech AG
+================================================================================
+
+1. CERTIFICATIONS & STANDARDS
+
+NovaTech AG maintains the following certifications and compliance attestations:
+
+  SOC 2 Type II:    Certified (audit period: Jan 2024 - Dec 2024)
+                    Auditor: PricewaterhouseCoopers AG, Zurich
+                    Next audit: January 2026
+                    Status: CLEAN — No exceptions noted
+
+  ISO 27001:2022:   Certified (certificate #CH-IS-2023-04891)
+                    Certifying body: SGS SA
+                    Valid through: September 2026
+
+  GDPR Compliance:  Full compliance confirmed. Data Protection Officer
+                    appointed (Dr. Martina Scholz, dual-hatted as VP Legal).
+                    Data Processing Agreements (DPAs) in place with all 47
+                    customers and 12 sub-processors.
+
+2. EU MEDICAL DEVICE REGULATION (MDR) STATUS
+
+NovaTech's RegAssure platform is classified as a "Qualified Infrastructure"
+tool under EU MDR — it assists customers in preparing regulatory submissions
+but is not itself classified as a medical device or Software as Medical Device
+(SaMD).
+
+An initial assessment conducted by TUV SUD (November 2024) confirmed that
+RegAssure does not fall under the scope of EU MDR 2017/745 as a standalone
+product. However, certain modules (specifically the Predictive Risk Scoring
+module) may require additional assessment under MDR Annex VIII Rule 11 if
+deployed in clinical decision-support contexts.
+
+  MDR Readiness Assessment:        COMPLETE
+  MDR Classification:              Out-of-scope (with caveats per Rule 11)
+  Estimated Remediation (if needed): EUR 1.5 million over 12 months
+
+3. SWISS REGULATORY COMPLIANCE
+
+NovaTech AG, as a Swiss entity, complies with the Swiss Federal Act on Data
+Protection (FADP/nDSG) as revised September 2023. The company is registered
+with the Federal Data Protection and Information Commissioner (FDPIC).
+
+Cross-border data transfers between Switzerland and the EU are conducted under
+the EU-Swiss Data Protection Adequacy Decision. All data processing activities
+are documented in the Record of Processing Activities (ROPA).
+
+FINMA (Swiss Financial Market Supervisory Authority) oversight is not applicable
+as NovaTech does not provide financial services. The company has confirmed
+compliance with all applicable Swiss commercial regulations.
+
+4. GERMAN SUBSIDIARY COMPLIANCE
+
+NovaTech GmbH (Munich) operates under German employment law and commercial
+regulations. The subsidiary maintains its own works council consultation
+processes as required under the Betriebsverfassungsgesetz (BetrVG). All German
+employment contracts comply with the Arbeitszeitengesetz (ArbZG) and applicable
+collective bargaining agreements.
+
+5. PENDING REGULATORY MATTERS
+
+No pending regulatory investigations, enforcement actions, or material
+compliance deficiencies have been identified across any jurisdiction.
+
+6. ANTI-CORRUPTION & SANCTIONS
+
+NovaTech maintains an anti-bribery and corruption (ABC) policy consistent with
+Swiss law and the UK Bribery Act 2010 (applicable to the Dublin subsidiary's
+UK-facing activities). Sanctions screening is performed quarterly. No issues
+have been identified.
+
+Prepared by Dr. Martina Scholz, VP Legal — NovaTech AG

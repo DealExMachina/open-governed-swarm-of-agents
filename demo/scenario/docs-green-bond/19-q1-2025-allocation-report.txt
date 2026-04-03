@@ -1,0 +1,25 @@
+QUARTERLY ALLOCATION REPORT -- Q1 2025
+
+Reporting period: 2025-01-01 to 2025-03-31
+Bond: EuroVert Capital Green Bond Fund I
+
+Allocation summary:
+- Total net proceeds: EUR 249,687,500
+- Allocated: EUR 152,700,000 (61.2%)
+  - SolarMed (Cat A, Solar): EUR 26,600,000 (2 drawdowns)
+  - WindNorth (Cat A, Wind): EUR 62,000,000
+  - RetroFit (Cat B, Energy eff.): EUR 20,000,000
+  - ChargeNet (Cat C, Clean transport): EUR 18,000,000
+  - AgriVolt (Cat A, Solar): EUR 12,500,000 (first drawdown)
+  - Pipeline commitments: EUR 13,600,000
+- Unallocated: EUR 96,987,500 (38.8%)
+
+Taxonomy alignment of allocated proceeds: 87.2%
+
+New pipeline additions (under review):
+- EolienSud (France): 60 MW onshore wind, EUR 48M, pre-GBC review
+- StoragePlus (Germany): 20 MWh battery storage, EUR 12M, Taxonomy eligibility under review (new TSC for energy storage expected H2 2025)
+
+Concern: StoragePlus battery storage project -- current EU Taxonomy does not have finalized technical screening criteria for standalone energy storage (expected in the Complementary Climate Delegated Act update). If classified under the 15% flexibility pocket, it reduces the pocket available for other non-TSC activities.
+
+Claim: 61.2% of proceeds allocated. Taxonomy alignment at 87.2%. Contradiction: StoragePlus project eligibility uncertain -- no finalized TSC for standalone battery storage. Risk: Flexibility pocket management becomes critical if multiple non-TSC projects compete for the 15% allowance.

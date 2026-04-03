@@ -3,10 +3,13 @@ import { createTool } from "@mastra/core/tools";
 import { Agent } from "@mastra/core/agent";
 import { z } from "zod";
 import { setMaxListeners } from "events";
-import { getChatModelConfig } from "../modelConfig.js";
+import { getChatModelConfig, REASONING_SETTINGS, DriftOutputSchema } from "../modelConfig.js";
 import { logger } from "../logger.js";
 import { s3GetText, s3PutJson } from "../s3.js";
+import { emitContribution } from "../causalEmit.js";
 import { makeReadFactsTool, makeReadFactsHistoryTool, makeReadDriftTool } from "./sharedTools.js";
+import { composeInstructions } from "../skills/loader.js";
+import { trackAgentTokens } from "../skills/tokenTracker.js";
 
 const DRIFT_LLM_TIMEOUT_MS = 90_000;
 
@@ -41,6 +44,8 @@ function createWriteDriftTool(s3: S3Client, bucket: string) {
       notes: z.array(z.string()).optional(),
       reasoning: z.string().optional(),
       references: z.array(driftRefSchema).optional(),
+      recommend_hitl: z.boolean().optional().default(false)
+        .describe("True when unresolved contradictions need human resolution"),
     }),
     outputSchema: z.object({
       wrote: z.array(z.string()),
@@ -51,6 +56,7 @@ function createWriteDriftTool(s3: S3Client, bucket: string) {
       const types = Array.isArray(input.types) ? input.types.map(String) : [];
       const notes = Array.isArray(input.notes) ? input.notes.map(String) : [];
       const reasoning = typeof input.reasoning === "string" ? input.reasoning : undefined;
+      const recommendHitl = input.recommend_hitl === true;
       const rawRefs = input.references;
       const references = Array.isArray(rawRefs)
         ? rawRefs.map((r: unknown) => {
@@ -62,7 +68,7 @@ function createWriteDriftTool(s3: S3Client, bucket: string) {
             };
           })
         : [];
-      const drift = { level, types, notes: reasoning ? [...notes, reasoning] : notes, references };
+      const drift = { level, types, notes: reasoning ? [...notes, reasoning] : notes, references, recommend_hitl: recommendHitl };
       const ts = new Date().toISOString();
       await s3PutJson(s3, bucket, KEY_DRIFT, drift);
       await s3PutJson(s3, bucket, KEY_DRIFT_HIST(ts), drift);
@@ -89,7 +95,7 @@ export async function runDriftAgent(
       const agent = new Agent({
         id: "drift-agent",
         name: "Drift Agent",
-        instructions: DRIFT_INSTRUCTIONS,
+        instructions: composeInstructions(DRIFT_INSTRUCTIONS, "drift"),
         model: modelConfig,
         tools: {
           readFacts,
@@ -102,16 +108,23 @@ export async function runDriftAgent(
       const timeoutId = setTimeout(() => abortController.abort(), DRIFT_LLM_TIMEOUT_MS);
       setMaxListeners(64, abortController.signal);
       try {
-        await agent.generate(
-          "Analyze drift: read current facts and history, compare them, then write your drift analysis using writeDrift.",
-          { maxSteps: 10, abortSignal: abortController.signal },
-        );
+        const genResult = await agent.generate("Analyze drift now.", {
+          maxSteps: 5,
+          abortSignal: abortController.signal,
+          modelSettings: REASONING_SETTINGS,
+          structuredOutput: { schema: DriftOutputSchema, jsonPromptInjection: true },
+        });
+        trackAgentTokens("drift", genResult);
       } finally {
         clearTimeout(timeoutId);
       }
       const driftRaw = await s3GetText(s3, bucket, KEY_DRIFT);
       const drift = driftRaw ? (JSON.parse(driftRaw) as { level: string; types: string[] }) : { level: "none", types: [] };
       logger.info("drift written (LLM)", { drift_level: drift.level, types: drift.types });
+      await emitContribution("drift-agent", "evidence", {
+        drift_level: drift.level,
+        drift_types: drift.types,
+      }, { scopeId: process.env.SCOPE_ID ?? "default" });
       return { wrote: [KEY_DRIFT], level: drift.level, types: drift.types };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -154,6 +167,10 @@ export async function runDriftAgent(
   await s3PutJson(s3, bucket, KEY_DRIFT, drift);
   await s3PutJson(s3, bucket, KEY_DRIFT_HIST(ts), drift);
   logger.info("drift written (fallback)", { drift_level: drift.level, types: drift.types });
+  await emitContribution("drift-agent", "evidence", {
+    drift_level: drift.level,
+    drift_types: drift.types,
+  }, { scopeId: process.env.SCOPE_ID ?? "default" });
   return { wrote: [KEY_DRIFT, KEY_DRIFT_HIST(ts)], level: drift.level, types: drift.types };
 }
 

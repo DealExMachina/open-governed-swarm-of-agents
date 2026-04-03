@@ -1,0 +1,27 @@
+PARTIAL RESOLUTION — Litigation Exposure Reconciliation
+Date: Week 3
+
+Regarding the discrepancy identified between initial assessment (€2.1M) and
+independent audit (€10.3M):
+
+Claim A (€4.8M IP infringement): Legal team has reviewed. The claim was filed
+but is assessed as having LOW probability of success (< 20%). Expected value: €0.96M.
+However, the IP title transfer documentation has a gap that legal cannot fully resolve
+without external IP counsel. STATUS: PARTIALLY RESOLVED — lower bound established,
+upper bound contested.
+
+Claim B (€2.3M regulatory penalty): Pre-assessment notice only. Regulatory body
+has not issued formal determination. May be withdrawn. STATUS: UNRESOLVED.
+
+Claim C (€1.1M employment dispute): Mediation scheduled. Counter-party has
+indicated willingness to settle at €0.4M. STATUS: IN PROGRESS.
+
+IP ownership (core module): External IP counsel engaged. Opinion expected Week 5.
+TITLE CANNOT BE CONFIRMED UNTIL WEEK 5.
+
+Overall: Exposure range is €0.96M–€10.3M depending on outcomes. This range
+is too wide for standard risk scoring. The initial LOW assessment and the audit
+MEDIUM assessment cannot both be correct. One of the two sources is materially wrong.
+
+Confidence: LOW on final exposure figure. Risk score: cannot be determined with
+current information. PRELIMINARY assessment: 0.38 (medium).

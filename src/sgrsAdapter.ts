@@ -7,8 +7,6 @@
  *
  * All functions are thin wrappers — no logic, just type conversion.
  */
-import "./sgrsLoadGuard.js"; // must be first: log before sgrs-core load (H1)
-
 import {
   computeDimensionScores as rustComputeDimensionScores,
   computeScalarV as rustComputeScalarV,
@@ -22,6 +20,22 @@ import {
   canGovernanceTransition as rustCanGovernanceTransition,
   evaluateKernel as rustEvaluateKernel,
   evaluateVectorFinalityBridge as rustEvaluateVectorFinality,
+  computeContentHashBridge as rustComputeContentHash,
+  validateContributionBridge as rustValidateContribution,
+  analyzeSpectrumBridge as rustAnalyzeSpectrum,
+  propagationStepBridge as rustPropagationStep,
+  computeDisagreementBridge as rustComputeDisagreement,
+  analyzeIssBridge as rustAnalyzeIss,
+  extractContradictionsBridge as rustExtractContradictions,
+  analyzeSpectrumTopologyBridge as rustAnalyzeSpectrumTopology,
+  propagationStepTopologyBridge as rustPropagationStepTopology,
+  getTopologyInfoBridge as rustGetTopologyInfo,
+  analyzeSpectrumSheafBridge as rustAnalyzeSpectrumSheaf,
+  propagationStepSheafBridge as rustPropagationStepSheaf,
+  perDimensionDisagreementBridge as rustPerDimensionDisagreement,
+  computeConceptLatticeBridge as rustComputeConceptLattice,
+  checkFinalityOnConceptsBridge as rustCheckFinalityOnConcepts,
+  getConceptProvenanceBridge as rustGetConceptProvenance,
 } from "../sgrs-core/index.js";
 import type {
   FinalitySnapshotDto,
@@ -49,9 +63,6 @@ import type {
 import type { ConvergencePoint, ConvergenceConfig, ConvergenceState } from "./convergenceTracker.js";
 import type { GovernanceConfig, DriftInput, TransitionDecision, PolicyRule, TransitionRule } from "./governance.js";
 import { recordSgrsCall } from "./metrics.js";
-// #region agent log
-fetch("http://127.0.0.1:7243/ingest/43a26554-c058-4ee2-bffa-258ea712c1dc", { method: "POST", headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "346e93" }, body: JSON.stringify({ sessionId: "346e93", location: "sgrsAdapter.ts:after-imports", message: "sgrs-core loaded OK", data: {}, timestamp: Date.now(), hypothesisId: "H2" }) }).catch(() => {});
-// #endregion
 
 function timedSgrs<T>(operation: string, fn: () => T): T {
   const start = performance.now();
@@ -496,5 +507,485 @@ export function evaluateVectorFinality(
     veto_triggered: dto.vetoTriggered,
     veto_causes: dto.vetoCauses,
     global_gates_passed: dto.globalGatesPassed,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Causal contribution layer (Stage 2 Phase 1)
+// ---------------------------------------------------------------------------
+
+export interface ContentHashResult {
+  hash: string;
+  valid: boolean;
+  error?: string;
+}
+
+export function computeContentHash(
+  parents: string[],
+  payload: string,
+  kind: string,
+): ContentHashResult {
+  const dto = timedSgrs("content_hash", () =>
+    rustComputeContentHash(parents, payload, kind),
+  );
+  return {
+    hash: dto.hash,
+    valid: dto.valid,
+    error: dto.error ?? undefined,
+  };
+}
+
+export interface CausalValidationResult {
+  valid: boolean;
+  rid_matches: boolean;
+  missing_parents: string[];
+  error?: string;
+}
+
+export function validateContribution(
+  rid: string,
+  parents: string[],
+  payload: string,
+  kind: string,
+  knownRids: string[],
+): CausalValidationResult {
+  const dto = timedSgrs("validate_contribution", () =>
+    rustValidateContribution(rid, parents, payload, kind, knownRids),
+  );
+  return {
+    valid: dto.valid,
+    rid_matches: dto.ridMatches,
+    missing_parents: dto.missingParents ?? [],
+    error: dto.error ?? undefined,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Propagation / sheaf / ISS (Stage 2 Phase 2)
+// ---------------------------------------------------------------------------
+
+export interface SpectralAnalysis {
+  eigenvalues: number[];
+  spectral_gap: number;
+  lambda_max: number;
+  optimal_alpha: number;
+  contraction_rate: number;
+  mixing_time_estimate: number;
+  is_connected: boolean;
+}
+
+export function analyzeSpectrum(numRoles: number, stalkDim: number): SpectralAnalysis {
+  const dto = timedSgrs("analyze_spectrum", () =>
+    rustAnalyzeSpectrum(numRoles, stalkDim),
+  );
+  return {
+    eigenvalues: dto.eigenvalues ?? [],
+    spectral_gap: dto.spectralGap ?? 0,
+    lambda_max: dto.lambdaMax ?? 0,
+    optimal_alpha: dto.optimalAlpha ?? 0,
+    contraction_rate: dto.contractionRate ?? 0,
+    mixing_time_estimate: dto.mixingTimeEstimate ?? 0,
+    is_connected: dto.isConnected ?? false,
+  };
+}
+
+export interface PropagationStepResult {
+  disagreement_before: number;
+  disagreement_after: number;
+  contraction_ratio: number;
+  perturbation_norm: number;
+  contraction_achieved: boolean;
+  /** Flattened new state for chaining steps (same layout as input). */
+  flat_new_state: number[];
+}
+
+export function propagationStep(
+  flatState: number[],
+  flatPerturbation: number[],
+  numRoles: number,
+  numDims: number,
+  alpha: number,
+  supportMin: number,
+  supportMax: number,
+  refutationMin: number,
+  refutationMax: number,
+): PropagationStepResult {
+  const dto = timedSgrs("propagation_step", () =>
+    rustPropagationStep(
+      flatState,
+      flatPerturbation,
+      numRoles,
+      numDims,
+      alpha,
+      supportMin,
+      supportMax,
+      refutationMin,
+      refutationMax,
+    ),
+  );
+  return {
+    disagreement_before: dto.disagreementBefore ?? 0,
+    disagreement_after: dto.disagreementAfter ?? 0,
+    contraction_ratio: dto.contractionRatio ?? 0,
+    perturbation_norm: dto.perturbationNorm ?? 0,
+    contraction_achieved: dto.contractionAchieved ?? false,
+    flat_new_state: dto.flatNewState ?? [],
+  };
+}
+
+export function computeDisagreement(
+  flatState: number[],
+  numRoles: number,
+  numDims: number,
+): number {
+  return timedSgrs("compute_disagreement", () =>
+    rustComputeDisagreement(flatState, numRoles, numDims),
+  );
+}
+
+/**
+ * Per-dimension disagreement: Ω_d = Σᵢ [(s_{i,d} - s̄_d)² + (r_{i,d} - r̄_d)²].
+ * Returns array of length numDims.
+ */
+export function perDimensionDisagreement(
+  flatState: number[],
+  numRoles: number,
+  numDims: number,
+): number[] {
+  return timedSgrs("per_dimension_disagreement", () =>
+    rustPerDimensionDisagreement(flatState, numRoles, numDims),
+  );
+}
+
+export interface ISSAnalysis {
+  contraction_rate: number;
+  contraction_rate_squared: number;
+  propagation_gain: number;
+  contradiction_rate: number;
+  small_gain_satisfied: boolean;
+  small_gain_margin: number;
+  steady_state_disagreement: number;
+  steady_state_contradictions: number;
+  convergence_time_estimate: number;
+}
+
+export function analyzeISS(
+  spectralGap: number,
+  alpha: number,
+  noiseBound: number,
+  contradictionRate: number,
+  initialDisagreement: number,
+): ISSAnalysis {
+  const dto = timedSgrs("analyze_iss", () =>
+    rustAnalyzeIss(
+      spectralGap,
+      alpha,
+      noiseBound,
+      contradictionRate,
+      initialDisagreement,
+    ),
+  );
+  return {
+    contraction_rate: dto.contractionRate ?? 0,
+    contraction_rate_squared: dto.contractionRateSquared ?? 0,
+    propagation_gain: dto.propagationGain ?? 0,
+    contradiction_rate: dto.contradictionRate ?? 0,
+    small_gain_satisfied: dto.smallGainSatisfied ?? false,
+    small_gain_margin: dto.smallGainMargin ?? 0,
+    steady_state_disagreement: dto.steadyStateDisagreement ?? 0,
+    steady_state_contradictions: dto.steadyStateContradictions ?? 0,
+    convergence_time_estimate: dto.convergenceTimeEstimate ?? 0,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Contradiction extraction (Stage 2)
+// ---------------------------------------------------------------------------
+
+export interface DetectedContradiction {
+  role_i: number;
+  role_j: number;
+  dimension: number;
+  channel: string;
+  magnitude: number;
+}
+
+export function extractContradictions(
+  flatState: number[],
+  numRoles: number,
+  numDims: number,
+  threshold: number,
+): DetectedContradiction[] {
+  const dtos = timedSgrs("extract_contradictions", () =>
+    rustExtractContradictions(flatState, numRoles, numDims, threshold),
+  );
+  return dtos.map((d: any) => ({
+    role_i: d.roleI,
+    role_j: d.roleJ,
+    dimension: d.dimension,
+    channel: d.channel,
+    magnitude: d.magnitude,
+  }));
+}
+
+// ---------------------------------------------------------------------------
+// FCA concept lattice bridge (Phase 3.D)
+// ---------------------------------------------------------------------------
+
+export interface ConceptLatticeResult {
+  concept_count: number;
+  overflow: boolean;
+  compute_ms: number;
+}
+
+export interface ConceptFinalityResult {
+  is_final: boolean;
+  concept_count: number;
+  overflow: boolean;
+  lattice_threshold: number;
+}
+
+export interface ConceptProvenance {
+  intent_mask: number;
+  extent_size: number;
+}
+
+export function computeConceptLattice(
+  flatSupport: number[],
+  flatRefutation: number[],
+  governanceLevels: string[],
+  numRoles: number,
+  numDims: number,
+  maxConcepts = 5000,
+): ConceptLatticeResult {
+  const dto = timedSgrs("compute_concept_lattice", () =>
+    rustComputeConceptLattice(
+      flatSupport,
+      flatRefutation,
+      governanceLevels,
+      numRoles,
+      numDims,
+      maxConcepts,
+    ),
+  );
+  return {
+    concept_count: dto.conceptCount ?? 0,
+    overflow: dto.overflow ?? false,
+    compute_ms: dto.computeMs ?? 0,
+  };
+}
+
+export function checkFinalityOnConcepts(
+  flatSupport: number[],
+  flatRefutation: number[],
+  governanceLevels: string[],
+  numRoles: number,
+  numDims: number,
+  latticeThreshold = 50,
+  maxConcepts = 5000,
+): ConceptFinalityResult {
+  const dto = timedSgrs("check_finality_on_concepts", () =>
+    rustCheckFinalityOnConcepts(
+      flatSupport,
+      flatRefutation,
+      governanceLevels,
+      numRoles,
+      numDims,
+      latticeThreshold,
+      maxConcepts,
+    ),
+  );
+  return {
+    is_final: dto.isFinal ?? false,
+    concept_count: dto.conceptCount ?? 0,
+    overflow: dto.overflow ?? false,
+    lattice_threshold: dto.latticeThreshold ?? latticeThreshold,
+  };
+}
+
+export function getConceptProvenance(
+  flatSupport: number[],
+  flatRefutation: number[],
+  governanceLevels: string[],
+  numRoles: number,
+  numDims: number,
+  maxConcepts = 256,
+): ConceptProvenance[] {
+  const dtos = timedSgrs("get_concept_provenance", () =>
+    rustGetConceptProvenance(
+      flatSupport,
+      flatRefutation,
+      governanceLevels,
+      numRoles,
+      numDims,
+      maxConcepts,
+    ),
+  );
+  return (dtos ?? []).map((d: any) => ({
+    intent_mask: d.intentMask ?? 0,
+    extent_size: d.extentSize ?? 0,
+  }));
+}
+
+// ---------------------------------------------------------------------------
+// Topology-aware propagation (P1 — Research Progress Program)
+// ---------------------------------------------------------------------------
+
+export type TopologyPreset =
+  | "complete"
+  | "star"
+  | "ring"
+  | "chain"
+  | "random_regular";
+
+export interface TopologyInfo {
+  topology: string;
+  num_roles: number;
+  num_edges: number;
+  edge_list: number[];
+}
+
+export function getTopologyInfo(
+  topology: TopologyPreset,
+  numRoles: number,
+  degree?: number,
+  seed?: number,
+): TopologyInfo {
+  const dto = timedSgrs("get_topology_info", () =>
+    rustGetTopologyInfo(topology, numRoles, degree ?? null, seed ?? null),
+  );
+  return {
+    topology: dto.topology,
+    num_roles: dto.numRoles,
+    num_edges: dto.numEdges,
+    edge_list: dto.edgeList ?? [],
+  };
+}
+
+export function analyzeSpectrumTopology(
+  topology: TopologyPreset,
+  numRoles: number,
+  stalkDim: number,
+  degree?: number,
+  seed?: number,
+): SpectralAnalysis {
+  const dto = timedSgrs("analyze_spectrum_topology", () =>
+    rustAnalyzeSpectrumTopology(topology, numRoles, stalkDim, degree ?? null, seed ?? null),
+  );
+  return {
+    eigenvalues: dto.eigenvalues ?? [],
+    spectral_gap: dto.spectralGap ?? 0,
+    lambda_max: dto.lambdaMax ?? 0,
+    optimal_alpha: dto.optimalAlpha ?? 0,
+    contraction_rate: dto.contractionRate ?? 0,
+    mixing_time_estimate: dto.mixingTimeEstimate ?? 0,
+    is_connected: dto.isConnected ?? false,
+  };
+}
+
+export interface TopologyPropagationOptions {
+  topology: TopologyPreset;
+  degree?: number;
+  seed?: number;
+  /** Explicit edge list [u0,v0, u1,v1, ...] — overrides topology preset */
+  edges?: number[];
+  /** Per-dimension support bounds [min0,max0, min1,max1, ...] */
+  support_bounds?: number[];
+  /** Per-dimension refutation bounds [min0,max0, min1,max1, ...] */
+  refutation_bounds?: number[];
+}
+
+export function propagationStepTopology(
+  flatState: number[],
+  flatPerturbation: number[],
+  numRoles: number,
+  numDims: number,
+  alpha: number,
+  options: TopologyPropagationOptions,
+): PropagationStepResult {
+  const dto = timedSgrs("propagation_step_topology", () =>
+    rustPropagationStepTopology(
+      flatState,
+      flatPerturbation,
+      numRoles,
+      numDims,
+      alpha,
+      options.topology,
+      options.degree ?? null,
+      options.seed ?? null,
+      options.edges ?? null,
+      options.support_bounds ?? null,
+      options.refutation_bounds ?? null,
+    ),
+  );
+  return {
+    disagreement_before: dto.disagreementBefore ?? 0,
+    disagreement_after: dto.disagreementAfter ?? 0,
+    contraction_ratio: dto.contractionRatio ?? 0,
+    perturbation_norm: dto.perturbationNorm ?? 0,
+    contraction_achieved: dto.contractionAchieved ?? false,
+    flat_new_state: dto.flatNewState ?? [],
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Projection sheaf (sheaf grounding: non-identity restriction maps)
+// ---------------------------------------------------------------------------
+
+export function analyzeSpectrumSheaf(
+  numRoles: number,
+  numDims: number,
+  roleObservedDims: number[][],
+  edges: number[],
+): SpectralAnalysis {
+  const dto = timedSgrs("analyze_spectrum_sheaf", () =>
+    rustAnalyzeSpectrumSheaf(numRoles, numDims, roleObservedDims, edges),
+  );
+  return {
+    eigenvalues: dto.eigenvalues ?? [],
+    spectral_gap: dto.spectralGap ?? 0,
+    lambda_max: dto.lambdaMax ?? 0,
+    optimal_alpha: dto.optimalAlpha ?? 0,
+    contraction_rate: dto.contractionRate ?? 0,
+    mixing_time_estimate: dto.mixingTimeEstimate ?? 0,
+    is_connected: dto.isConnected ?? false,
+  };
+}
+
+export interface SheafPropagationOptions {
+  roleObservedDims: number[][];
+  edges: number[];
+  supportBounds?: number[];
+  refutationBounds?: number[];
+}
+
+export function propagationStepSheaf(
+  flatState: number[],
+  flatPerturbation: number[],
+  numRoles: number,
+  numDims: number,
+  alpha: number,
+  options: SheafPropagationOptions,
+): PropagationStepResult {
+  const dto = timedSgrs("propagation_step_sheaf", () =>
+    rustPropagationStepSheaf(
+      flatState,
+      flatPerturbation,
+      numRoles,
+      numDims,
+      alpha,
+      options.roleObservedDims,
+      options.edges,
+      options.supportBounds ?? null,
+      options.refutationBounds ?? null,
+    ),
+  );
+  return {
+    disagreement_before: dto.disagreementBefore ?? 0,
+    disagreement_after: dto.disagreementAfter ?? 0,
+    contraction_ratio: dto.contractionRatio ?? 0,
+    perturbation_norm: dto.perturbationNorm ?? 0,
+    contraction_achieved: dto.contractionAchieved ?? false,
+    flat_new_state: dto.flatNewState ?? [],
   };
 }

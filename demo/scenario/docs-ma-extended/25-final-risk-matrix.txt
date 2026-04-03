@@ -1,0 +1,128 @@
+================================================================================
+CONFIDENTIAL — PROJECT HORIZON
+Final Risk Matrix: NovaTech AG Acquisition
+Date: 2025-08-01
+Prepared by: Marcus Reinhardt, Head of Corporate Development
+Reviewed by: Investment Committee, Meridian Capital Partners
+================================================================================
+
+1. PURPOSE
+
+This document presents the final risk assessment for the proposed acquisition
+of NovaTech AG at EUR 280 million. It supersedes the preliminary risk
+assessment (Document 10) and incorporates all findings from Phase 2 and
+Phase 3 diligence.
+
+2. RISK MATRIX COMPARISON (PRELIMINARY vs. FINAL)
+
+  Dimension                 Prelim (Doc 10)   Final        Change
+  ---------                 ---------------   -----        ------
+  Financial Performance     LOW               HIGH         +2 levels
+  Intellectual Property     LOW               MEDIUM       +1 level
+  Customer Concentration    LOW               HIGH         +2 levels
+  Technology & Product      LOW               HIGH         +2 levels
+  Regulatory & Compliance   LOW               MEDIUM       +1 level
+  Team & Key Person         LOW               HIGH         +2 levels
+
+  OVERALL ASSESSMENT:       LOW               MEDIUM-HIGH  Significant change
+
+3. DETAILED RISK QUANTIFICATION
+
+  3.1 Financial Performance — HIGH
+  Initial:   ARR EUR 50.0M, 45% CAGR, 72% margins, clean
+  Final:     ARR EUR 38.0M (-24%), 32% CAGR, 68.4% margins, material misstatement
+  Residual:  Revenue recognition practices require monitoring post-close.
+             CFO Stefan Gruber's credibility diminished. Consider CFO replacement.
+  Quantified Exposure: EUR 12.0M overstatement already priced into revised offer.
+             Ongoing risk of further restatement: EUR 2-5M (10% probability)
+
+  3.2 Intellectual Property — MEDIUM (reduced from HIGH pre-settlement)
+  Initial:   Clean portfolio, 7 patents, FTO opinion clear
+  Final:     2 patents disputed, 1 infringement suit filed, settlements pending
+  Residual:  If settlements execute per framework (Document 22), IP risk reduces
+             to MEDIUM. Axion royalty obligation creates ongoing cost. EP3847291
+             ownership now secured. EP3512644 co-ownership resolved.
+  Quantified Exposure: Settlement cost EUR 3.4-4.1M (budgeted). Residual
+             litigation risk: EUR 2-5M (5% probability of settlement failure).
+             EUR 25M escrow covers worst-case.
+
+  3.3 Customer Concentration — HIGH
+  Initial:   Top client 15.6% of ARR, 47 clients, 96% retention
+  Final:     Top client 21.6% of adjusted ARR, Pharmakon renewal at -15%,
+             performance exit clause, top-3 = 44.5% of ARR
+  Residual:  Pharmakon churn risk remains (est. 30% probability over 2 years).
+             Revenue impact if Pharmakon churns: EUR 7.0M ARR loss.
+  Quantified Exposure: Expected loss = EUR 7.0M x 30% = EUR 2.1M annual risk.
+             Earn-out structure partially mitigates (EUR 30M contingent).
+
+  3.4 Technology & Product — HIGH
+  Initial:   Modern stack, 12% tech debt, >80% coverage, 99.92% uptime
+  Final:     54% actual test coverage, 14-month DR gap, 3 critical CVEs,
+             AWS single-source dependency, OpenAI data residency concern
+  Residual:  Post-remediation (EUR 5-7M budget), tech risk reduces to MEDIUM.
+             Critical CVEs must be resolved pre-signing (Board Condition 3).
+  Quantified Exposure: Remediation budget EUR 5-7M. Data breach risk: EUR
+             10-20M (2% probability, insurable). DR failure risk: EUR 3-5M
+             (10% probability of extended outage before remediation).
+
+  3.5 Regulatory & Compliance — MEDIUM
+  Initial:   SOC 2 clean, ISO 27001, GDPR compliant, no pending matters
+  Final:     FINMA gap, Swiss data transfer violations, MDR reclassification,
+             SOC 2 reliability questioned, German severance understatement
+  Residual:  FINMA and data transfer issues are remediable (6 months, EUR 1.5M).
+             MDR compliance is a strategic investment (EUR 4.5M, 18 months).
+             German severance delta (EUR 2.3M) priced into revised offer.
+  Quantified Exposure: Regulatory fines: EUR 0.5-1.0M (15% probability).
+             MDR non-compliance market access risk: EUR 3-6M annual revenue
+             at risk (customers in clinical-adjacent use cases).
+
+  3.6 Team & Key Person — HIGH
+  Initial:   Founders committed, low churn, VP Eng under retention agreement
+  Final:     CTO departing Q4 2025, 2 senior engineers following, 61% code
+             concentration, ML team flight risk (8 of 18 may leave)
+  Residual:  CTO transition plan required (Board Condition 2). EUR 15M
+             retention pool allocated. Even with mitigation, 12-18 month
+             period of elevated execution risk during leadership transition.
+  Quantified Exposure: Full team replacement cost: EUR 15-25M. With retention
+             pool and transition plan: EUR 5-10M expected cost. Productivity
+             loss during transition: 15-25% reduction in engineering velocity
+             for 12 months.
+
+4. AGGREGATE RISK QUANTIFICATION
+
+  Known Costs (already budgeted):
+    IP Settlements:                  EUR  3.4 -  4.1M
+    Cybersecurity Remediation:       EUR  0.5 -  0.7M
+    Regulatory Remediation:          EUR  1.0 -  1.6M
+    Technical Debt:                  EUR  3.0 -  5.0M
+    MDR Compliance:                  EUR  4.5M
+    Infrastructure Resilience:       EUR  1.5 -  2.0M
+    Retention Pool:                  EUR 15.0M
+    -----------------------------------------------
+    Total Known Costs:               EUR 28.9 - 32.9M
+
+  Contingent Risks (probability-weighted):
+    Revenue Restatement Risk:        EUR  0.5M  (10% x EUR 5M)
+    Settlement Failure:              EUR  0.3M  ( 5% x EUR 5M)
+    Pharmakon Churn:                 EUR  2.1M  (30% x EUR 7M)
+    Data Breach:                     EUR  0.3M  ( 2% x EUR 15M)
+    Extended Outage:                 EUR  0.4M  (10% x EUR 4M)
+    Regulatory Fines:                EUR  0.1M  (15% x EUR 0.75M)
+    -----------------------------------------------
+    Expected Contingent Cost:        EUR  3.7M
+
+5. FINAL RECOMMENDATION
+
+Despite the significant increase in risk profile from the preliminary
+assessment, the Investment Committee recommends PROCEEDING with the
+acquisition at EUR 280M, subject to the three Board conditions (Document 24).
+
+The deal remains strategically compelling. The EUR 2.1B addressable market,
+NovaTech's product differentiation, and the MDR compliance opportunity
+justify the investment. The revised price (EUR 280M vs. EUR 420M) adequately
+reflects discovered risks, and the escrow/earn-out structure provides
+downside protection.
+
+Risk Rating: MEDIUM-HIGH — PROCEED WITH CONDITIONS
+
+Prepared by Marcus Reinhardt, Meridian Capital Partners

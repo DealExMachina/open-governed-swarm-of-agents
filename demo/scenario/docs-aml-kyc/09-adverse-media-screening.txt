@@ -1,0 +1,132 @@
+DOCUMENT: ADVERSE MEDIA SCREENING — ALERT NOTIFICATION
+CLASSIFICATION: CONFIDENTIAL — AML/KYC RESTRICTED — URGENT
+INSTITUTION: EuroBank AG, Frankfurt am Main
+DATE: 2024-08-05
+REFERENCE: MED-2024-CAST-0001
+SCREENING OFFICER: Jens Mueller, Sanctions Screening Agent (EB-5587)
+ALERT SOURCE: Refinitiv World-Check One — Automated Media Monitor
+ALERT SEVERITY: HIGH
+
+1. MEDIA ALERT DETAILS
+
+On 2024-08-04, the automated adverse media screening system flagged the
+following article concerning a monitored individual:
+
+  Source:        Corriere della Sera (Italian national newspaper)
+  Date:          2024-08-03
+  Headline:      "Indagine su appalti comunali a Milano: sotto esame
+                  il consigliere Castellan" [Translation: "Investigation
+                  into municipal contracts in Milan: Councilor Castellan
+                  under examination"]
+  Section:       Cronaca di Milano (Milan Chronicle)
+  Author:        Giulia Mancini, judicial affairs correspondent
+
+2. ARTICLE SUMMARY
+
+The Corriere della Sera reports that the Guardia di Finanza (Italian
+financial police) has opened a preliminary investigation ("indagine
+preliminare") into potential irregularities in the award of municipal
+maintenance contracts in Milan's Municipio 4 (Ward 4).
+
+Key facts reported:
+  - Marco Castellan (Consigliere Comunale, PD) is "under scrutiny"
+    ("sotto esame") in connection with the investigation
+  - The investigation concerns EUR 2.7M in maintenance contracts awarded
+    to three companies between 2021-2023
+  - Allegations include potential conflict of interest and irregular
+    tender procedures
+  - No formal charges have been filed
+  - Marco Castellan's lawyer issued a statement: "My client has acted
+    with full transparency and will cooperate fully with authorities"
+  - The Procura della Repubblica (Milan Public Prosecutor) confirmed
+    the existence of the investigation but declined to comment on details
+
+3. RELEVANCE TO CASTELLAN HOLDINGS
+
+  Direct Client:      Viktor Castellan — brother of Marco Castellan
+  PEP Status Update:  Marco Castellan's PEP risk has ESCALATED from
+                      LOW (municipal councilor, no concerns) to
+                      HIGH (PEP under active criminal investigation)
+
+  Impact Chain:
+  (a) Marco is a named beneficiary of Castellan Trust (Liechtenstein)
+      — discovered in annual review (CDD-2024-CAST-0006)
+  (b) Castellan Trust assets estimated EUR 8-12M
+  (c) If Marco has received or may receive trust distributions, those
+      funds could be connected to a person under criminal investigation
+  (d) Viktor Castellan as settlor has the power to direct trust
+      distributions — potential facilitating role
+
+4. CROSS-REFERENCE WITH EXISTING ALERTS
+
+  CDD-2024-CAST-0006:  Marco added as trust beneficiary (Oct 2023).
+                        TEMPORAL NOTE: The municipal contracts under
+                        investigation span 2021-2023. Marco was added
+                        to the trust during the investigation period.
+
+  TXN-ALERT-2024-0287: EUR 3.3M payments to Cerberus Consulting AG.
+                        No direct link to Marco established, but the
+                        accumulation of red flags is significant.
+
+  EDD-2024-CAST-0001:  Enhanced Due Diligence already in progress.
+                        This media alert must be incorporated.
+
+5. ADDITIONAL SCREENING CONDUCTED
+
+Following the alert, expanded screening was performed:
+
+  Marco Castellan — Updated Screening:
+    OFAC:              NO MATCH
+    EU Sanctions:      NO MATCH
+    Italian National:  NO MATCH (no judicial sanctions yet)
+    PEP Status:        CONFIRMED — now flagged as PEP UNDER INVESTIGATION
+    World-Check:       UPDATED — profile elevated to "Special Interest
+                       Category: Government / Investigation"
+
+  Companies Named in Investigation (from article):
+    - Servizi Urbani Milano S.r.l. — NO prior link to Castellan entities
+    - GreenTech Manutenzione S.p.A. — NO prior link
+    - EdilService Lombardia S.r.l. — NO prior link
+
+  Viktor Castellan:   NO new adverse media
+  Castellan Entities: NO new adverse media
+
+6. REGULATORY IMPLICATIONS
+
+Per FATF Guidance on PEPs (2013) and 5AMLD Article 20:
+  - When a PEP family member becomes subject to criminal investigation,
+    enhanced measures must be applied to all related business relationships
+  - The bank must assess whether the existing business relationship could
+    be used to launder proceeds of the alleged criminal activity
+  - Senior management must be informed and approve continuation of the
+    relationship
+
+Per German GwG (Geldwaeschegesetz) Section 15(5):
+  - Higher risk situations involving PEPs require approval of senior
+    management for continuing the business relationship
+
+7. RECOMMENDED ACTIONS
+
+  [x] Update Marco Castellan's PEP profile in screening system
+  [x] Notify Head of Financial Crime (Claudia Richter)
+  [x] Incorporate into ongoing EDD (EDD-2024-CAST-0001)
+  [ ] Request Viktor Castellan to confirm whether Marco has received
+      any trust distributions
+  [ ] Monitor Italian judicial proceedings for developments
+  [ ] Set up real-time media alert for "Marco Castellan" + "Guardia
+      di Finanza" + "Milano appalti"
+  [ ] Escalate to Compliance Committee (combined with EDD findings)
+  [ ] Consider whether SAR filing threshold has been reached
+
+8. ONGOING MONITORING
+
+  Media monitoring frequency increased from QUARTERLY to DAILY for all
+  Castellan-related individuals and entities.
+
+  Next full adverse media review: 2024-08-12 (weekly cycle)
+
+Alert raised by:   Jens Mueller, Sanctions Screening Agent (EB-5587)
+Escalated to:      Claudia Richter, Head of Financial Crime (EB-2201)
+Date:              2024-08-05
+
+— END OF ADVERSE MEDIA SCREENING ALERT —

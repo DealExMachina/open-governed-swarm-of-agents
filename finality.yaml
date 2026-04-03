@@ -15,6 +15,13 @@ convergence:
   history_depth: 20          # Convergence points to keep in analysis window
   divergence_rate: -0.05     # Convergence rate α below this triggers divergence alert
 
+# Stage 2 Phase 3: ISS cascade monitoring (sheaf propagation stability).
+iss_cascade:
+  enabled: true
+  max_contradiction_rate: 0.3
+  practical_stability_alert_threshold: 0.1
+  small_gain_violation_action: escalate   # escalate | warn | block
+
 # Per-dimension (vector) finality. When enabled, RESOLVED requires every required
 # dimension to independently meet its threshold + epsilon, with per-dimension gates
 # GA_d (monotonicity) and GC_d (trajectory quality). Scalar finality remains as

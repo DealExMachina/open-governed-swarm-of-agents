@@ -12,6 +12,9 @@ pub enum ReductionVerdict {
     Accept,
     Reject,
     Escalate,
+    /// Eliminate evidence on a specific dimension via bilattice meet_t.
+    /// Governance certifies that refutation evidence warrants hypothesis removal.
+    Eliminate,
 }
 
 impl ReductionVerdict {
@@ -20,8 +23,27 @@ impl ReductionVerdict {
             Self::Accept => "accept",
             Self::Reject => "reject",
             Self::Escalate => "escalate",
+            Self::Eliminate => "eliminate",
         }
     }
+}
+
+/// Certificate for an elimination action (Phase 3, §6.8).
+///
+/// When the kernel produces `Eliminate`, this certificate specifies which
+/// dimension to eliminate and the evidence backing the elimination.
+/// The propagation layer uses this to construct an elimination mask
+/// applied via `meet_t`.
+#[derive(Debug, Clone)]
+pub struct EliminationCertificate {
+    /// Which base dimension to eliminate (0-indexed into EvidenceVector).
+    pub dimension: usize,
+    /// Refutation evidence strength — must exceed θ_refute threshold.
+    pub refutation_evidence: f64,
+    /// Which role(s) originated the elimination request.
+    pub originating_roles: Vec<usize>,
+    /// Human-readable reason for elimination.
+    pub reason: String,
 }
 
 /// Input to the reduction kernel — all data needed for a deterministic decision.
@@ -46,6 +68,8 @@ pub struct KernelOutput {
     pub suggested_actions: Vec<String>,
     pub admissibility: Option<AdmissibilityResult>,
     pub regressed_dimensions: Vec<DimensionId>,
+    /// Present when verdict = Eliminate — specifies the elimination target.
+    pub elimination: Option<EliminationCertificate>,
 }
 
 // ---------------------------------------------------------------------------
@@ -99,6 +123,7 @@ pub fn evaluate_kernel(
             suggested_actions: actions,
             admissibility: None,
             regressed_dimensions: vec![],
+            elimination: None,
         };
     }
 
@@ -118,6 +143,7 @@ pub fn evaluate_kernel(
                     suggested_actions,
                     admissibility: Some(admissibility),
                     regressed_dimensions: vec![],
+                    elimination: None,
                 };
             }
             AdmissibilityResult::ConvergenceViolation { regressed } => {
@@ -137,6 +163,7 @@ pub fn evaluate_kernel(
                     suggested_actions,
                     admissibility: Some(admissibility),
                     regressed_dimensions: dims,
+                    elimination: None,
                 };
             }
             AdmissibilityResult::Incomparable {
@@ -159,6 +186,7 @@ pub fn evaluate_kernel(
                     suggested_actions,
                     admissibility: Some(admissibility),
                     regressed_dimensions: dims,
+                    elimination: None,
                 };
             }
         }
@@ -172,6 +200,7 @@ pub fn evaluate_kernel(
             suggested_actions,
             admissibility: None,
             regressed_dimensions: vec![],
+            elimination: None,
         },
         GovernanceLevel::Master | GovernanceLevel::Yolo => KernelOutput {
             verdict: ReductionVerdict::Accept,
@@ -179,6 +208,7 @@ pub fn evaluate_kernel(
             suggested_actions,
             admissibility: None,
             regressed_dimensions: vec![],
+            elimination: None,
         },
     }
 }

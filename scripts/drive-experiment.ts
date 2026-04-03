@@ -14,7 +14,7 @@
  *   pnpm tsx scripts/drive-experiment.ts --corpus=demo --resolve-at=4
  *
  * Options:
- *   --corpus        Corpus to use: exp1, exp2, exp3, demo, noisy, financial, insurance
+ *   --corpus        Corpus to use: exp1, exp2, exp3, demo, noisy, financial, insurance, green-bond, tier3
  *   --rounds        Max rounds (default: 10)
  *   --interval      Seconds between document injections (default: 20)
  *   --resolve-at    Round at which to inject a resolution (default: none)
@@ -49,6 +49,8 @@ interface DriverConfig {
   claims: number;
   rho: number;
   pattern: string;
+  /** Seconds to drain after all docs injected (keep polling for pipeline to finish cycles). 0 = no drain. */
+  drainSec: number;
 }
 
 function parseArgs(): DriverConfig {
@@ -69,11 +71,41 @@ function parseArgs(): DriverConfig {
     claims: parseInt(get("claims", "50"), 10),
     rho: parseFloat(get("rho", "0.3")),
     pattern: get("pattern", "spike-and-drop"),
+    drainSec: parseInt(get("drain", "0"), 10),
   };
 }
 
 function delay(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
+}
+
+/**
+ * Poll swarm_state until epoch advances beyond `prevEpoch`, or until
+ * `timeoutMs` elapses. Returns the new state, or the last observed state
+ * if the timeout fires (so the driver can continue injecting).
+ */
+async function pollStateAdvance(
+  prevEpoch: number,
+  timeoutMs: number,
+  pollIntervalMs = 1000,
+): Promise<{ epoch: number; lastNode: string; advanced: boolean }> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    try {
+      const st = await loadState(SCOPE_ID);
+      if (st && st.epoch > prevEpoch) {
+        return { epoch: st.epoch, lastNode: st.lastNode, advanced: true };
+      }
+    } catch { /* state row may not exist yet */ }
+    await delay(pollIntervalMs);
+  }
+  // Timeout — return last known state
+  try {
+    const st = await loadState(SCOPE_ID);
+    return { epoch: st?.epoch ?? 0, lastNode: st?.lastNode ?? "none", advanced: false };
+  } catch {
+    return { epoch: prevEpoch, lastNode: "unknown", advanced: false };
+  }
 }
 
 // ── Corpus builders ──────────────────────────────────────────────────────────
@@ -111,8 +143,30 @@ function loadFinancialCorpus(): Array<{ title: string; text: string }> {
     }));
 }
 
+function loadGreenBondCorpus(): Array<{ title: string; text: string }> {
+  const dir = join(__dirname, "..", "demo", "scenario", "docs-green-bond");
+  return readdirSync(dir)
+    .filter((f) => f.endsWith(".txt"))
+    .sort()
+    .map((f) => ({
+      title: f.replace(".txt", "").replace(/-/g, " "),
+      text: readFileSync(join(dir, f), "utf-8"),
+    }));
+}
+
 function loadExp6Corpus(): Array<{ title: string; text: string }> {
   const dir = join(__dirname, "..", "demo", "scenario", "docs-exp6");
+  return readdirSync(dir)
+    .filter((f) => f.endsWith(".txt"))
+    .sort()
+    .map((f) => ({
+      title: f.replace(".txt", "").replace(/-/g, " "),
+      text: readFileSync(join(dir, f), "utf-8"),
+    }));
+}
+
+function loadTier3Corpus(): Array<{ title: string; text: string }> {
+  const dir = join(__dirname, "..", "demo", "scenario", "docs-tier3");
   return readdirSync(dir)
     .filter((f) => f.endsWith(".txt"))
     .sort()
@@ -299,6 +353,12 @@ async function main(): Promise<void> {
     case "insurance":
       corpus = buildInsuranceCorpus();
       break;
+    case "green-bond":
+      corpus = loadGreenBondCorpus();
+      break;
+    case "tier3":
+      corpus = loadTier3Corpus();
+      break;
     case "demo":
     default:
       corpus = loadDemoCorpus();
@@ -313,6 +373,12 @@ async function main(): Promise<void> {
   }
 
   const bus = await makeEventBus();
+  const timeoutMs = config.intervalSec * 1000;
+  let currentEpoch = 0;
+  try {
+    const st = await loadState(SCOPE_ID);
+    currentEpoch = st?.epoch ?? 0;
+  } catch { /* state may not exist yet */ }
 
   for (let i = 0; i < rounds; i++) {
     const doc = corpus[i % corpus.length];
@@ -337,23 +403,23 @@ async function main(): Promise<void> {
     const seq = await appendEvent(event as unknown as Record<string, unknown>);
     await bus.publishEvent(event);
 
-    // Read current state
-    let stateEpoch = 0;
-    try {
-      const st = await loadState(SCOPE_ID);
-      stateEpoch = st?.epoch ?? 0;
-    } catch { /* state may not exist yet */ }
+    console.log(`[round ${round}/${rounds}] Injected "${doc.title}" (seq=${seq}, epoch=${currentEpoch}, ${doc.text.length} chars)`);
 
-    console.log(`[round ${round}/${rounds}] Injected "${doc.title}" (seq=${seq}, epoch=${stateEpoch}, ${doc.text.length} chars)`);
-
-    // Wait for agents to process
+    // Poll for state machine to advance instead of sleeping a fixed duration.
+    // Uses the interval as a timeout — if the cycle completes faster we proceed immediately.
     if (i < rounds - 1) {
-      console.log(`  Waiting ${config.intervalSec}s for agent cycle...`);
-      await delay(config.intervalSec * 1000);
+      console.log(`  Polling for epoch advance (timeout ${config.intervalSec}s)...`);
+      const result = await pollStateAdvance(currentEpoch, timeoutMs);
+      if (result.advanced) {
+        currentEpoch = result.epoch;
+        console.log(`  State advanced: epoch=${result.epoch}, lastNode=${result.lastNode}`);
+      } else {
+        console.log(`  Timeout: state still at epoch=${result.epoch}, lastNode=${result.lastNode}. Continuing.`);
+        currentEpoch = result.epoch;
+      }
     }
 
     // Inject resolution AFTER agent cycle completes — resolves goals created by facts extractor
-    // Uses large batch (100) to ensure all active goals get resolved
     if (config.resolveAtRounds.includes(round)) {
       console.log(`  [round ${round}] Post-cycle goal resolution...`);
       try {
@@ -364,9 +430,66 @@ async function main(): Promise<void> {
     }
   }
 
-  // Final wait for last cycle to complete
-  console.log(`\nAll ${rounds} documents injected. Waiting ${config.intervalSec}s for final cycle...`);
-  await delay(config.intervalSec * 1000);
+  // Final wait: poll for one more epoch advance after the last document
+  console.log(`\nAll ${rounds} documents injected. Polling for final cycle (timeout ${config.intervalSec}s)...`);
+  const finalPoll = await pollStateAdvance(currentEpoch, timeoutMs);
+  if (finalPoll.advanced) {
+    currentEpoch = finalPoll.epoch;
+    console.log(`  Final advance: epoch=${finalPoll.epoch}, lastNode=${finalPoll.lastNode}`);
+  } else {
+    console.log(`  Final timeout: epoch=${finalPoll.epoch}, lastNode=${finalPoll.lastNode}`);
+  }
+
+  // Drain: keep the pipeline cycling by injecting heartbeat documents when it stalls,
+  // so the propagation agent gets multiple passes through DriftChecked.
+  if (config.drainSec > 0) {
+    const drainDeadline = Date.now() + config.drainSec * 1000;
+    const drainPollMs = 30_000;
+    let staleAfterHeartbeat = 0;
+    let heartbeatNum = 0;
+    const maxHeartbeats = 15;
+    console.log(`\n[drain] Draining for up to ${config.drainSec}s (cycling pipeline for additional propagation epochs)...`);
+    while (Date.now() < drainDeadline && heartbeatNum < maxHeartbeats) {
+      const result = await pollStateAdvance(currentEpoch, drainPollMs);
+      if (result.advanced) {
+        currentEpoch = result.epoch;
+        staleAfterHeartbeat = 0;
+        console.log(`  [drain] epoch=${result.epoch}, lastNode=${result.lastNode}`);
+      } else {
+        staleAfterHeartbeat++;
+        // If a heartbeat was already injected and the pipeline still didn't advance, it's truly stalled
+        if (staleAfterHeartbeat >= 2 && heartbeatNum > 0) {
+          console.log(`  [drain] Pipeline stalled after ${heartbeatNum} heartbeats at epoch=${result.epoch}, lastNode=${result.lastNode}. Ending drain.`);
+          break;
+        }
+        // Inject a substantive review document to keep the pipeline cycling.
+        // Content varies each iteration so the facts-worker produces different
+        // drift hashes, allowing the drift agent's hash_delta filter to trigger.
+        heartbeatNum++;
+        const reviewTexts = [
+          `INTERIM COMPLIANCE REVIEW (${heartbeatNum}): Review of allocation against framework commitments. Current Taxonomy alignment is being re-assessed following recent project milestones and regulatory developments. Some previously flagged issues have been addressed; new observations require evaluation. Risk assessment updated to reflect current portfolio state.`,
+          `PORTFOLIO MONITORING UPDATE (${heartbeatNum}): Operational performance data collected across all active projects. Generation figures, utilization metrics, and financial covenants are being reconciled. Several metrics show deviation from initial projections. Updated impact estimates being prepared for the next reporting cycle. Counterparty exposures reviewed.`,
+          `REGULATORY COMPLIANCE CHECK (${heartbeatNum}): Verification of ongoing compliance with EU Taxonomy technical screening criteria and EUGBS reporting obligations. External reviewer engagement status confirmed. Assessment of whether any project requires reclassification based on updated Delegated Act criteria. DNSH compliance re-confirmed for operational projects.`,
+          `MARKET AND CREDIT REVIEW (${heartbeatNum}): Secondary market pricing, credit metrics, and covenant compliance reviewed. Cash flow coverage ratios recalculated based on latest revenue data. Reserve account adequacy assessed. Investor reporting obligations on track. Greenium evolution monitored against benchmark conventional bonds.`,
+          `EVIDENCE CONSOLIDATION (${heartbeatNum}): All outstanding claims, contradictions, and goals are being reconciled. Prior assessments are re-evaluated in light of the full evidence base now available. Unresolved items are flagged for attention. Convergence assessment requested to determine finality readiness.`,
+        ];
+        const text = reviewTexts[(heartbeatNum - 1) % reviewTexts.length];
+        const hbEvent = createSwarmEvent(
+          "context_doc",
+          { text, title: `Review cycle ${heartbeatNum}`, source: "drive-experiment-drain", round: rounds + heartbeatNum },
+          { source: "drive-experiment" },
+        );
+        await appendEvent(hbEvent as unknown as Record<string, unknown>);
+        await bus.publishEvent(hbEvent);
+        console.log(`  [drain] Injected review document ${heartbeatNum} (epoch=${result.epoch})`);
+      }
+    }
+    if (Date.now() >= drainDeadline) {
+      console.log(`  [drain] Drain timeout reached (${heartbeatNum} reviews injected).`);
+    } else if (heartbeatNum >= maxHeartbeats) {
+      console.log(`  [drain] Max reviews reached (${maxHeartbeats}).`);
+    }
+  }
 
   // Final resolution: resolve all remaining active goals/contradictions after the last agent cycle
   if (config.resolveAtRounds.length > 0) {
@@ -384,19 +507,51 @@ async function main(): Promise<void> {
         );
         const statusSeq = await appendEvent(statusEvent as unknown as Record<string, unknown>);
         await bus.publishEvent(statusEvent);
-        console.log(`[final] Injected status doc (seq=${statusSeq}), waiting ${config.intervalSec}s for convergence...`);
-        await delay(config.intervalSec * 1000);
+        console.log(`[final] Injected status doc (seq=${statusSeq}), polling for convergence cycle...`);
+        const resPoll = await pollStateAdvance(currentEpoch, timeoutMs);
+        if (resPoll.advanced) {
+          currentEpoch = resPoll.epoch;
+          console.log(`[final] Convergence advance: epoch=${resPoll.epoch}, lastNode=${resPoll.lastNode}`);
+        }
       }
     } catch (err) {
       console.warn(`  [final resolve] Failed: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
 
-  // Report final state
+  // Report final state and propagation summary
   try {
     const st = await loadState(SCOPE_ID);
     console.log(`Final state: epoch=${st?.epoch ?? 0}, lastNode=${st?.lastNode ?? "none"}`);
   } catch { /* ok */ }
+
+  // Propagation metrics summary
+  try {
+    const pool = getPool();
+    const ph = await pool.query(
+      `SELECT epoch, disagreement_before, disagreement_after, contraction_ratio,
+              perturbation_norm, spectral_gap, small_gain_satisfied
+       FROM propagation_history WHERE scope_id = $1 ORDER BY epoch ASC`,
+      [SCOPE_ID],
+    );
+    if (ph.rows.length > 0) {
+      console.log(`\n=== Evidence propagation summary (${ph.rows.length} epochs) ===`);
+      for (const r of ph.rows) {
+        const cr = Number(r.contraction_ratio).toFixed(4);
+        const omega = Number(r.disagreement_after).toFixed(4);
+        const pn = Number(r.perturbation_norm).toFixed(4);
+        console.log(`  epoch=${r.epoch}: Ω=${omega}, ρ=${cr}, ‖ε‖=${pn}, ISS=${r.small_gain_satisfied}`);
+      }
+      if (ph.rows.length >= 2) {
+        const first = Number(ph.rows[0].disagreement_after);
+        const last = Number(ph.rows[ph.rows.length - 1].disagreement_after);
+        const reduction = first > 0 ? ((1 - last / first) * 100).toFixed(1) : "N/A";
+        console.log(`  Disagreement reduction: ${reduction}% (${first.toFixed(4)} → ${last.toFixed(4)})`);
+      }
+    } else {
+      console.log("\n  No propagation history (propagation agent did not run).");
+    }
+  } catch { /* non-critical */ }
 
   await bus.close();
   console.log("Driver done.");

@@ -22,16 +22,22 @@ venv/
 .DS_Store
 *.log
 
-# LaTeX build artifacts (publication/)
-publication/*.aux
-publication/*.bbl
-publication/*.blg
-publication/*.log
-publication/*.out
-publication/*.synctex.gz
+# LaTeX build artifacts
+publications/publication_1/*.aux
+publications/publication_1/*.bbl
+publications/publication_1/*.blg
+publications/publication_1/*.log
+publications/publication_1/*.out
+publications/publication_1/*.synctex.gz
+
+# Test coverage (generated)
+coverage/
 
 # Experiment results (generated)
 docs/experiments/*/results/
+
+# Business documents (local only)
+docs/business/
 
 # Rust / sgrs-core build artifacts
 sgrs-core/target/

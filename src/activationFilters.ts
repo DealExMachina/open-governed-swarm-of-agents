@@ -88,8 +88,8 @@ const DEFAULT_FILTERS: Record<string, Omit<FilterConfig, "updatedAt">> = {
   },
   drift: {
     agentRole: "drift",
-    type: "hash_delta",
-    params: { field: "facts/latest.json", sensitivity: "exact", cooldownMs: 5000 },
+    type: "sequence_delta",
+    params: { minNewEvents: 1, cooldownMs: 5000 },
     stats: { activations: 0, productive: 0, wasted: 0, avgLatencyMs: 0, lastActivatedAt: null },
     version: 0,
     updatedBy: "system",
@@ -114,6 +114,22 @@ const DEFAULT_FILTERS: Record<string, Omit<FilterConfig, "updatedAt">> = {
     agentRole: "status",
     type: "timer",
     params: { shortIntervalMs: 120000, fullIntervalMs: 600000, eventBurstThreshold: 10 },
+    stats: { activations: 0, productive: 0, wasted: 0, avgLatencyMs: 0, lastActivatedAt: null },
+    version: 0,
+    updatedBy: "system",
+  },
+  propagation: {
+    agentRole: "propagation",
+    type: "hash_delta",
+    params: { field: "drift/latest.json", sensitivity: "structural", cooldownMs: 5000 },
+    stats: { activations: 0, productive: 0, wasted: 0, avgLatencyMs: 0, lastActivatedAt: null },
+    version: 0,
+    updatedBy: "system",
+  },
+  deltas: {
+    agentRole: "deltas",
+    type: "sequence_delta",
+    params: { minNewEvents: 1, cooldownMs: 5000 },
     stats: { activations: 0, productive: 0, wasted: 0, avgLatencyMs: 0, lastActivatedAt: null },
     version: 0,
     updatedBy: "system",
@@ -272,18 +288,31 @@ export async function checkFilter(
     }
     case "hash_delta": {
       const field = (config.params.field as string) ?? "facts/latest.json";
-      const currentHash = await readHashFromS3(ctx.s3, ctx.bucket, field);
       const lastHash = field.includes("drift") ? memory.lastDriftHash : memory.lastHash;
-      const changed = currentHash !== null && currentHash !== lastHash;
       const inCooldown = memory.lastActivatedAt !== 0 && now - memory.lastActivatedAt < cooldownMs;
-      const shouldActivate = changed && !inCooldown;
+
+      // Skip S3 read if still in cooldown — hash can't trigger activation anyway
+      if (inCooldown) {
+        return { shouldActivate: false, reason: `cooldown (${now - memory.lastActivatedAt}ms < ${cooldownMs}ms)`, context: { field } };
+      }
+
+      // Also skip S3 read if we fetched recently and hash was unchanged (cache for half the cooldown)
+      const cacheKey = `_hashReadAt_${field}`;
+      const lastReadAt = (memory.data[cacheKey] as number) ?? 0;
+      const cacheTtlMs = cooldownMs / 2;
+      if (lastReadAt > 0 && now - lastReadAt < cacheTtlMs) {
+        return { shouldActivate: false, reason: `hash_cached (field=${field}, age=${now - lastReadAt}ms < ${cacheTtlMs}ms)`, context: { field } };
+      }
+
+      const currentHash = await readHashFromS3(ctx.s3, ctx.bucket, field);
+      memory.data[cacheKey] = now;
+      const changed = currentHash !== null && currentHash !== lastHash;
+      const shouldActivate = changed;
       const reason = shouldActivate
         ? "activated"
         : currentHash === null
           ? `hash_missing (field=${field})`
-          : !changed
-            ? `hash_unchanged (field=${field})`
-            : `cooldown (${now - memory.lastActivatedAt}ms < ${cooldownMs}ms)`;
+          : `hash_unchanged (field=${field})`;
       return { shouldActivate, reason, context: { currentHash, previousHash: lastHash, field } };
     }
     case "timer": {
@@ -394,6 +423,13 @@ export async function recordActivation(
     "UPDATE filter_configs SET stats = $1::jsonb WHERE agent_role = $2",
     [JSON.stringify(newStats), agentRole],
   );
+
+  try {
+    const { recordProgressMetrics } = await import("./metrics.js");
+    recordProgressMetrics(agentRole, productive);
+  } catch {
+    /* metrics may be unavailable */
+  }
 }
 
 export async function loadAllFilterConfigs(pool?: pg.Pool): Promise<FilterConfig[]> {

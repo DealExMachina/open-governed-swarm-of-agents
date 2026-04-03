@@ -1,9 +1,17 @@
 import type { Node } from "./stateGraph.js";
 
-export type AgentRole = "facts" | "drift" | "resolver" | "planner" | "status" | "tuner";
+export type AgentRole = "facts" | "drift" | "resolver" | "planner" | "propagation" | "deltas" | "status" | "tuner";
 
 /** Legacy job type for executor and backward compatibility. */
-export type JobType = "extract_facts" | "check_drift" | "resolve_contradictions" | "plan_actions" | "summarize_status" | "optimize_filters";
+export type JobType =
+  | "extract_facts"
+  | "check_drift"
+  | "resolve_contradictions"
+  | "plan_actions"
+  | "propagate_evidence"
+  | "extract_deltas"
+  | "summarize_status"
+  | "optimize_filters";
 
 export interface AgentSpec {
   role: AgentRole;
@@ -12,6 +20,8 @@ export interface AgentSpec {
   jobType: JobType;
   /** Legacy: node that must be current for this agent to run (old loop). Null = no gate. */
   requiresNode: Node | null;
+  /** Optional: allow activation when current node is in this list (Stage 2 extended cycle). */
+  requiresNodeList?: Node[];
   /** Node this agent writes to (for OpenFGA self-check: writer on node) */
   targetNode: Node;
   /** Whether completing this agent's work emits a state advance proposal */
@@ -28,6 +38,7 @@ export const AGENT_SPECS: AgentSpec[] = [
     capabilities: ["extract_facts"],
     jobType: "extract_facts",
     requiresNode: "ContextIngested",
+    requiresNodeList: ["ContextIngested", "DeltasExtracted"],
     targetNode: "FactsExtracted",
     proposesAdvance: true,
     advancesTo: "FactsExtracted",
@@ -47,11 +58,31 @@ export const AGENT_SPECS: AgentSpec[] = [
     role: "planner",
     capabilities: ["plan_actions"],
     jobType: "plan_actions",
-    requiresNode: "DriftChecked",
-    targetNode: "ContextIngested",
-    proposesAdvance: true,
-    advancesTo: "ContextIngested",
+    requiresNode: null,
+    targetNode: "DeltasExtracted",
+    proposesAdvance: false,
+    advancesTo: null,
     resultEventType: "actions_planned",
+  },
+  {
+    role: "propagation",
+    capabilities: ["propagate_evidence"],
+    jobType: "propagate_evidence",
+    requiresNode: "DriftChecked",
+    targetNode: "EvidencePropagated",
+    proposesAdvance: true,
+    advancesTo: "EvidencePropagated",
+    resultEventType: "evidence_propagated",
+  },
+  {
+    role: "deltas",
+    capabilities: ["extract_deltas"],
+    jobType: "extract_deltas",
+    requiresNode: "EvidencePropagated",
+    targetNode: "DeltasExtracted",
+    proposesAdvance: true,
+    advancesTo: "DeltasExtracted",
+    resultEventType: "deltas_extracted",
   },
   {
     role: "resolver",
@@ -94,7 +125,9 @@ export function getNextJobForNode(node: Node): JobType | null {
   const map: Record<Node, JobType | null> = {
     ContextIngested: "extract_facts",
     FactsExtracted: "check_drift",
-    DriftChecked: "plan_actions",
+    DriftChecked: "propagate_evidence",
+    EvidencePropagated: "extract_deltas",
+    DeltasExtracted: "extract_facts",
   };
   return map[node] ?? null;
 }

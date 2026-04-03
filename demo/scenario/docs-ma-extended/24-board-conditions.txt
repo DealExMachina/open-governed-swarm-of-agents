@@ -1,0 +1,89 @@
+================================================================================
+CONFIDENTIAL — PROJECT HORIZON
+Board Resolution: Conditional Approval of NovaTech AG Acquisition
+Date: 2025-07-25
+Prepared by: Secretary to the Board — Meridian Capital Partners
+Attendees: Full Board of Directors (7 members present, quorum achieved)
+================================================================================
+
+1. RESOLUTION
+
+The Board of Directors of Meridian Capital Partners, having reviewed all
+due diligence materials (Documents 01-23) and the revised valuation analysis
+(Document 21), hereby APPROVES the acquisition of NovaTech AG subject to the
+conditions set forth below.
+
+2. APPROVED TRANSACTION TERMS
+
+  Purchase Price:              EUR 280 million (enterprise value, cash-free
+                               debt-free basis)
+  Escrow / Holdback:           EUR 25 million (held for 24 months post-close)
+  Earn-Out:                    Up to EUR 30 million, contingent on:
+                               - FY2026 ARR >= EUR 45 million: EUR 15M
+                               - FY2027 ARR >= EUR 55 million: EUR 15M
+  Key Employee Retention Pool: EUR 15 million (36-month vesting)
+  Maximum Total Consideration: EUR 350 million
+
+3. PRE-SIGNING CONDITIONS (Must be satisfied before SPA execution)
+
+  Condition 1: IP Resolution
+    Both IP settlements (Axion Corp and Dr. Klaus Haber) must be fully
+    executed with all payments made and all assignments recorded at the
+    European Patent Office. The Axion UPC case must be formally dismissed.
+    Deadline: September 30, 2025
+
+  Condition 2: CTO Transition Plan
+    A binding CTO transition plan must be in place, including:
+    (a) Identification and engagement of a successor CTO candidate
+    (b) Dr. Elena Voss commitment to a minimum 12-month transition period
+        (with appropriate retention incentive, funded from the EUR 15M pool)
+    (c) Knowledge transfer plan covering all 4 patents where Dr. Voss is
+        named inventor, the ML pipeline architecture, and the custom model
+        training infrastructure
+    Deadline: September 30, 2025
+
+  Condition 3: Cybersecurity Remediation
+    All three critical vulnerabilities identified in the penetration test
+    (Document 17) must be remediated and verified by CyberEdge GmbH.
+    Specifically:
+    (a) CVE-2025-NOVA-001 (SQL injection) — patched and verified
+    (b) CVE-2025-NOVA-002 (broken access control) — patched and verified
+    (c) CVE-2025-NOVA-003 (exposed AWS credentials) — rotated and verified,
+        with CloudTrail audit confirming no unauthorized access
+    Deadline: August 31, 2025
+
+4. POST-CLOSING COVENANTS
+
+  The Board further requires that the following be addressed within 12 months
+  of closing:
+
+  (a) FINMA compliance remediation (Document 15): complete within 6 months
+  (b) Swiss data transfer compliance (Document 15): complete within 3 months
+  (c) EU MDR transition initiated (Document 23): Phase 1 within 6 months
+  (d) Disaster recovery testing (Document 18): complete within 3 months
+  (e) German works council process (Document 16): initiate consultation
+  (f) OpenAI dependency migration (Document 18): plan within 6 months
+
+5. VALUATION RATIONALE
+
+The Board acknowledges the reduction from the initial EUR 420M indicative
+valuation to EUR 280M, driven by:
+  - Revenue overstatement (24% ARR reduction)
+  - IP litigation risk (now substantially mitigated by settlements)
+  - Key person risk (CTO departure)
+  - Customer concentration (Pharmakon at 21.6%)
+  - Required remediation investments (~EUR 10M)
+
+The EUR 280M price represents 7.4x adjusted ARR, which the Board considers
+fair given the risk profile and comparable transactions.
+
+6. AUTHORIZATION
+
+The Board authorizes Marcus Reinhardt (Head of Corporate Development) and
+external counsel (Lenz & Staehelin, Zurich) to proceed with SPA negotiation
+on the terms approved herein. Any material deviation from these terms
+requires Board re-approval.
+
+Vote: 6 in favor, 1 abstention (Dr. Petra Hoffmann, citing residual IP risk)
+
+Approved by the Board of Directors, Meridian Capital Partners

@@ -22,7 +22,12 @@ def _get_model_info() -> Tuple[str, str]:
     return os.getenv("OPENAI_MODEL", "gpt-4o-mini"), "openai"
 
 
-def _call_llm(prompt_context: str, prompt_previous: str, resolved_contradictions: Optional[List[str]] = None) -> str:
+def _call_llm(
+    prompt_context: str,
+    prompt_previous: str,
+    resolved_contradictions: Optional[List[str]] = None,
+    human_resolutions: Optional[List[str]] = None,
+) -> str:
     """Call an OpenAI-compatible chat/completions endpoint. Uses Ollama when OLLAMA_BASE_URL is set."""
     from openai import OpenAI
 
@@ -51,13 +56,36 @@ Previously resolved contradictions (DO NOT re-extract these; they have been addr
 {resolved_list}
 """
 
+    resolutions_section = ""
+    if human_resolutions:
+        res_list = "\n".join(f"  - {r}" for r in human_resolutions[:20])
+        resolutions_section = f"""
+
+Human resolutions (AUTHORITATIVE — include these EXACTLY as claims; they override any prior conflicting extraction):
+{res_list}
+"""
+
     user_content = f"""Context (recent events as JSON):
 {prompt_context}
 
 Previous facts (JSON):
 {prompt_previous}
-{resolved_section}
-Extract structured facts. Reply with a single JSON object only (no markdown, no explanation) with these keys: entities (list of strings), claims (list), risks (list), assumptions (list), contradictions (list), goals (list), confidence (float 0-1). Only include contradictions that are genuinely NEW and unresolved. Do not include contradictions listed above as resolved."""
+{resolved_section}{resolutions_section}
+Extract structured facts. Reply with a single JSON object only (no markdown, no explanation) with these keys: entities (list of strings), claims (list), risks (list), assumptions (list), contradictions (list), goals (list), confidence (float 0-1).
+
+CRITICAL rules for contradictions:
+- When a new document provides a figure that DIFFERS from a previous claim for the SAME entity, metric, AND time period (e.g. ARR was reported as X, now revised to Y for the same quarter), this IS a contradiction. Always report it.
+- When a new document reveals information that was previously undisclosed or hidden, this IS a contradiction.
+- Format each contradiction as a clear statement describing the conflict, e.g. "ARR was reported at EUR 50M but financial due diligence reveals adjusted ARR of EUR 38M (24% overstatement)".
+- Do NOT omit contradictions just because you updated the claims list — the contradiction must be explicitly listed so humans can review it.
+- Do not include contradictions listed above as "resolved".
+
+BITEMPORAL awareness -- these are NOT contradictions:
+- Figures from DIFFERENT reporting periods (e.g. Q1 revenue vs Q2 revenue) are temporal progression, NOT a contradiction. Revenue naturally changes quarter to quarter.
+- Consolidated figures vs subsidiary standalone figures may legitimately differ due to intercompany eliminations, minority interests, or consolidation adjustments. Only flag this as a contradiction if the difference is unexplained or materially inconsistent with stated accounting policies.
+- A restated figure for the SAME period (e.g. "Q1 revenue revised from 127M to 125M") IS a contradiction because it changes a previously asserted fact for that specific time period.
+
+When new information CORRECTS or UPDATES a previous claim (e.g. a revised figure), include ONLY the corrected version in your claims list. Remove outdated claims that have been superseded by newer data. For example, if ARR was '€50M' but is now confirmed at '€38M', list only the €38M figure — do NOT keep the old €50M claim."""
     resp = client.chat.completions.create(
         model=model,
         messages=[{"role": "user", "content": user_content}],
@@ -365,6 +393,24 @@ def _to_string_list(val: Any) -> List[str]:
 # -----------------------------
 
 
+def _extract_resolution_claims(context: List[Dict[str, Any]]) -> List[str]:
+    """Extract human resolution text from context; these are authoritative and must be taken as facts."""
+    out: List[str] = []
+    for ev in context:
+        if not isinstance(ev, dict):
+            continue
+        ev_type = ev.get("type") or (ev.get("data") or {}).get("type") if isinstance(ev.get("data"), dict) else None
+        if ev_type != "resolution":
+            continue
+        payload = ev.get("payload") or (ev.get("data") or {}).get("payload") if isinstance(ev.get("data"), dict) else ev.get("data")
+        if not isinstance(payload, dict):
+            continue
+        text = (payload.get("decision") or payload.get("text") or "").strip()
+        if text:
+            out.append(text)
+    return out
+
+
 def extract_facts_and_drift(
     context: List[Dict[str, Any]],
     previous_facts: Optional[Dict[str, Any]],
@@ -378,8 +424,13 @@ def extract_facts_and_drift(
     # Optional first-pass NER (requires requirements-full.txt + GLINER_MODEL set)
     gliner_entities: List[str] = _extract_entities_gliner(context_limited)
 
+    # Pre-extract human resolutions for the prompt (LLM must treat them as authoritative)
+    human_resolutions = _extract_resolution_claims(context_limited)
+
     # LLM extraction (OpenAI API or Ollama)
-    facts_json_str = _call_llm(prompt_context, prompt_previous, resolved_contradictions)
+    facts_json_str = _call_llm(
+        prompt_context, prompt_previous, resolved_contradictions, human_resolutions
+    )
 
     # Parse JSON (strip optional markdown code fence)
     raw = facts_json_str.strip()
@@ -390,6 +441,10 @@ def extract_facts_and_drift(
 
     for key in ("entities", "claims", "risks", "assumptions", "contradictions", "goals"):
         facts_dict[key] = _to_string_list(facts_dict.get(key))
+
+    # LLM may return "confidence": null — remove so Pydantic default (1.0) applies
+    if facts_dict.get("confidence") is None:
+        facts_dict.pop("confidence", None)
 
     facts = Facts(**facts_dict)
 

@@ -7,6 +7,12 @@ export default defineConfig({
     environment: "node",
     globals: true,
     setupFiles: ["./test/setup.ts"],
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "text-summary", "html"],
+      include: ["src/**/*.ts"],
+      exclude: ["src/seed-data/**", "**/*.d.ts", "**/*.test.ts"],
+    },
   },
   resolve: {
     alias: {

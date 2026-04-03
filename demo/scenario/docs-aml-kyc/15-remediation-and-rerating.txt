@@ -1,0 +1,180 @@
+DOCUMENT: CLIENT REMEDIATION AND RISK RE-RATING
+CLASSIFICATION: CONFIDENTIAL — AML/KYC RESTRICTED — SENIOR MANAGEMENT
+INSTITUTION: EuroBank AG, Frankfurt am Main
+DATE: 2025-02-15
+REFERENCE: RSK-2025-CAST-0002
+PREPARED BY: Anna Berger, KYC Analyst (EB-4412)
+APPROVED BY: Claudia Richter, Head of Financial Crime (EB-2201)
+              Dr. Heinrich Fischer, General Counsel (EB-0042)
+
+1. RISK RE-RATING DECISION
+
+  Client:                Castellan Holdings S.a.r.l.
+  Previous Risk Rating:  MEDIUM (RSK-2023-CAST-0001, dated 2023-03-20)
+  NEW RISK RATING:       HIGH
+  Composite Score:       79 / 100 (HIGH range: 65-84)
+  Effective Date:        2025-02-15
+  CDD Level Required:    Enhanced Due Diligence (EDD) — ongoing
+
+  NOTE: The original MEDIUM risk rating (RSK-2023-CAST-0001) is PRESERVED
+  as the contemporaneous professional judgment at the time of onboarding.
+  This re-rating is a SEPARATE record reflecting updated information.
+  Both records form part of the permanent audit trail per 5AMLD Art. 40.
+
+2. REVISED RISK FACTOR SCORING
+
+  Factor                          Weight   Original  Revised  Change
+  ─────────────────────────────────────────────────────────────────────
+  Client Type (complex structure)  15%      65        80      +15
+  Geographic Risk                  20%      70        75      +5
+  Product/Service Risk             10%      30        30       0
+  Transaction Risk                 15%      40        85      +45
+  PEP Proximity                   15%      35        90      +55
+  Source of Wealth Transparency    10%      25        65      +40
+  Industry/Sector Risk            10%      45        50      +5
+  Adverse Media                    5%      10        80      +70
+  ─────────────────────────────────────────────────────────────────────
+  Adjusted Composite:                       54        79      +25
+
+3. JUSTIFICATION FOR MATERIAL CHANGES
+
+  3.1 Transaction Risk (40 → 85):
+  EUR 3.3M in payments to Cerberus Consulting AG — a newly incorporated
+  entity with shell characteristics, controlled by an undisclosed former
+  business partner. Payments lack credible commercial rationale. SAR
+  filed (SAR-2024-CAST-0001). Payments represent 63% of annual turnover
+  baseline, entirely outside expected patterns.
+
+  3.2 PEP Proximity (35 → 90):
+  Marco Castellan (PEP) added as trust beneficiary without disclosure.
+  Marco now under active investigation by Guardia di Finanza. Direct
+  financial benefit to PEP through trust structure. FATF Recommendation
+  12 requires EDD for all business relationships with PEP family members
+  where the PEP has a financial interest.
+
+  3.3 Source of Wealth Transparency (25 → 65):
+  Original source of wealth documentation remains valid for historical
+  assets. However, the undisclosed BVI ownership change (30% to Cerberus)
+  and the opaque consulting arrangement raise questions about current
+  fund flows and the true economic substance of inter-group transactions.
+
+  3.4 Adverse Media (10 → 80):
+  Active adverse media coverage of Marco Castellan's investigation.
+  Potential for media coverage to extend to Viktor Castellan and
+  Castellan Holdings as the investigation develops.
+
+4. REMEDIATION ACTIONS — IMPLEMENTED
+
+  [x] Risk rating elevated to HIGH (this document)
+  [x] EDD file opened and maintained (EDD-2024-CAST-0001)
+  [x] SAR filed with FIU Germany (SAR-2024-CAST-0001)
+  [x] Supplementary SAR filed re: BVI ownership (SAR-2024-CAST-0002)
+  [x] All Castellan accounts on real-time manual transaction review
+  [x] CastleTech BVI dividend flows subject to enhanced scrutiny
+  [x] Cerberus Consulting AG added to prohibited counterparty list
+      (no further transactions permitted without Compliance approval)
+  [x] Corporate structure records updated (CDD-2024-CAST-0012)
+  [x] Elena Castellan data retention resolved (DPO-2024-CAST-0002)
+  [x] Full cooperation provided to BaFin inspection (REG-2025-CAST-0001)
+
+5. ENHANCED MONITORING REGIME
+
+The following enhanced monitoring measures are imposed as conditions for
+continuation of the banking relationship:
+
+  5.1 CDD Refresh Cycle:
+    Previous: Annual (12-month cycle)
+    New:      Quarterly (90-day cycle)
+    Next Due: 2025-05-15
+
+  5.2 Transaction Monitoring:
+    Previous: Automated batch processing with threshold alerts
+    New:      Real-time screening of ALL transactions (no threshold)
+    All outgoing wires > EUR 50,000 require Compliance pre-approval
+    Any new counterparty requires EDD-level verification before payment
+
+  5.3 PEP Re-Screening:
+    Previous: Quarterly batch
+    New:      Quarterly batch + real-time monitoring of Marco Castellan
+    Daily adverse media scan for all Castellan-related names
+
+  5.4 Sanctions Screening:
+    Previous: Daily batch
+    New:      Real-time screening + daily batch reconciliation
+    Expanded to include Luca Ferretti and Cerberus Consulting AG
+
+  5.5 Beneficial Ownership Verification:
+    Quarterly confirmation of shareholder registers for ALL group entities
+    Direct verification with registered agents (not client self-reporting)
+    Any change triggers immediate EDD refresh
+
+  5.6 Reporting:
+    Monthly compliance summary to Head of Financial Crime
+    Quarterly report to Compliance Committee
+    Immediate escalation for any new suspicious activity
+
+6. RELATIONSHIP CONTINUATION DECISION
+
+  Decision: CONTINUE with conditions
+  Approved by: Senior Management Committee (2025-02-12)
+
+  Conditions for Continuation:
+  (a) Viktor Castellan must provide full disclosure of all beneficial
+      ownership interests across all group entities within 30 days
+  (b) Independent audit of CastleTech BVI by a Big Four firm within
+      90 days (at client's expense)
+  (c) Full cooperation with any FIU or BaFin information requests
+  (d) No transactions with Cerberus Consulting AG or Luca Ferretti
+      without prior Compliance Committee approval
+  (e) Quarterly face-to-face CDD review meeting with Compliance
+
+  Termination Triggers:
+  - Failure to meet any of the above conditions
+  - Further undisclosed ownership changes or connected party transactions
+  - Criminal charges filed against Viktor Castellan
+  - FIU or BaFin instruction to terminate
+  - Further SAR triggers within 12 months
+
+7. RECORD RETENTION FRAMEWORK
+
+All records related to Castellan Holdings are now subject to ENHANCED
+retention requirements:
+
+  Standard CDD Records:     5 years post-relationship (5AMLD Art. 40)
+  SAR-Related Records:      Indefinite (until FIU confirmation of
+                             investigation closure + 5 years)
+  BaFin Inspection Records: 10 years (regulatory examination retention)
+  GDPR Retention Records:   Until deletion of underlying data
+  Risk Rating History:      ALL versions preserved permanently as
+                             part of audit trail
+
+  The 7-year monitoring cycle baseline begins at onboarding (2023-03-15).
+  Minimum retention of all records: 2030-03-15.
+  With SAR extension: potentially indefinite pending investigation outcome.
+
+8. LESSONS LEARNED
+
+The Castellan case has identified the following process improvements
+for EuroBank's AML/KYC framework:
+
+  (a) Trust beneficiary disclosure should be a hard requirement at
+      onboarding — not accepted as "follow-up" item
+  (b) PEP family association scoring should be more conservative when
+      combined with complex multi-jurisdictional structures
+  (c) New counterparty thresholds should consider cumulative exposure,
+      not just single-transaction amounts
+  (d) Annual review cycle is insufficient for clients with trust
+      structures — semi-annual minimum recommended
+  (e) GDPR/AML conflict resolution procedures should be pre-documented
+      rather than handled ad hoc
+
+These findings have been submitted to the AML Policy Review Committee
+for incorporation into EuroBank Policy Manual v3.2 (expected Q2 2025).
+
+Prepared by:   Anna Berger, KYC Analyst (EB-4412)
+Reviewed by:   Claudia Richter, Head of Financial Crime (EB-2201)
+Approved by:   Dr. Heinrich Fischer, General Counsel (EB-0042)
+               Wolfgang Steiner, Chief Compliance Officer (EB-0001)
+Date:          2025-02-15
+
+— END OF REMEDIATION AND RE-RATING RECORD —

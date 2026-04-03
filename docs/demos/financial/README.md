@@ -4,7 +4,7 @@
 
 ## Goal
 
-Demonstrate that the bitemporal semantic graph and the five-gate finality mechanism handle **multi-period financial statement reconciliation** — a domain where dual temporality (valid time vs. transaction time) is structurally necessary.
+Demonstrate that the bitemporal semantic graph and the six-gate finality mechanism (A-F) handle **multi-period financial statement reconciliation** — a domain where dual temporality (valid time vs. transaction time) is structurally necessary.
 
 Holding company consolidation: three subsidiaries report overlapping metrics with different accounting methodologies, figures are restated across periods, and an external auditor introduces further ambiguity.
 
@@ -36,3 +36,7 @@ bash scripts/run-experiment.sh financial --rounds=8
 ## Results
 
 Results in `docs/experiments/financial/results/<timestamp>/`. Consistency check vs M&A: [COMPARISON-financial-vs-ma.md](../COMPARISON-financial-vs-ma.md).
+
+## Scope isolation
+
+Use a dedicated demo session/scope per run. Feed demo endpoints reject missing scope with `scope_required`.

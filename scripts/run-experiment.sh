@@ -26,8 +26,9 @@ if [ -f .env ]; then set -a; . ./.env; set +a; fi
 
 EXP_ID="${1:-exp1}"
 shift || true
-INTERVAL=20
-ROUNDS=7
+INTERVAL=""
+ROUNDS=""
+DRAIN=""
 RESOLVE_AT=""
 RUN_SWARM=1
 SIM_PID=""
@@ -39,6 +40,7 @@ for arg in "$@"; do
   case "$arg" in
     --interval=*) INTERVAL="${arg#*=}";;
     --rounds=*) ROUNDS="${arg#*=}";;
+    --drain=*) DRAIN="${arg#*=}";;
     --resolve-at=*) RESOLVE_AT="${arg#*=}";;
     --contradictions=*) CONTRADICTIONS="${arg#*=}";;
     --no-swarm) RUN_SWARM=0;;
@@ -64,8 +66,6 @@ cleanup() {
   fi
 }
 trap cleanup EXIT
-
-echo "[Exp] $EXP_ID | rounds=$ROUNDS | interval=${INTERVAL}s | resolve-at=${RESOLVE_AT:-none}"
 
 # ── Step 0: Kill stale agents and reset DB ───────────────────────────────────
 echo "[Exp] Killing stale agent processes..."
@@ -106,6 +106,16 @@ if [ "$RUN_SWARM" = 1 ]; then
     sleep 1
   done
 
+  # Preflight: facts-worker and (optionally) feed must be reachable or the state machine will not advance.
+  # The facts agent needs FACTS_WORKER_URL and a working /extract endpoint; otherwise it NAKs and the cycle stalls at ContextIngested.
+  echo "[Exp] Checking services (facts-worker required for pipeline advance)..."
+  CHECK_FEED=1 node --loader ts-node/esm scripts/check-services.ts 2>/dev/null || {
+    echo "[Exp] Preflight failed. Set FACTS_WORKER_URL (e.g. http://127.0.0.1:8010) and ensure facts-worker and feed are running."
+    echo "[Exp] State stays at ContextIngested when the facts agent cannot reach the worker. See docs/experiments.md or hatchery log: $LOG_DIR/swarm-exp-hatchery.log"
+    exit 1
+  }
+  echo "[Exp] Services OK."
+
   # For exp4/exp5/noisy, start simulate-mitl with finality handling
   # NOTE: exp6 intentionally omitted — needs full convergence trajectory without auto-approve
   if [ "$EXP_ID" = "exp4" ] || [ "$EXP_ID" = "exp5" ] || [ "$EXP_ID" = "noisy" ]; then
@@ -123,16 +133,22 @@ run_single_experiment() {
   local corpus="$1"
   local extra_driver_args="$2"
   local label="${3:-$corpus}"
+  local r="${ROUNDS:-7}"
+  local i="${INTERVAL:-20}"
+  local d="${DRAIN:-0}"
 
-  echo "[Exp] Driving $label: corpus=$corpus rounds=$ROUNDS interval=${INTERVAL}s"
+  echo "[Exp] Driving $label: corpus=$corpus rounds=$r interval=${i}s drain=${d}s"
   node --loader ts-node/esm scripts/drive-experiment.ts \
     --corpus="$corpus" \
-    --rounds="$ROUNDS" \
-    --interval="$INTERVAL" \
+    --rounds="$r" \
+    --interval="$i" \
+    --drain="$d" \
     $RESOLVE_OPT \
     $extra_driver_args \
     "${EXTRA_ARGS[@]}"
 }
+
+echo "[Exp] $EXP_ID | resolve-at=${RESOLVE_AT:-none}"
 
 case "$EXP_ID" in
   exp1)
@@ -302,6 +318,8 @@ case "$EXP_ID" in
     ;;
   insurance)
     ROUNDS="${ROUNDS:-22}"
+    INTERVAL="${INTERVAL:-20}"
+    DRAIN="${DRAIN:-180}"
     [ -z "$RESOLVE_AT" ] && RESOLVE_OPT="--resolve-at=17,18,19"
     echo "[Exp] Insurance: onboarding and quote corpus (22 docs, ${ROUNDS} rounds)"
     run_single_experiment "insurance" ""
@@ -317,17 +335,29 @@ case "$EXP_ID" in
     exit 0
     ;;
   demo-baseline)
-    ROUNDS="${ROUNDS:-7}"
-    [ -z "$RESOLVE_AT" ] && RESOLVE_OPT="--resolve-at=5,6,7"
+    ROUNDS="${ROUNDS:-14}"
+    INTERVAL="${INTERVAL:-20}"
+    DRAIN="${DRAIN:-180}"
+    [ -z "$RESOLVE_AT" ] && RESOLVE_OPT="--resolve-at=9,10,11"
     run_single_experiment "demo" "" "demo-ma-baseline"
     ;;
   noisy)
     run_single_experiment "noisy" "" "noisy-corpus"
     ;;
   financial)
-    ROUNDS="${ROUNDS:-8}"
-    [ -z "$RESOLVE_AT" ] && RESOLVE_OPT="--resolve-at=7,8"
+    ROUNDS="${ROUNDS:-16}"
+    INTERVAL="${INTERVAL:-20}"
+    DRAIN="${DRAIN:-180}"
+    [ -z "$RESOLVE_AT" ] && RESOLVE_OPT="--resolve-at=13,14,15"
     run_single_experiment "financial" "" "financial-consolidation"
+    ;;
+  green-bond)
+    ROUNDS="${ROUNDS:-38}"
+    INTERVAL="${INTERVAL:-15}"
+    DRAIN="${DRAIN:-300}"
+    [ -z "$RESOLVE_AT" ] && RESOLVE_OPT="--resolve-at=30,32,34,36"
+    echo "[Exp] Green Bond: EUGBS lifecycle (38 docs, ${ROUNDS} rounds, drain=${DRAIN}s)"
+    run_single_experiment "green-bond" "" "green-bond-eugbs"
     ;;
   exp5)
     echo "[Exp] Exp5: coverage-autonomy trade-off — running 3 governance modes"
@@ -522,8 +552,73 @@ case "$EXP_ID" in
     echo "[Exp] Done. See $AB_DIR"
     exit 0
     ;;
+  exp-skills)
+    echo "[Exp] Exp-Skills: agent skills A/B — measuring correctness and token efficiency"
+    echo "[Exp] Phase 1: Baseline (skills disabled)"
+
+    # ── Phase 1: baseline (no skills) ──
+    export SKILLS_DISABLED=1
+    ROUNDS="${ROUNDS:-14}"
+    INTERVAL="${INTERVAL:-20}"
+    DRAIN="${DRAIN:-180}"
+    [ -z "$RESOLVE_AT" ] && RESOLVE_OPT="--resolve-at=9,10,11"
+
+    SKILLS_DIR="docs/experiments/exp-skills/results"
+    BASELINE_DIR="$SKILLS_DIR/baseline-$(date +%Y%m%dT%H%M%S)"
+    mkdir -p "$BASELINE_DIR"
+
+    run_single_experiment "demo" "" "skills-baseline"
+
+    node --loader ts-node/esm scripts/collect-experiment-results.ts "exp-skills" "$BASELINE_DIR" 2>/dev/null || true
+
+    # ── Phase 2: with skills ──
+    echo ""
+    echo "[Exp] Phase 2: With skills (skills enabled)"
+    unset SKILLS_DISABLED
+
+    # Stop and restart hatchery
+    if [ -n "$HATCHERY_PID" ]; then
+      kill "$HATCHERY_PID" 2>/dev/null || true
+      wait "$HATCHERY_PID" 2>/dev/null || true
+      HATCHERY_PID=""
+    fi
+    if [ -n "$SIM_PID" ]; then
+      kill "$SIM_PID" 2>/dev/null || true
+      wait "$SIM_PID" 2>/dev/null || true
+      SIM_PID=""
+    fi
+
+    node --loader ts-node/esm scripts/reset-e2e.ts 2>/dev/null || true
+    node --loader ts-node/esm scripts/ensure-schema.ts 2>/dev/null
+    node --loader ts-node/esm scripts/ensure-stream.ts 2>/dev/null
+
+    if [ "$RUN_SWARM" = 1 ]; then
+      : > "$LOG_DIR/swarm-exp-hatchery.log"
+      AGENT_ROLE=hatchery AGENT_ID=hatchery-exp node --loader ts-node/esm src/swarm.ts \
+        >> "$LOG_DIR/swarm-exp-hatchery.log" 2>&1 &
+      HATCHERY_PID=$!
+      MITL_PORT="${MITL_PORT:-3001}"
+      for i in $(seq 1 30); do
+        curl -sf "http://127.0.0.1:${MITL_PORT}/health" >/dev/null 2>&1 && break
+        [ "$i" = 30 ] && { echo "[Exp] MITL not ready"; exit 1; }
+        sleep 1
+      done
+    fi
+
+    SKILLS_DIR_WITH="$SKILLS_DIR/with-skills-$(date +%Y%m%dT%H%M%S)"
+    mkdir -p "$SKILLS_DIR_WITH"
+
+    run_single_experiment "demo" "" "skills-enabled"
+
+    node --loader ts-node/esm scripts/collect-experiment-results.ts "exp-skills" "$SKILLS_DIR_WITH" 2>/dev/null || true
+
+    echo ""
+    echo "[Exp] Exp-Skills complete. Baseline: $BASELINE_DIR | With skills: $SKILLS_DIR_WITH"
+    echo "[Exp] Compare results to evaluate correctness and efficiency impact."
+    exit 0
+    ;;
   *)
-    echo "[Exp] Unknown experiment: $EXP_ID. Use exp1, exp2, exp3, exp4, exp5, exp6, exp7, exp8, exp9, exp1-sweep, exp-ab, insurance, noisy, financial, demo-baseline."
+    echo "[Exp] Unknown experiment: $EXP_ID. Use exp1, exp2, exp3, exp4, exp5, exp6, exp7, exp8, exp9, exp1-sweep, exp-ab, exp-skills, insurance, noisy, financial, green-bond, demo-baseline."
     exit 1
     ;;
 esac

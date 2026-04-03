@@ -1,13 +1,17 @@
 import type { S3Client } from "@aws-sdk/client-s3";
+import { createHash } from "crypto";
 import { createTool } from "@mastra/core/tools";
 import { Agent } from "@mastra/core/agent";
 import { z } from "zod";
-import { getChatModelConfig } from "../modelConfig.js";
+import { getChatModelConfig, DETERMINISTIC_SETTINGS, EXTENDED_SETTINGS, StatusOutputSchema } from "../modelConfig.js";
 import { logger } from "../logger.js";
 import { s3GetText } from "../s3.js";
 import { appendEvent } from "../contextWal.js";
+import { emitContribution } from "../causalEmit.js";
 import { createSwarmEvent } from "../events.js";
 import { makeReadFactsTool, makeReadDriftTool, makeReadContextTool } from "./sharedTools.js";
+import { composeInstructions } from "../skills/loader.js";
+import { trackAgentTokens } from "../skills/tokenTracker.js";
 
 const SHORT_PROMPT = "Summarize recent changes in 2-3 sentences for a short status update.";
 const FULL_PROMPT = "Produce a comprehensive status report: facts confidence, drift trends, recent actions, unresolved contradictions, recommended next steps.";
@@ -34,6 +38,10 @@ function createWriteBriefingTool() {
         { source: "status_agent" },
       );
       const seq = await appendEvent(event as unknown as Record<string, unknown>);
+      await emitContribution("status-agent", "assessment", {
+        type: type === "full" ? "briefing_full" : "briefing_short",
+        summary_hash: createHash("sha256").update(summary).digest("hex").slice(0, 16),
+      });
       return { seq, type: type === "full" ? "briefing_full" : "briefing_short" };
     },
   });
@@ -61,12 +69,17 @@ export async function runStatusAgent(
       const agent = new Agent({
         id: "status-agent",
         name: "Status Agent",
-        instructions: "You are a status synthesis agent. Use readFacts, readDrift, readContext to gather state. Then use writeBriefing with a concise summary. For short updates use 2-3 sentences; for full briefings provide a comprehensive report.",
+        instructions: composeInstructions("You are a status synthesis agent. Use readFacts, readDrift, readContext to gather state. Then use writeBriefing with a concise summary. For short updates use 2-3 sentences; for full briefings provide a comprehensive report.", "status"),
         model: modelConfig,
         tools: { readFacts, readDrift, readRecentEvents, writeBriefing },
       });
       const prompt = isFull ? FULL_PROMPT : SHORT_PROMPT;
-      await agent.generate(prompt, { maxSteps: 8 });
+      const genResult = await agent.generate(prompt, {
+        maxSteps: 5,
+        modelSettings: isFull ? EXTENDED_SETTINGS : DETERMINISTIC_SETTINGS,
+        structuredOutput: { schema: StatusOutputSchema, jsonPromptInjection: true },
+      });
+      trackAgentTokens("status", genResult);
       const factsRaw = await s3GetText(s3, bucket, "facts/latest.json");
       const driftRaw = await s3GetText(s3, bucket, "drift/latest.json");
       const facts = factsRaw ? (JSON.parse(factsRaw) as Record<string, unknown>) : null;
@@ -82,6 +95,13 @@ export async function runStatusAgent(
       await appendEvent(
         createSwarmEvent("status_card", cardPayload, { source: "status_agent" }) as unknown as Record<string, unknown>,
       );
+      await emitContribution("status-agent", "assessment", {
+        type: "status_card",
+        drift_level: cardPayload.drift_level,
+        drift_types: cardPayload.drift_types,
+        confidence: cardPayload.confidence,
+        briefing_type: cardPayload.briefing_type,
+      });
       return { type: "status_card", ...cardPayload };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -108,5 +128,11 @@ export async function runStatusAgent(
   await appendEvent(
     createSwarmEvent("status_card", cardPayload, { source: "status_agent" }) as unknown as Record<string, unknown>,
   );
+  await emitContribution("status-agent", "assessment", {
+    type: "status_card",
+    drift_level: cardPayload.drift_level,
+    drift_types: cardPayload.drift_types,
+    confidence: cardPayload.confidence,
+  });
   return { type: "status_card", ...cardPayload };
 }

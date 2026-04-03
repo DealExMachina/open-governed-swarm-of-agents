@@ -122,6 +122,33 @@ pub struct ConvergenceRank {
     pub epoch: u64,
 }
 
+impl PartialOrd for ConvergenceRank {
+    /// Componentwise partial order on the convergence dimensions.
+    /// Returns Some(Less/Equal/Greater) when all dimensions agree,
+    /// None when dimensions are incomparable (some improved, some regressed).
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        let mut has_less = false;
+        let mut has_greater = false;
+        for (a, b) in self.dimensions.iter().zip(other.dimensions.iter()) {
+            if *a < *b - EPSILON {
+                has_less = true;
+            }
+            if *a > *b + EPSILON {
+                has_greater = true;
+            }
+            if has_less && has_greater {
+                return None; // incomparable
+            }
+        }
+        match (has_less, has_greater) {
+            (false, false) => Some(Ordering::Equal),
+            (true, false) => Some(Ordering::Less),
+            (false, true) => Some(Ordering::Greater),
+            (true, true) => None, // unreachable due to early return, but kept for safety
+        }
+    }
+}
+
 impl ConvergenceRank {
     /// True if `self` componentwise dominates `other` (all dimensions >= with EPSILON tolerance).
     pub fn dominates(&self, other: &Self) -> bool {
@@ -436,6 +463,49 @@ mod tests {
             before.check_transition(&after, true),
             AdmissibilityResult::BothViolated
         );
+    }
+
+    #[test]
+    fn convergence_rank_partial_ord_consistent_with_dominates() {
+        let a = ConvergenceRank {
+            dimensions: [0.5, 0.5, 0.5, 0.5],
+            epoch: 1,
+        };
+        let b = ConvergenceRank {
+            dimensions: [0.6, 0.6, 0.6, 0.6],
+            epoch: 1,
+        };
+        // b dominates a → b > a in partial order
+        assert!(b.dominates(&a));
+        assert!(b > a);
+        assert!(a < b);
+    }
+
+    #[test]
+    fn convergence_rank_partial_ord_incomparable() {
+        let a = ConvergenceRank {
+            dimensions: [0.8, 0.5, 0.6, 0.5],
+            epoch: 1,
+        };
+        let b = ConvergenceRank {
+            dimensions: [0.5, 0.8, 0.6, 0.5],
+            epoch: 1,
+        };
+        // Neither dominates → partial_cmp returns None
+        assert!(a.partial_cmp(&b).is_none());
+    }
+
+    #[test]
+    fn convergence_rank_partial_ord_equal() {
+        let a = ConvergenceRank {
+            dimensions: [0.5, 0.5, 0.5, 0.5],
+            epoch: 1,
+        };
+        let b = ConvergenceRank {
+            dimensions: [0.5, 0.5, 0.5, 0.5],
+            epoch: 1,
+        };
+        assert_eq!(a.partial_cmp(&b), Some(std::cmp::Ordering::Equal));
     }
 
     #[test]

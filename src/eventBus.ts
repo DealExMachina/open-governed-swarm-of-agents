@@ -21,6 +21,13 @@ export interface EventBusMessage {
   data: Record<string, unknown>;
 }
 
+export interface DrainedMessage {
+  id: string;
+  data: Record<string, unknown>;
+  ack(): void;
+  nak(delayMs?: number): void;
+}
+
 export interface PushSubscription {
   unsubscribe(): Promise<void>;
 }
@@ -56,6 +63,13 @@ export interface EventBus {
     subject: string,
     handler: (msg: EventBusMessage) => Promise<void>,
   ): Promise<PushSubscription>;
+  /** Drain all pending messages without invoking a handler. Caller controls ACK/NAK at batch level. */
+  drainBatch(
+    stream: string,
+    subject: string,
+    consumer: string,
+    opts?: { maxMessages?: number; timeoutMs?: number },
+  ): Promise<DrainedMessage[]>;
   ensureStream(stream: string, subjects: string[]): Promise<void>;
   /** Return the number of pending (unacknowledged) messages for a durable consumer. */
   getConsumerPending(stream: string, consumer: string): Promise<number>;
@@ -163,7 +177,7 @@ export async function makeEventBus(natsUrl?: string): Promise<EventBus> {
           deliver_policy: DeliverPolicy.All,
           filter_subject: subject,
           max_ack_pending: 100,
-          max_deliver: 5, // Drop poisoned messages after 5 redelivery attempts
+          max_deliver: 3, // Limit redeliveries to reduce token waste on repeated LLM failures
         });
       }
 
@@ -204,6 +218,51 @@ export async function makeEventBus(natsUrl?: string): Promise<EventBus> {
       }
 
       return processed;
+    },
+
+    async drainBatch(stream, subject, consumer, opts) {
+      const maxMessages = opts?.maxMessages ?? 50;
+      const timeoutMs = opts?.timeoutMs ?? 2000;
+
+      try {
+        await jsm.consumers.info(stream, consumer);
+      } catch {
+        await jsm.consumers.add(stream, {
+          durable_name: consumer,
+          ack_policy: AckPolicy.Explicit,
+          deliver_policy: DeliverPolicy.All,
+          filter_subject: subject,
+          max_ack_pending: 100,
+          max_deliver: 3,
+        });
+      }
+
+      const c = await js.consumers.get(stream, consumer);
+      const result: DrainedMessage[] = [];
+
+      try {
+        const messages = await c.fetch({ max_messages: maxMessages, expires: timeoutMs });
+        for await (const m of messages) {
+          const raw = sc.decode(m.data);
+          const data = JSON.parse(raw) as Record<string, unknown>;
+          result.push({
+            id: `${m.seq}`,
+            data,
+            ack: () => m.ack(),
+            nak: (delayMs?: number) => {
+              if (typeof delayMs === "number" && delayMs > 0) {
+                (m as { nak: (ms?: number) => void }).nak(delayMs);
+              } else {
+                m.nak();
+              }
+            },
+          });
+        }
+      } catch {
+        // timeout or no messages
+      }
+
+      return result;
     },
 
     async subscribe(stream, subject, consumer, handler) {

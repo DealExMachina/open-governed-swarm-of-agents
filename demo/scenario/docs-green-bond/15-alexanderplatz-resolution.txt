@@ -1,0 +1,23 @@
+RESOLUTION -- ALEXANDERPLATZ BUILDING
+
+Date: 2025-02-28
+Subject: Resolution of Alexanderplatz EPC compliance issue
+
+After consultation with RetroFit GmbH and the heritage building authority (Landesdenkmalamt Berlin), the following solution has been agreed:
+
+1. Extended renovation scope: Installation of internal wall insulation (heritage-compatible mineral wool system), upgraded HVAC with heat recovery, and LED lighting retrofit. Additional cost: EUR 520,000, funded by RetroFit GmbH (not from bond proceeds).
+
+2. Revised EPC projection: Independent energy auditor (TUV Rheinland) estimates post-renovation EPC will achieve Class C (two-class improvement from E to C), meeting Framework v1.1 requirements.
+
+3. Timeline: Extended works completion by 60 days (new target: 2025-06-30). Heritage authority approval for the additional scope obtained on 2025-02-20.
+
+4. Impact on allocation: The EUR 3,200,000 allocation to Alexanderplatz remains eligible. No substitution needed.
+
+Updated Taxonomy alignment (after AgriVolt onboarding and Alexanderplatz resolution):
+- Category A: EUR 102,200,000 (72.9% of allocated)
+- Category B: EUR 20,000,000 (14.3%)
+- Category C: EUR 18,000,000 (12.8%)
+- Total allocated: EUR 140,200,000 of EUR 249,687,500 (56.2%)
+- Taxonomy alignment of allocated: approximately 87.2% (above 85% target)
+
+Claim: Alexanderplatz EPC issue resolved. Two-class improvement achievable. Overall Taxonomy alignment now 87.2%, above the 85% target. Goal: Maintain alignment as remaining proceeds are allocated.

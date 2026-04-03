@@ -1,11 +1,15 @@
+import { setMaxListeners } from "events";
 import { join } from "path";
 import type { S3Client } from "@aws-sdk/client-s3";
 import { Agent } from "@mastra/core/agent";
-import { getChatModelConfig } from "../modelConfig.js";
+import { getChatModelConfig, REASONING_SETTINGS, PlannerOutputSchema } from "../modelConfig.js";
 import { logger } from "../logger.js";
 import { s3GetText } from "../s3.js";
 import { loadPolicies, getGovernanceForScope, evaluateRules } from "../governance.js";
 import { makeReadDriftTool, makeReadFactsTool, makeReadGovernanceRulesTool } from "./sharedTools.js";
+import { composeInstructions } from "../skills/loader.js";
+import { trackAgentTokens } from "../skills/tokenTracker.js";
+import { evaluateGoalsAgainstEvidence } from "../semanticGraph.js";
 
 const GOVERNANCE_PATH = process.env.GOVERNANCE_PATH ?? join(process.cwd(), "governance.yaml");
 
@@ -25,6 +29,7 @@ export async function runPlannerAgent(
   if (modelConfig) {
     const timeoutMs = Number(process.env.PLANNER_LLM_TIMEOUT_MS) || 60000;
     const abortController = new AbortController();
+    setMaxListeners(64, abortController.signal);
     const timeoutId = setTimeout(() => abortController.abort(), timeoutMs);
     try {
       const readDrift = makeReadDriftTool(s3, bucket);
@@ -33,32 +38,38 @@ export async function runPlannerAgent(
       const agent = new Agent({
         id: "planner-agent",
         name: "Planner Agent",
-        instructions: PLANNER_INSTRUCTIONS,
+        instructions: composeInstructions(PLANNER_INSTRUCTIONS, "planner"),
         model: modelConfig,
         tools: { readDrift, readFacts, readGovernanceRules },
       });
-      const result = await agent.generate(
-        "Read drift, facts, and governance rules. Decide recommended actions and return JSON with actions array and reasoning.",
-        { maxSteps: 8, abortSignal: abortController.signal },
-      );
+      const result = await agent.generate("Plan actions now.", {
+        maxSteps: 4,
+        abortSignal: abortController.signal,
+        modelSettings: REASONING_SETTINGS,
+        structuredOutput: { schema: PlannerOutputSchema, jsonPromptInjection: true },
+      });
+      trackAgentTokens("planner", result);
       clearTimeout(timeoutId);
-      const text = result?.text ?? "";
+      const obj = result?.object;
       let actions: string[] = [];
       let reasoning = "";
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        try {
-          const parsed = JSON.parse(jsonMatch[0]) as { actions?: string[]; reasoning?: string };
-          actions = Array.isArray(parsed.actions) ? parsed.actions : [];
-          reasoning = String(parsed.reasoning ?? "");
-        } catch {
-          actions = [];
-        }
+      if (obj) {
+        actions = Array.isArray(obj.actions) ? obj.actions : [];
+        reasoning = String(obj.reasoning ?? "");
       }
       const driftRaw = await s3GetText(s3, bucket, "drift/latest.json");
       const drift = driftRaw
         ? (JSON.parse(driftRaw) as { level: string; types: string[] })
         : { level: "none", types: [] as string[] };
+      try {
+        const scopeId = process.env.SCOPE_ID ?? "default";
+        const goalEval = await evaluateGoalsAgainstEvidence(scopeId);
+        if (goalEval.resolved > 0 || goalEval.in_progress > 0) {
+          logger.info("planner: goal evaluation advanced", { scopeId, ...goalEval });
+        }
+      } catch (err) {
+        logger.warn("planner: goal evaluation failed", { error: String(err) });
+      }
       return { drift: { level: drift.level, types: drift.types }, actions, reasoning };
     } catch (err) {
       clearTimeout(timeoutId);
@@ -83,5 +94,13 @@ export async function runPlannerAgent(
   const scopeId = process.env.SCOPE_ID ?? "default";
   const config = getGovernanceForScope(scopeId, loadPolicies(GOVERNANCE_PATH));
   const actions = evaluateRules(drift, config);
+  try {
+    const goalEval = await evaluateGoalsAgainstEvidence(scopeId);
+    if (goalEval.resolved > 0 || goalEval.in_progress > 0) {
+      logger.info("planner: goal evaluation advanced", { scopeId, ...goalEval });
+    }
+  } catch (err) {
+    logger.warn("planner: goal evaluation failed", { error: String(err) });
+  }
   return { drift: { level: drift.level, types: drift.types }, actions };
 }

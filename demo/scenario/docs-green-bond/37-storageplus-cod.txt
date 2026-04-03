@@ -1,0 +1,27 @@
+PROJECT MILESTONE -- STORAGEPLUS COD
+
+Date: 2026-03-01
+Subject: StoragePlus Schleswig-Holstein battery storage achieves COD
+
+Milestone achieved:
+- 20 MWh / 10 MW BESS fully installed and grid-connected
+- TSO (TenneT) FCR qualification test: PASSED (response time 1.2 seconds, within 1.5s requirement)
+- Energy arbitrage trading activated via EPEX Spot intraday market
+- Batteries Regulation Art. 11 declaration filed (carbon footprint, recyclability, hazardous substances)
+
+Performance data (first 2 weeks):
+- FCR availability: 99.4%
+- Arbitrage revenue: EUR 42,000 (annualized EUR 1.1M)
+- Round-trip efficiency: 92.3% (LFP nominal: 94%)
+- Cycle count: 28 cycles (annualized: ~730, well within 4,000 cycle life)
+
+Financial:
+- Total project cost: EUR 13,800,000 (EUR 200,000 under budget)
+- Full drawdown from bond: EUR 12,000,000 (disbursed September 2025)
+
+Taxonomy compliance confirmed:
+- Life-cycle GHG: Verified at 45 gCO2e/kWh (independent LCA by Fraunhofer ISE)
+- Cycle life: 4,000 minimum (manufacturer warranty)
+- DNSH: Battery end-of-life managed by Li-Cycle recycling agreement
+
+Claim: StoragePlus COD achieved. FCR qualified. Taxonomy-compliant under new TSC. Goal: Report in Year 2 impact report and demonstrate storage contribution to grid stability.

@@ -1,0 +1,99 @@
+DOCUMENT: CORPORATE GROUP STRUCTURE — CASTELLAN HOLDINGS
+CLASSIFICATION: CONFIDENTIAL — AML/KYC RESTRICTED
+INSTITUTION: EuroBank AG, Frankfurt am Main
+DATE: 2023-03-15
+REFERENCE: CDD-2023-CAST-0002
+PREPARED BY: KYC Analyst Team (Anna Berger, EB-4412)
+
+1. GROUP STRUCTURE OVERVIEW
+
+Ultimate Controlling Person: Viktor Castellan (78% beneficial ownership)
+
+                    Viktor Castellan (78%)
+                    Elena Castellan (22%)
+                            |
+                   CASTELLAN HOLDINGS S.a.r.l.
+                      (Luxembourg, B-247831)
+                            |
+              +-------------+-------------+
+              |             |             |
+         CastleTech    Castellan      Castellan
+          BVI Ltd      Property      Trust
+         (100%)       Cyprus Ltd    (Liechtenstein)
+                       (100%)
+
+2. SUBSIDIARY DETAILS
+
+2.1 CastleTech BVI Ltd
+  Jurisdiction:        British Virgin Islands
+  Registration:        BVI-1948372
+  Registered Agent:    Trident Trust Company (BVI) Ltd
+  Director:            Viktor Castellan (sole)
+  Ownership:           100% held by Castellan Holdings S.a.r.l.
+  Activity:            Technology investment holding, IP licensing
+  Annual Revenue:      EUR 2.0M (FY 2022, primarily licensing royalties)
+  Bank Account:        First Caribbean International Bank, Tortola
+  Note:                BVI entity flagged as HIGH-RISK jurisdiction per
+                       EuroBank policy. Mitigated by full transparency of
+                       ownership and declared revenue streams.
+
+2.2 Castellan Property Cyprus Ltd
+  Jurisdiction:        Republic of Cyprus
+  Registration:        HE-412093
+  Director:            Viktor Castellan (sole)
+  Ownership:           100% held by Castellan Holdings S.a.r.l.
+  Activity:            Real estate holding — 4 commercial properties in
+                       Limassol and Paphos
+  Annual Revenue:      EUR 1.8M (FY 2022, rental income)
+  Bank Account:        Bank of Cyprus, Limassol branch
+  Tax Status:          Cyprus tax resident, 12.5% corporate rate
+
+2.3 Castellan Trust (Liechtenstein)
+  Type:                Discretionary Trust
+  Governing Law:       Liechtenstein Persons and Companies Act (PGR)
+  Trustee:             Allgemeines Treuunternehmen (ATU), Vaduz
+  Settlor:             Viktor Castellan
+  Beneficiaries:       UNDISCLOSED at onboarding — trustee confirms
+                       beneficiaries are "members of the Castellan family"
+  Estimated Assets:    EUR 8-12M (trustee letter, unaudited)
+  Purpose:             Succession planning, wealth preservation
+
+  KYC Note:            Beneficiary disclosure requested per 5AMLD Article
+                       31. Trustee has provided a comfort letter confirming
+                       no PEPs among beneficiaries. Full beneficiary list
+                       requested — trustee indicates disclosure subject to
+                       Liechtenstein data protection law (DSG). Follow-up
+                       scheduled for Q2 2023.
+
+3. INTER-COMPANY TRANSACTIONS (DECLARED)
+
+  - CastleTech BVI → Castellan Holdings: Quarterly dividend, ~EUR 500K
+  - Castellan Property Cyprus → Castellan Holdings: Monthly rental
+    remittance, EUR 200-300K
+  - Castellan Holdings → Castellan Trust: Annual contribution, EUR 500K
+    (wealth preservation)
+  - No declared transactions between subsidiaries directly
+
+4. JURISDICTIONAL RISK ASSESSMENT
+
+  Luxembourg:      LOW risk (EU, FATF-compliant, robust AML framework)
+  BVI:             HIGH risk (FATF grey-list history, opaque structures)
+  Cyprus:          MEDIUM risk (EU, but known for shell structuring)
+  Liechtenstein:   MEDIUM risk (EEA, but trust secrecy concerns)
+
+  Aggregate Multi-Jurisdictional Risk: ELEVATED
+  Mitigation: Full ownership transparency, cooperative client, declared
+  legitimate commercial rationale for each entity.
+
+5. STRUCTURE VERIFICATION
+
+All ownership chains verified against:
+  - Luxembourg RCS filings
+  - BVI registered agent confirmation letter
+  - Cyprus HE registry extract
+  - Liechtenstein trust deed (summary provided by ATU)
+
+Verified by: Anna Berger (EB-4412), 2023-03-15
+Approved by: Dr. Thomas Hartmann, Head of Client Onboarding
+
+— END OF CORPORATE STRUCTURE RECORD —

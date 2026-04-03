@@ -38,6 +38,9 @@ const TRUNCATE_TABLES = [
   "processed_messages",
   "agent_memory",
   "filter_configs",
+  "causal_contributions",
+  "evidence_states",
+  "propagation_history",
 ];
 
 async function truncateDb(): Promise<void> {

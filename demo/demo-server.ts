@@ -1,12 +1,12 @@
 /**
- * Project Horizon — Governed Swarm Demo Server
+ * Governed Swarm Demo Server
  *
- * A self-contained narrative demo UI for business audiences.
- * Orchestrates the M&A due diligence scenario step by step, streams live
- * swarm events, highlights governance interventions, and surfaces the
- * human-in-the-loop review when the system reaches near-finality.
+ * Multi-scenario demo UI (M&A, Financial, Insurance, Green Bond). Orchestrates
+ * document ingestion step by step, streams live swarm events, highlights governance
+ * interventions, and surfaces the human-in-the-loop review when the system reaches
+ * near-finality. Project Horizon (M&A) is the flagship scenario.
  *
- * Usage:  npm run demo
+ * Usage:  pnpm run demo
  * Opens:  http://localhost:3003
  *
  * Prerequisites:
@@ -14,12 +14,14 @@
  */
 
 import "dotenv/config";
+import { randomUUID } from "crypto";
 import {
   createServer,
   type IncomingMessage,
   type ServerResponse,
   request as httpRequest,
 } from "http";
+import { checkAllServices } from "../scripts/check-services.js";
 import { readFileSync, readdirSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
@@ -29,6 +31,7 @@ import {
   ListObjectsV2Command,
   DeleteObjectsCommand,
 } from "@aws-sdk/client-s3";
+import { startDemoSession, closeDemoSession } from "../src/demoSessions.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -37,6 +40,7 @@ const DEMO_PORT = parseInt(process.env.DEMO_PORT ?? "3003", 10);
 const FEED_URL = (process.env.FEED_URL ?? "http://127.0.0.1:3002").replace(/\/$/, "");
 const MITL_URL = (process.env.MITL_URL ?? "http://127.0.0.1:3001").replace(/\/$/, "");
 const SWARM_API_TOKEN = process.env.SWARM_API_TOKEN ?? "";
+const DEMO_RUNTIME_SCOPE_ID = process.env.SCOPE_ID ?? "default";
 
 function authHeaders(): Record<string, string> {
   if (SWARM_API_TOKEN) {
@@ -193,10 +197,34 @@ const SCENARIOS: Record<string, { meta: ScenarioMeta; docs: DemoDoc[] }> = {
     },
     docs: buildInsuranceDocsForDemo(),
   },
+  "green-bond": {
+    meta: {
+      id: "green-bond",
+      name: "European Green Bond Standard (EUGBS)",
+      tagline: "EuroVert Capital -- EUR 250M green bond lifecycle",
+      description: "Evidence propagation through the full lifecycle of a EUR 250M European Green Bond (EuroVert Capital Green Bond Fund I). The corpus spans SPV incorporation, framework publication, SPO, investor roadshow, pricing, project onboarding (solar, wind, agrivoltaic, building retrofit, EV charging, battery storage), EUGBS regulatory transition, and full allocation.",
+      icon: "G",
+      color: "green",
+      docCount: 38,
+      steps: [
+        { n: 0, title: "Fund Term Sheet & SPV", sub: "Baseline", role: "Arranger", insight: "EUR 250M senior unsecured green bond. SPV incorporation, ICMA-aligned framework. Target 85% EU Taxonomy alignment." },
+        { n: 1, title: "Framework & SPO", sub: "Pre-issuance", role: "External Reviewer", insight: "EuroVert Green Bond Framework published. Sustainalytics SPO confirms alignment with GBPs. Eligible categories: renewables, efficiency, clean transport." },
+        { n: 2, title: "Pricing & Settlement", sub: "Issuance", role: "Arranger", insight: "Pricing at 4.25% coupon. Settlement confirmed. Proceeds ring-fenced for eligible projects." },
+        { n: 3, title: "Initial Allocation", sub: "Q4 allocation", role: "Fund Manager", insight: "Q4 allocation report. Projects: Solarmed (solar), WindNorth (wind), Alexanderplatz (retrofit). Construction updates." },
+        { n: 4, title: "Regulatory Transition", sub: "EUGBS impact", role: "Compliance", insight: "EUGBS regulation impact assessment. TSC amendment, taxonomy updates. Framework v1.1 published." },
+        { n: 5, title: "CSSF Designation", sub: "Approval", role: "Regulator", insight: "CSSF EUGBS designation application. Factsheet draft. External reviewer update." },
+        { n: 6, title: "Project Onboarding", sub: "New allocations", role: "Fund Manager", insight: "Agrivoltaic, retrofit, EV charging, storage projects onboarded. Performance reports, construction delays, remediation." },
+        { n: 7, title: "Annual Reporting", sub: "Allocation complete", role: "Fund Manager", insight: "Annual allocation report. Full allocation achieved. Impact report, liquidity event." },
+      ],
+    },
+    docs: loadDocsFromDir(join(__dirname, "scenario", "docs-green-bond")),
+  },
 };
 
 let activeScenarioId = "ma";
 let activeDocs: DemoDoc[] = SCENARIOS.ma.docs;
+let activeSessionId: string | null = null;
+let activeScopeId: string | null = DEMO_RUNTIME_SCOPE_ID;
 const fedSteps = new Set<number>();
 
 // ---------------------------------------------------------------------------
@@ -207,9 +235,6 @@ const sseClients = new Set<ServerResponse>();
 
 function startSseProxy(): void {
   const feedEventUrl = new URL(`${FEED_URL}/events`);
-  // #region agent log
-  fetch('http://127.0.0.1:7243/ingest/af5b746e-3a32-49ef-92b2-aa2d9876cfd3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'demo-server.ts:startSseProxy',message:'connecting',data:{hostname:feedEventUrl.hostname,port:feedEventUrl.port,path:feedEventUrl.pathname},timestamp:Date.now()})}).catch(()=>{});
-  // #endregion
   const req = httpRequest(
     {
       hostname: feedEventUrl.hostname,
@@ -219,9 +244,6 @@ function startSseProxy(): void {
       headers: { Accept: "text/event-stream", "Cache-Control": "no-cache", ...authHeaders() },
     },
     (res) => {
-      // #region agent log
-      fetch('http://127.0.0.1:7243/ingest/af5b746e-3a32-49ef-92b2-aa2d9876cfd3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'demo-server.ts:startSseProxy',message:'connected',data:{statusCode:res.statusCode,clients:sseClients.size},timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
       if (res.statusCode !== 200) {
         res.resume();
         res.on("end", () => setTimeout(startSseProxy, 3000));
@@ -231,32 +253,20 @@ function startSseProxy(): void {
       res.on("data", (chunk: Buffer) => {
         const text = chunk.toString();
         chunkCount++;
-        // #region agent log
-        fetch('http://127.0.0.1:7243/ingest/af5b746e-3a32-49ef-92b2-aa2d9876cfd3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'demo-server.ts:startSseProxy',message:'chunk',data:{chunkCount,textLen:text.length,preview:text.slice(0,200),clients:sseClients.size},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion
         for (const client of sseClients) {
           if (!client.writableEnded) client.write(text);
           else sseClients.delete(client);
         }
       });
       res.on("end", () => {
-        // #region agent log
-        fetch('http://127.0.0.1:7243/ingest/af5b746e-3a32-49ef-92b2-aa2d9876cfd3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'demo-server.ts:startSseProxy',message:'end',data:{totalChunks:chunkCount},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion
         setTimeout(startSseProxy, 3000);
       });
       res.on("error", (err) => {
-        // #region agent log
-        fetch('http://127.0.0.1:7243/ingest/af5b746e-3a32-49ef-92b2-aa2d9876cfd3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'demo-server.ts:startSseProxy',message:'res-error',data:{error:String(err)},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion
         setTimeout(startSseProxy, 3000);
       });
     },
   );
   req.on("error", (err) => {
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/af5b746e-3a32-49ef-92b2-aa2d9876cfd3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'demo-server.ts:startSseProxy',message:'req-error',data:{error:String(err)},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
     setTimeout(startSseProxy, 3000);
   });
   req.end();
@@ -295,6 +305,13 @@ async function proxyPost(url: string, body: unknown): Promise<unknown> {
   return r.json();
 }
 
+function getActiveScopeOrThrow(): string {
+  if (!activeScopeId) {
+    throw new Error("scope_not_initialized");
+  }
+  return activeScopeId;
+}
+
 // ---------------------------------------------------------------------------
 // Route handlers
 // ---------------------------------------------------------------------------
@@ -304,8 +321,8 @@ function handleScenarios(res: ServerResponse): void {
   sendJson(res, 200, Object.values(SCENARIOS).map(({ meta }) => meta));
 }
 
-/** POST /api/select-scenario — switch to a different scenario */
-function handleSelectScenario(body: string, res: ServerResponse): void {
+/** POST /api/select-scenario — switch to a different scenario. Resets scope state first so facts from other demos are not mixed in. */
+async function handleSelectScenario(body: string, res: ServerResponse): Promise<void> {
   try {
     const { id } = JSON.parse(body) as { id: string };
     const scenario = SCENARIOS[id];
@@ -313,10 +330,74 @@ function handleSelectScenario(body: string, res: ServerResponse): void {
       sendJson(res, 404, { error: `Unknown scenario: ${id}` });
       return;
     }
+    if (activeSessionId) {
+      await closeDemoSession(activeSessionId).catch(() => {});
+      activeSessionId = null;
+    }
+    const resetErrors = await resetScopeState();
+    if (resetErrors.length > 0) {
+      sendJson(res, 500, { error: "scenario_reset_failed", details: resetErrors });
+      return;
+    }
+    const session = await startDemoSession(id, DEMO_RUNTIME_SCOPE_ID);
     activeScenarioId = id;
     activeDocs = scenario.docs;
-    fedSteps.clear();
-    sendJson(res, 200, { ok: true, scenario: scenario.meta });
+    activeSessionId = session.session_id;
+    activeScopeId = session.scope_id;
+    sendJson(res, 200, { ok: true, scenario: scenario.meta, session_id: session.session_id, scope_id: session.scope_id });
+  } catch (e) {
+    sendJson(res, 400, { error: String(e) });
+  }
+}
+
+/** POST /api/demo-session/start — explicitly create a new demo session for a scenario */
+async function handleDemoSessionStart(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  try {
+    const raw = await readBody(req);
+    const body = JSON.parse(raw || "{}") as { scenario_id?: string };
+    const scenarioId = String(body.scenario_id ?? "").trim();
+    const scenario = SCENARIOS[scenarioId];
+    if (!scenario) {
+      sendJson(res, 404, { error: `Unknown scenario: ${scenarioId}` });
+      return;
+    }
+    if (activeSessionId) {
+      await closeDemoSession(activeSessionId).catch(() => {});
+      activeSessionId = null;
+    }
+    const resetErrors = await resetScopeState();
+    if (resetErrors.length > 0) {
+      sendJson(res, 500, { error: "scenario_reset_failed", details: resetErrors });
+      return;
+    }
+    const session = await startDemoSession(scenarioId, DEMO_RUNTIME_SCOPE_ID);
+    activeScenarioId = scenarioId;
+    activeDocs = scenario.docs;
+    activeSessionId = session.session_id;
+    activeScopeId = session.scope_id;
+    sendJson(res, 200, { ok: true, session_id: session.session_id, scope_id: session.scope_id, scenario: scenario.meta });
+  } catch (e) {
+    sendJson(res, 400, { error: String(e) });
+  }
+}
+
+/** POST /api/demo-session/close — close current demo session */
+async function handleDemoSessionClose(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  try {
+    const raw = await readBody(req);
+    const body = JSON.parse(raw || "{}") as { session_id?: string };
+    const sid = String(body.session_id ?? activeSessionId ?? "").trim();
+    if (!sid) {
+      sendJson(res, 400, { error: "session_id_required" });
+      return;
+    }
+    const ok = await closeDemoSession(sid);
+    if (activeSessionId === sid) {
+      activeSessionId = null;
+      activeScopeId = null;
+      fedSteps.clear();
+    }
+    sendJson(res, 200, { ok });
   } catch (e) {
     sendJson(res, 400, { error: String(e) });
   }
@@ -348,7 +429,9 @@ async function handleStep(n: number, res: ServerResponse): Promise<void> {
     return;
   }
   try {
+    const scopeId = getActiveScopeOrThrow();
     const result = await proxyPost(`${FEED_URL}/context/docs`, {
+      scope_id: scopeId,
       title: doc.title,
       body: doc.body,
     });
@@ -361,6 +444,7 @@ async function handleStep(n: number, res: ServerResponse): Promise<void> {
 
 /** POST /api/run-all — feed all scenario documents at once for concurrent processing */
 async function handleRunAll(res: ServerResponse): Promise<void> {
+  const scopeId = getActiveScopeOrThrow();
   const results: Array<{ index: number; title: string; ok: boolean; error?: string }> = [];
   for (const doc of activeDocs) {
     if (fedSteps.has(doc.index)) {
@@ -368,7 +452,7 @@ async function handleRunAll(res: ServerResponse): Promise<void> {
       continue;
     }
     try {
-      await proxyPost(`${FEED_URL}/context/docs`, { title: doc.title, body: doc.body });
+      await proxyPost(`${FEED_URL}/context/docs`, { scope_id: scopeId, title: doc.title, body: doc.body });
       fedSteps.add(doc.index);
       results.push({ index: doc.index, title: doc.title, ok: true });
     } catch (e) {
@@ -381,7 +465,8 @@ async function handleRunAll(res: ServerResponse): Promise<void> {
 /** GET /api/summary — proxy to feed server */
 async function handleSummary(res: ServerResponse): Promise<void> {
   try {
-    const data = await proxyGet(`${FEED_URL}/summary?raw=1`);
+    const scopeId = getActiveScopeOrThrow();
+    const data = await proxyGet(`${FEED_URL}/summary?raw=1&scope_id=${encodeURIComponent(scopeId)}`);
     sendJson(res, 200, data as Record<string, unknown>);
   } catch {
     sendJson(res, 502, { error: "feed_unavailable" });
@@ -392,7 +477,7 @@ async function handleSummary(res: ServerResponse): Promise<void> {
 async function handleSituation(res: ServerResponse): Promise<void> {
   try {
     const { buildSituationSummary } = await import("../src/watchdog.js");
-    const scopeId = process.env.SCOPE_ID ?? "default";
+    const scopeId = getActiveScopeOrThrow();
     const situation = await buildSituationSummary(scopeId);
     sendJson(res, 200, situation);
   } catch (e) {
@@ -400,10 +485,35 @@ async function handleSituation(res: ServerResponse): Promise<void> {
   }
 }
 
+/** GET /api/knowledge — canonical knowledge state from semantic graph (single source of truth) */
+async function handleKnowledge(res: ServerResponse): Promise<void> {
+  try {
+    const { getKnowledgeState } = await import("../src/semanticGraph.js");
+    const scopeId = getActiveScopeOrThrow();
+    const knowledge = await getKnowledgeState(scopeId);
+    sendJson(res, 200, knowledge);
+  } catch (e) {
+    sendJson(res, 200, { counts: { claims: 0, goals: 0, contradictions: 0, risks: 0, contradictions_resolved: 0 }, claims: [], goals: [], contradictions: [], risks: [] });
+  }
+}
+
+/** GET /api/contradictions — unresolved contradictions with sides for HITL */
+async function handleContradictions(res: ServerResponse): Promise<void> {
+  try {
+    const { loadUnresolvedContradictionDetails } = await import("../src/semanticGraph.js");
+    const scopeId = getActiveScopeOrThrow();
+    const details = await loadUnresolvedContradictionDetails(scopeId);
+    sendJson(res, 200, { contradictions: details });
+  } catch (e) {
+    sendJson(res, 200, { contradictions: [] });
+  }
+}
+
 /** GET /api/pending — proxy to MITL server */
 async function handlePending(res: ServerResponse): Promise<void> {
   try {
-    const data = await proxyGet(`${MITL_URL}/pending`);
+    const scopeId = getActiveScopeOrThrow();
+    const data = await proxyGet(`${MITL_URL}/pending?scope_id=${encodeURIComponent(scopeId)}`);
     sendJson(res, 200, data as Record<string, unknown>);
   } catch {
     sendJson(res, 200, { pending: [] });
@@ -414,8 +524,9 @@ async function handlePending(res: ServerResponse): Promise<void> {
 async function handleFinalityResponse(req: IncomingMessage, res: ServerResponse): Promise<void> {
   try {
     const raw = await readBody(req);
-    const body = JSON.parse(raw) as unknown;
-    const data = await proxyPost(`${FEED_URL}/finality-response`, body);
+    const body = JSON.parse(raw) as Record<string, unknown>;
+    const scopeId = getActiveScopeOrThrow();
+    const data = await proxyPost(`${FEED_URL}/finality-response`, { ...body, scope_id: scopeId });
     sendJson(res, 200, data as Record<string, unknown>);
   } catch (e) {
     sendJson(res, 502, { error: String(e) });
@@ -426,19 +537,60 @@ async function handleFinalityResponse(req: IncomingMessage, res: ServerResponse)
 async function handleResolution(req: IncomingMessage, res: ServerResponse): Promise<void> {
   try {
     const raw = await readBody(req);
-    const body = JSON.parse(raw) as unknown;
-    const data = await proxyPost(`${FEED_URL}/context/resolution`, body);
-    sendJson(res, 200, data as Record<string, unknown>);
+    const body = JSON.parse(raw) as Record<string, unknown>;
+    const scopeId = getActiveScopeOrThrow();
+    const decision = typeof body.decision === "string" ? body.decision : typeof body.text === "string" ? body.text : "";
+    const nodeIds = Array.isArray(body.node_ids) ? (body.node_ids as string[]) : [];
+
+    // Fire-and-forget to feed so it records the event in the WAL and triggers the pipeline
+    proxyPost(`${FEED_URL}/context/resolution`, { ...body, scope_id: scopeId }).catch(() => {});
+
+    // Call the resolution MCP directly to get LLM evaluation results back to the UI.
+    // When node_ids are provided (from the contradiction HITL modal), pass them so the
+    // MCP evaluates against those specific contradictions even if the resolver agent
+    // already marked them resolved in the background (race condition protection).
+    const mcpPort = process.env.RESOLUTION_MCP_PORT ?? "3005";
+    let evaluation: Record<string, unknown> = {};
+    try {
+      if (nodeIds.length > 0 && !decision.trim()) {
+        // Explicit A/B choice with no free-text — mark directly
+        const resolved: string[] = [];
+        for (const nodeId of nodeIds) {
+          const r = await fetch(`http://127.0.0.1:${mcpPort}/mark-resolved`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ scope_id: scopeId, node_id: nodeId, judgment: "resolved", reason: "HITL resolution (Choose A/B)" }),
+          });
+          if (r.ok) resolved.push(nodeId);
+        }
+        evaluation = { method: "explicit_node_ids", marked: resolved };
+      } else if (decision.trim()) {
+        // Free-text resolution — use LLM evaluation, passing node_ids if available
+        const payload: Record<string, unknown> = { scope_id: scopeId, resolution_text: decision.trim() };
+        if (nodeIds.length > 0) payload.node_ids = nodeIds;
+        const r = await fetch(`http://127.0.0.1:${mcpPort}/mark-resolved-by-text`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (r.ok) evaluation = await r.json() as Record<string, unknown>;
+      }
+    } catch (e) {
+      evaluation = { error: String(e) };
+    }
+
+    sendJson(res, 200, { ok: true, evaluation });
   } catch (e) {
     sendJson(res, 502, { error: String(e) });
   }
 }
 
-/** POST /api/reset — clear all swarm state (including finality decisions) for a fresh demo run */
-async function handleReset(res: ServerResponse): Promise<void> {
+/** Clear all swarm state for the current scope (DB, S3, in-memory fedSteps). Used by reset and by select-scenario to avoid mixing facts across demos. */
+async function resetScopeState(): Promise<string[]> {
   const errors: string[] = [];
+  const scopeId = process.env.SCOPE_ID ?? "default";
 
-  // 1. Clear Postgres tables (scope_finality_decisions so scope is no longer RESOLVED and HITL can trigger again)
+  // 1. Clear Postgres tables
   const dbUrl = process.env.DATABASE_URL;
   if (dbUrl) {
     const pool = new pg.Pool({ connectionString: dbUrl, max: 1 });
@@ -447,10 +599,20 @@ async function handleReset(res: ServerResponse): Promise<void> {
         "context_events", "swarm_state", "edges", "nodes",
         "convergence_history", "decision_records", "finality_certificates",
         "mitl_pending", "scope_finality_decisions", "processed_messages",
-        "agent_memory", "filter_configs",
+        "agent_memory", "filter_configs", "demo_sessions",
       ];
       for (const t of tables) {
         try { await pool.query(`DELETE FROM ${t}`); } catch { /* table may not exist */ }
+      }
+      try {
+        await pool.query(
+          `INSERT INTO swarm_state (scope_id, run_id, last_node, epoch, updated_at)
+           VALUES ($1, $2, 'ContextIngested', 0, now())
+           ON CONFLICT (scope_id) DO UPDATE SET run_id = $2, last_node = 'ContextIngested', epoch = 0, updated_at = now()`,
+          [scopeId, randomUUID()],
+        );
+      } catch (e) {
+        errors.push(`swarm_state init: ${e}`);
       }
     } catch (e) {
       errors.push(`db: ${e}`);
@@ -493,9 +655,13 @@ async function handleReset(res: ServerResponse): Promise<void> {
     errors.push("s3: S3_ENDPOINT not set");
   }
 
-  // 3. Reset in-memory demo state
   fedSteps.clear();
+  return errors;
+}
 
+/** POST /api/reset — clear all swarm state (including finality decisions) and re-init a clean state graph for a fresh demo run */
+async function handleReset(res: ServerResponse): Promise<void> {
+  const errors = await resetScopeState();
   sendJson(res, 200, { ok: true, errors: errors.length ? errors : undefined });
 }
 
@@ -566,9 +732,10 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
       .intro-title{background:linear-gradient(135deg,var(--accent),var(--purple));background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent}
     }
     .intro-sub{font-size:1rem;color:var(--muted);max-width:680px;line-height:1.7}
+    .intro-scenario-label{font-size:1.125rem;font-weight:700;color:var(--text);margin-top:1.5rem;margin-bottom:0.5rem}
 
     /* Scenario picker */
-    .scenario-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;max-width:900px;width:100%;margin:0.5rem 0}
+    .scenario-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1rem;max-width:1100px;width:100%;margin:0.5rem 0}
     .scenario-card{background:var(--surface);border:2px solid var(--border);border-radius:12px;padding:1.25rem;text-align:left;cursor:pointer;transition:all .25s;position:relative;overflow:hidden}
     .scenario-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,0.3)}
     .scenario-card.selected{border-color:var(--accent);background:var(--accent-dim);box-shadow:0 0 24px rgba(79,142,247,0.15)}
@@ -583,7 +750,7 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
     .scenario-card-meta span{display:flex;align-items:center;gap:0.3rem}
     .scenario-card:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
     @media (max-width:780px){.scenario-grid{grid-template-columns:1fr}}
-    @media (min-width:781px) and (max-width:960px){.scenario-grid{grid-template-columns:repeat(2,1fr)}}
+    @media (min-width:961px){.scenario-grid{grid-template-columns:repeat(4,1fr)}}
     .scenario-check{position:absolute;top:0.75rem;right:0.75rem;width:22px;height:22px;border-radius:50%;display:none;align-items:center;justify-content:center;font-size:0.7rem;font-weight:800;color:#fff}
     .scenario-card.selected .scenario-check{display:flex}
     .scenario-check.accent{background:var(--accent)} .scenario-check.green{background:var(--green)} .scenario-check.purple{background:var(--purple)}
@@ -615,6 +782,9 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
     /* Step report (embedded in step-summary) */
     .step-report{margin-top:0.65rem;padding-top:0.65rem;border-top:1px solid var(--border)}
     .step-report-title{font-size:0.6875rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:0.35rem}
+    .step-report-subtitle{font-size:0.6875rem;font-weight:600;color:var(--muted);margin-top:0.5rem;margin-bottom:0.25rem}
+    .step-report-subtitle:first-of-type{margin-top:0.25rem}
+    .step-report-more .step-report-value{font-weight:500;color:var(--muted);font-style:italic}
     .step-report-row{display:flex;justify-content:space-between;padding:0.15rem 0;font-size:0.8rem}
     .step-report-label{color:var(--muted)} .step-report-value{font-weight:600;color:var(--text)}
     .step-report-change{display:inline-flex;align-items:center;gap:0.25rem;font-size:0.6875rem;font-weight:600;padding:1px 5px;border-radius:3px;margin-left:0.35rem}
@@ -638,6 +808,9 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
     .pill-hitl{background:var(--purple-dim);color:var(--purple);border:1px solid var(--purple)} .pill-hitl .pill-dot{background:var(--purple);animation:pulse 1s infinite}
     .pill-done{background:var(--green-dim);color:var(--green);border:1px solid var(--green)} .pill-done .pill-dot{background:var(--green)}
     .pill-error{background:var(--red-dim);color:var(--red);border:1px solid var(--red)} .pill-error .pill-dot{background:var(--red)}
+    .sse-badge{font-size:0.625rem;text-transform:uppercase;letter-spacing:0.04em;color:var(--muted)}
+    .sse-badge.live{color:var(--green)}
+    .sse-badge.reconnecting,.sse-badge.connecting{color:var(--amber)}
     @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 
     /* Main grid */
@@ -673,8 +846,10 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
     .center-panel{display:flex;flex-direction:column;overflow:hidden}
     .stage-header{display:flex;align-items:center;justify-content:space-between;padding:0.6rem 1rem;font-size:0.6875rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0}
     .stage-label{font-size:0.75rem;color:var(--accent);font-weight:600;text-transform:none;letter-spacing:0}
-    .stage{flex:1;overflow-y:auto;padding:1.25rem;display:flex;flex-direction:column;gap:1rem}
+    /* live summary removed: right panel is the single source of truth for scores/counts */
+    .stage{flex:1;overflow-y:auto;padding:1.25rem;display:flex;flex-direction:column;gap:0.75rem}
     .stage-initial{font-size:0.875rem;color:var(--text);line-height:1.7}
+    .stage-initial.hidden{display:none}
     .stage-initial code{background:var(--surface);padding:0.15rem 0.4rem;border-radius:4px;font-family:var(--mono);font-size:0.8rem}
     .stage-initial .prereq{padding:0.75rem;background:var(--amber-dim);border:1px solid var(--amber);border-radius:var(--radius);margin-top:0.75rem;font-size:0.8125rem}
 
@@ -684,6 +859,9 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
     .doc-card-head>div:first-child{flex:1;min-width:0}
     .doc-card-title{font-size:0.8125rem;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .doc-card-role{font-size:0.6875rem;color:var(--muted)}
+    .doc-card-title-row{display:flex;align-items:baseline;gap:0.5rem;flex-wrap:wrap}
+    .doc-card-title-row .doc-card-title{flex-shrink:0}
+    .doc-card-role-inline{font-size:0.6875rem;color:var(--muted);font-weight:500}
     .doc-card-body{padding:0.75rem 0.9rem;font-size:0.8rem;color:var(--muted);line-height:1.6}
     .doc-card-status{display:inline-flex;align-items:center;gap:0.3rem;font-size:0.6875rem;font-weight:600;padding:0.15rem 0.5rem;border-radius:4px;white-space:nowrap;flex-shrink:0}
     .doc-card-status.feeding{background:var(--accent-dim);color:var(--accent)} .doc-card-status.done{background:var(--green-dim);color:var(--green)}
@@ -711,7 +889,11 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
     .hitl-blockers{display:flex;flex-direction:column;gap:0.5rem}
     .hitl-blocker{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:0.65rem 0.8rem;border-left:3px solid var(--amber)}
     .hitl-blocker-title{font-size:0.8125rem;font-weight:700;color:var(--amber)}
+    .hitl-blocker-content{font-size:0.8125rem;color:var(--text);margin-top:4px;padding:4px 0;border-left:2px solid var(--border);padding-left:8px}
     .hitl-blocker-desc{font-size:0.8rem;color:var(--text);margin-top:2px}
+    .hitl-blocker-choices{display:flex;flex-wrap:wrap;gap:0.5rem;margin-top:6px}
+    .hitl-choice-btn{font-size:0.75rem;padding:0.35rem 0.6rem;background:var(--accent);color:#fff;border:none;border-radius:4px;cursor:pointer;font-family:var(--font)}
+    .hitl-choice-btn:hover{opacity:0.9}
     .hitl-blocker-hint{font-size:0.75rem;color:var(--muted);margin-top:4px;line-height:1.5}
     .hitl-dims{display:flex;flex-direction:column;gap:0.5rem}
     .hitl-dim{display:flex;align-items:center;gap:0.5rem}
@@ -821,6 +1003,12 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
     .drift-badge.medium{color:var(--amber);border-color:var(--amber);background:var(--amber-dim)}
     .drift-badge.high{color:var(--red);border-color:var(--red);background:var(--red-dim)}
 
+    /* 5-node cycle indicator */
+    .cycle-bar{display:flex;align-items:center;flex-wrap:wrap;gap:0.2rem;font-size:0.625rem}
+    .cycle-node{padding:0.15rem 0.4rem;border-radius:4px;background:var(--surface2);color:var(--muted);border:1px solid var(--border);transition:all .2s}
+    .cycle-node.active{background:var(--accent-dim);color:var(--accent);border-color:var(--accent)}
+    .cycle-arrow{color:var(--muted);font-size:0.5rem}
+
     /* Activity feed */
     .activity-toggle summary{list-style:none}
     .activity-toggle summary::-webkit-details-marker{display:none}
@@ -894,7 +1082,7 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
   <div class="intro-sub">
     Watch autonomous agents process documents, extract facts, detect contradictions, enforce governance policy, and build toward a final resolution &mdash; with human oversight at the right moments.
   </div>
-
+  <div class="intro-scenario-label">Choose one of four scenarios below</div>
   <div class="scenario-grid" id="scenarioGrid"></div>
 
   <div class="intro-launch hidden" id="introLaunch">
@@ -913,7 +1101,7 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
   </div>
 
   <div class="intro-prereq">
-    <strong>Before starting:</strong> start the backend (e.g. <code>pnpm run feed</code> then <code>pnpm run swarm</code> in separate terminals).
+    <strong>Before starting:</strong> start the backend (<code>pnpm run swarm:start</code> then <code>pnpm run feed</code> in separate terminals).
     <a href="http://localhost:3002" target="_blank" rel="noopener">Open observability</a>
   </div>
 </div>
@@ -930,6 +1118,7 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
       <div class="pill-dot"></div>
       <span id="statusText">Ready</span>
     </div>
+    <span id="sseBadge" class="sse-badge connecting" title="Event stream: Live = receiving events, Reconnecting = SSE may have dropped">Connecting...</span>
     <button class="reset-btn" style="padding:0.25rem 0.75rem;font-size:0.6875rem" onclick="restartDemo()">Restart</button>
   </div>
 </div>
@@ -962,7 +1151,7 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
     <div class="panel-header">Progress &amp; state</div>
     <div class="right-body">
 
-      <div class="r-section">
+      <div class="r-section" id="progressSection">
         <div class="r-label">Progress to Resolution</div>
         <div class="r-score" id="rScore">0%</div>
         <div class="r-score-sub" id="rScoreSub">Select a scenario to begin</div>
@@ -1001,7 +1190,7 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
         </div>
       </div>
 
-      <div class="r-section">
+      <div class="r-section" id="countsSection">
         <div class="r-label">What agents found</div>
         <div class="counts-grid">
           <div class="count-card"><div class="count-num" id="cClaims">0</div><div class="count-label">Facts</div></div>
@@ -1011,6 +1200,8 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
         </div>
       </div>
 
+      <!-- cycle section removed: internal state machine detail not shown to users -->
+
       <div class="r-section" id="situationSection">
         <div class="r-label">What we know</div>
         <div id="situationPanel">
@@ -1018,7 +1209,7 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
             <summary>Goals <span class="situation-group-count" id="situation-goals-count">0</span></summary>
             <div class="situation-cards" id="situation-goals-cards"></div>
           </details>
-          <details class="situation-group" id="situation-claims">
+          <details class="situation-group" id="situation-claims" open>
             <summary>Facts <span class="situation-group-count" id="situation-claims-count">0</span></summary>
             <div class="situation-cards" id="situation-claims-cards"></div>
           </details>
@@ -1033,16 +1224,9 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
         </div>
       </div>
 
-      <div class="r-section">
+      <div class="r-section" id="driftSection">
         <div class="r-label">Information stability</div>
         <div class="drift-badge none" id="driftBadge">Stable</div>
-      </div>
-
-      <div class="r-section">
-        <details class="activity-toggle">
-          <summary class="r-label" style="cursor:pointer;user-select:none">Agent activity</summary>
-          <div class="feed-log" id="feedLog" style="margin-top:0.35rem"></div>
-        </details>
       </div>
 
     </div>
@@ -1075,6 +1259,10 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
   var stepHeartbeatInterval = null;
   var stepWaitTickInterval = null;
   var stepStartTime = 0;
+  var stepStartEpoch = -1;
+  var stepStartNodeCount = 0;
+  var stepProgressPollInterval = null;
+  var _startProgressPoll = null;
   var lastSummary = null;
   var previousFacts = null;
   var initialPendingIds = new Set();
@@ -1083,6 +1271,10 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
   var stepResults = [];
   var stepSnapshots = [];
   var isInResolutionLoop = false;
+  var seenContradictionIds = new Set();
+  var contradictionHitlActive = false;
+  var _prevEpoch = -1;
+  var _stablePolls = 0;
 
   loadScenarios();
   connectEvents();
@@ -1240,13 +1432,37 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
     document.getElementById('stage').innerHTML = '';
   }
 
+  var _userScrolledUp = false;
+
+  function scrollStageToBottom() {
+    var stage = document.getElementById('stage');
+    if (!stage) return;
+    if (_userScrolledUp) return;
+    requestAnimationFrame(function() {
+      stage.scrollTop = stage.scrollHeight;
+    });
+  }
+
+  (function trackUserScroll() {
+    var stage = document.getElementById('stage');
+    if (!stage) return;
+    stage.addEventListener('scroll', function() {
+      var atBottom = stage.scrollHeight - stage.scrollTop - stage.clientHeight < 60;
+      _userScrolledUp = !atBottom;
+    }, { passive: true });
+  })();
+
   function appendToStage(html) {
+    var stage = document.getElementById('stage');
+    var initial = stage ? stage.querySelector('.stage-initial') : null;
+    if (initial) initial.classList.add('hidden');
     var div = document.createElement('div');
     div.innerHTML = html;
-    while (div.firstChild) document.getElementById('stage').appendChild(div.firstChild);
-    var stage = document.getElementById('stage');
-    stage.scrollTop = stage.scrollHeight;
+    while (div.firstChild) stage.appendChild(div.firstChild);
+    scrollStageToBottom();
   }
+
+  // Auto-scroll is handled by appendToStage + scrollStageToBottom (respects user scroll-up).
 
   // ── Service readiness check ──
   var _svcReady = false;
@@ -1366,6 +1582,8 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
     lastSummary = null;
     pendingProposalId = null;
     initialPendingIds = new Set();
+    seenContradictionIds = new Set();
+    contradictionHitlActive = false;
     isInResolutionLoop = false;
     hideHitlModal();
 
@@ -1416,6 +1634,7 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
     document.getElementById('topbarBrand').textContent = SCENARIO.name;
     document.getElementById('topbarSub').innerHTML = '&nbsp;&middot;&nbsp;Governed Swarm Demo';
     demoActive = true;
+    refreshSummary();
     feedNextStep();
   };
 
@@ -1427,6 +1646,12 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
   window.runAllDemo = async function() {
     if (!_svcReady || !SCENARIO) return;
     _concurrentMode = true;
+    _concurrentFactsCount = 0;
+    _concurrentDriftCount = 0;
+    _concurrentPlannerCount = 0;
+    _concurrentGovApproved = 0;
+    _concurrentGovRejected = 0;
+    _concurrentTransitions = 0;
     var runAllBtn = document.getElementById('runAllBtn');
     var beginBtn = document.getElementById('beginBtn');
     runAllBtn.disabled = true;
@@ -1437,6 +1662,7 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
     document.getElementById('topbarBrand').textContent = SCENARIO.name;
     document.getElementById('topbarSub').innerHTML = '&nbsp;&middot;&nbsp;Governed Swarm Demo';
     demoActive = true;
+    refreshSummary();
 
     setStatus('running', 'Feeding all documents...');
     setStageLabel('Concurrent Processing');
@@ -1467,7 +1693,9 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
       await refreshSummary();
       var sec = Math.floor((Date.now() - stepStartTime) / 1000);
       var epoch = (lastSummary && lastSummary.state) ? lastSummary.state.epoch : 0;
-      document.getElementById('statusText').textContent = 'Agents working... epoch ' + epoch + ' (' + sec + 's)';
+      if (!_hitlState.hitlTriggered) {
+        document.getElementById('statusText').textContent = 'Agents working... epoch ' + epoch + ' (' + sec + 's)';
+      }
 
       if (sec > 15 && !_hitlState.hitlTriggered) {
         try {
@@ -1482,6 +1710,12 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
               _hitlState.hitlTriggered = true;
               addActivity('Review needed before closing', 'hitl');
               loadSituationAndShow();
+              } else if (sec > 25) {
+                var shown = await maybeShowWatchdogHitl();
+                if (shown) {
+                  _hitlState.hitlTriggered = true;
+                  addActivity('Human input needed to complete objectives', 'hitl');
+                }
             }
           }
         } catch(_) {}
@@ -1496,10 +1730,40 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
   function feedNextStep() {
     currentStep++;
     if (currentStep >= STEPS.length) {
-      checkForHitl();
+      waitForQuiescenceThenReport();
       return;
     }
     startStep(currentStep);
+  }
+
+  function waitForQuiescenceThenReport() {
+    setStatus('running', 'Agents finishing processing...');
+    setStageLabel('Preparing report');
+    appendToStage(agentCardHtml('G', 'System', 'All documents fed. Waiting for agents to finish...', 'accent'));
+    var _qPolls = 0;
+    var _qPrevEpoch = -1;
+    function pollQuiescence() {
+      refreshSummary().then(function() {
+        var epoch = (lastSummary && lastSummary.state) ? (lastSummary.state.epoch || 0) : 0;
+        if (epoch === _qPrevEpoch) {
+          _qPolls++;
+        } else {
+          _qPolls = 0;
+          _qPrevEpoch = epoch;
+        }
+        if (_qPolls >= 3) {
+          showFinalReport();
+        } else {
+          var sec = Math.floor((Date.now() - stepStartTime) / 1000);
+          document.getElementById('statusText').textContent = 'Agents finishing... (' + sec + 's)';
+          setTimeout(pollQuiescence, 8000);
+        }
+      }).catch(function() {
+        setTimeout(pollQuiescence, 10000);
+      });
+    }
+    stepStartTime = Date.now();
+    setTimeout(pollQuiescence, 5000);
   }
 
   async function startStep(idx) {
@@ -1519,7 +1783,10 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
     appendToStage(
       '<div class="doc-card">' +
         '<div class="doc-card-head">' +
-          '<div><div class="doc-card-title">' + escHtml(step.title) + '</div><div class="doc-card-role">' + escHtml(step.role) + '</div></div>' +
+          '<div class="doc-card-title-row">' +
+            '<span class="doc-card-title">' + escHtml(step.title) + '</span>' +
+            '<span class="doc-card-role-inline">' + escHtml(step.role) + '</span>' +
+          '</div>' +
           '<div class="doc-card-status feeding" id="step-status-' + idx + '"><div class="pill-dot" style="background:var(--accent);animation:pulse 1s infinite"></div> Processing</div>' +
         '</div>' +
         '<div class="doc-card-body">' + escHtml(step.insight) + '</div>' +
@@ -1537,7 +1804,7 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
         }
       }
     } catch(e) {
-      showError('Could not reach the demo server or feed. Start the feed: pnpm run feed. Then run pnpm run swarm.');
+      showError('Could not reach the demo server or feed. Start the feed: pnpm run feed. Then run pnpm run swarm:start.');
       return;
     }
 
@@ -1546,9 +1813,40 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
       statusEl.className = 'doc-card-status feeding';
       statusEl.innerHTML = '<div class="pill-dot" style="background:var(--accent);animation:pulse 1s infinite"></div> Agents working...';
     }
-    appendToStage('<div class="processing-shimmer" id="shimmer-' + idx + '"></div>');
+    var shimmerHint = idx === 0 ? ' (first doc: facts extraction 1–3 min)' : '';
+    appendToStage('<div class="processing-shimmer" id="shimmer-' + idx + '">Waiting for agents' + shimmerHint + '</div>');
+    (function setupSkipButton() {
+      var skipEl = document.createElement('div');
+      skipEl.className = 'step-skip-area';
+      skipEl.style.cssText = 'margin-top:0.75rem;font-size:0.8125rem;';
+      skipEl.innerHTML = '<button type="button" class="skip-step-btn" id="skip-step-' + idx + '" style="display:none;padding:0.4rem 0.75rem;font-size:0.75rem;color:var(--muted);border:1px solid var(--border);border-radius:4px;background:transparent;cursor:pointer;">Skip this step</button>';
+      var container = document.getElementById('stage');
+      if (container) {
+        container.appendChild(skipEl);
+        var skipBtn = document.getElementById('skip-step-' + idx);
+        if (skipBtn) {
+          setTimeout(function() {
+            if (skipBtn && !stepSeen.complete) skipBtn.style.display = 'inline-block';
+          }, 120000);
+          skipBtn.onclick = function() {
+            if (stepSeen.complete) return;
+            stepSeen.complete = true;
+            clearStepProgressIntervals();
+            if (stepTimeout) clearTimeout(stepTimeout);
+            stepTimeout = null;
+            var shimmer = document.getElementById('shimmer-' + idx);
+            if (shimmer) shimmer.remove();
+            skipBtn.style.display = 'none';
+            appendToStage('<div class="stage-error" style="margin-top:0.5rem;font-size:0.8125rem;">Skipped — backend may not be processing. Ensure swarm (<code>pnpm run swarm:start</code>) and feed (<code>pnpm run feed</code>) are running.</div>');
+            setTimeout(showStepSummary, 800);
+          };
+        }
+      }
+    })();
     setStatus('running', 'Step ' + (idx + 1) + ' -- Agents working...');
     stepStartTime = Date.now();
+    stepStartEpoch = -1;
+    stepStartNodeCount = 0;
     clearStepProgressIntervals();
     stepHeartbeatInterval = setInterval(function() {
       if (stepSeen.complete) return;
@@ -1562,6 +1860,137 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
 
     addActivity('Document fed: ' + step.title, 'doc');
     startStepTimeout();
+
+    _prevEpoch = -1;
+    _stablePolls = 0;
+
+    function startProgressPoll() {
+      if (stepSeen.complete) return;
+      if (contradictionHitlActive) {
+        stepProgressPollInterval = setTimeout(startProgressPoll, 5000);
+        return;
+      }
+      Promise.all([
+        refreshSummary().then(function() { return lastSummary; }),
+        fetch('/api/pending').then(function(r) { return r.json(); }).catch(function() { return { pending: [] }; }),
+        fetch('/api/contradictions').then(function(r) { return r.json(); }).catch(function() { return { contradictions: [] }; })
+      ]).then(function(results) {
+        if (stepSeen.complete || contradictionHitlActive) return;
+        var summary = results[0] || {};
+        var pendingData = results[1] || {};
+        var contraData = results[2] || {};
+        var st = summary.state || {};
+        var sg = summary.state_graph || {};
+        var nn = sg.nodes || {};
+        var nodeCount = (nn.claim || 0) + (nn.goal || 0) + (nn.risk || 0) + (nn.contradiction || 0);
+        var epoch = st.epoch ?? 0;
+        if (stepStartEpoch < 0) {
+          stepStartEpoch = epoch;
+          stepStartNodeCount = nodeCount;
+        }
+        if (!stepSeen.facts && nodeCount > stepStartNodeCount) {
+          stepSeen.facts = true;
+          var shimmerEl = document.getElementById('shimmer-' + idx);
+          if (shimmerEl) shimmerEl.remove();
+          appendToStage(agentCardHtml('F', 'Facts Agent', 'Facts extracted (' + nodeCount + ' nodes)', 'accent'));
+          addActivity('Facts extracted (polling)', 'facts');
+        }
+        // Check for new unresolved contradictions — trigger HITL immediately
+        var newContras = (contraData.contradictions || []).filter(function(c) {
+          return c.node_id && !seenContradictionIds.has(c.node_id);
+        });
+        if (newContras.length > 0) {
+          showContradictionHitl(newContras);
+          return;
+        }
+        var pendingItems = pendingData.pending || [];
+        var governanceItem = pendingItems.find(function(p) {
+          var pl = (p.proposal || {}).payload || {};
+          return pl.type === 'governance_review' && !initialPendingIds.has(p.proposal_id);
+        });
+        var finalityItem = pendingItems.find(function(p) {
+          var prop = p.proposal || {};
+          var pl = prop.payload || {};
+          return (pl.type === 'finality_review' || prop.proposed_action === 'finality_review') && !initialPendingIds.has(p.proposal_id);
+        });
+        if (governanceItem) {
+          completeStepWithHitl('governance', governanceItem);
+          return;
+        }
+        // Finality reviews only block the last step — intermediate steps should
+        // complete normally and let the user proceed. The final report handles
+        // overall finality and open issues.
+        var isLastStep = currentStep >= STEPS.length - 1;
+        if (finalityItem && isLastStep) {
+          completeStepWithHitl('finality', finalityItem);
+          return;
+        }
+        if (epoch === _prevEpoch) {
+          _stablePolls++;
+        } else {
+          _stablePolls = 0;
+          _prevEpoch = epoch;
+        }
+        var factsDetected = stepSeen.facts || nodeCount > stepStartNodeCount;
+        var quiescent = factsDetected && _stablePolls >= 2;
+        if (quiescent) {
+          completeStepNormal(summary);
+          return;
+        }
+        var elapsed = Date.now() - stepStartTime;
+        var nextMs = elapsed < 60000 ? 8000 : 12000;
+        stepProgressPollInterval = setTimeout(startProgressPoll, nextMs);
+      }).catch(function() {
+        if (!stepSeen.complete) {
+          stepProgressPollInterval = setTimeout(startProgressPoll, 15000);
+        }
+      });
+    }
+
+    function completeStepWithHitl(kind, item) {
+      if (stepSeen.complete) return;
+      stepSeen.complete = true;
+      clearStepProgressIntervals();
+      if (stepTimeout) clearTimeout(stepTimeout);
+      stepTimeout = null;
+      var shimmer = document.getElementById('shimmer-' + idx);
+      if (shimmer) shimmer.remove();
+      if (kind === 'governance') {
+        appendToStage(agentCardHtml('G', 'Governance', 'Policy intervention required', 'amber'));
+        stepResults[currentStep] = 'blocked';
+        setTlState(currentStep, 'blocked');
+        setTlResult(currentStep, 'Governance review', 'blocked', 'blocked');
+        setTimeout(function() { showGovernanceHitlPanel(item); }, 800);
+      } else {
+        appendToStage(agentCardHtml('!', 'Finality', 'Contradictions require human review', 'amber'));
+        stepResults[currentStep] = 'blocked';
+        setTlState(currentStep, 'blocked');
+        setTlResult(currentStep, 'Review needed', 'blocked', 'blocked');
+        setTimeout(showStepSummary, 800);
+      }
+    }
+
+    function completeStepNormal(summary) {
+      if (stepSeen.complete) return;
+      stepSeen.complete = true;
+      clearStepProgressIntervals();
+      if (stepTimeout) clearTimeout(stepTimeout);
+      stepTimeout = null;
+      var shimmer = document.getElementById('shimmer-' + idx);
+      if (shimmer) shimmer.remove();
+      var driftLevel = (summary.drift && summary.drift.level || 'none').toLowerCase();
+      if (driftLevel === 'high' || driftLevel === 'critical') {
+        appendToStage(agentCardHtml('D', 'Drift', 'Significant new information detected (drift: ' + driftLevel + ')', 'amber'));
+      }
+      appendToStage(agentCardHtml('G', 'Governance', 'Step processing complete', 'green'));
+      stepResults[currentStep] = 'approved';
+      setTlState(currentStep, 'done');
+      setTlResult(currentStep, STEPS[currentStep].insight.split('.')[0], 'done', 'approved');
+      setTimeout(showStepSummary, 800);
+    }
+
+    _startProgressPoll = startProgressPoll;
+    stepProgressPollInterval = setTimeout(startProgressPoll, 3000);
   }
 
   function startStepTimeout() {
@@ -1574,6 +2003,7 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
   function clearStepProgressIntervals() {
     if (stepHeartbeatInterval) { clearInterval(stepHeartbeatInterval); stepHeartbeatInterval = null; }
     if (stepWaitTickInterval) { clearInterval(stepWaitTickInterval); stepWaitTickInterval = null; }
+    if (stepProgressPollInterval) { clearTimeout(stepProgressPollInterval); stepProgressPollInterval = null; }
   }
 
   function resetStepTimeout() {
@@ -1584,17 +2014,26 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
   }
 
   // ── SSE ──
+  var sseConnected = false;
   function connectEvents() {
     var es = new EventSource('/api/events');
     es.onmessage = function(e) {
       try {
         var d = JSON.parse(e.data);
-        if (d.type === 'demo_connected' || d.type === 'feed_connected') return;
+        if (d.type === 'demo_connected' || d.type === 'feed_connected') {
+          sseConnected = true;
+          var badge = document.getElementById('sseBadge');
+          if (badge) { badge.textContent = 'Live'; badge.className = 'sse-badge live'; }
+          return;
+        }
         if (!demoActive) return;
         handleEvent(d);
       } catch(_) {}
     };
     es.onerror = function() {
+      sseConnected = false;
+      var badge = document.getElementById('sseBadge');
+      if (badge) { badge.textContent = 'Reconnecting'; badge.className = 'sse-badge reconnecting'; }
       es.close();
       setTimeout(connectEvents, 5000);
     };
@@ -1607,6 +2046,24 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
   var _concurrentGovRejected = 0;
   var _concurrentTransitions = 0;
 
+  /** Map concurrent run progress to timeline steps (green). Transitions/3 alone fails when many docs are fed at once (shared state machine). Facts-extracted count tracks documents processed; scale to STEPS when docCount differs (e.g. green-bond 38 docs, 8 steps). */
+  function updateConcurrentTimelineProgress() {
+    if (!_concurrentMode || !STEPS.length) return;
+    var docTotal = (SCENARIO && SCENARIO.docCount) || STEPS.length;
+    if (docTotal < 1) docTotal = STEPS.length;
+    var byTrans = Math.min(Math.floor(_concurrentTransitions / 3), STEPS.length);
+    var factsSteps = Math.ceil((_concurrentFactsCount * STEPS.length) / docTotal);
+    var byFacts = Math.min(Math.max(0, factsSteps), STEPS.length);
+    var doneCount = Math.min(STEPS.length, Math.max(byTrans, byFacts));
+    for (var ti = 0; ti < STEPS.length; ti++) {
+      if (ti < doneCount) {
+        setTlState(ti, 'done');
+        setTlResult(ti, STEPS[ti].insight.split('.')[0], 'done', 'processed');
+      }
+    }
+    document.getElementById('tlProgress').textContent = doneCount + ' / ' + STEPS.length + ' processed';
+  }
+
   function handleConcurrentEvent(type, payload) {
     if (type === 'facts_extracted') {
       _concurrentFactsCount++;
@@ -1614,6 +2071,7 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
       appendToStage(agentCardHtml('F', 'Facts Agent', 'Run #' + _concurrentFactsCount + ' — extracted ' + wrote.length + ' keys', 'accent'));
       addActivity('Facts extracted (batch #' + _concurrentFactsCount + ')', 'facts');
       refreshSummary();
+      updateConcurrentTimelineProgress();
     }
     if (type === 'drift_analyzed') {
       _concurrentDriftCount++;
@@ -1647,14 +2105,7 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
       var from = payload.from || '?';
       var to = payload.to || '?';
       addActivity('State advanced (cycle ' + (payload.epoch || '?') + ')', 'state');
-      var doneCount = Math.min(Math.floor(_concurrentTransitions / 3), STEPS.length);
-      for (var ti = 0; ti < STEPS.length; ti++) {
-        if (ti < doneCount) {
-          setTlState(ti, 'done');
-          setTlResult(ti, STEPS[ti].insight.split('.')[0], 'done', 'processed');
-        }
-      }
-      document.getElementById('tlProgress').textContent = doneCount + ' / ' + STEPS.length + ' processed';
+      updateConcurrentTimelineProgress();
       refreshSummary();
     }
     if (type === 'proposal_pending_approval') {
@@ -1663,6 +2114,19 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
     }
     if (type === 'status_briefing') {
       addActivity('Status summary updated', 'state');
+    }
+    if (type === 'evidence_propagated') {
+      var depth = payload.depth ?? payload.propagation_depth ?? '?';
+      var contraction = payload.contraction_ratio ?? null;
+      var msg = 'Evidence propagated (depth ' + depth + ')';
+      if (contraction != null) msg += ' — disagreement reduced by ' + (Math.round(contraction * 100)) + '%';
+      appendToStage(agentCardHtml('E', 'Propagation Agent', msg, 'accent'));
+      addActivity('Evidence propagated along sheaf topology', 'facts');
+    }
+    if (type === 'deltas_extracted') {
+      var deltaCount = (payload.deltas || []).length;
+      appendToStage(agentCardHtml('\u0394', 'Deltas Agent', 'Extracted ' + deltaCount + ' delta(s) for planner', 'purple'));
+      addActivity('Deltas extracted from propagated state', 'planner');
     }
     if (type === 'watchdog_hitl') {
       addActivity('System needs your input (' + (payload.questions_count || '?') + ' questions)', 'hitl');
@@ -1681,6 +2145,23 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
     } catch(e) {
       checkForHitl();
     }
+  }
+
+  async function maybeShowWatchdogHitl() {
+    try {
+      var r = await fetch('/api/situation');
+      if (!r.ok) return false;
+      var situation = await r.json();
+      var status = String((situation && situation.status) || '').toLowerCase();
+      var questions = Array.isArray(situation && situation.questions) ? situation.questions : [];
+      if (status === 'needs_human' && questions.length > 0) {
+        setStatus('hitl', 'Human input needed');
+        if (_summaryPollTimer) { clearInterval(_summaryPollTimer); _summaryPollTimer = null; }
+        showWatchdogPanel(situation);
+        return true;
+      }
+    } catch(_) {}
+    return false;
   }
 
   function showWatchdogPanel(situation) {
@@ -1750,43 +2231,21 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
     var text = (document.getElementById('watchdogResolutionText') || {}).value || '';
     if (!text.trim()) return;
     hideHitlModal();
-    setStatus('running', 'Agents re-processing with resolution...');
-    appendToStage(agentCardHtml('H', 'Human', 'Resolution: ' + text.slice(0, 80), 'purple'));
-    addActivity('Human resolution: ' + text.slice(0, 60), 'hitl');
+    setStatus('running', 'Agents re-processing with your resolution...');
+    appendToStage(agentCardHtml('H', 'Human', 'Resolution: ' + text.slice(0, 120), 'purple'));
     try {
       await fetch('/api/resolution', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ decision: text, summary: text.slice(0, 120), text: text }),
       });
-      _concurrentMode = true;
-      _hitlState.hitlTriggered = false;
+      stepSeen.complete = false;
       stepStartTime = Date.now();
-      if (_summaryPollTimer) clearInterval(_summaryPollTimer);
-      _summaryPollTimer = setInterval(async function() {
-        await refreshSummary();
-        var sec = Math.floor((Date.now() - stepStartTime) / 1000);
-        var epoch = (lastSummary && lastSummary.state) ? lastSummary.state.epoch : 0;
-        document.getElementById('statusText').textContent = 'Re-processing... epoch ' + epoch + ' (' + sec + 's)';
-
-        if (sec > 10 && !_hitlState.hitlTriggered) {
-          try {
-            var pr = await fetch('/api/pending');
-            if (pr.ok) {
-              var pd = await pr.json();
-              var items = (pd.pending || []).filter(function(p) {
-                var pl = (p.proposal || {}).payload || {};
-                return pl.type === 'finality_review';
-              });
-              if (items.length > 0) {
-                _hitlState.hitlTriggered = true;
-                addActivity('New review needed after re-processing', 'hitl');
-                loadSituationAndShow();
-              }
-            }
-          } catch(_) {}
-        }
-      }, 3000);
+      stepStartEpoch = -1;
+      stepStartNodeCount = 0;
+      _hitlState.hitlTriggered = false;
+      clearStepProgressIntervals();
+      if (_startProgressPoll) stepProgressPollInterval = setTimeout(_startProgressPoll, 5000);
     } catch(e) {
       showError('Could not submit resolution: ' + e);
     }
@@ -1831,28 +2290,56 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
       resetStepTimeout();
       var shimmerEl = document.getElementById('shimmer-' + currentStep);
       if (shimmerEl) shimmerEl.remove();
-      // #region agent log
-      fetch('http://127.0.0.1:7243/ingest/af5b746e-3a32-49ef-92b2-aa2d9876cfd3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'demo-ui:handleEvent',message:'facts_extracted payload',data:{payload:payload},timestamp:Date.now()})}).catch(function(){});
-      // #endregion
       var wrote = payload.wrote || [];
+      var prevFactsSnapshot = previousFacts ? { claims: (previousFacts.claims || []).slice(), goals: (previousFacts.goals || []).slice() } : null;
       appendToStage(agentCardHtml('F', 'Facts Agent', 'Facts extracted (' + wrote.length + ' keys written). Refreshing graph...', 'accent'));
       addActivity('Facts extracted from document', 'facts');
       refreshSummary().then(function() {
-        var nn = (lastSummary && lastSummary.state_graph) ? (lastSummary.state_graph.nodes || {}) : {};
-        var claims = nn.claim || 0;
-        var goals = nn.goal || 0;
+        var ckc = (lastKnowledge || {}).counts || {};
+        var claims = ckc.claims || 0;
+        var goals = ckc.goals || 0;
         addActivity(claims + ' facts, ' + goals + ' goals found so far', 'facts');
         updateCount('cClaims', claims);
         updateCount('cGoals', goals);
+        var factsData = lastSummary && lastSummary.facts ? lastSummary.facts : null;
+        var hasClaims = factsData && Array.isArray(factsData.claims) && factsData.claims.length > 0;
+        var hasGoals = factsData && Array.isArray(factsData.goals) && factsData.goals.length > 0;
+        if (hasClaims || hasGoals) {
+          var samplesHtml = '<div class="step-report" style="margin-top:0.5rem;padding-top:0.5rem">';
+          samplesHtml += '<div class="step-report-title">New in this step</div>';
+          if (hasClaims) {
+            var prevClaims = prevFactsSnapshot ? prevFactsSnapshot.claims : [];
+            var newClaims = factsData.claims.filter(function(c) { return prevClaims.indexOf(c) === -1; });
+            var claimSamples = newClaims.length > 0 ? newClaims : factsData.claims;
+            if (claimSamples.length > 0) {
+              samplesHtml += '<div class="step-report-subtitle">Claims (' + claimSamples.length + ')</div>';
+              for (var si = 0; si < claimSamples.length; si++) {
+                var s = String(claimSamples[si]).trim();
+                samplesHtml += '<div class="step-report-row"><span class="step-report-value">' + escHtml(s) + '</span></div>';
+              }
+            }
+          }
+          if (hasGoals) {
+            var prevGoals = prevFactsSnapshot ? prevFactsSnapshot.goals : [];
+            var newGoals = factsData.goals.filter(function(g) { return prevGoals.indexOf(g) === -1; });
+            var goalSamples = newGoals.length > 0 ? newGoals : factsData.goals;
+            if (goalSamples.length > 0) {
+              samplesHtml += '<div class="step-report-subtitle">Goals (' + goalSamples.length + ')</div>';
+              for (var gi = 0; gi < goalSamples.length; gi++) {
+                var g = String(goalSamples[gi]).trim();
+                samplesHtml += '<div class="step-report-row"><span class="step-report-value">' + escHtml(g) + '</span></div>';
+              }
+            }
+          }
+          samplesHtml += '</div>';
+          appendToStage(samplesHtml);
+        }
       });
     }
 
     if (type === 'drift_analyzed' && !stepSeen.drift) {
       stepSeen.drift = true;
       resetStepTimeout();
-      // #region agent log
-      fetch('http://127.0.0.1:7243/ingest/af5b746e-3a32-49ef-92b2-aa2d9876cfd3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'demo-ui:handleEvent',message:'drift_analyzed payload',data:{payload:payload},timestamp:Date.now()})}).catch(function(){});
-      // #endregion
       var level = (payload.level || 'none').toUpperCase();
       var types = (payload.types || []).join(', ') || 'no specific types';
       var color = level === 'HIGH' ? 'red' : level === 'MEDIUM' ? 'amber' : 'green';
@@ -1902,6 +2389,19 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
       }
     }
 
+    if (type === 'evidence_propagated') {
+      var depth = payload.depth ?? payload.propagation_depth ?? '?';
+      var contraction = payload.contraction_ratio ?? null;
+      var msg = 'Evidence propagated (depth ' + depth + ')';
+      if (contraction != null) msg += ' — disagreement reduced by ' + (Math.round(contraction * 100)) + '%';
+      appendToStage(agentCardHtml('E', 'Propagation Agent', msg, 'accent'));
+      addActivity('Evidence propagated along sheaf topology', 'facts');
+    }
+    if (type === 'deltas_extracted') {
+      var deltaCount = (payload.deltas || []).length;
+      appendToStage(agentCardHtml('\u0394', 'Deltas Agent', 'Extracted ' + deltaCount + ' delta(s) for planner', 'purple'));
+      addActivity('Deltas extracted from propagated state', 'planner');
+    }
     if (type === 'proposal_approved') {
       var govReason = (payload.reason || 'policy_passed').replace(/_/g, ' ');
       appendToStage(agentCardHtml('G', 'Governance', 'Approved: ' + govReason, 'green'));
@@ -1919,6 +2419,11 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
       setTimeout(function() { pollGovernancePending(); }, 500);
     }
     if (type === 'watchdog_hitl') {
+      var stepsComplete = _concurrentMode || currentStep >= STEPS.length - 1;
+      if (!stepsComplete) {
+        addActivity('System paused but more steps pending — continuing to feed docs', 'state');
+        return;
+      }
       addActivity('System needs your input to proceed', 'hitl');
       loadSituationAndShow();
     }
@@ -1929,26 +2434,24 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
     var prev = stepIdx > 0 ? stepSnapshots[stepIdx - 1] : null;
     var curr = lastSummary || {};
     var fin = curr.finality || {};
-    var sg = curr.state_graph || {};
-    var nn = sg.nodes || {};
     var drift = curr.drift || {};
-    var facts = curr.facts || {};
+    var kc = (lastKnowledge || {}).counts || {};
     var gs = fin.goal_score != null ? Math.round(fin.goal_score * 100) : 0;
 
-    var prevClaims = prev ? (prev.nodes.claim || 0) : 0;
-    var prevGoals = prev ? (prev.nodes.goal || 0) : 0;
-    var prevContra = prev ? (prev.nodes.contradiction || 0) : 0;
-    var prevRisks = prev ? (prev.nodes.risk || 0) : 0;
+    var prevClaims = prev ? (prev.nodes.claims || 0) : 0;
+    var prevGoals = prev ? (prev.nodes.goals || 0) : 0;
+    var prevContra = prev ? (prev.nodes.contradictions || 0) : 0;
+    var prevRisks = prev ? (prev.nodes.risks || 0) : 0;
     var prevGs = prev ? prev.goalScore : 0;
     var prevDrift = prev ? prev.driftLevel : 'none';
 
-    var claims = nn.claim || 0;
-    var goals = nn.goal || 0;
-    var contra = nn.contradiction || 0;
-    var risks = nn.risk || 0;
+    var claims = kc.claims || 0;
+    var goals = kc.goals || 0;
+    var contra = kc.contradictions || 0;
+    var risks = kc.risks || 0;
     var driftLevel = (drift.level || 'none').toUpperCase();
 
-    stepSnapshots[stepIdx] = { nodes: { claim: claims, goal: goals, contradiction: contra, risk: risks }, goalScore: gs, driftLevel: driftLevel };
+    stepSnapshots[stepIdx] = { nodes: { claims: claims, goals: goals, contradictions: contra, risks: risks }, goalScore: gs, driftLevel: driftLevel };
 
     function changeBadge(now, before, label) {
       var diff = now - before;
@@ -1982,6 +2485,39 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
     return html;
   }
 
+  function buildStorySoFar(stepIdx) {
+    if (!lastSummary) return '';
+    var fin = lastSummary.finality || {};
+    var kn = lastKnowledge || {};
+    var kc = kn.counts || {};
+    var gs = fin.goal_score != null ? Math.round(fin.goal_score * 100) : 0;
+    var prev = stepIdx > 0 ? stepSnapshots[stepIdx - 1] : null;
+    var prevGs = prev ? prev.goalScore : 0;
+    var trend = gs > prevGs ? 'improving' : gs < prevGs ? 'needs resolution' : 'stable';
+    var claims = kc.claims || 0;
+    var goals = kc.goals || 0;
+    var contra = kc.contradictions || 0;
+    var risks = kc.risks || 0;
+    var claimsList = Array.isArray(kn.claims) ? kn.claims : [];
+    var recentClaims = claimsList.slice(-3);
+    var html = '<div class="situation-card" style="margin-top:1rem;border-left-color:var(--accent)">';
+    html += '<div class="situation-title">Story so far</div>';
+    html += '<div class="situation-line">' + claims + ' facts, ' + goals + ' goals, ' + contra + ' contradictions, ' + risks + ' risks.</div>';
+    html += '<div class="situation-line">Goal score: <strong>' + gs + '%</strong> — ' + trend + '.</div>';
+    if (recentClaims.length > 0) {
+      html += '<div class="situation-goals-title">Recent facts</div>';
+      html += '<ul class="situation-goals-list">';
+      recentClaims.forEach(function(c) {
+        var s = String(c).trim();
+        if (s.length > 100) s = s.slice(0, 97) + '\u2026';
+        html += '<li>' + escHtml(s) + '</li>';
+      });
+      html += '</ul>';
+    }
+    html += '</div>';
+    return html;
+  }
+
   // ── Step summary + advance ──
   function showStepSummary() {
     var step = STEPS[currentStep];
@@ -1994,23 +2530,133 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
         reportHtml +
       '</div>'
     );
-    var hitlIdx = STEPS.length;
-    fetch('/api/pending').then(function(r) { return r.json(); }).then(function(data) {
-      var pending = (data.pending || []).filter(function(item) {
-        var prop = item.proposal || {};
-        var pl = prop.payload || {};
-        return (pl.type === 'finality_review' || prop.proposed_action === 'finality_review') && !initialPendingIds.has(item.proposal_id);
-      });
-      if (pending.length > 0) {
-        setTlState(hitlIdx, 'hitl');
-        setTimeout(function() { showHitlPanel(pending[0]); }, 1500);
-        return;
+    setTimeout(feedNextStep, 1500);
+  }
+
+  // ── Contradiction HITL (mid-step, triggered immediately on discovery) ──
+  var _activeContraNodeIds = [];
+  function showContradictionHitl(contras) {
+    _activeContraNodeIds = contras.map(function(c) { return c.node_id; }).filter(Boolean);
+    contradictionHitlActive = true;
+    setStatus('hitl', 'Contradictions detected');
+    setStageLabel('Step ' + (currentStep + 1) + ' -- Contradiction Review');
+    appendToStage(agentCardHtml('!', 'Watchdog', contras.length + ' contradiction(s) need your input', 'amber'));
+
+    var html = '<div class="hitl-panel">';
+    html += '<div class="hitl-section">';
+    html += '<div class="hitl-section-title">Contradictions discovered</div>';
+    html += '<div class="hitl-narrative">';
+    html += 'While processing this document, the system found <strong>' + contras.length + ' contradiction(s)</strong> ';
+    html += 'in the information gathered so far. Contradictory data undermines the reliability of the analysis.';
+    html += '</div></div>';
+
+    for (var i = 0; i < contras.length; i++) {
+      var c = contras[i];
+      html += '<div class="hitl-section" style="border-left:3px solid var(--amber);padding-left:1rem;margin-bottom:1rem">';
+      html += '<div class="hitl-section-title" style="color:var(--amber)">Contradiction ' + (i + 1) + '</div>';
+      html += '<div class="hitl-narrative" style="font-size:0.875rem">' + escHtml(c.content) + '</div>';
+      if (c.side_a || c.side_b) {
+        html += '<div style="display:flex;gap:0.75rem;margin-top:0.5rem;flex-wrap:wrap">';
+        if (c.side_a) {
+          html += '<div style="flex:1;min-width:200px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:0.5rem 0.75rem;font-size:0.8125rem">';
+          html += '<div style="font-size:0.6875rem;font-weight:700;color:var(--muted);margin-bottom:0.25rem">SIDE A</div>';
+          html += escHtml(c.side_a.length > 200 ? c.side_a.slice(0, 200) + '\u2026' : c.side_a);
+          html += '</div>';
+        }
+        if (c.side_b) {
+          html += '<div style="flex:1;min-width:200px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:0.5rem 0.75rem;font-size:0.8125rem">';
+          html += '<div style="font-size:0.6875rem;font-weight:700;color:var(--muted);margin-bottom:0.25rem">SIDE B</div>';
+          html += escHtml(c.side_b.length > 200 ? c.side_b.slice(0, 200) + '\u2026' : c.side_b);
+          html += '</div>';
+        }
+        html += '</div>';
       }
-      setTimeout(feedNextStep, 2500);
-    }).catch(function() {
-      setTimeout(feedNextStep, 2500);
+      html += '</div>';
+    }
+
+    html += '<div class="hitl-section">';
+    html += '<div class="hitl-section-title">Your resolution</div>';
+    html += '<div class="hitl-narrative" style="margin-bottom:0.5rem">';
+    html += 'Provide context or clarification to resolve the contradiction(s). ';
+    html += 'A single response can address multiple contradictions. ';
+    html += 'The system will evaluate your input against each contradiction and mark the resolved ones automatically.';
+    html += '</div>';
+    html += '<textarea id="contraResolutionText" rows="4" placeholder="e.g. The ARR discrepancy is due to unaudited figures in the initial report; the correct revenue figure is EUR 38M after independent audit. The two patents are pending, not granted, and were recently disputed." style="width:100%;box-sizing:border-box;padding:0.6rem;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);color:var(--text);font-size:0.8125rem;resize:vertical;line-height:1.6"></textarea>';
+    html += '<div style="display:flex;gap:0.75rem;margin-top:0.75rem">';
+    html += '<button class="hitl-option primary" style="flex:1;padding:0.75rem 1rem" onclick="resolveContradictionHitl()"><div class="hitl-option-name">Submit resolution</div><div class="hitl-option-desc">The system will evaluate this against each contradiction and mark resolved ones.</div></button>';
+    html += '<button class="hitl-option" style="flex:0 0 auto;padding:0.6rem 1rem;min-width:auto" onclick="skipContradictionHitl()"><div class="hitl-option-name" style="font-size:0.75rem;color:var(--muted)">Skip for now</div></button>';
+    html += '</div>';
+    html += '</div>';
+
+    html += '</div>';
+    showHitlModal(html, {
+      title: 'Contradictions Detected',
+      sub: contras.length + ' contradiction(s) need resolution to proceed with confidence',
+      icon: '!',
+      iconColor: 'amber'
     });
   }
+
+  window.resolveContradictionHitl = async function() {
+    var text = (document.getElementById('contraResolutionText') || {}).value || '';
+    if (!text.trim()) return;
+    hideHitlModal();
+    appendToStage(agentCardHtml('H', 'Human', 'Resolution: ' + text.slice(0, 120) + (text.length > 120 ? '\u2026' : ''), 'purple'));
+    setStatus('running', 'Evaluating resolution against contradictions...');
+    setStageLabel('Step ' + (currentStep + 1) + ' -- Evaluating resolution');
+    try {
+      var r = await fetch('/api/resolution', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ decision: text, summary: text.slice(0, 120), text: text, node_ids: _activeContraNodeIds }),
+      });
+      var result = await r.json();
+      var ev = result.evaluation || {};
+      var marked = ev.marked || [];
+      var evaluations = ev.evaluations || [];
+      if (marked.length > 0) {
+        appendToStage(agentCardHtml('R', 'Resolver', marked.length + ' contradiction(s) resolved by your input', 'green'));
+        for (var mi = 0; mi < marked.length; mi++) {
+          seenContradictionIds.add(marked[mi]);
+        }
+        var remaining = evaluations.filter(function(e) { return !e.resolved || e.confidence < 0.7; });
+        if (remaining.length > 0) {
+          var pendingDetails = remaining.map(function(e) {
+            return (e.content || e.node_id || 'unknown').slice(0, 150);
+          }).join('</li><li>');
+          appendToStage(agentCardHtml('!', 'Watchdog',
+            remaining.length + ' contradiction(s) still pending:<ul style="margin:4px 0 0 16px;font-size:0.8125rem;color:var(--muted)"><li>' + pendingDetails + '</li></ul>',
+            'amber'));
+        }
+      } else {
+        appendToStage(agentCardHtml('!', 'Watchdog', 'Resolution noted but no contradictions matched with high confidence. Continuing...', 'amber'));
+      }
+      // Mark all current contras as seen so we don't re-prompt
+      evaluations.forEach(function(e) { if (e.node_id) seenContradictionIds.add(e.node_id); });
+    } catch(e) {
+      appendToStage(agentCardHtml('!', 'System', 'Resolution submission failed: ' + e.message, 'red'));
+    }
+    contradictionHitlActive = false;
+    setStatus('running', 'Processing...');
+    setStageLabel('Step ' + (currentStep + 1) + ' -- Agents working');
+    // Reset epoch tracking so quiescence detection restarts after the resolution
+    _prevEpoch = -1;
+    _stablePolls = 0;
+    if (_startProgressPoll) stepProgressPollInterval = setTimeout(_startProgressPoll, 5000);
+  };
+
+  window.skipContradictionHitl = function() {
+    hideHitlModal();
+    appendToStage(agentCardHtml('H', 'Human', 'Skipped contradiction resolution -- will address in final report', 'purple'));
+    // Mark all current contras as seen so we don't re-prompt for the same ones
+    fetch('/api/contradictions').then(function(r) { return r.json(); }).then(function(data) {
+      (data.contradictions || []).forEach(function(c) { if (c.node_id) seenContradictionIds.add(c.node_id); });
+    }).catch(function() {});
+    contradictionHitlActive = false;
+    setStatus('running', 'Processing...');
+    setStageLabel('Step ' + (currentStep + 1) + ' -- Agents working');
+    if (_startProgressPoll) stepProgressPollInterval = setTimeout(_startProgressPoll, 5000);
+  };
 
   // ── Governance HITL (mid-step) ──
   function pollGovernancePending() {
@@ -2090,18 +2736,21 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
 
   window.approveGovernance = async function(proposalId) {
     try {
-      // #region agent log
-      fetch('http://127.0.0.1:7243/ingest/af5b746e-3a32-49ef-92b2-aa2d9876cfd3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'demo-ui:approveGovernance',message:'approving',data:{proposalId:proposalId},timestamp:Date.now()})}).catch(function(){});
-      // #endregion
       var r = await fetch('/api/approve/' + proposalId, { method: 'POST' });
       var result = await r.json();
       if (result.ok) {
         initialPendingIds.add(proposalId);
         hideHitlModal();
-        appendToStage(agentCardHtml('G', 'Governance', 'Human override accepted. State advancing...', 'green'));
+        appendToStage(agentCardHtml('G', 'Governance', 'Human override accepted. Resuming...', 'green'));
         addActivity('Human: override approved', 'hitl');
         setStatus('running', 'Processing...');
         setStageLabel('Step ' + (currentStep + 1) + ' -- Agents working');
+        stepSeen.complete = false;
+        stepStartTime = Date.now();
+        stepStartEpoch = -1;
+        stepStartNodeCount = 0;
+        startStepTimeout();
+        if (_startProgressPoll) stepProgressPollInterval = setTimeout(_startProgressPoll, 5000);
       } else {
         appendToStage(agentCardHtml('G', 'Governance', 'Approval failed: ' + (result.error || 'unknown'), 'red'));
       }
@@ -2131,13 +2780,23 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
           showHitlPanel(pending[0]);
         } else {
           attempts++;
-          if (attempts < 12) setTimeout(pollPending, 3000);
-          else showFinalReport();
+          if (attempts < 12) {
+            setTimeout(pollPending, 3000);
+          } else {
+            maybeShowWatchdogHitl().then(function(shown) {
+              if (!shown) showFinalReport();
+            });
+          }
         }
       }).catch(function() {
         attempts++;
-        if (attempts < 12) setTimeout(pollPending, 3000);
-        else showFinalReport();
+        if (attempts < 12) {
+          setTimeout(pollPending, 3000);
+        } else {
+          maybeShowWatchdogHitl().then(function(shown) {
+            if (!shown) showFinalReport();
+          });
+        }
       });
     }
   }
@@ -2170,22 +2829,44 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
     html += '<div class="hitl-section-title">Why you are here</div>';
     html += '<div class="hitl-narrative">';
     html += 'The system processed all ' + STEPS.length + ' stages and built a knowledge graph';
-    if (lastSummary && lastSummary.state_graph) {
-      var sg = lastSummary.state_graph;
-      var nn = sg.nodes || {};
-      html += ' with ' + (nn.claim || 0) + ' claims, ' + (nn.goal || 0) + ' goals, and ' + (nn.contradiction || 0) + ' contradictions';
-    }
+    var fkc = (lastKnowledge || {}).counts || {};
+    html += ' with ' + (fkc.claims || 0) + ' claims, ' + (fkc.goals || 0) + ' goals, and ' + (fkc.contradictions || 0) + ' open contradictions';
     html += '. The finality score reached <strong>' + gs + '%</strong> &mdash; above the <strong>75%</strong> threshold where agents stop and request human judgment, ';
     html += 'but below the <strong>92%</strong> threshold where the system would auto-resolve.';
     html += '</div>';
 
     if (blockers.length > 0) {
+      var contraBlockers = blockers.filter(function(bb) { return (bb.type || '').toLowerCase().replace(/-/g, '_') === 'unresolved_contradiction'; });
+      var contraTotal = contraBlockers.length;
       html += '<div class="hitl-blockers">';
-      blockers.forEach(function(b) {
+      blockers.forEach(function(b, idx) {
         var tk = (b.type || '').toLowerCase().replace(/-/g, '_');
-        html += '<div class="hitl-blocker">';
-        html += '<div class="hitl-blocker-title">' + escHtml(blockerTitle(tk)) + '</div>';
-        html += '<div class="hitl-blocker-desc">' + escHtml(b.description || '') + '</div>';
+        var title = blockerTitle(tk);
+        if (tk === 'unresolved_contradiction' && contraTotal > 1) {
+          var contraIdx = contraBlockers.indexOf(b) + 1;
+          title = 'Unresolved contradiction (' + contraIdx + ' of ' + contraTotal + ')';
+        }
+        html += '<div class="hitl-blocker" data-blocker-idx="' + idx + '">';
+        html += '<div class="hitl-blocker-title">' + escHtml(title) + '</div>';
+        var descTrunc = b.content ? (b.content.slice(0, 200) + (b.content.length > 200 ? '\u2026' : '')) : '';
+        if (b.content) {
+          html += '<div class="hitl-blocker-content">' + escHtml(b.content) + '</div>';
+        }
+        if (b.description && b.description !== descTrunc) {
+          html += '<div class="hitl-blocker-desc">' + escHtml(b.description) + '</div>';
+        }
+        if (tk === 'unresolved_contradiction' && b.choices && b.choices.length > 0) {
+          var nodeIdsAttr = (b.node_ids && Array.isArray(b.node_ids) && b.node_ids.length > 0)
+            ? ' data-node-ids="' + escAttr(b.node_ids.join(',')) + '"'
+            : '';
+          html += '<div class="hitl-blocker-choices"' + nodeIdsAttr + '>';
+          b.choices.forEach(function(c) {
+            var fullLabel = c.label || '';
+            var shortLabel = fullLabel.slice(0, 80) + (fullLabel.length > 80 ? '…' : '');
+            html += '<button class="hitl-choice-btn" data-resolution="' + escAttr(fullLabel) + '" onclick="submitResolutionFromButton(this)" title="' + escAttr(shortLabel) + '">Choose ' + escHtml(c.id.toUpperCase()) + '</button>';
+          });
+          html += '</div>';
+        }
         html += '<div class="hitl-blocker-hint">' + escHtml(blockerHint(tk)) + '</div>';
         html += '</div>';
       });
@@ -2213,10 +2894,25 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
     html += '</div>';
     html += '<div class="situation-drift">Drift: <strong>' + escHtml(driftLevel2) + '</strong>' + (driftTypes2 ? ' (' + escHtml(driftTypes2) + ')' : '') + '</div>';
     if (goalsList.length > 0) {
-      html += '<div class="situation-goals-title">Goals from documents</div>';
+      html += buildReportList(goalsList, 'Goals from documents', '', 5);
+    }
+    var contradictionsNarrative = lastSummary && Array.isArray(lastSummary.contradictions) ? lastSummary.contradictions : [];
+    if (contradictionsNarrative.length > 0) {
+      html += '<div class="situation-goals-title">Contradictions (with resolutions)</div>';
       html += '<ul class="situation-goals-list">';
-      goalsList.slice(0, 8).forEach(function(g) { html += '<li>' + escHtml(typeof g === 'string' ? g : (g && g.text ? g.text : String(g))) + '</li>'; });
-      if (goalsList.length > 8) html += '<li style="color:var(--muted)">+ ' + (goalsList.length - 8) + ' more</li>';
+      contradictionsNarrative.forEach(function(c) {
+        var text = (c.content || '').trim();
+        if (!text) return;
+        var res = c.resolution;
+        var statusLabel = c.status === 'resolved' ? 'Resolved' : 'Unresolved';
+        html += '<li>';
+        html += '<span class="contra-status ' + (c.status === 'resolved' ? 'resolved' : 'unresolved') + '">' + escHtml(statusLabel) + '</span> ';
+        html += escHtml(text);
+        if (res && (res.by || res.reason)) {
+          html += ' <span class="contra-resolution">-- ' + escHtml(res.by || '') + (res.reason ? ': ' + escHtml(res.reason) : '') + '</span>';
+        }
+        html += '</li>';
+      });
       html += '</ul>';
     }
     html += '</div></div>';
@@ -2280,7 +2976,12 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
       addActivity('Decision: ' + option.replace(/_/g, ' '), 'gov');
       await refreshSummary();
 
-      if (option === 'approve_finality') {
+      var hasMoreSteps = currentStep < STEPS.length - 1;
+      if (hasMoreSteps) {
+        addActivity('Continuing with remaining document steps', 'state');
+        setStageLabel('Step ' + (currentStep + 2) + ' of ' + STEPS.length);
+        setTimeout(feedNextStep, 1500);
+      } else if (option === 'approve_finality') {
         setTlState(STEPS.length, 'done');
         setTlResult(STEPS.length, 'Finality approved', 'done', 'approved');
         showFinalReport();
@@ -2307,13 +3008,11 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
       '</div>';
   };
 
-  window.submitResolution = async function() {
-    var text = (document.getElementById('resolutionText') || {}).value || '';
-    if (!text.trim()) return;
+  async function submitResolutionWithText(text, nodeIds) {
+    if (!text || !String(text).trim()) return;
     isInResolutionLoop = true;
     hideHitlModal();
     stepSeen = { facts: false, drift: false, planner: false, complete: false };
-    clearStage();
     setStageLabel('Re-processing with resolution');
     setStatus('running', 'Agents re-processing...');
 
@@ -2326,17 +3025,26 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
       '</div>'
     );
 
+    var payload = { decision: text, summary: text.slice(0, 120), text: text };
+    if (nodeIds && nodeIds.length > 0) payload.node_ids = nodeIds;
+
     try {
       await fetch('/api/resolution', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ decision: text, summary: text.slice(0, 120), text: text }),
+        body: JSON.stringify(payload),
       });
       addActivity('Resolution submitted: ' + text.slice(0, 60), 'doc');
       startStepTimeout();
     } catch(e) {
       showError('Could not submit resolution: ' + e);
     }
+  }
+
+  window.submitResolution = async function() {
+    var text = (document.getElementById('resolutionText') || {}).value || '';
+    if (!text.trim()) return;
+    submitResolutionWithText(text);
   };
 
   // Override step completion for resolution loop
@@ -2369,8 +3077,14 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
     var dims = fin.dimensions || {};
     var gs = fin.goal_score != null ? Math.round(fin.goal_score * 100) : '--';
 
-    var factsReport = (lastSummary && lastSummary.facts) ? lastSummary.facts : null;
-    var goalsReport = factsReport && Array.isArray(factsReport.goals) ? factsReport.goals : [];
+    // Use semantic graph (lastKnowledge) as canonical source for all lists
+    var kn = lastKnowledge || {};
+    var knCounts = kn.counts || {};
+    var claimsReport = Array.isArray(kn.claims) ? kn.claims : [];
+    var goalsReport = Array.isArray(kn.goals) ? kn.goals : [];
+    var risksReport = Array.isArray(kn.risks) ? kn.risks : [];
+    var contraReport = Array.isArray(kn.contradictions) ? kn.contradictions : [];
+    var contraResolvedCount = knCounts.contradictions_resolved || 0;
     var driftReport = (lastSummary && lastSummary.drift) ? lastSummary.drift : {};
     var driftLevelReport = (driftReport.level || 'none').toUpperCase();
     var driftTypesReport = Array.isArray(driftReport.types) ? driftReport.types.join(', ') : '';
@@ -2392,26 +3106,25 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
     html += '<div class="statement-of-position">';
     html += '<div class="statement-title">What happened</div>';
     html += '<div class="statement-body">';
-    html += '<p>' + buildGovernanceNarrative(fin, nn, driftLevelReport, resolved, goalsReport) + '</p>';
+    html += '<p>' + buildGovernanceNarrative(fin, knCounts, driftLevelReport, resolved, goalsReport) + '</p>';
     html += '</div></div>';
 
-    // Outcome card
+    // Outcome card — use knCounts (semantic graph, active only) as canonical source
+    var activeContra = knCounts.contradictions || 0;
+    var totalContra = activeContra + contraResolvedCount;
     html += '<div class="situation-card">';
     html += '<div class="situation-title">Final position</div>';
     html += '<div class="situation-grid">';
-    html += '<div class="situation-stat claims"><span class="situation-stat-num">' + (nn.claim || 0) + '</span><span class="situation-stat-label">Facts verified</span></div>';
-    html += '<div class="situation-stat goals"><span class="situation-stat-num">' + (nn.goal || 0) + '</span><span class="situation-stat-label">Goals tracked</span></div>';
-    html += '<div class="situation-stat contra"><span class="situation-stat-num">' + (nn.contradiction || 0) + '</span><span class="situation-stat-label">Contradictions</span></div>';
-    html += '<div class="situation-stat risks"><span class="situation-stat-num">' + (nn.risk || 0) + '</span><span class="situation-stat-label">Risks flagged</span></div>';
+    html += '<div class="situation-stat claims"><span class="situation-stat-num">' + (knCounts.claims || 0) + '</span><span class="situation-stat-label">Facts verified</span></div>';
+    html += '<div class="situation-stat goals"><span class="situation-stat-num">' + (knCounts.goals || 0) + '</span><span class="situation-stat-label">Goals tracked</span></div>';
+    html += '<div class="situation-stat contra"><span class="situation-stat-num">' + activeContra + (contraResolvedCount > 0 ? ' <span style="font-size:0.75rem;font-weight:400;color:var(--green)">+ ' + contraResolvedCount + ' resolved</span>' : '') + '</span><span class="situation-stat-label">Contradictions open</span></div>';
+    html += '<div class="situation-stat risks"><span class="situation-stat-num">' + (knCounts.risks || 0) + '</span><span class="situation-stat-label">Risks flagged</span></div>';
     html += '</div>';
     html += '<div class="situation-line" style="margin-top:0.5rem">Finality score: <strong>' + gs + '%</strong>. Drift at close: <strong>' + escHtml(driftLevelReport) + '</strong>' + (driftTypesReport ? ' (' + escHtml(driftTypesReport) + ')' : '') + '.</div>';
-    if (goalsReport.length > 0) {
-      html += '<div class="situation-goals-title">Objectives addressed</div>';
-      html += '<ul class="situation-goals-list">';
-      goalsReport.slice(0, 8).forEach(function(g) { html += '<li>' + escHtml(typeof g === 'string' ? g : (g && g.text ? g.text : String(g))) + '</li>'; });
-      if (goalsReport.length > 8) html += '<li style="color:var(--muted)">+ ' + (goalsReport.length - 8) + ' more</li>';
-      html += '</ul>';
-    }
+    html += buildReportList(goalsReport, 'Objectives addressed', '', 0);
+    html += buildReportList(contraReport, 'Open contradictions', 'var(--amber)', 0);
+    html += buildReportList(risksReport, 'Risks identified', 'var(--red)', 0);
+    html += buildReportList(claimsReport, 'Key facts', '', 0);
     html += '</div>';
 
     // Human resolutions
@@ -2464,15 +3177,73 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
       '</div>';
     html += '</div>';
 
+    // Next steps / resolution area
+    var hasIssues = activeContra > 0 || gcv < 0.5 || gs < 92;
+    html += '<div class="report-section">';
+    html += '<div class="report-section-title">What would you like to do?</div>';
+    if (hasIssues) {
+      html += '<div style="font-size:0.875rem;color:var(--text);line-height:1.7;margin-bottom:0.75rem">';
+      if (activeContra > 0) {
+        html += 'There are <strong>' + activeContra + ' unresolved contradiction(s)</strong>. ';
+      }
+      if (gcv < 0.5) {
+        html += 'Only <strong>' + dimPct(gcv) + '</strong> of objectives are completed. ';
+      }
+      html += 'You can provide a resolution below to address open issues. The agents will re-process and produce an updated report.';
+      html += '</div>';
+      html += '<textarea id="reportResolutionText" placeholder="e.g. ARR confirmed at EUR 38M after independent audit. Haber buyout approved at EUR 1M. Axion settlement at EUR 1.8M." rows="3" style="width:100%;box-sizing:border-box;padding:0.5rem;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);color:var(--text);font-size:0.8125rem;resize:vertical"></textarea>';
+      html += '<div style="display:flex;gap:0.75rem;margin-top:0.5rem">';
+      html += '<button class="resolution-submit" onclick="submitReportResolution()">Submit resolution &amp; re-process</button>';
+      html += '<button class="resolution-submit" style="background:var(--green);color:#fff" onclick="approveAndClose()">Approve as-is (' + gs + '%)</button>';
+      html += '</div>';
+    } else {
+      html += '<div style="font-size:0.875rem;color:var(--text);line-height:1.7;margin-bottom:0.75rem">';
+      html += 'All contradictions are resolved and the finality score is <strong>' + gs + '%</strong>.';
+      html += '</div>';
+      html += '<button class="resolution-submit" style="background:var(--green);color:#fff" onclick="approveAndClose()">Approve final position</button>';
+    }
+    html += '</div>';
+
     html += '</div>';
     document.getElementById('stage').innerHTML = html;
   }
 
-  function buildGovernanceNarrative(fin, nn, driftLevel, resolved, goalsReport) {
-    var claims = nn.claim || 0;
-    var contra = nn.contradiction || 0;
-    var risks = nn.risk || 0;
-    var goals = nn.goal || 0;
+  window.submitReportResolution = async function() {
+    var text = (document.getElementById('reportResolutionText') || {}).value || '';
+    if (!text.trim()) return;
+    setStatus('running', 'Agents re-processing with your resolution...');
+    appendToStage(agentCardHtml('H', 'Human', 'Resolution: ' + text.slice(0, 120), 'purple'));
+    try {
+      await fetch('/api/resolution', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ decision: text, summary: text.slice(0, 120), text: text }),
+      });
+      stepStartTime = Date.now();
+      stepStartEpoch = -1;
+      waitForQuiescenceThenReport();
+    } catch(e) {
+      showError('Could not submit resolution: ' + e);
+    }
+  };
+
+  window.approveAndClose = function() {
+    setStatus('done', 'Approved');
+    setStageLabel('Final Report -- Approved');
+    setTlState(STEPS.length, 'done');
+    appendToStage(
+      '<div class="step-summary" style="border-left-color:var(--green)">' +
+        '<div class="step-summary-title" style="color:var(--green)">Position approved</div>' +
+        '<div class="step-summary-body">You approved the current position. All decisions and agent actions are logged for audit.</div>' +
+      '</div>'
+    );
+  };
+
+  function buildGovernanceNarrative(fin, counts, driftLevel, resolved, goalsReport) {
+    var claims = counts.claims || 0;
+    var contra = counts.contradictions || 0;
+    var risks = counts.risks || 0;
+    var goals = counts.goals || 0;
     var gs = fin.goal_score != null ? Math.round(fin.goal_score * 100) : 0;
     var scenarioName = SCENARIO ? SCENARIO.name : 'this scope';
 
@@ -2511,7 +3282,36 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
 
   function dimPct(v) { return v != null ? Math.round(v * 100) + '%' : '--'; }
 
-  var TRUNCATE_LEN = 120;
+  function buildReportList(items, title, color, previewCount) {
+    if (!Array.isArray(items) || items.length === 0) return '';
+    var c = color || 'inherit';
+    var html = '<div class="situation-goals-title" style="color:' + c + '">' + escHtml(title) + ' (' + items.length + ')</div>';
+    html += '<ul class="situation-goals-list">';
+    var limit = previewCount > 0 ? Math.min(previewCount, items.length) : items.length;
+    for (var i = 0; i < limit; i++) {
+      var text = typeof items[i] === 'string' ? items[i] : (items[i] && (items[i].content || items[i].text) || String(items[i]));
+      text = (text || '').trim();
+      if (!text) continue;
+      html += '<li style="color:' + c + '">' + escHtml(text) + '</li>';
+    }
+    if (previewCount > 0 && items.length > previewCount) {
+      html += '</ul>';
+      html += '<details style="margin-top:0.25rem"><summary style="cursor:pointer;font-size:0.8125rem;color:var(--muted)">Show all ' + items.length + ' items</summary>';
+      html += '<ul class="situation-goals-list" style="margin-top:0.35rem">';
+      for (var j = previewCount; j < items.length; j++) {
+        var t2 = typeof items[j] === 'string' ? items[j] : (items[j] && (items[j].content || items[j].text) || String(items[j]));
+        t2 = (t2 || '').trim();
+        if (!t2) continue;
+        html += '<li style="color:' + c + '">' + escHtml(t2) + '</li>';
+      }
+      html += '</ul></details>';
+    } else {
+      html += '</ul>';
+    }
+    return html;
+  }
+
+  var TRUNCATE_LEN = 180;
 
   function updateSituationPanel(facts, prevFacts) {
     if (!facts || typeof facts !== 'object') {
@@ -2552,7 +3352,15 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
     document.getElementById('situation-claims-count').textContent = claims.length;
     document.getElementById('situation-goals-count').textContent = goals.length;
     document.getElementById('situation-risks-count').textContent = risks.length;
-    document.getElementById('situation-contradictions-count').textContent = contradictions.length;
+    var factsContraRes = (facts.counts && facts.counts.contradictions_resolved) || 0;
+    var cntEl = document.getElementById('situation-contradictions-count');
+    if (contradictions.length === 0 && factsContraRes > 0) {
+      cntEl.innerHTML = '<span style="color:var(--green)">' + factsContraRes + ' resolved</span>';
+    } else if (factsContraRes > 0) {
+      cntEl.innerHTML = contradictions.length + ' <span style="font-size:0.75em;color:var(--green)">(' + factsContraRes + ' resolved)</span>';
+    } else {
+      cntEl.textContent = contradictions.length;
+    }
     document.getElementById('situation-claims-cards').innerHTML = renderCards(claims, prevClaims, 'claim');
     document.getElementById('situation-goals-cards').innerHTML = renderCards(goals, prevGoals, 'goal');
     document.getElementById('situation-risks-cards').innerHTML = renderCards(risks, prevRisks, 'risk');
@@ -2562,28 +3370,35 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
   }
 
   // ── Summary refresh ──
+  var lastKnowledge = null;
+
   async function refreshSummary() {
     try {
-      var r = await fetch('/api/summary');
-      if (!r.ok) return;
-      lastSummary = await r.json();
+      var results = await Promise.all([
+        fetch('/api/summary').then(function(r) { return r.ok ? r.json() : null; }).catch(function() { return null; }),
+        fetch('/api/knowledge').then(function(r) { return r.ok ? r.json() : null; }).catch(function() { return null; })
+      ]);
+      if (results[0]) lastSummary = results[0];
+      if (results[1]) lastKnowledge = results[1];
     } catch(_) { return; }
 
+    if (!lastSummary) return;
+
     var fin = lastSummary.finality || {};
-    var sg = lastSummary.state_graph || {};
-    var nn = sg.nodes || {};
     var dim = fin.dimensions || {};
     var drift = lastSummary.drift || {};
 
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/af5b746e-3a32-49ef-92b2-aa2d9876cfd3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'demo-ui:refreshSummary',message:'summary-data',data:{goal_score:fin.goal_score,dimensions:dim,nodes:nn,drift_level:drift&&drift.level,status:fin.status},timestamp:Date.now()})}).catch(function(){});
-    // #endregion
-
     // Finality score (right panel only)
-    var gs = fin.goal_score != null ? Math.round(fin.goal_score * 100) : 0;
+    // Before any documents are processed, the convergence engine returns a vacuous
+    // score (0/0 contradictions = 100% resolved, etc.) that misleads users. Show 0%
+    // until the knowledge graph actually has content.
+    var knTotal = lastKnowledge ? ((lastKnowledge.counts || {}).claims || 0) + ((lastKnowledge.counts || {}).goals || 0) : 0;
+    var rawGs = fin.goal_score != null ? Math.round(fin.goal_score * 100) : 0;
+    var gs = knTotal > 0 ? rawGs : 0;
     document.getElementById('rScore').textContent = gs + '%';
     document.getElementById('rTrackFill').style.width = gs + '%';
-    if (gs >= 92) { document.getElementById('rScoreSub').textContent = 'Ready to close automatically'; }
+    if (knTotal === 0) { document.getElementById('rScoreSub').textContent = 'Waiting for agents'; }
+    else if (gs >= 92) { document.getElementById('rScoreSub').textContent = 'Ready to close automatically'; }
     else if (gs >= 75) { document.getElementById('rScoreSub').textContent = 'Needs your review to close'; }
     else if (gs > 0) { document.getElementById('rScoreSub').textContent = 'Agents working... (' + gs + '%)'; }
     else { document.getElementById('rScoreSub').textContent = 'Waiting for agents'; }
@@ -2594,11 +3409,27 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
     setDim('dGoal', 'dGoalBar', dim.goal_completion_ratio);
     setDim('dRisk', 'dRiskBar', dim.risk_score_inverse);
 
-    // Knowledge counts
-    updateCount('cClaims', nn.claim || 0);
-    updateCount('cGoals', nn.goal || 0);
-    updateCount('cContra', nn.contradiction || 0);
-    updateCount('cRisks', nn.risk || 0);
+    // Knowledge counts and situation panel from canonical semantic graph
+    if (lastKnowledge) {
+      var kc = lastKnowledge.counts || {};
+      updateCount('cClaims', kc.claims || 0);
+      updateCount('cGoals', kc.goals || 0);
+      var contraOpen = kc.contradictions || 0;
+      var contraRes = kc.contradictions_resolved || 0;
+      var contraTotal = contraOpen + contraRes;
+      var contraEl = document.getElementById('cContra');
+      if (contraEl) {
+        if (contraTotal === 0) {
+          contraEl.textContent = '0';
+        } else if (contraOpen === 0) {
+          contraEl.innerHTML = '<span style="color:var(--green)">' + contraRes + ' resolved</span>';
+        } else {
+          contraEl.innerHTML = contraOpen + ' open<span style="font-size:0.6em;color:var(--green);display:block">' + contraRes + ' resolved</span>';
+        }
+      }
+      updateCount('cRisks', kc.risks || 0);
+      updateSituationPanel(lastKnowledge, previousFacts);
+    }
 
     // Drift
     var driftLevel = (drift.level || 'none').toLowerCase();
@@ -2607,8 +3438,14 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
     badge.textContent = driftLabels[driftLevel] || driftLevel.toUpperCase();
     badge.className = 'drift-badge ' + driftLevel;
 
-    // Situation panel: claims, goals, risks, contradictions (unfoldable cards with hover)
-    updateSituationPanel(lastSummary.facts || null, previousFacts);
+    // 5-node cycle indicator
+    var lastNode = (lastSummary.state && lastSummary.state.lastNode) || '';
+    var cycleMap = { ContextIngested:'Ctx', FactsExtracted:'Facts', DriftChecked:'Drift', EvidencePropagated:'Prop', DeltasExtracted:'Deltas' };
+    var cycleIds = ['Ctx','Facts','Drift','Prop','Deltas'];
+    cycleIds.forEach(function(id) {
+      var el = document.getElementById('cycle-' + id);
+      if (el) el.classList.toggle('active', cycleMap[lastNode] === id);
+    });
   }
 
   function setDim(valId, barId, value) {
@@ -2629,14 +3466,7 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
 
   // ── Activity feed ──
   function addActivity(msg, cls) {
-    var log = document.getElementById('feedLog');
-    var now = new Date();
-    var ts = now.toTimeString().slice(0, 8);
-    var item = document.createElement('div');
-    item.className = 'feed-item' + (cls ? ' ' + cls : '');
-    item.innerHTML = '<span class="feed-item-ts">' + ts + '</span><span class="feed-item-msg">' + msg + '</span>';
-    log.insertBefore(item, log.firstChild);
-    while (log.children.length > 40) log.removeChild(log.lastChild);
+    // Activity is shown via agent cards in center panel; no separate log needed.
   }
 
   // ── Error / timeout ──
@@ -2644,7 +3474,7 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
     setStatus('error', 'Error');
     appendToStage(
       '<div class="stage-error"><strong>Something went wrong</strong>' + escHtml(msg) +
-      '<p style="margin:0.5rem 0 0">Ensure the feed server is running: <code>pnpm run feed</code>. Then run <code>pnpm run swarm</code> in another terminal so agents process documents. Refresh when both are up.</p></div>'
+      '<p style="margin:0.5rem 0 0">Ensure the feed server is running: <code>pnpm run feed</code>. Then run <code>pnpm run swarm:start</code> so the full pipeline processes documents. Refresh when both are up.</p></div>'
     );
   }
 
@@ -2655,11 +3485,11 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
       '<div class="stage-error">' +
       '<strong>Still processing — check these:</strong>' +
       '<ul style="margin:0.5rem 0 0 1.25rem;color:var(--text);font-size:0.875rem;line-height:1.7">' +
-      '<li><strong>Feed server</strong> must be running (port 3002). Open <a href="http://localhost:3002" target="_blank" rel="noopener">http://localhost:3002</a> to confirm.</li>' +
-      '<li><strong>Swarm</strong> must be running: <code>pnpm run swarm</code> (agents + governance + executor).</li>' +
-      '<li>Facts extraction can take <strong>1–3 min</strong> per document (LLM call). Events will appear when agents finish.</li>' +
+      '<li><strong>Feed server</strong> (port 3002) and <strong>swarm hatchery</strong> (<code>pnpm run swarm:start</code>) must both be running.</li>' +
+      '<li><strong>OPENAI_API_KEY</strong> must be set in <code>.env</code> — facts-worker uses it for extraction. Without it, step 1 never completes.</li>' +
+      '<li>Facts extraction takes <strong>1–3 min</strong> per document (LLM call). Check feed at <a href="http://localhost:3002" target="_blank" rel="noopener">:3002</a> and swarm logs in <code>/tmp/swarm-hatchery.log</code>.</li>' +
       '</ul>' +
-      '<p style="margin:0.5rem 0 0;color:var(--muted)">If both are running, wait a bit longer or check swarm logs in <code>/tmp/swarm-*.log</code>.</p></div>'
+      '<p style="margin:0.5rem 0 0;color:var(--muted)">Click <strong>Restart</strong> then try again after verifying feed, swarm, and API key.</p></div>'
     );
   }
 
@@ -2676,12 +3506,13 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
   // ── Blocker labels ──
   function blockerTitle(key) {
     return { missing_goal_resolution:'Goals not yet resolved', unresolved_contradiction:'Unresolved contradictions',
-      critical_risk:'Critical risks active', low_confidence_claims:'Low-confidence claims' }[key] || key.replace(/_/g,' ');
+      critical_risk:'Critical risks active', low_confidence_claims:'Low-confidence claims', drift_blocking:'Drift blocking pipeline' }[key] || key.replace(/_/g,' ');
   }
   function blockerHint(key) {
     return { missing_goal_resolution:'The system tracks goals from documents (validate ARR, confirm IP, etc.). For auto-close, 90% need a recorded resolution. You can approve anyway, or add a resolution to let agents re-evaluate.',
-      unresolved_contradiction:'Contradictory claims exist without a recorded resolution. Adding a resolution lets agents reconcile them.',
-      critical_risk:'Active critical risks remain. You can approve if the risk is accepted, or add context to mitigate.' }[key] || '';
+      unresolved_contradiction:'Choose one side to make authoritative, or enter a custom resolution below. Human input is stored as high-confidence facts.',
+      critical_risk:'Active critical risks remain. You can approve if the risk is accepted, or add context to mitigate.',
+      drift_blocking:'Governance blocks advancement when drift is high. Provide a resolution to address the drift and unblock the pipeline.' }[key] || '';
   }
 
   // ── Helpers ──
@@ -2690,6 +3521,401 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
     d.textContent = s;
     return d.innerHTML;
   }
+  function escAttr(s) {
+    return String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+  window.submitResolutionFromButton = function(btn) {
+    var text = (btn && btn.getAttribute && btn.getAttribute('data-resolution')) || '';
+    if (!text.trim()) return;
+    var nodeIds = [];
+    var parent = btn && btn.closest ? btn.closest('[data-node-ids]') : null;
+    if (parent) {
+      var idsStr = parent.getAttribute('data-node-ids') || '';
+      nodeIds = idsStr.split(',').map(function(s) { return s.trim(); }).filter(Boolean);
+    }
+    submitResolutionWithText(text, nodeIds).catch(function(e) { showError('Resolution failed: ' + e); });
+  };
+})();
+</script>
+</body>
+</html>`;
+
+// ---------------------------------------------------------------------------
+// M&A Due Diligence View — progress and result only (no mechanism)
+// ---------------------------------------------------------------------------
+
+const MA_VIEW_DOC_COUNT = 5;
+
+const DEMO_MA_VIEW_HTML = /* html */ `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>M&A Due Diligence — Project Horizon</title>
+  <meta name="theme-color" content="#0b0d12">
+  <style>
+    :root {
+      --bg: #0b0d12; --surface: #13151c; --surface2: #1a1d27;
+      --border: #252836; --text: #e2e4f0; --muted: #6b7080;
+      --accent: #4f8ef7; --accent-dim: #1a2d55;
+      --green: #22c55e; --green-dim: #14532d;
+      --amber: #f59e0b; --amber-dim: #451a03;
+      --red: #ef4444; --red-dim: #450a0a;
+      --purple: #a78bfa; --purple-dim: #2e1065;
+      --radius: 8px;
+      --font: 'Inter','Segoe UI',system-ui,sans-serif;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;min-height:100vh;display:flex;flex-direction:column}
+    .topbar{display:flex;align-items:center;justify-content:space-between;padding:0 1.25rem;height:48px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0}
+    .topbar a{font-size:0.75rem;color:var(--muted);text-decoration:none;padding:0.25rem 0.625rem;border:1px solid var(--border);border-radius:var(--radius)}
+    .topbar a:hover{color:var(--accent);border-color:var(--accent)}
+    .topbar-title{font-size:0.9375rem;font-weight:700;color:var(--text)}
+    .main{flex:1;overflow:auto;padding:1.5rem;max-width:900px;margin:0 auto;width:100%}
+    .section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1rem 1.25rem;margin-bottom:1rem}
+    .section-title{font-size:0.6875rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:0.75rem}
+    .progress-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:0.75rem;margin-bottom:1rem}
+    .progress-item{background:var(--surface2);border-radius:6px;padding:0.75rem;text-align:center}
+    .progress-num{font-size:1.25rem;font-weight:800;color:var(--text);display:block}
+    .progress-label{font-size:0.6875rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-top:2px}
+    .controls{display:flex;gap:0.75rem;flex-wrap:wrap;margin-bottom:1rem}
+    .btn{padding:0.6rem 1.25rem;font-size:0.875rem;font-weight:600;border:none;border-radius:var(--radius);cursor:pointer;font-family:var(--font)}
+    .btn-primary{background:var(--accent);color:#fff}
+    .btn-primary:hover{filter:brightness(1.1)}
+    .btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
+    .btn-secondary:hover{border-color:var(--accent);color:var(--accent)}
+    .btn:disabled{opacity:0.5;cursor:not-allowed}
+    .state-list{list-style:none}
+    .state-list li{padding:0.4rem 0;border-bottom:1px solid var(--border);font-size:0.8125rem;color:var(--text)}
+    .state-list li:last-child{border-bottom:none}
+    .state-list .resolved{color:var(--green)}
+    .state-list .unresolved{color:var(--amber)}
+    .hitl-panel{background:var(--purple-dim);border:1px solid var(--purple);border-radius:var(--radius);padding:1rem;margin-bottom:1rem}
+    .hitl-panel.hidden{display:none}
+    .hitl-title{font-size:0.875rem;font-weight:700;color:var(--purple);margin-bottom:0.5rem}
+    .hitl-options{display:flex;flex-wrap:wrap;gap:0.5rem;margin-top:0.75rem}
+    .report{display:none}
+    .report.visible{display:block}
+    .report h2{font-size:1rem;font-weight:700;color:var(--text);margin:1rem 0 0.5rem;padding-bottom:0.35rem;border-bottom:1px solid var(--border)}
+    .report h2:first-of-type{margin-top:0}
+    .report p,.report ul{font-size:0.875rem;color:var(--text);line-height:1.7;margin-bottom:0.5rem}
+    .report ul{margin-left:1.25rem}
+    .report-row{display:flex;justify-content:space-between;padding:0.25rem 0;font-size:0.8125rem}
+    .report-row .label{color:var(--muted)}
+    .empty{color:var(--muted);font-style:italic;font-size:0.8125rem}
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <span class="topbar-title">M&A Due Diligence — Project Horizon</span>
+    <a href="/demo">Back to demo</a>
+  </header>
+  <main class="main">
+    <div class="section">
+      <div class="section-title">Progress</div>
+      <div class="progress-grid">
+        <div class="progress-item"><span id="progress-docs" class="progress-num">0</span><span class="progress-label">Documents</span></div>
+        <div class="progress-item"><span id="progress-claims" class="progress-num">0</span><span class="progress-label">Facts verified</span></div>
+        <div class="progress-item"><span id="progress-contra" class="progress-num">0</span><span class="progress-label">Contradictions</span></div>
+        <div class="progress-item"><span id="progress-risks" class="progress-num">0</span><span class="progress-label">Risks flagged</span></div>
+      </div>
+      <div class="controls">
+        <button id="btn-run-all" class="btn btn-primary">Run all documents</button>
+        <button id="btn-next" class="btn btn-secondary">Next document</button>
+        <button id="btn-report" class="btn btn-secondary" style="display:none">View final report</button>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-title">Shared state</div>
+      <div id="shared-state">Loading...</div>
+    </div>
+    <div class="section">
+      <div class="section-title">Human confirmations</div>
+      <ul id="human-list" class="state-list"><li class="empty">None yet</li></ul>
+    </div>
+    <div id="hitl-panel" class="hitl-panel hidden">
+      <div class="hitl-title">Your decision is required</div>
+      <p id="hitl-message" style="font-size:0.8125rem;color:var(--text);margin-bottom:0.5rem"></p>
+      <div class="hitl-options">
+        <button class="btn btn-primary" data-option="approve_finality">Approve finality</button>
+        <button class="btn btn-secondary" id="btn-resolution">Provide resolution</button>
+        <button class="btn btn-secondary" data-option="escalate">Escalate</button>
+        <button class="btn btn-secondary" data-option="defer">Defer 7 days</button>
+      </div>
+      <div id="resolution-area" style="display:none;margin-top:0.75rem">
+        <textarea id="resolution-text" rows="3" placeholder="e.g. ARR confirmed at EUR 38M" style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:0.5rem;border-radius:6px;font-family:var(--font)"></textarea>
+        <button class="btn btn-primary" style="margin-top:0.5rem" id="btn-submit-resolution">Submit resolution</button>
+      </div>
+    </div>
+    <div id="report" class="report section">
+      <h2>Thesis</h2>
+      <p id="report-thesis" class="empty">—</p>
+      <h2>Caveats and main risks</h2>
+      <ul id="report-risks"></ul>
+      <h2>Documented human corrections and confirmations</h2>
+      <ul id="report-human"></ul>
+      <h2>High-level confidence</h2>
+      <div id="report-confidence"></div>
+      <h2>Next steps</h2>
+      <ul id="report-next"></ul>
+    </div>
+  </main>
+<script>
+(function() {
+  var DOC_COUNT = ${MA_VIEW_DOC_COUNT};
+  var docsFedCount = 0;
+  var lastSummary = null;
+  var pendingProposalId = null;
+  var pollInterval = null;
+
+  function el(id) { return document.getElementById(id); }
+  function esc(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+  function refreshSummary() {
+    return fetch('/api/summary', { signal: AbortSignal.timeout(6000) }).then(function(r) { return r.ok ? r.json() : null; }).catch(function() { return null; });
+  }
+
+  function renderProgress(s) {
+    if (!s) return;
+    var kc = (lastKnowledge || {}).counts || {};
+    var docsNum = Math.min(docsFedCount, DOC_COUNT);
+    el('progress-docs').textContent = docsNum + ' / ' + DOC_COUNT;
+    el('progress-claims').textContent = kc.claims || 0;
+    var contraOpen = kc.contradictions || 0;
+    var contraResolved = kc.contradictions_resolved || 0;
+    el('progress-contra').textContent = contraResolved + ' resolved, ' + contraOpen + ' open';
+    el('progress-risks').textContent = kc.risks || 0;
+  }
+
+  function renderSharedState(s) {
+    var container = el('shared-state');
+    if (!s || !s.facts) { container.innerHTML = '<span class="empty">No data yet. Run documents to see shared state.</span>'; return; }
+    var facts = s.facts;
+    var claims = facts.claims || [];
+    var goals = facts.goals || [];
+    var risks = facts.risks || [];
+    var contra = s.contradictions || [];
+    var html = '';
+    if (claims.length) {
+      html += '<div style="margin-bottom:1rem"><div class="section-title">Facts verified (' + claims.length + ')</div><ul class="state-list">';
+      claims.forEach(function(c) { html += '<li>' + esc(String(c)) + '</li>'; });
+      html += '</ul></div>';
+    }
+    if (goals.length) {
+      html += '<div style="margin-bottom:1rem"><div class="section-title">Goals tracked (' + goals.length + ')</div><ul class="state-list">';
+      goals.forEach(function(g) { html += '<li>' + esc(typeof g === 'string' ? g : (g && g.text ? g.text : String(g))) + '</li>'; });
+      html += '</ul></div>';
+    }
+    if (risks.length) {
+      html += '<div style="margin-bottom:1rem"><div class="section-title">Risks flagged</div><ul class="state-list">';
+      risks.forEach(function(r) { html += '<li>' + esc(String(r).slice(0, 200)) + '</li>'; });
+      html += '</ul></div>';
+    }
+    if (contra.length) {
+      html += '<div><div class="section-title">Contradictions</div><ul class="state-list">';
+      contra.forEach(function(c) {
+        var status = c.status === 'resolved' ? 'resolved' : 'unresolved';
+        var text = (c.content || '').slice(0, 150);
+        if (c.resolution && (c.resolution.reason || c.resolution.by)) text += ' — ' + (c.resolution.reason || c.resolution.by);
+        html += '<li class="' + status + '">' + esc(text) + (text.length >= 150 ? '…' : '') + '</li>';
+      });
+      html += '</ul></div>';
+    }
+    if (!html) html = '<span class="empty">No items yet. Run documents to populate.</span>';
+    container.innerHTML = html;
+  }
+
+  function renderHumanConfirmations(s) {
+    var list = el('human-list');
+    var resolutions = [];
+    var decisions = [];
+    if (s && s.what_changed) {
+      (s.what_changed || []).filter(function(e) { return (e.type || '') === 'resolution'; }).forEach(function(e) {
+        var p = e.payload || {};
+        resolutions.push((p.decision || p.text || '').trim().slice(0, 200));
+      });
+    }
+    if (s && s.human_decisions && s.human_decisions.length) {
+      s.human_decisions.forEach(function(d) {
+        var label = (d.option || '').replace(/_/g, ' ');
+        var ts = d.created_at ? new Date(d.created_at).toLocaleString() : '';
+        decisions.push(label + (ts ? ' (' + ts + ')' : ''));
+      });
+    }
+    if (resolutions.length === 0 && decisions.length === 0) {
+      list.innerHTML = '<li class="empty">None yet</li>';
+      return;
+    }
+    list.innerHTML = '';
+    resolutions.forEach(function(r) { if (r) list.appendChild(function(){ var li = document.createElement('li'); li.textContent = 'Resolution: ' + r; return li; }()); });
+    decisions.forEach(function(d) { var li = document.createElement('li'); li.textContent = d; list.appendChild(li); });
+  }
+
+  function applySummary(s) {
+    lastSummary = s;
+    renderProgress(s);
+    renderSharedState(s);
+    renderHumanConfirmations(s);
+    var fin = (s && s.finality) ? s.finality : {};
+    var status = fin.status || '';
+    if (status === 'RESOLVED' || status === 'near_finality') el('btn-report').style.display = 'inline-block';
+  }
+
+  function checkPending() {
+    fetch('/api/pending').then(function(r) { return r.json(); }).then(function(data) {
+      var pending = (data.pending || []).filter(function(item) {
+        var prop = item.proposal || {};
+        var pl = prop.payload || {};
+        return (pl.type === 'finality_review' || prop.proposed_action === 'finality_review') && item.proposal_id;
+      });
+      if (pending.length > 0 && !pendingProposalId) {
+        pendingProposalId = pending[0].proposal_id;
+        var panel = el('hitl-panel');
+        panel.classList.remove('hidden');
+        var msg = el('hitl-message');
+        var payload = (pending[0].proposal || {}).payload || {};
+        var gs = payload.goal_score != null ? Math.round(payload.goal_score * 100) : '—';
+        msg.textContent = 'The due diligence has reached ' + gs + '% confidence. Choose how to proceed.';
+        panel.querySelectorAll('[data-option]').forEach(function(btn) {
+          btn.onclick = function() {
+            var opt = btn.getAttribute('data-option');
+            if (!pendingProposalId) return;
+            fetch('/api/finality-response', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ proposal_id: pendingProposalId, option: opt, days: 7 }) }).then(function() {
+              pendingProposalId = null;
+              panel.classList.add('hidden');
+              el('resolution-area').style.display = 'none';
+              refreshSummary().then(applySummary);
+            });
+          };
+        });
+        el('btn-resolution').onclick = function() { el('resolution-area').style.display = 'block'; };
+        el('btn-submit-resolution').onclick = function() {
+          var text = (el('resolution-text').value || '').trim();
+          if (!text || !pendingProposalId) return;
+          fetch('/api/resolution', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ decision: text, summary: text.slice(0, 120), text: text }) }).then(function() {
+            fetch('/api/finality-response', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ proposal_id: pendingProposalId, option: 'provide_resolution', days: 7 }) }).then(function() {
+              pendingProposalId = null;
+              el('hitl-panel').classList.add('hidden');
+              el('resolution-area').style.display = 'none';
+              el('resolution-text').value = '';
+              refreshSummary().then(applySummary);
+            });
+          });
+        };
+      }
+    });
+  }
+
+  function runPoll() {
+    refreshSummary().then(function(s) {
+      applySummary(s);
+      checkPending();
+    });
+  }
+
+  el('btn-run-all').onclick = function() {
+    var btn = el('btn-run-all');
+    btn.disabled = true;
+    fetch('/api/run-all', { method: 'POST' }).then(function() {
+      docsFedCount = DOC_COUNT;
+      runPoll();
+      var t = setInterval(runPoll, 4000);
+      setTimeout(function() { clearInterval(t); }, 120000);
+    });
+  };
+
+  el('btn-next').onclick = function() {
+    if (docsFedCount >= DOC_COUNT) return;
+    var btn = el('btn-next');
+    btn.disabled = true;
+    fetch('/api/step/' + docsFedCount, { method: 'POST' }).then(function() {
+      docsFedCount++;
+      if (docsFedCount >= DOC_COUNT) btn.style.display = 'none';
+      else btn.disabled = false;
+      runPoll();
+      var t = setInterval(runPoll, 4000);
+      setTimeout(function() { clearInterval(t); }, 60000);
+    });
+  };
+
+  el('btn-report').onclick = function() {
+    var s = lastSummary;
+    if (!s) return;
+    var fin = s.finality || {};
+    var facts = s.facts || {};
+    var risks = facts.risks || [];
+    var drift = s.drift || {};
+    var contra = s.contradictions || [];
+    var humanDecisions = s.human_decisions || [];
+    var whatChanged = s.what_changed || [];
+    var dims = fin.dimensions || {};
+    var gs = fin.goal_score != null ? Math.round(fin.goal_score * 100) : 0;
+    var status = fin.status || '';
+
+    var thesis = '';
+    if (status === 'RESOLVED' && gs >= 85) thesis = 'Proceed with confidence. The due diligence supports closing the acquisition within the evaluated range (e.g. EUR 270–290M) with documented resolutions.';
+    else if (status === 'RESOLVED' || gs >= 75) thesis = 'Proceed with caution. The due diligence supports a conditional path; address the caveats and next steps before closing.';
+    else if (risks.length > 0 || contra.some(function(c) { return c.status !== 'resolved'; })) thesis = 'Further diligence required. Resolve identified contradictions and mitigate risks before recommending proceed.';
+    else thesis = 'Review in progress. Run all documents and complete human review when prompted to reach a final position.';
+    el('report-thesis').textContent = thesis;
+    el('report-thesis').className = '';
+
+    var risksUl = el('report-risks');
+    risksUl.innerHTML = '';
+    (drift.notes || []).forEach(function(n) { var li = document.createElement('li'); li.textContent = n; risksUl.appendChild(li); });
+    (drift.types || []).forEach(function(t) { var li = document.createElement('li'); li.textContent = 'Drift: ' + t; risksUl.appendChild(li); });
+    risks.forEach(function(r) { var li = document.createElement('li'); li.textContent = r; risksUl.appendChild(li); });
+    if (risksUl.children.length === 0) { var li = document.createElement('li'); li.className = 'empty'; li.textContent = 'None documented.'; risksUl.appendChild(li); }
+
+    var humanUl = el('report-human');
+    humanUl.innerHTML = '';
+    whatChanged.filter(function(e) { return (e.type || '') === 'resolution'; }).forEach(function(e) {
+      var p = e.payload || {};
+      var t = (p.decision || p.text || '').trim();
+      if (t) { var li = document.createElement('li'); li.textContent = 'Resolution: ' + t; humanUl.appendChild(li); }
+    });
+    humanDecisions.forEach(function(d) {
+      var li = document.createElement('li');
+      li.textContent = (d.option || '').replace(/_/g, ' ') + (d.created_at ? ' — ' + new Date(d.created_at).toLocaleString() : '');
+      humanUl.appendChild(li);
+    });
+    if (humanUl.children.length === 0) { var li = document.createElement('li'); li.className = 'empty'; li.textContent = 'None recorded.'; humanUl.appendChild(li); }
+
+    var confDiv = el('report-confidence');
+    var claimPct = dims.claim_avg_confidence != null ? Math.round(dims.claim_avg_confidence * 100) : null;
+    var contraPct = dims.contradiction_resolution_ratio != null ? Math.round(dims.contradiction_resolution_ratio * 100) : null;
+    var goalPct = dims.goal_completion_ratio != null ? Math.round(dims.goal_completion_ratio * 100) : null;
+    var riskPct = dims.risk_score_inverse != null ? Math.round(dims.risk_score_inverse * 100) : null;
+    var parts = [];
+    if (claimPct != null) parts.push('Facts: ' + claimPct + '%');
+    if (contraPct != null) parts.push('Contradictions resolved: ' + contraPct + '%');
+    if (goalPct != null) parts.push('Objectives: ' + goalPct + '%');
+    if (riskPct != null) parts.push('Risk (inverse): ' + riskPct + '%');
+    confDiv.innerHTML = '<p>' + (parts.length ? parts.join('. ') : '—') + '</p>';
+    if (claimPct != null) confDiv.innerHTML += '<div class="report-row"><span class="label">How reliable are the facts?</span><span>' + claimPct + '%</span></div>';
+    if (contraPct != null) confDiv.innerHTML += '<div class="report-row"><span class="label">Are contradictions resolved?</span><span>' + contraPct + '%</span></div>';
+    if (goalPct != null) confDiv.innerHTML += '<div class="report-row"><span class="label">Are objectives completed?</span><span>' + goalPct + '%</span></div>';
+    if (riskPct != null) confDiv.innerHTML += '<div class="report-row"><span class="label">Is risk under control?</span><span>' + riskPct + '%</span></div>';
+
+    var nextUl = el('report-next');
+    nextUl.innerHTML = '';
+    (drift.suggested_actions || []).forEach(function(a) { var li = document.createElement('li'); li.textContent = a; nextUl.appendChild(li); });
+    contra.filter(function(c) { return c.status !== 'resolved'; }).forEach(function(c) {
+      var li = document.createElement('li');
+      li.textContent = 'Resolve contradiction: ' + (c.content || '').slice(0, 100) + '…';
+      nextUl.appendChild(li);
+    });
+    risks.forEach(function(r) { var li = document.createElement('li'); li.textContent = 'Mitigate risk: ' + String(r).slice(0, 80); nextUl.appendChild(li); });
+    if (nextUl.children.length === 0) { var li = document.createElement('li'); li.className = 'empty'; li.textContent = 'No further steps suggested.'; nextUl.appendChild(li); }
+
+    el('report').classList.add('visible');
+    el('report').scrollIntoView({ behavior: 'smooth' });
+  };
+
+  fetch('/api/select-scenario', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: 'ma' }) }).then(function() {
+    runPoll();
+  });
 })();
 </script>
 </body>
@@ -2700,6 +3926,23 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
 // ---------------------------------------------------------------------------
 
 async function main(): Promise<void> {
+  // Preflight: ensure required services (postgres, s3, nats, facts-worker, feed) are up
+  if (process.env.DEMO_SKIP_PREFLIGHT !== "1") {
+    process.env.CHECK_FEED = "1";
+    const { ok, results } = await checkAllServices({ retries: 2, delayMs: 2000 });
+    if (!ok) {
+      const failed = results.filter((r) => r.err != null);
+      process.stderr.write("\nDemo preflight failed. Required services are not reachable:\n");
+      for (const r of failed) process.stderr.write(`  ${r.name}: ${r.err}\n`);
+      process.stderr.write("\nFix: Run ./scripts/demo-preflight.sh, then start swarm hatchery and feed:\n");
+      process.stderr.write("  pnpm run swarm:start   (terminal 1)  # full pipeline\n");
+      process.stderr.write("  pnpm run feed    (terminal 2)\n");
+      process.stderr.write("  pnpm run demo    (terminal 3)\n\n");
+      process.stderr.write("Or skip preflight: DEMO_SKIP_PREFLIGHT=1 pnpm run demo\n\n");
+      process.exit(1);
+    }
+  }
+
   startSseProxy();
 
   const server = createServer(async (req: IncomingMessage, res: ServerResponse) => {
@@ -2712,13 +3955,28 @@ async function main(): Promise<void> {
         res.end(DEMO_HTML);
         return;
       }
+      if (req.method === "GET" && (pathname === "/demo/ma-view" || pathname === "/due-diligence")) {
+        activeScenarioId = "ma";
+        activeDocs = SCENARIOS.ma.docs;
+        res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+        res.end(DEMO_MA_VIEW_HTML);
+        return;
+      }
       if (req.method === "GET" && pathname === "/api/scenarios") {
         handleScenarios(res);
         return;
       }
+      if (req.method === "POST" && pathname === "/api/demo-session/start") {
+        await handleDemoSessionStart(req, res);
+        return;
+      }
+      if (req.method === "POST" && pathname === "/api/demo-session/close") {
+        await handleDemoSessionClose(req, res);
+        return;
+      }
       if (req.method === "POST" && pathname === "/api/select-scenario") {
         const body = await readBody(req);
-        handleSelectScenario(body, res);
+        await handleSelectScenario(body, res);
         return;
       }
       if (req.method === "GET" && pathname === "/api/docs") {
@@ -2744,6 +4002,14 @@ async function main(): Promise<void> {
       }
       if (req.method === "GET" && pathname === "/api/pending") {
         await handlePending(res);
+        return;
+      }
+      if (req.method === "GET" && pathname === "/api/contradictions") {
+        await handleContradictions(res);
+        return;
+      }
+      if (req.method === "GET" && pathname === "/api/knowledge") {
+        await handleKnowledge(res);
         return;
       }
       if (req.method === "POST" && pathname === "/api/finality-response") {

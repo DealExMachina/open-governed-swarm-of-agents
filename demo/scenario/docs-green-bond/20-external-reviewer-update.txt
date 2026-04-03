@@ -1,0 +1,24 @@
+EXTERNAL REVIEWER STATUS UPDATE
+
+Date: 2025-04-10
+
+Subject: Sustainalytics EUGBS registration and updated SPO
+
+1. ESMA NOTIFICATION:
+Sustainalytics has submitted its notification to ESMA under the EUGBS transitional provisions (Art. 75(2)). Notification reference: ESMA/ER/2025/0042.
+Status: ACKNOWLEDGED by ESMA on 2025-03-28. Sustainalytics may operate as an EUGBS external reviewer during the transitional period (until 21 June 2026).
+
+2. UPDATED SECOND PARTY OPINION:
+Sustainalytics has delivered an updated SPO reflecting Framework v1.1:
+
+Assessment:
+- Use of proceeds: ALIGNED. All categories meet ICMA GBP and EU Taxonomy requirements.
+- Category B: UPGRADED from "partially aligned" to "aligned" following the addition of mandatory EPC documentation and DNSH water disclosure requirements.
+- EUGBS readiness: The framework is CONSISTENT with EUGBS requirements. The issuer is prepared for designation subject to factsheet completion and post-allocation review.
+
+Overall assessment: ALIGNED (no reservations).
+
+3. POST-ALLOCATION REVIEWER:
+Sustainalytics has also agreed to serve as the post-allocation external reviewer under EUGBS Art. 14. Engagement letter signed 2025-04-05.
+
+Claim: Sustainalytics registered with ESMA. Updated SPO removes all reservations -- framework fully aligned. Post-allocation review engagement confirmed. Goal: Submit EUGBS designation application to CSSF.

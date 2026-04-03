@@ -1,16 +1,18 @@
 #!/usr/bin/env bash
 # =============================================================================
-# Project Horizon — Governed Agent Swarm Demo
-# M&A Due Diligence scenario for enterprise audiences
+# Governed Agent Swarm Demo — Project Horizon (M&A)
+# Shell walkthrough for the M&A due diligence scenario. Other scenarios
+# (Financial, Insurance, Green Bond) are available via the demo UI (pnpm run demo).
 #
 # Usage:
 #   ./demo/run-demo.sh                   # interactive, full scenario
 #   ./demo/run-demo.sh --fast            # skip pauses (automated run)
 #   ./demo/run-demo.sh --step 2          # jump to specific step
+#   DEMO_SCOPE_ID=default ./demo/run-demo.sh
 #
 # Prerequisites:
 #   - Docker services running (docker compose up -d)
-#   - Swarm started (pnpm run swarm or pnpm run swarm:start in another terminal)
+#   - Swarm hatchery started (pnpm run swarm:start in another terminal)
 #   - Feed running on port 3002
 # =============================================================================
 
@@ -20,6 +22,9 @@ FEED_URL="${FEED_URL:-http://localhost:3002}"
 MITL_URL="${MITL_URL:-http://localhost:3001}"
 FAST="${FAST:-false}"
 START_STEP="${START_STEP:-1}"
+RUN_DEMO_RESET="${RUN_DEMO_RESET:-1}"
+ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+DEMO_SCOPE_ID="${DEMO_SCOPE_ID:-}"
 # When SWARM_API_TOKEN is set, add Bearer header to curl calls to feed/MITL
 CURL_AUTH=()
 if [ -n "${SWARM_API_TOKEN:-}" ]; then
@@ -94,19 +99,59 @@ pause() {
   fi
 }
 
+snapshot_facts_hash() {
+  curl -s "${CURL_AUTH[@]}" "${FEED_URL}/summary?scope_id=${DEMO_SCOPE_ID}" 2>/dev/null \
+    | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d.get("facts",{}).get("hash",""))' 2>/dev/null || echo ""
+}
+
 wait_for_processing() {
   local seconds="${1:-25}"
+  local prev_hash="${_PREV_FACTS_HASH:-}"
+  local max_wait="$seconds"
+  local interval=3
+  local elapsed=0
+
   if [ "$FAST" = "true" ]; then
-    sleep 5
+    if [ -n "$prev_hash" ] && command -v python3 &>/dev/null; then
+      while [ "$elapsed" -lt "$max_wait" ]; do
+        sleep "$interval"
+        elapsed=$((elapsed + interval))
+        local cur_hash
+        cur_hash=$(snapshot_facts_hash)
+        if [ -n "$cur_hash" ] && [ "$cur_hash" != "$prev_hash" ]; then
+          sleep 2
+          return
+        fi
+      done
+    else
+      sleep "$max_wait"
+    fi
     return
   fi
+
   echo ""
-  echo -e "  ${CYAN}Waiting ${seconds}s for agents to process...${RESET}"
-  for i in $(seq "$seconds" -1 1); do
-    printf "\r  ${CYAN}  %2ds remaining...${RESET}" "$i"
-    sleep 1
-  done
-  printf "\r  ${GREEN}  Done.                    ${RESET}\n"
+  echo -e "  ${CYAN}Waiting for agents to process (up to ${seconds}s)...${RESET}"
+  if [ -n "$prev_hash" ] && command -v python3 &>/dev/null; then
+    while [ "$elapsed" -lt "$max_wait" ]; do
+      sleep "$interval"
+      elapsed=$((elapsed + interval))
+      printf "\r  ${CYAN}  %2ds elapsed...${RESET}" "$elapsed"
+      local cur_hash
+      cur_hash=$(snapshot_facts_hash)
+      if [ -n "$cur_hash" ] && [ "$cur_hash" != "$prev_hash" ]; then
+        printf "\r  ${GREEN}  Processed (${elapsed}s).          ${RESET}\n"
+        sleep 2
+        return
+      fi
+    done
+    printf "\r  ${YELLOW}  Timeout (${max_wait}s). Continuing...${RESET}\n"
+  else
+    for i in $(seq "$seconds" -1 1); do
+      printf "\r  ${CYAN}  %2ds remaining...${RESET}" "$i"
+      sleep 1
+    done
+    printf "\r  ${GREEN}  Done.                    ${RESET}\n"
+  fi
 }
 
 check_jq() {
@@ -118,11 +163,11 @@ check_jq() {
 }
 
 fetch_summary() {
-  curl -s "${CURL_AUTH[@]}" "${FEED_URL}/summary" 2>/dev/null || echo '{"error":"feed_unavailable"}'
+  curl -s "${CURL_AUTH[@]}" "${FEED_URL}/summary?scope_id=${DEMO_SCOPE_ID}" 2>/dev/null || echo '{"error":"feed_unavailable"}'
 }
 
 fetch_pending() {
-  curl -s "${CURL_AUTH[@]}" "${MITL_URL}/pending" 2>/dev/null || echo '{"pending":[]}'
+  curl -s "${CURL_AUTH[@]}" "${MITL_URL}/pending?scope_id=${DEMO_SCOPE_ID}" 2>/dev/null || echo '{"pending":[]}'
 }
 
 show_summary_key_fields() {
@@ -153,14 +198,73 @@ show_summary_key_fields() {
 # Pre-flight
 # -----------------------------------------------------------------------------
 
-check_services() {
-  print_info "Checking feed at ${FEED_URL}..."
-  if ! curl -s --max-time 5 "${CURL_AUTH[@]}" "${FEED_URL}/summary" > /dev/null 2>&1; then
-    echo -e "  ${RED}Feed is not reachable at ${FEED_URL}.${RESET}"
-    echo "  Start feed: pnpm run feed. Start swarm: pnpm run swarm (or pnpm run swarm:start)."
+run_preflight() {
+  if [ -z "${DEMO_SCOPE_ID}" ]; then
+    echo -e "  ${RED}DEMO_SCOPE_ID is required (strict scope isolation).${RESET}"
+    echo "  Example: export DEMO_SCOPE_ID=default"
     exit 1
   fi
-  print_ok "Feed is reachable."
+  if [ "${RUN_DEMO_SKIP_PREFLIGHT:-0}" = "1" ]; then
+    print_info "Skipping preflight (RUN_DEMO_SKIP_PREFLIGHT=1)."
+    return 0
+  fi
+  SCRIPT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+  if [ ! -f "${SCRIPT_DIR}/scripts/demo-preflight.sh" ]; then
+    print_warn "demo-preflight.sh not found; checking feed only..."
+    if ! curl -s --max-time 5 "${CURL_AUTH[@]}" "${FEED_URL}/summary?scope_id=${DEMO_SCOPE_ID}" > /dev/null 2>&1; then
+      echo -e "  ${RED}Feed is not reachable at ${FEED_URL}.${RESET}"
+      echo "  Start feed: pnpm run feed. Start swarm: pnpm run swarm:start."
+      exit 1
+    fi
+    print_ok "Feed is reachable."
+    return 0
+  fi
+  "${SCRIPT_DIR}/scripts/demo-preflight.sh" || exit 1
+}
+
+reset_demo_state() {
+  if [ "${RUN_DEMO_RESET}" != "1" ]; then
+    print_info "Skipping state reset (RUN_DEMO_RESET=${RUN_DEMO_RESET})."
+    return 0
+  fi
+  print_info "Resetting demo state to avoid mixed facts/nodes..."
+  (
+    cd "${ROOT_DIR}" && \
+    pnpm run reset-e2e >/dev/null
+  ) || {
+    echo -e "  ${RED}Could not reset state before demo. Aborting to avoid mixed data.${RESET}"
+    echo "  Re-run with RUN_DEMO_RESET=0 only if you intentionally want to reuse state."
+    exit 1
+  }
+  print_ok "State reset complete."
+}
+
+restart_swarm_for_demo() {
+  print_info "Restarting swarm hatchery for a clean demo runtime..."
+  (
+    cd "${ROOT_DIR}" && \
+    pkill -f "src/swarm.ts" >/dev/null 2>&1 || true
+  )
+  sleep 1
+
+  (
+    cd "${ROOT_DIR}" && \
+    pnpm run swarm:start > /tmp/demo-swarm.log 2>&1
+  ) &
+
+  local max_wait=90
+  local i
+  for i in $(seq 1 "$max_wait"); do
+    if curl -s --max-time 2 "${CURL_AUTH[@]}" "${MITL_URL}/pending?scope_id=${DEMO_SCOPE_ID}" >/dev/null 2>&1; then
+      print_ok "Swarm restarted (MITL reachable)."
+      return 0
+    fi
+    sleep 1
+  done
+
+  echo -e "  ${RED}Swarm restart did not become ready within ${max_wait}s.${RESET}"
+  echo "  Inspect /tmp/demo-swarm.log for startup details."
+  exit 1
 }
 
 # -----------------------------------------------------------------------------
@@ -177,6 +281,9 @@ feed_document() {
     exit 1
   fi
 
+  # Snapshot facts hash before feeding so wait_for_processing can detect change
+  _PREV_FACTS_HASH=$(snapshot_facts_hash)
+
   local title
   title=$(echo "$file" | sed 's/.txt$//' | sed 's/^[0-9]*-//' | sed 's/-/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1))substr($i,2)}1')
   local body
@@ -186,7 +293,7 @@ feed_document() {
   response=$(curl -s -X POST "${FEED_URL}/context/docs" \
     -H "Content-Type: application/json" \
     "${CURL_AUTH[@]}" \
-    -d "{\"title\": \"${title}\", \"body\": $(echo "$body" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')}" \
+    -d "{\"scope_id\": \"${DEMO_SCOPE_ID}\", \"title\": \"${title}\", \"body\": $(echo "$body" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')}" \
     2>/dev/null)
 
   local seq
@@ -208,15 +315,20 @@ echo ""
 echo "  This demo shows how a governed agent swarm:"
 echo "    1. Extracts structured claims, risks, and goals from unstructured documents"
 echo "    2. Detects contradictions and drift between successive documents"
-echo "    3. Applies declarative governance rules to block unsafe state transitions"
-echo "    4. Routes human review only when the system cannot self-resolve"
-echo "    5. Produces a full audit trail of every decision and approval"
+echo "    3. Propagates evidence along sheaf topology; monitors convergence (ISS)"
+echo "    4. Applies declarative governance rules to block unsafe state transitions"
+echo "    5. Routes human review only when the system cannot self-resolve"
+echo "    6. Produces a full audit trail of every decision and approval"
 echo ""
 echo "  Five documents arrive in sequence, each revealing new information."
 echo "  Watch how the swarm's knowledge state evolves — and where governance intervenes."
 
 pause
-check_services
+run_preflight
+reset_demo_state
+if [ "${RUN_DEMO_RESET}" = "1" ]; then
+  restart_swarm_for_demo
+fi
 
 # =============================================================================
 # STEP 1 — Initial analyst briefing
@@ -237,7 +349,7 @@ if [ "$START_STEP" -le 1 ]; then
 
   pause
   feed_document "01-analyst-briefing.txt"
-  wait_for_processing 25
+  wait_for_processing 45
 
   print_info "Summary after Step 1:"
   show_summary_key_fields
@@ -269,7 +381,7 @@ if [ "$START_STEP" -le 2 ]; then
 
   pause
   feed_document "02-financial-due-diligence.txt"
-  wait_for_processing 30
+  wait_for_processing 60
 
   print_info "Summary after Step 2:"
   show_summary_key_fields
@@ -298,7 +410,7 @@ if [ "$START_STEP" -le 3 ]; then
 
   pause
   feed_document "03-technical-assessment.txt"
-  wait_for_processing 25
+  wait_for_processing 45
 
   print_info "Summary after Step 3:"
   show_summary_key_fields
@@ -328,7 +440,7 @@ if [ "$START_STEP" -le 4 ]; then
 
   pause
   feed_document "04-market-intelligence.txt"
-  wait_for_processing 25
+  wait_for_processing 45
 
   print_info "Summary after Step 4:"
   show_summary_key_fields
@@ -362,7 +474,7 @@ if [ "$START_STEP" -le 5 ]; then
 
   pause
   feed_document "05-legal-review.txt"
-  wait_for_processing 30
+  wait_for_processing 60
 
   print_info "Summary after Step 5:"
   show_summary_key_fields
@@ -390,7 +502,7 @@ data = json.load(sys.stdin)
 pending = data.get('pending', [])
 if not pending:
     print('  No pending reviews yet. The finality evaluator may still be running.')
-    print('  Retry: curl http://localhost:3001/pending | python3 -m json.tool')
+    print('  Retry: curl \"http://localhost:3001/pending?scope_id=${DEMO_SCOPE_ID}\" | python3 -m json.tool')
 else:
     for item in pending:
         pid = item.get('proposal_id', '?')
@@ -422,11 +534,11 @@ else:
     echo "  curl -X POST ${FEED_URL}/finality-response \\"
     echo "    -H 'Content-Type: application/json' \\"
     echo "    -H \"Authorization: Bearer \$SWARM_API_TOKEN\" \\"
-    echo "    -d '{\"proposal_id\": \"PROPOSAL_ID\", \"option\": \"approve_finality\"}'"
+    echo "    -d '{\"scope_id\": \"${DEMO_SCOPE_ID}\", \"proposal_id\": \"PROPOSAL_ID\", \"option\": \"approve_finality\"}'"
   else
     echo "  curl -X POST ${FEED_URL}/finality-response \\"
     echo "    -H 'Content-Type: application/json' \\"
-    echo "    -d '{\"proposal_id\": \"PROPOSAL_ID\", \"option\": \"approve_finality\"}'"
+    echo "    -d '{\"scope_id\": \"${DEMO_SCOPE_ID}\", \"proposal_id\": \"PROPOSAL_ID\", \"option\": \"approve_finality\"}'"
   fi
   echo ""
   echo "  Or use the web UI at: http://localhost:3003"
@@ -458,6 +570,7 @@ if [ "$START_STEP" -le 7 ]; then
     echo "    -H 'Content-Type: application/json' \\"
   fi
   echo "    -d '{"
+  echo "      \"scope_id\": \"${DEMO_SCOPE_ID}\","
   echo "      \"decision\": \"Board approved proceeding to exclusivity with NovaTech AG"
   echo "        at a revised offer of €280M. Conditions: (1) Axion Corp settlement"
   echo "        executed before signing, (2) Dr. Haber IP buyout completed,"
@@ -528,6 +641,6 @@ echo ""
 print_highlight "The system never made a final decision on its own. It worked until it couldn't, then asked the right person the right question."
 
 echo ""
-echo "  Full audit trail available at: ${FEED_URL}/summary"
-echo "  Raw events: curl ${FEED_URL}/summary?raw=1 | python3 -m json.tool"
+echo "  Full audit trail available at: ${FEED_URL}/summary?scope_id=${DEMO_SCOPE_ID}"
+echo "  Raw events: curl \"${FEED_URL}/summary?raw=1&scope_id=${DEMO_SCOPE_ID}\" | python3 -m json.tool"
 echo ""

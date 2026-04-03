@@ -1,11 +1,8 @@
 import "dotenv/config";
-// #region agent log
-fetch("http://127.0.0.1:7243/ingest/43a26554-c058-4ee2-bffa-258ea712c1dc", { method: "POST", headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "346e93" }, body: JSON.stringify({ sessionId: "346e93", location: "swarm.ts:top", message: "swarm.ts top-level executing", data: { phase: "after-imports" }, timestamp: Date.now(), hypothesisId: "H3" }) }).catch(() => {});
-// #endregion
 import { randomUUID } from "crypto";
 import { makeS3 } from "./s3.js";
 import { initTelemetry } from "./telemetry.js";
-import { initState } from "./stateGraph.js";
+import { initState, resetStateTo } from "./stateGraph.js";
 import { getSpec } from "./agentRegistry.js";
 import { makeEventBus, type EventBus } from "./eventBus.js";
 import { waitForNatsAndStream } from "./readiness.js";
@@ -33,6 +30,7 @@ const STREAM_SUBJECTS = [
   "swarm.rejections.>",
   "swarm.events.>",
   "swarm.finality.>",
+  "swarm.pending_approval.>",
 ];
 
 setLogContext({ agent_id: AGENT_ID, role: ROLE });
@@ -82,13 +80,7 @@ async function bootstrap(bus: EventBus): Promise<void> {
 }
 
 async function main(): Promise<void> {
-  // #region agent log
-  fetch("http://127.0.0.1:7243/ingest/43a26554-c058-4ee2-bffa-258ea712c1dc", { method: "POST", headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "346e93" }, body: JSON.stringify({ sessionId: "346e93", location: "swarm.ts:main", message: "main() entered", data: {}, timestamp: Date.now(), hypothesisId: "H4" }) }).catch(() => {});
-  // #endregion
   initTelemetry();
-  // #region agent log
-  fetch("http://127.0.0.1:7243/ingest/43a26554-c058-4ee2-bffa-258ea712c1dc", { method: "POST", headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "346e93" }, body: JSON.stringify({ sessionId: "346e93", location: "swarm.ts:main", message: "initTelemetry done", data: {}, timestamp: Date.now(), hypothesisId: "H4" }) }).catch(() => {});
-  // #endregion
   await waitForNatsAndStream({
     streamName: NATS_STREAM,
     streamSubjects: STREAM_SUBJECTS,
@@ -103,6 +95,7 @@ async function main(): Promise<void> {
   await initState(SCOPE_ID, randomUUID());
 
   if (process.env.BOOTSTRAP === "1") {
+    await resetStateTo(SCOPE_ID, "ContextIngested", randomUUID());
     await bootstrap(bus);
   }
 
@@ -162,17 +155,11 @@ async function main(): Promise<void> {
 }
 
 main().catch((e) => {
-  // #region agent log
-  fetch("http://127.0.0.1:7243/ingest/43a26554-c058-4ee2-bffa-258ea712c1dc", { method: "POST", headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "346e93" }, body: JSON.stringify({ sessionId: "346e93", location: "swarm.ts:main.catch", message: "main() rejected", data: { errType: typeof e, isError: e instanceof Error, keys: e && typeof e === "object" ? Object.keys(e as object) : [] }, timestamp: Date.now(), hypothesisId: "H4" }) }).catch(() => {});
-  // #endregion
   logger.error("fatal", { error: toErrorString(e) });
   process.exit(1);
 });
 
 process.on("unhandledRejection", (reason) => {
-  // #region agent log
-  fetch("http://127.0.0.1:7243/ingest/43a26554-c058-4ee2-bffa-258ea712c1dc", { method: "POST", headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "346e93" }, body: JSON.stringify({ sessionId: "346e93", location: "swarm.ts:unhandledRejection", message: "unhandledRejection", data: { reasonType: typeof reason, isError: reason instanceof Error }, timestamp: Date.now(), hypothesisId: "H4" }) }).catch(() => {});
-  // #endregion
   logger.error("unhandledRejection", { error: toErrorString(reason) });
   process.exit(1);
 });

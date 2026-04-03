@@ -2,7 +2,13 @@
 
 > Can we replace orchestration-as-topology with governance-as-policy for agent coordination -- with formal convergence guarantees, bitemporal auditability, and a perpetual compliance lifecycle?
 
-Governed agent swarm: event-driven reasoning roles sharing a bitemporal context graph, governed by a Rust reduction kernel (sgrs-core) with formal lattice semantics, converging toward certified finality checkpoints -- indefinitely, as new evidence and regulations arrive.
+Governed agent swarm: event-driven reasoning roles sharing a bitemporal context graph, governed by a Rust reduction kernel (sgrs-core) with formal product-order semantics (M = L x A), with sheaf-based evidence diffusion contracting disagreement across roles. Converges toward certified finality checkpoints indefinitely, as new evidence and regulations arrive.
+
+## Start here (new users)
+
+If this is your first time in the repository, read this tutorial first:
+
+- [Beginner Tutorial: Lattice-State Graph](docs/tutorials/lattice-state-graph-beginner.md)
 
 ---
 
@@ -12,7 +18,7 @@ Most agent frameworks coordinate via DAGs: fixed pipelines where topology determ
 
 This project tests an alternative hypothesis: **declarative governance over shared state, combined with a semantic graph and formal convergence tracking, can produce auditable, converging agent coordination without fixed pipelines.**
 
-Concretely: seven agents (facts, drift, planner, status, governance, executor, tuner) operate independently on shared bitemporal context (Postgres WAL + semantic graph + S3). A three-tier governance pipeline -- Rust reduction kernel (sgrs-core), oversight agent, full LLM -- enforces declarative transition rules via a product lattice (governance level x convergence rank), with circuit-breaker fallback ensuring governance never stalls. A finality evaluator tracks convergence via a Lyapunov disagreement function with five formal gates, triggers human-in-the-loop review when the system plateaus, and issues Ed25519-signed finality certificates when convergence is achieved. No agent knows about any other agent's existence. Coordination emerges from the shared state and the governance layer. Finality is not terminal: new documents, regulatory changes, or periodic reviews re-open convergence, producing a chain of certified checkpoints over an indefinite lifecycle.
+Concretely: ten agents (facts, drift, planner, status, governance, executor, tuner, resolver, propagation, deltas) operate independently on shared bitemporal context (Postgres WAL + semantic graph + S3). A three-tier governance pipeline -- Rust reduction kernel (sgrs-core), oversight agent, full LLM -- enforces declarative transition rules via a product order M = L x A (governance level x convergence rank), with circuit-breaker fallback ensuring governance never stalls. A finality evaluator tracks convergence via a Lyapunov disagreement function with six formal gates (A-F), triggers human-in-the-loop review when the system plateaus, and issues Ed25519-signed finality certificates when convergence is achieved. No agent knows about any other agent's existence. Coordination emerges from the shared state and the governance layer. Finality is not terminal: new documents, regulatory changes, or periodic reviews re-open convergence, producing a chain of certified checkpoints over an indefinite lifecycle.
 
 The formal guarantee: if the Lyapunov function V(t) decreases monotonically across evaluation cycles, the system is asymptotically converging toward finality. If V increases, the system detects divergence and escalates. If V stalls, it detects plateau and routes to human review. See [docs/convergence.md](docs/convergence.md) for the full theory.
 
@@ -53,36 +59,37 @@ The architecture rests on three principles:
 **1. Shared, append-only context.** Every agent reads from the same event log (Postgres WAL) and the same facts/drift state (S3). There is no "agent A's context" vs "agent B's context." There is context. Agents read it, reason over it, propose changes, and wait for approval.
 
 **2. Proposals and approvals via three-tier governance.** No agent directly advances the state. A facts agent proposes `FactsExtracted`; the governance pipeline evaluates it:
-- **Tier 1 (deterministic):** Rust reduction kernel (sgrs-core) evaluates policy rules, lattice admissibility, and mode routing. Zero LLM tokens. Always available.
+- **Tier 1 (deterministic):** Rust reduction kernel (sgrs-core) evaluates policy rules, **order admissibility** on M = L × A, and mode routing. Zero LLM tokens. Always available.
 - **Tier 2 (oversight):** A lightweight LLM decides whether to accept the deterministic result, escalate to full LLM reasoning, or escalate to human.
 - **Tier 3 (full LLM):** A governance agent reasons over state, drift, and rules using tool calls, then publishes approval or rejection with rationale.
 A circuit breaker (3 failures, 60s cooldown) ensures Tier 1 fallback on LLM degradation. Every decision records which tier produced it.
 
-**3. Declarative rules, not imperative code.** Governance rules are declared in `governance.yaml` and evaluated by the sgrs-core Rust kernel through a product lattice M = L x A (governance level x convergence rank). The kernel applies a three-stage pipeline: policy check, lattice admissibility, and mode routing. Every evaluation produces an immutable `DecisionRecord` with a policy-version hash, binding each decision to the exact rule set that produced it. Adding a new constraint is a YAML change, not a refactor.
+**3. Declarative rules, not imperative code.** Governance rules are declared in `governance.yaml` and evaluated by the sgrs-core Rust kernel through a product order M = L x A (governance level x convergence rank). The kernel applies a three-stage pipeline: policy check, **order admissibility** (product poset M = L × A), and mode routing. Every evaluation produces an immutable `DecisionRecord` with a policy-version hash, binding each decision to the exact rule set that produced it. Adding a new constraint is a YAML change, not a refactor.
 
 ```mermaid
 stateDiagram-v2
   direction LR
   ContextIngested --> FactsExtracted: facts
   FactsExtracted --> DriftChecked: drift
-  DriftChecked --> ContextIngested: planner/status, governance
+  DriftChecked --> EvidencePropagated: propagation
+  EvidencePropagated --> DeltasExtracted: deltas
+  DeltasExtracted --> ContextIngested: cycle wrap
 ```
 
-The result: agents are **reasoning roles**, not pipeline stages. The coordination emerges from the shared context and the governance layer — not from wiring. See [docs/architecture.md](docs/architecture.md) for the full technical deep dive.
+Ten agents (facts, drift, propagation, deltas, planner, resolver, status, governance, executor, tuner) are **reasoning roles**, not pipeline stages. Stage 2 adds sheaf-based evidence propagation: at each `DriftChecked` transit, the propagation agent runs one step of Laplacian diffusion on a bilattice evidence state (support/refutation per role per dimension), contracts inter-role disagreement, and publishes evidence along sheaf edges. Empirically: disagreement Omega contracts by 50–97% over 2–8 epochs; ISS small-gain condition satisfied throughout (see [docs/experiments.md](docs/experiments.md)). Coordination emerges from shared context, governance, and evidence diffusion — not from wiring. See [docs/architecture.md](docs/architecture.md) for the full technical deep dive.
 
 ---
 
-## Convergence: from memoryless to stateful
+## Convergence
 
-The original `evaluateFinality()` was memoryless — each invocation computed a fresh score and checked it against a threshold. A transient spike could trigger premature resolution; agents stuck at 0.65 would cycle forever.
-
-The convergence tracker (`src/convergenceTracker.ts`) transforms finality into a stateful process with five mechanisms from the research literature:
+The convergence tracker (`src/convergenceTracker.ts`) transforms finality into a stateful process with six mechanisms from the research literature:
 
 1. **Lyapunov disagreement V(t)** — quadratic distance to finality targets; V = 0 means perfect finality ([Olfati-Saber & Murray, 2004](#references))
 2. **Convergence rate alpha** — exponential decay rate with ETA estimation
-3. **Monotonicity gate** — score must be non-decreasing for beta rounds before auto-resolve ([Duan et al., 2025](#references))
+3. **Monotonicity gate** — score must be non-decreasing for beta rounds before auto-resolve ([Ruan et al., 2025](#references))
 4. **Plateau detection** — EMA of progress ratio triggers HITL when stalled ([Camacho et al., 2024](#references))
 5. **Pressure-directed activation** — per-dimension pressure routes agents to bottleneck dimensions ([Dorigo et al., 2024](#references))
+6. **Elimination completeness (Gate F)** — all certified hypothesis eliminations must be applied before finality can be declared
 
 | Condition | Outcome |
 |-----------|---------|
@@ -127,7 +134,7 @@ Validation: Three experiments (Issue #18 program) prove non-compensability:
 2. **exp8-compensate**: Synthetic workload deliberately inflating claim_confidence and goal_completion while leaving contradiction_resolution low. Result: vector finality correctly blocks all finality attempts.
 3. **Exp 9 sub-test 7**: Determinism and replay validation across M&A and financial scenarios. Result: per-dimension monotonicity gates hold across replay, validating CRDT monotonicity assumption A3.
 
-See [publication/swarm-governed-agents.tex](publication/swarm-governed-agents.tex) (Section "Per-Dimension Finality and Non-Compensability", Theorem 2) for formal proofs and witness cases.
+See [publications/publication_1/swarm-governed-agents.tex](publications/publication_1/swarm-governed-agents.tex) (Section "Per-Dimension Finality and Non-Compensability", Theorem 2) for formal proofs and witness cases.
 
 ---
 
@@ -179,7 +186,7 @@ The finality evaluator queries the graph to compute a goal score across four wei
 
 ## Scalability: from swarm to fabric
 
-The reference implementation runs one swarm with seven agents against one scope. The architecture is designed to scale:
+The reference implementation runs one swarm with ten agents against one scope. The architecture is designed to scale:
 
 **Multiple scopes.** Each scope is an isolated coordination context: its own semantic graph, finality state, convergence history, and MITL queue.
 
@@ -214,24 +221,27 @@ pnpm run demo              # Demo UI on port 3003
 
 The demo UI includes one-click **Reset state** and **Restart** buttons, a service readiness check that gates the start, and a full-screen **HITL modal** that pauses the demo when human decisions are required (governance interventions and finality review).
 
-See [docs/demo.md](docs/demo.md) for the full walkthrough and [demo/DEMO.md](demo/DEMO.md) for the complete step-by-step guide.
+See [docs/archive/demo.md](docs/archive/demo.md) for the archived demo guide and [demo/DEMO.md](demo/DEMO.md) for the complete step-by-step guide.
 
 **Financial consolidation** — A second scenario (`demo/scenario/docs-financial/`, 8 documents) exercises dual temporality: holding-company consolidation with subsidiary reports, restatements, auditor review, and management response. Run with `./scripts/run-experiment.sh financial --rounds=8`. See [docs/demos/financial/README.md](docs/demos/financial/README.md) and [docs/demos/COMPARISON-financial-vs-ma.md](docs/demos/COMPARISON-financial-vs-ma.md) for protocol and consistency check vs M&A.
 
 **Insurance onboarding** — 22-doc corpus for 20+ convergence cycles; see [docs/demos/insurance/README.md](docs/demos/insurance/README.md). Run with `./scripts/run-experiment.sh insurance`.
 
+**European Green Bond (EUGBS)** — 38-doc corpus simulating the full lifecycle of a EUR 250M green bond; run with `./scripts/run-experiment.sh green-bond`. See [docs/demos/green-bond/README.md](docs/demos/green-bond/README.md).
+
 ---
 
 ## Validation
 
-**305 tests** across 37 suites (Vitest) cover convergence math, finality decision paths, governance rule evaluation, semantic graph monotonicity, state machine CAS, policy engine, finality certificates, agent tools, and Gate B/C/D. **7 convergence benchmark scenarios** validate the tracker with pure math (no Docker, no LLM). A **sgrs load benchmark** demonstrates multiple concurrent instances sharing a single governance config: high throughput (~10^5 ops/s), sub-ms latencies, and identical outputs across instances (unified governance). An **E2E pipeline** (`scripts/run-e2e.sh`) tests the full Docker stack from document ingestion through governance to semantic graph verification. **Governance path auditing** seeds three proposal modes (MASTER/MITL/YOLO) and verifies the audit trail.
+**460 TypeScript tests** across ~50 suites (Vitest) cover convergence math, finality decision paths, governance rule evaluation, semantic graph monotonicity, state machine CAS, policy engine, finality certificates, propagation, agent tools, and Gates B/C/D/F. **252 Rust lib tests** (sgrs-core) cover bilattice algebra (38 proptests + deterministic), sheaf Laplacian, gossip protocols, push-sum, ISS analysis, causal DAG (251 tests), topology builders, Π_A projection closure proptests, and vector finality. **12 propagation experiments** (E1-E12) validate sheaf diffusion contraction, bilattice algebra, topology sensitivity across 5 families, Tarski vs linear Pareto cost, operator choice analysis (gossip-average vs gossip-Tarski vs linear, 21-1024 nodes), and the monotonicity-correctness impossibility theorem (push-sum, E12). **7 convergence benchmark scenarios** validate the tracker with pure math (no Docker, no LLM). **138 Lean 4 machine-checked items** (46 theorems + 41 definitions + 4 structures) across 9 files and 1,169 lines, covering bilattice algebra, hybrid pipeline with Gate F, and Stage 3 FCA (concept lattice, Galois bridge, convergence, tower). A **TLA+ model-checked** kernel (10,160 states, 0 violations). A **sgrs load benchmark** demonstrates multiple concurrent instances sharing a single governance config: high throughput (~10^5 ops/s), sub-ms latencies, and identical outputs across instances (unified governance). An **E2E pipeline** (`scripts/run-e2e.sh`) tests the full Docker stack from document ingestion through governance to semantic graph verification.
 
-**Scalability:** The governance/convergence kernel (sgrs-core) is load-benchmarked; Node, Postgres, NATS, and S3 each have established scalability profiles. Whole-system scaling is an engineering/composition concern, not a novel bottleneck in this stack.
+**Scalability:** The governance/convergence kernel (sgrs-core) is load-benchmarked; propagation experiments validated at 1024 nodes on ring/3-regular/modular topologies. Node, Postgres, NATS, and S3 each have established scalability profiles.
 
-**What's theoretical:** scalability beyond ~10 agents (architecture supports it, not stress-tested), long convergence runs over hundreds of epochs. Adversarial robustness is partially validated (Exp 8: ephemeral false finality under 2-agent collusion, self-corrected via cycle-based re-extraction).
+**What's theoretical:** scalability beyond ~10 agents for the full system (architecture supports it, kernel validated to 1024), long convergence runs over hundreds of epochs. Adversarial robustness is partially validated (Exp 8: ephemeral false finality under 2-agent collusion, self-corrected via cycle-based re-extraction).
 
 ```bash
-pnpm run test                                  # 305 tests across 37 suites
+pnpm run test                                  # 460 TypeScript tests across ~50 suites
+cargo test --manifest-path sgrs-core/Cargo.toml  # 252 Rust lib tests (bilattice, propagation, causal DAG, E1-E12)
 npx tsx scripts/benchmark-convergence.ts       # 7 convergence scenarios
 pnpm run benchmark:sgrs                        # sgrs load: N instances, unified governance
 ./scripts/run-e2e.sh                           # Full E2E pipeline
@@ -243,7 +253,7 @@ See [docs/validation.md](docs/validation.md) for the complete test methodology a
 
 ## Architecture
 
-**Event bus:** NATS JetStream stream `SWARM_JOBS` with subjects `swarm.jobs.>`, `swarm.proposals.>`, `swarm.actions.>`, `swarm.events.>`. Durable pull consumers, one per agent instance.
+**Event bus:** NATS JetStream stream `SWARM_JOBS` with subjects `swarm.jobs.>`, `swarm.proposals.>`, `swarm.actions.>`, `swarm.events.>`, `swarm.evidence.>`. Durable pull consumers, one per agent instance.
 
 **Context and state:** Postgres `context_events` (append-only WAL) and `swarm_state` (singleton, epoch CAS). S3 for facts, drift, and history.
 
@@ -251,11 +261,13 @@ See [docs/validation.md](docs/validation.md) for the complete test methodology a
 
 **Convergence history:** Postgres `convergence_history` (scope_id, epoch, goal_score, lyapunov_v, dimension_scores JSONB, pressure JSONB). Append-only. Feeds Gate C oscillation detection (lag-1 autocorrelation) and trajectory quality scoring.
 
-**Three-tier governance:** Tier 1 deterministic (sgrs-core Rust kernel: policy check, lattice admissibility, mode routing; zero LLM tokens) -> Tier 2 oversight agent (accept/escalate-to-LLM/escalate-to-human) -> Tier 3 full LLM governance agent with tool calls. Circuit breaker (3 failures, 60s cooldown) ensures Tier 1 fallback. Every decision persisted to `decision_records` with policy version hash and governance path; obligations executed via enforcer.
+**Three-tier governance:** Tier 1 deterministic (sgrs-core Rust kernel: policy check, order admissibility on M = L × A, mode routing; zero LLM tokens) -> Tier 2 oversight agent (accept/escalate-to-LLM/escalate-to-human) -> Tier 3 full LLM governance agent with tool calls. Circuit breaker (3 failures, 60s cooldown) ensures Tier 1 fallback. Every decision persisted to `decision_records` with policy version hash and governance path; obligations executed via enforcer.
 
-**Finality certificates:** When a scope reaches RESOLVED (all five gates passed) or is human-approved, a signed JWS (Ed25519) is stored in `finality_certificates` with policy version hashes and dimensional snapshot. Summary API and `GET /finality-certificate/:scope_id` expose certificates for audit. Perpetual lifecycle: new context re-opens convergence; new certificate extends the chain.
+**Finality certificates:** When a scope reaches RESOLVED (all six gates passed) or is human-approved, a signed JWS (Ed25519) is stored in `finality_certificates` with policy version hashes and dimensional snapshot. Summary API and `GET /finality-certificate/:scope_id` expose certificates for audit. Perpetual lifecycle: new context re-opens convergence; new certificate extends the chain.
 
-**Finality:** After each governance round, `evaluateFinality(scopeId)` runs against the semantic graph and convergence history. Five gates: monotonicity (A), evidence coverage + contradiction mass (B), oscillation detection + trajectory quality (C), quiescence (D), minimum content (E). Plus divergence escalation and plateau-triggered HITL.
+**Finality:** After each governance round, `evaluateFinality(scopeId)` runs against the semantic graph and convergence history. Six gates: monotonicity (A), evidence coverage + contradiction mass (B), oscillation detection + trajectory quality (C), quiescence (D), minimum content (E), elimination completeness (F). Plus divergence escalation, plateau-triggered HITL, and ISS cascade check (small-gain condition).
+
+**Evidence propagation:** 5-node state cycle (ContextIngested → FactsExtracted → DriftChecked → EvidencePropagated → DeltasExtracted). Propagation agent runs sheaf Laplacian diffusion at DriftChecked; evidence bus publishes along sheaf edges. Causal contribution layer (migration 019): facts, drift, propagation, governance, resolver, and status agents plus `finalityEvaluator` (on RESOLVED) emit content-addressed contributions via `emitContribution`; evidence state space; ISS cascade stability. Three gossip operators: gossip-average (correct consensus, recommended default), push-sum (Kempe et al. 2003, algebraically equivalent for bilateral exchanges), and gossip-Tarski (knowledge-monotone but converges to global max, not mean). **Impossibility theorem (E12):** no gossip protocol on bilattice evidence can simultaneously converge to the true mean AND be knowledge-monotone — resolved through layer separation (correct consensus in propagation + monotone audit in causal DAG).
 
 **Facts-worker:** Python (FastAPI + OpenAI SDK). Runs in Docker. OpenAI by default; Ollama opt-in via `FACTS_WORKER_OLLAMA=1`.
 
@@ -267,14 +279,16 @@ See [docs/architecture.md](docs/architecture.md) for the full technical deep div
 
 - **TypeScript** — orchestration, agents, state graph, convergence tracker, feed, tests.
 - **Python** — facts-worker (direct OpenAI SDK; OpenAI default, Ollama opt-in).
-- **Rust (sgrs-core)** — governance reduction kernel, convergence math, finality gates (napi-rs addon).
+- **Rust (sgrs-core)** — governance reduction kernel, convergence math, finality gates, sheaf propagation, ISS analysis (napi-rs addon).
 - **Docker Compose** — Postgres (pgvector), MinIO (S3), NATS JetStream, facts-worker, feed server, otel-collector, Prometheus, Grafana.
 - **NATS JetStream** — event bus.
 - **Postgres + pgvector** — context WAL, state graph, semantic graph with optional 1024-d embeddings, convergence history.
 - **MinIO** — S3-compatible blob store for facts, drift, and history.
-- **Prometheus + Grafana** — metrics collection and dashboards (proposal counts, agent latency, policy violations).
+- **Prometheus + Grafana** — metrics collection and dashboards. The "Swarm Governance" dashboard covers four operational rows (Overview with governance mode timeline, Token Economics with per-role/per-model consumption, Governance Pipeline with decision-path distribution, Agent Performance with activation waste analysis) plus a collapsible Convergence Details row. A separate "SGRS Core" dashboard tracks Rust kernel call latency for developer profiling.
 - **OpenTelemetry** — traces and metrics via OTLP to the collector; Prometheus scrape endpoint.
 - **OpenAI or Ollama** — extraction (facts-worker), rationale, HITL explanation, embeddings (`bge-m3` via Ollama).
+
+**Model onboarding (optional, recommended for production):** Qualification outputs drive `model_evals/onboarding-policy.json`. Set `MODEL_ONBOARDING_ENFORCE=1` so orchestration model picks (governance oversight, extraction paths in `modelConfig.ts`) are restricted to qualified models with safe fallback; override path with `MODEL_ONBOARDING_POLICY_PATH` if needed. See `.env.example` and `model_evals/latest.md`.
 
 ---
 
@@ -359,7 +373,7 @@ Set in `governance.yaml` (per-scope overrides supported):
 |------|-----------|----------------------|
 | `YOLO` | Valid transitions approved automatically; policy blocks overridden with auditable `yolo_override`. Oversight agent may escalate. | Tier 1 + Tier 2 + Tier 3 (with circuit-breaker fallback to Tier 1) |
 | `MITL` | Kernel escalates with `mitl_required`; proposals go to MITL queue for human approval. | Tier 1 + Tier 2 (human) |
-| `MASTER` | Most restrictive: policy blocks and lattice incomparability produce Reject. Zero LLM tokens. | Tier 1 only (reduction kernel) |
+| `MASTER` | Most restrictive: policy blocks and **incomparability in M = L × A** produce Reject. Zero LLM tokens. | Tier 1 only (reduction kernel) |
 
 ---
 
@@ -392,13 +406,17 @@ Set in `governance.yaml` (per-scope overrides supported):
 ## Tests
 
 ```bash
-pnpm run test          # 305 tests across 37 suites (Vitest); 4 integration suites (require Docker)
+pnpm run test          # 460 tests across ~50 suites (Vitest); 5 integration suites (require Docker)
 pnpm run test:watch
 ```
 
 ```bash
 npx tsx scripts/benchmark-convergence.ts   # 7 convergence scenarios (pure math, no Docker)
 pnpm run benchmark:sgrs                    # sgrs load: multi-instance, unified governance
+```
+
+```bash
+cargo test --manifest-path sgrs-core/Cargo.toml  # 252 Rust lib tests
 ```
 
 ```bash
@@ -416,7 +434,7 @@ pytest tests/ -v      # Python facts-worker unit + integration
 - **Embeddings:** Set `FACTS_SYNC_EMBED=1` + Ollama serving `bge-m3`. Claim nodes get 1024-d embeddings.
 - **Tuner agent:** `AGENT_ROLE=tuner pnpm run swarm` optimizes activation filter configs via LLM.
 - **Pressure-directed activation:** Set filter type to `pressure_directed` in agent config. Agents activate based on convergence pressure.
-- **Observability:** `docker compose up -d` includes Prometheus (9090), Grafana (3004, anonymous read), and an OTEL collector. Agents default to `OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318` when started via `pnpm run swarm`. The feed server on port 3002 serves an observability dashboard with live events, convergence, and service health. Grafana ships with a pre-provisioned "Swarm Governance" dashboard. If Grafana shows no data: (1) start the observability stack (`docker compose up -d otel-collector prometheus grafana`), (2) start the swarm with `pnpm run swarm`, (3) run some activity (e.g. demo), then open http://localhost:3004 and the Swarm Governance dashboard.
+- **Observability:** `docker compose up -d` includes Prometheus (9090), Grafana (3004, anonymous read), and an OTEL collector. Agents default to `OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318` when started via `pnpm run swarm`. The feed server on port 3002 serves an observability dashboard with live events, convergence, and service health. Grafana ships with two pre-provisioned dashboards: **Swarm Governance** (governance mode, token economics, governance pipeline, agent performance, convergence) and **SGRS Core** (Rust kernel profiling). Key metrics: `swarm.governance.mode_active` (MASTER/MITL/YOLO per scope), `swarm.llm.tokens` and `swarm.llm.calls` (per role/model), `swarm.governance.path` (decision-path distribution), `swarm.state.transition` (cycle flow). If Grafana shows no data: (1) start the observability stack (`docker compose up -d otel-collector prometheus grafana`), (2) start the swarm with `pnpm run swarm`, (3) run some activity (e.g. demo), then open http://localhost:3004 and the Swarm Governance dashboard.
 - **Policy version and certificates:** Summary API (`GET /summary`) exposes `policy_version` (governance/finality config hashes) and `finality_certificate` when a scope has been resolved. MITL server exposes `GET /finality-certificate/:scope_id` for the latest signed certificate.
 For current status, verified functionality, and next steps, see **STATUS.md**.
 
@@ -424,14 +442,13 @@ For current status, verified functionality, and next steps, see **STATUS.md**.
 
 ## Further reading
 
-- [publication/swarm-governed-agents.pdf](publication/swarm-governed-agents.pdf) -- full paper: formal design, convergence theory, five gates, bitemporal model, perpetual finality lifecycle, enterprise regulatory fitness
+- [publications/publication_1/swarm-governed-agents.pdf](publications/publication_1/swarm-governed-agents.pdf) -- Paper 1 (full PDF): formal design, convergence theory, six gates (A-F), bitemporal model, perpetual finality lifecycle, enterprise regulatory fitness
 - [docs/architecture.md](docs/architecture.md) -- event bus internals, state machine, database schema, governance loop, policy engine, decision records, finality certificates
 - [docs/convergence.md](docs/convergence.md) -- formal convergence theory, Gate C (oscillation, trajectory quality), configuration reference, benchmark scenarios
-- [docs/finality-design.md](docs/finality-design.md) -- finality gates B/C/D, certificates, evidence coverage, implementation status
-- [docs/governance-design.md](docs/governance-design.md) -- policy stack, reduction kernel, obligations
 - [docs/validation.md](docs/validation.md) -- test methodology, what's proven vs theoretical, known gaps
-- [docs/experiments.md](docs/experiments.md) — experimental protocols; [docs/experiments/README.md](docs/experiments/README.md) — experiment table and quick start; [docs/demos/](docs/demos/README.md) — M&A, Financial, Insurance use cases; financial vs M&A comparison in [docs/demos/COMPARISON-financial-vs-ma.md](docs/demos/COMPARISON-financial-vs-ma.md)
-- [docs/demo.md](docs/demo.md) -- Project Horizon M&A demo walkthrough and explainability
+- [docs/experiments.md](docs/experiments.md) -- experimental protocols; [docs/demos/README.md](docs/demos/README.md) -- M&A, Financial, Insurance, Green Bond use cases; financial vs M&A comparison in [docs/demos/COMPARISON-financial-vs-ma.md](docs/demos/COMPARISON-financial-vs-ma.md)
+- [docs/archive/demo.md](docs/archive/demo.md) -- archived Project Horizon demo guide ([demo/DEMO.md](demo/DEMO.md) is canonical)
+- [publications/README.md](publications/README.md) -- publication index for this open snapshot
 
 ---
 
@@ -440,20 +457,23 @@ For current status, verified functionality, and next steps, see **STATUS.md**.
 1. **Olfati-Saber, R. & Murray, R. M.** (2004). Consensus Problems in Networks of Agents With Switching Topology and Time-Delays. *IEEE Transactions on Automatic Control*, 49(9), 1520--1533. doi:[10.1109/TAC.2004.834113](https://doi.org/10.1109/TAC.2004.834113)
    — Lyapunov stability framework for multi-agent consensus; foundation for the disagreement function V(t).
 
-2. **Duan, S., Reiter, M. K., & Zhang, H.** (2025). Aegean: Making State Machine Replication Fast without Compromise. *arXiv preprint* arXiv:[2512.20184](https://arxiv.org/abs/2512.20184)
-   — Monotonicity gates and coordination invariants for state machine replication.
+2. **Ruan, C., Wang, Y., Shi, Z., & Li, J.** (2025). Reaching Agreement Among Reasoning LLM Agents. *arXiv preprint* arXiv:[2512.20184](https://arxiv.org/abs/2512.20184)
+   — Multi-agent reasoning consensus; Aegean protocol with incremental quorum convergence and refinement monotonicity. We adapt their monotonicity principle for the finality gate.
 
 3. **Camacho, D. et al.** (2024). MACI: Multi-Agent Collective Intelligence. *arXiv preprint* arXiv:[2510.04488](https://arxiv.org/abs/2510.04488)
    — EMA-based plateau detection for multi-agent stagnation.
 
-4. **Laddad, S. et al.** (2024). CodeCRDT: A Conflict-Free Replicated Data Type for Collaborative Code Editing. *arXiv preprint* arXiv:[2510.18893](https://arxiv.org/abs/2510.18893)
-   — CRDT monotonic upserts for irreversible semantic graph operations.
+4. **Laddad, S., Cheung, A., & Hellerstein, J. M.** (2022). Keep CALM and CRDT On. *arXiv preprint* arXiv:[2210.12605](https://arxiv.org/abs/2210.12605) (VLDB 2023).
+   — CRDT monotonic merge operations for distributed systems; foundation for irreversible semantic graph operations.
 
 5. **Dorigo, M., Theraulaz, G., & Trianni, V.** (2024). Swarm Intelligence: Past, Present, and Future. *Proceedings of the Royal Society B*, 291(2024). doi:[10.1098/rspb.2024.0856](https://doi.org/10.1098/rspb.2024.0856)
    — Stigmergic coordination; basis for pressure-directed agent activation.
 
 6. **Snodgrass, R. T.** (2000). *Developing Time-Oriented Database Applications in SQL*. Morgan Kaufmann.
    -- Bitemporal data model: valid time + transaction time; foundation for the dual-temporality semantic graph.
+
+7. **Kempe, D., Dobra, A., & Gehrke, J.** (2003). Gossip-Based Computation of Aggregate Information. *44th Annual IEEE Symposium on Foundations of Computer Science (FOCS)*, 482--491. doi:[10.1109/SFCS.2003.1238228](https://doi.org/10.1109/SFCS.2003.1238228)
+   — Push-sum gossip protocol for distributed averaging; used to confirm the impossibility of simultaneous correctness and knowledge-monotonicity on bilattice evidence (E12).
 
 ---
 
@@ -467,7 +487,7 @@ If you use this project in academic research or technical writing, please cite:
   title        = {Swarm of Governed Agents: Declarative Governance, Bitemporal State, and Formal Convergence for Multi-Agent Coordination},
   year         = {2026},
   url          = {https://github.com/DealExMachina/swarm-of-governed-agents},
-  note         = {Event-driven agent swarm with Lyapunov convergence, bitemporal CRDT semantic graph, pluggable policy engines, Ed25519 finality certificates, and perpetual compliance lifecycle}
+  note         = {Event-driven agent swarm with Lyapunov convergence, sheaf-based evidence propagation, bitemporal CRDT semantic graph, pluggable policy engines, Ed25519 finality certificates, and perpetual compliance lifecycle}
 }
 ```
 
@@ -475,4 +495,6 @@ If you use this project in academic research or technical writing, please cite:
 
 ## License
 
-MIT — see [LICENSE](./LICENSE).
+**TypeScript orchestration** (root, `src/`, `scripts/`, etc.): [AGPL-3.0-only](./LICENSE).
+
+**sgrs-core** (Rust kernel): [Elastic License 2.0](./sgrs-core/LICENSE) (ELv2).

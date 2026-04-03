@@ -32,6 +32,8 @@ export const ROLE_TO_DIMENSIONS: Record<string, string[]> = {
   resolver: ["contradiction_resolution"],
   planner: ["goal_completion"],
   status: ["risk_inverse"],
+  propagation: ["claim_confidence", "contradiction_resolution", "goal_completion", "risk_inverse"],
+  deltas: ["claim_confidence", "contradiction_resolution", "goal_completion", "risk_inverse"],
   governance: ["claim_confidence", "contradiction_resolution", "goal_completion", "risk_inverse"],
   executor: ["claim_confidence", "contradiction_resolution", "goal_completion", "risk_inverse"],
   tuner: [],
@@ -52,6 +54,16 @@ const DEFAULT_ROLE_CONFIGS: Record<string, RoleScalingConfig> = {
     minInstances: 1, maxInstances: 4, subject: "swarm.events.>", category: "worker",
     targetUtilization: 0.75, lagThreshold: 50, activationLagThreshold: 10,
     heartbeatTimeoutMs: 90_000, drainGracePeriodMs: 70_000,
+  },
+  propagation: {
+    minInstances: 1, maxInstances: 2, subject: "swarm.events.>", category: "worker",
+    targetUtilization: 0.75, lagThreshold: 50, activationLagThreshold: 10,
+    heartbeatTimeoutMs: 90_000, drainGracePeriodMs: 70_000,
+  },
+  deltas: {
+    minInstances: 1, maxInstances: 2, subject: "swarm.events.>", category: "worker",
+    targetUtilization: 0.75, lagThreshold: 50, activationLagThreshold: 10,
+    heartbeatTimeoutMs: 60_000, drainGracePeriodMs: 40_000,
   },
   resolver: {
     minInstances: 1, maxInstances: 2, subject: "swarm.events.>", category: "worker",
@@ -85,6 +97,8 @@ export const DEFAULT_SERVICE_RATES: Record<string, number> = {
   facts: 0.003,       // 1/300s
   drift: 0.011,       // 1/90s
   planner: 0.017,     // 1/60s
+  propagation: 0.017, // 1/60s
+  deltas: 0.033,      // 1/30s
   status: 0.017,      // 1/60s
   governance: 0.033,  // 1/30s
   executor: 0.033,    // 1/30s

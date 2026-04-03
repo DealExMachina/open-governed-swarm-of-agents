@@ -1,0 +1,112 @@
+FDA INFORMATION REQUEST
+================================================================================
+IND Number:         IND-178432
+Protocol:           ONCO-RESOLVE-301
+Sponsor:            Meridian Therapeutics, Inc.
+FDA Division:       Division of Oncology Products 1 (DOP1)
+Date Issued:        2024-12-03
+Review Discipline:  Clinical / Safety
+Agent:              Dr. Katherine Reeves, FDA Medical Officer, DOP1
+================================================================================
+
+FROM: Division of Oncology Products 1, Office of Oncologic Diseases
+      Center for Drug Evaluation and Research (CDER)
+      U.S. Food and Drug Administration
+
+TO:   Meridian Therapeutics, Inc.
+      Attn: Dr. Richard Holloway, VP Regulatory Affairs
+      CC:   Dr. Elena Vasquez, Protocol Chair
+
+RE:   Information Request — Data Integrity and Safety Signal Management
+      Protocol ONCO-RESOLVE-301 (IND-178432)
+
+Dear Dr. Holloway,
+
+The Division has reviewed IND Safety Report ISR-178432-2024-008 (filed
+2024-11-15) regarding the data correction at Site 07 (Cedars-Sinai Medical
+Center) and the resulting impact on hepatotoxicity safety assessments. The
+Division requests the following information pursuant to 21 CFR 312.23(a)(11)
+and 312.56(b). Please respond within 30 calendar days of receipt.
+
+REQUEST 1: COMPLETE AUDIT TRAIL FOR CORRECTED ALT VALUES
+
+  a) Provide screen captures of the EDC audit trail (Medidata Rave) showing:
+     - Original data entry timestamps and user credentials
+     - Correction timestamps and user credentials
+     - Reason for change fields as entered
+     - System-generated vs. manual audit trail entries
+  b) Provide copies of source documents (hospital laboratory printouts)
+     for patients 07-012, 07-019, and 07-024 at the relevant visit (C4D1).
+  c) Confirm whether the EDC system meets 21 CFR Part 11 requirements for:
+     - Unique user identification (Section 11.100)
+     - Electronic signature attribution (Section 11.200)
+     - Audit trail integrity (Section 11.10(e))
+
+REQUEST 2: DATA INTEGRITY PROCEDURES
+
+  a) Describe the data entry and verification procedures in effect at Site 07
+     at the time of the original entry (August 2024), including:
+     - Single vs. dual data entry practices
+     - Source document verification (SDV) frequency and scope
+     - Query management timelines
+  b) Describe any changes to data integrity procedures implemented since
+     discovery of the error (October 2024).
+  c) Provide results of the cross-site audit of ALT/AST values referenced
+     in DSMB recommendation #5 (DSMB Meeting DSMB-002). Were additional
+     transcription errors identified at any of the 12 sites?
+
+REQUEST 3: HEPATIC MONITORING PROTOCOL AMENDMENT
+
+  a) Provide the amended hepatic monitoring schedule referenced in DSMB
+     recommendations. The Division expects this to include, at minimum:
+     - Frequency of ALT/AST monitoring
+     - Pre-specified dose modification criteria
+     - Criteria for treatment discontinuation
+     - Hepatology consultation triggers
+  b) Provide the timeline for protocol amendment submission (Amendment v3.2).
+  c) Clarify how the amended monitoring will be applied:
+     - To newly enrolled patients only, or retroactively to all active patients
+     - Whether re-consent is required for active patients
+
+REQUEST 4: SAFETY ANALYSIS VERSIONING
+
+  a) For each safety analysis or report submitted under this IND since
+     first-patient-first-visit, identify:
+     - Which version of the ALT data was used (pre-correction or post-correction)
+     - Whether conclusions change with the corrected data
+  b) Provide the sensitivity analysis referenced in DSMB Meeting DSMB-002.
+  c) Confirm that the Phase I safety summary (Protocol P1-ORX-4471) has NOT
+     been modified as a result of Phase II findings.
+
+REQUEST 5: STOPPING BOUNDARY ASSESSMENT
+
+  a) The protocol specifies a hepatotoxicity stopping boundary of 8%. The
+     Division notes that the corrected rate (reported variously as 7.8% and
+     8.4% depending on evaluable population) may exceed this boundary.
+     Provide:
+     - Clear definition of the evaluable population for the stopping boundary
+     - Recalculated rate using the protocol-specified population
+     - If the boundary is exceeded, justification for continued enrollment
+  b) Provide the DSMB meeting minutes, including the dissenting opinion
+     referenced in the DSMB communication.
+
+REQUEST 6: RECIST DISCREPANCIES
+
+  a) The Division is aware of cross-site discrepancies in tumor response
+     assessments (referenced in sponsor communications). Provide:
+     - Number and nature of discrepant assessments
+     - Resolution process and timeline
+     - Impact on primary endpoint (PFS) assessment
+
+RESPONSE TIMELINE:
+  The sponsor is requested to respond within 30 calendar days of receipt
+  (response due by 2025-01-02). Failure to respond may result in a clinical
+  hold per 21 CFR 312.42.
+
+  For questions regarding this information request, contact:
+    Dr. Katherine Reeves, Medical Officer
+    Division of Oncology Products 1
+    Phone: (301) 796-XXXX
+    Email: katherine.reeves@fda.hhs.gov
+
+STATE: EPOCH_2 | FDA_IR: ISSUED | RESPONSE_DUE: 2025-01-02 | RISK: CLINICAL_HOLD

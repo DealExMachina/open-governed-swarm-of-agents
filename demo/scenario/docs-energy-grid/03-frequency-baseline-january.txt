@@ -1,0 +1,88 @@
+DOCUMENT: NorthGrid Utilities — January 2026 Frequency Performance Report
+DATE: February 3, 2026
+CLASSIFICATION: NERC Operations — Internal Use
+AUTHOR: Grid Frequency Monitoring Group
+REF: NG-FREQ-2026-01-003
+
+REPORTING PERIOD: January 1-31, 2026
+
+FREQUENCY PERFORMANCE SUMMARY
+
+Nominal system frequency: 60.000 Hz
+Monthly average frequency: 60.002 Hz
+Standard deviation: 0.0087 Hz
+Maximum recorded: 60.068 Hz (Jan 14, 03:42:18 UTC — sudden wind drop)
+Minimum recorded: 59.951 Hz (Jan 22, 18:31:04 UTC — generator trip)
+
+EXCURSION EVENT LOG
+
+Low-frequency excursions (below 59.95 Hz): 23 events
+  Duration breakdown:
+    < 5 seconds:     14 events
+    5-30 seconds:     7 events
+    30-60 seconds:    2 events
+    > 60 seconds:     0 events
+
+High-frequency excursions (above 60.05 Hz): 8 events
+  Duration breakdown:
+    < 5 seconds:      5 events
+    5-30 seconds:     3 events
+    > 30 seconds:     0 events
+
+All excursion events remained within NERC BAL-003-2 (Frequency Response
+and Frequency Bias Setting) and BAL-001-2 (Real Power Balancing Control
+Performance) compliance limits.
+
+AREA CONTROL ERROR (ACE) PERFORMANCE
+
+NorthGrid ACE performance per CPS1/CPS2 metrics:
+
+  Metric  | Requirement | Achieved | Status
+  --------|-------------|----------|--------
+  CPS1    | >= 100%     | 142%     | Pass
+  CPS2    | >= 90%      | 99.2%    | Pass
+  BAAL    | 0 violations| 0        | Pass
+
+ACE within compliance bounds 99.2% of the month. The 0.8% exceedance
+(approximately 5.9 hours cumulative) occurred during 3 separate events
+related to unexpected generator trips and rapid wind ramp-downs.
+
+MEASUREMENT INFRASTRUCTURE
+
+Primary frequency measurement: SCADA system, 2-second scan rate
+  - 34 frequency measurement points across 4 balancing areas
+  - Data resolution: 0.001 Hz, sampling every 2 seconds
+  - Monthly data volume: approximately 44 million data points
+
+Supplementary measurement: Phasor Measurement Units (PMUs)
+  - 12 PMUs installed at critical substations
+  - Sampling rate: 30 samples/second (60x SCADA resolution)
+  - Monthly data volume: approximately 933 million data points
+  - PMU data archived in OSIsoft PI historian (full resolution: 13 months)
+
+NOTE: PMU and SCADA readings may diverge during fast transient events.
+SCADA's 2-second averaging window can mask sub-second frequency nadirs.
+For compliance reporting purposes, SCADA values are currently used as
+the official record per NorthGrid Procedure NG-OP-301.
+
+FREQUENCY RESPONSE OBLIGATION (FRO)
+
+NorthGrid FRO for 2026: -840 MW/0.1 Hz
+January measured frequency response: -912 MW/0.1 Hz
+Margin above obligation: +72 MW/0.1 Hz (8.6% headroom)
+
+Primary frequency response contributors:
+  - Governor response (gas turbines):    520 MW/0.1 Hz
+  - Nuclear unit droop response:         180 MW/0.1 Hz
+  - Wind synthetic inertia:               62 MW/0.1 Hz
+  - Battery storage (fast response):     150 MW/0.1 Hz
+
+ASSESSMENT
+
+January frequency performance is satisfactory. No NERC reportable events.
+Seasonal concern: February forecasts indicate elevated cold weather risk
+with potential gas supply constraints. Recommend pre-positioning spinning
+reserves at 115% of minimum requirement through February.
+
+PREPARED BY: S. Petrov, Lead Frequency Analyst
+REVIEWED BY: D. Okonkwo, P.E., Senior Transmission Planning Engineer

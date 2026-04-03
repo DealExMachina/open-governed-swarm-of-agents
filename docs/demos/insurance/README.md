@@ -20,3 +20,7 @@ bash scripts/run-experiment.sh insurance
 ```
 
 Results: `docs/experiments/insurance/results/<timestamp>/`. The driver is uncapped: rounds can exceed corpus length (docs cycle).
+
+## Scope isolation
+
+Run insurance demos in their own session/scope. Demo feed paths now require explicit `scope_id`.

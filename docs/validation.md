@@ -1,6 +1,8 @@
 # Validation and Test Coverage
 
-> Back to [README](../README.md) | See also [STATUS.md](../STATUS.md), [experiments.md](experiments.md)
+> Back to [README](../README.md) | See also [STATUS.md](../STATUS.md), [experiments.md](experiments.md), [stage-2-status-and-experiments.md](stage-2-status-and-experiments.md) (Stage 2 experiments E1--E12).
+
+**Last updated:** 2026-03-28 (P0: WAL/DAG contract, model onboarding policy; plus 2026-03-27 theory sync).
 
 This document provides an honest accounting of what is tested, what is validated
 mathematically, and what remains theoretical or unverified. The goal is
@@ -14,18 +16,23 @@ and where assumptions begin.
 ```mermaid
 flowchart TB
   subgraph tested["Tested / validated"]
-    U[Unit tests Vitest 305]
+    U[Unit tests: 460 TS Vitest + 252 Rust]
     BENCH[Convergence benchmark 7 scenarios]
     SGRS[sgrs load benchmark unified governance]
+    PROP[Propagation experiments E1-E12]
+    LEAN[Lean 4 proofs: 138 items, 9 files]
+    TLAP[TLA+ model check: 10160 states, 0 violations]
     E2E[E2E pipeline run-e2e.sh manual]
   end
   subgraph theoretical["Theoretical / assumed"]
     T1[Concurrent CAS contention]
     T2[Real LLM trajectory patterns]
     T3[Multi-scope, chaos, stress]
+    T4[Concept lattice engine: Lean only, no Rust]
   end
   U --> BENCH
-  BENCH --> E2E
+  BENCH --> PROP
+  PROP --> E2E
 ```
 
 | Aspect | Tested / Validated | Theoretical / Assumed |
@@ -45,12 +52,25 @@ flowchart TB
 | E2E pipeline (Docker, all services) | `run-e2e.sh` script (manual, ~2 min) | Pipeline stability under sustained load |
 | Policy (OpenFGA) | 4 unit tests with mocked fetch | OpenFGA model completeness and correctness |
 | Event bus (NATS JetStream) | 7 unit tests with mocked NATS | Message ordering and exactly-once delivery under backpressure |
+| Bilattice algebra (7 ops, orderings, interlacing) | 38 proptest + 6 deterministic = 44 Rust tests on [0,1]^4 x [0,1]^4 | Interlacing for infinite bilattices (componentwise argument) |
+| Sheaf diffusion (L_F, contraction, spectral gap) | 12 propagation experiments E1-E12 across 5 topologies | Identity restriction maps only (constant sheaf); non-trivial sheaf untested |
+| ISS cascade stability | E7: adversarial kappa ~ 0.19, parametric sweep confirms boundary kappa* = 0.5775 | LLM perturbation bound assumed, not enforced |
+| Gossip protocols (average, Tarski, push-sum) | E10-E12: 1024-node stress test; impossibility theorem confirmed (24/24 configs) | Bilateral exchange assumption (push-sum equivalence) |
+| Π_A projection closure (bilattice box) | 6 proptests (monotone ≤_k, fixed-point on A, non-extensive) + `Projected<T>` newtype | Box clamp sufficient for all admissible sets |
+| Product poset **M = L × A** (kernel admissibility) | Rust governance + types tests; `PartialOrd` on convergence rank A | **Not** a lattice on pairs: partial order only, no join/meet on M |
+| Causal DAG (Rust) | 251 property-based + unit tests; SHA-256/CBOR content hashing | That DAG frontier determines concept lattice (Conj. 10.2) |
+| Causal contributions (TS) | `emitContribution` from facts, drift, propagation, governance, resolver, status; `finalityEvaluator` on RESOLVED | Runtime Contribution → EvidenceState mapping intentionally not implemented **by architecture lock** (audit-only DAG); FCA incidence extraction still not implemented |
+| WAL vs causal DAG | Governance and other paths call `appendEvent` for semantic WAL; `createContribution` does not auto-append WAL | Feed/state consumers must not assume a contribution row implies a matching WAL event |
+| Model onboarding (P0) | `enforceModelOnboarding` in `modelConfig.ts`; policy JSON + unit tests | With `MODEL_ONBOARDING_ENFORCE` off or missing policy, any model is accepted (documented fallback) |
+| Lean 4 proofs | 138 items (46 theorems + 41 defs + 4 structures) across 9 files, type-checked | Proofs use Fin n -> Prop (not computable Finset); Rust must match structurally |
+| TLA+ model checking | KernelBilattice.tla: 4 safety invariants, 10,160 states, 0 violations | Covers two configurations; not exhaustive over all parameters |
+| FCA concept lattice | Lean proofs only (65 defs/theorems in Concept/) | No Rust implementation; no runnable experiments (E23-E26 blocked) |
 
 ---
 
 ## 2. Unit tests (Vitest)
 
-**305 tests across 37 suites.** All run with `pnpm test` (no Docker, no network). Four integration suites are skipped unless Docker services are available.
+**460 tests across ~50 test files.** All run with `pnpm test` (no Docker, no network). Some integration suites are skipped unless Docker services are available. **Rust:** 252 lib tests via `cargo test --manifest-path sgrs-core/Cargo.toml` (bilattice algebra, sheaf propagation, gossip protocols, causal DAG, governance, finality, convergence, topology). **Total:** 712 tests (252 Rust + 460 TypeScript).
 
 | Test file | Tests | Coverage area | Key assertions |
 |-----------|-------|--------------|----------------|
@@ -294,11 +314,50 @@ validation** and represent known gaps:
 
 ---
 
-## 9. Proposed experiments
+## 9. Stage 2 propagation experiments (E1--E12, all passing)
 
-The paper (Section 9) defines five experimental protocols designed to address
-open questions---particularly those identified by SECP. These experiments are
-**defined** in the paper but **implementation scripts** remain to be built:
+Stage 2 experiments validate sheaf diffusion, bilattice algebra, topology sensitivity, gossip protocols, and the impossibility theorem. All 12 pass as of 2026-03-10. Results committed under `docs/experiments/propagation/`.
+
+| ID | Key Result | Run Date |
+|----|------------|----------|
+| E1 | Error amplification ratio = 0.000 (3 seeds) | 2026-03-09 |
+| E2 | Contradiction detection at step 0 (21 pairs) | 2026-03-09 |
+| E3 | Max revisions = 1 for perturbations 0.1-0.4 | 2026-03-09 |
+| E4-T | 570/570 converged across 5 topologies; Pareto cost analysis | 2026-03-10 |
+| E5-T | Pearson r = 0.9940 (tau ~ 1/lambda_1) across 5 topology families (30 runs) | 2026-03-10 |
+| E6 | Mean support ~ 0.56 +/- 0.02 on both orthogonal dims | 2026-03-09 |
+| E7 | Adversarial kappa ~ 0.19, SG = 0.34 < 1; boundary kappa* = 0.5775 | 2026-03-09 |
+| E8-T | Hybrid <= standard on all topologies; Tarski in 2 steps | 2026-03-10 |
+| E9 | Tarski 88x cheaper on chain(20); linear 437x cheaper on complete(20) | 2026-03-10 |
+| E10 | Gossip-Tarski converges to wrong fixed point (global MAX, not mean) | 2026-03-10 |
+| E11 | Gossip-average correct at n=1024 (0.32% residual, 34ms) | 2026-03-14 |
+| E12 | Impossibility: 100% <=_k violation for correct protocols (24/24 configs) | 2026-03-14 |
+
+### 9.1 Follow-on checks (E19, E20)
+
+Two Phase-2 follow-on checks were added to close the Extract/escalation gap:
+
+- **E19 (Extract boundary loss):** `2/1000` disagreement (`0.20%`) between
+  bilattice-aware and scalarized finality on a controlled random corpus; below
+  the `5%` alert threshold.
+- **E20 (escalation necessity):** pressure-directed governance converges faster
+  than always-MASTER in the controlled M&A proxy (`7.27` vs `7.71` mean steps)
+  while cutting escalation load (`4.01` vs `7.71`) and removing unnecessary
+  escalations in this profile.
+
+See [docs/experiments/e19-e20/README.md](experiments/e19-e20/README.md) and
+artifacts under `artifacts/experiments/e19` and `artifacts/experiments/e20`.
+
+### 9.2 Snapshot scope note
+
+This open snapshot intentionally excludes Stage 3 FCA experiment files and
+their derived artifacts. The validation set retained here focuses on baseline
+swarm runtime, governance/finality behavior, and publication_1-aligned
+experiments.
+
+## 10. Stage 1 experiments (exp1--exp9) and domain demos
+
+Stage 1 experiments require Docker and test the full agent pipeline. Defined protocols, gitignored results.
 
 | Experiment | Goal | Issue |
 |------------|------|-------|
@@ -312,4 +371,23 @@ open questions---particularly those identified by SECP. These experiments are
 | 8. Cooperative agent model | Assumption #5; adversarial defense | [#22](https://github.com/DealExMachina/swarm-of-governed-agents/issues/22) |
 | 9. Local confluence | Assumption #2; CRDT + eventual consistency | [#23](https://github.com/DealExMachina/swarm-of-governed-agents/issues/23) |
 
-See [experiments.md](experiments.md) for full protocol details. When `per_dimension_finality.enabled` is true in `finality.yaml`, experiments run under **per-dimension (vector) finality**; see [formal-hardening.md](formal-hardening.md) for the assumption matrix and E1–E5 program.
+**Domain demos:** 4 scenarios validated (M&A Project Horizon, Financial consolidation, Insurance onboarding, European Green Bond).
+
+## 11. Formal verification
+
+| Tool | Scope | Items | Status |
+|------|-------|-------|--------|
+| Lean 4 | Bilattice algebra (Basic.lean) | 28 items | Type-checked, no Mathlib |
+| Lean 4 | Hybrid pipeline (HybridPipeline.lean) | 17 items | Type-checked, Gate F proven |
+| Lean 4 | FCA Context/Lattice | 8 definitions | Type-checked (textbook theorems removed) |
+| Lean 4 | FCA Galois bridge | 15 items | Type-checked, convergence preservation |
+| Lean 4 | FCA Convergence | 11 items | Type-checked, extent monotonicity |
+| Lean 4 | FCA Tower | 12 items | Type-checked, upward/downward finality lift |
+| TLA+ | KernelBilattice state machine | 4 safety invariants | 10,160 states, 0 violations |
+
+**Open proof obligations:** PO-3.5b (Markov rate bound, needs Mathlib R), PO-3.9 (spectral gap characterization).  
+PO-3.7e and PO-3.8 now have machine-checked Phase-3 baseline theorems in
+`proofs/lean4/Bilattice/Concept/Tower.lean` and
+`proofs/lean4/Bilattice/Concept/NextClosure.lean`.
+
+See [experiments.md](experiments.md) for full protocol details. When `per_dimension_finality.enabled` is true in `finality.yaml`, experiments run under **per-dimension (vector) finality**; see [formal-hardening.md](formal-hardening.md) for the assumption matrix.

@@ -7,7 +7,7 @@ import "dotenv/config";
 import { createServer, type IncomingMessage, type ServerResponse } from "http";
 import { readFileSync } from "fs";
 import { join, dirname } from "path";
-import { fileURLToPath } from "url";
+import { fileURLToPath, pathToFileURL } from "url";
 import { makeEventBus, type EventBus } from "./eventBus.js";
 import type { PushSubscription } from "./eventBus.js";
 import { appendEvent } from "./contextWal.js";
@@ -21,8 +21,8 @@ import { getPool } from "./db.js";
 import { loadPolicies, getGovernanceForScope, evaluateRules } from "./governance.js";
 import { evaluateFinality, computeGoalScoreForScope, loadFinalityConfig, loadFinalitySnapshot } from "./finalityEvaluator.js";
 import { getConvergenceState, type ConvergenceState } from "./convergenceTracker.js";
-import { getGraphSummary, appendResolutionGoal } from "./semanticGraph.js";
-import { getLatestFinalityDecision } from "./finalityDecisions.js";
+import { getGraphSummary, appendResolutionGoal, loadAllContradictionsWithResolutions } from "./semanticGraph.js";
+import { getLatestFinalityDecision, getAllFinalityDecisions } from "./finalityDecisions.js";
 import { getGovernancePolicyVersion, getFinalityPolicyVersion } from "./policyVersions.js";
 import { getLatestCertificate } from "./finalityCertificates.js";
 import { requireBearer } from "./auth.js";
@@ -48,7 +48,7 @@ const FEED_PORT = parseInt(process.env.FEED_PORT ?? "3002", 10);
 const NATS_STREAM = process.env.NATS_STREAM ?? "SWARM_JOBS";
 const S3_BUCKET = process.env.S3_BUCKET ?? null;
 const GOVERNANCE_PATH = process.env.GOVERNANCE_PATH ?? join(process.cwd(), "governance.yaml");
-const SCOPE_ID = process.env.SCOPE_ID ?? "default";
+const RUNTIME_SCOPE_ID = process.env.SCOPE_ID ?? "default";
 const MITL_URL = (process.env.MITL_URL ?? "http://localhost:3001").replace(/\/$/, "");
 
 function getPathname(url: string): string {
@@ -93,10 +93,53 @@ function readJsonBody(req: IncomingMessage): Promise<Record<string, unknown>> {
   });
 }
 
+function readScopeIdFromRequest(req: IncomingMessage, body?: Record<string, unknown>): string | null {
+  const query = getQuery(req.url ?? "");
+  const fromQuery = typeof query.scope_id === "string" ? query.scope_id : "";
+  const fromBody = typeof body?.scope_id === "string" ? body.scope_id : "";
+  const scopeId = (fromBody || fromQuery).trim();
+  if (!scopeId) return null;
+  return scopeId;
+}
+
+function validateScopeId(scopeId: string): { ok: true } | { ok: false; status: number; error: string } {
+  if (!scopeId) return { ok: false, status: 400, error: "scope_required" };
+  if (scopeId !== RUNTIME_SCOPE_ID) {
+    return { ok: false, status: 409, error: "unsupported_scope_for_runtime" };
+  }
+  return { ok: true };
+}
+
+export function validateScopedRequest(
+  requestUrl: string | undefined,
+  body: Record<string, unknown> | undefined,
+  runtimeScopeId: string = RUNTIME_SCOPE_ID,
+): { ok: true; scopeId: string } | { ok: false; status: number; error: string } {
+  const query = getQuery(requestUrl ?? "");
+  const fromQuery = typeof query.scope_id === "string" ? query.scope_id : "";
+  const fromBody = typeof body?.scope_id === "string" ? body.scope_id : "";
+  const scopeId = (fromBody || fromQuery).trim();
+  if (!scopeId) return { ok: false, status: 400, error: "scope_required" };
+  if (scopeId !== runtimeScopeId) {
+    return { ok: false, status: 409, error: "unsupported_scope_for_runtime" };
+  }
+  return { ok: true, scopeId };
+}
+
 /** POST /context/docs: add a document to the WAL (type context_doc). Triggers facts pipeline. */
 async function handleAddDoc(req: IncomingMessage, res: ServerResponse): Promise<void> {
   try {
     const body = await readJsonBody(req);
+    const scopeId = readScopeIdFromRequest(req, body);
+    if (!scopeId) {
+      sendJson(res, 400, { error: "scope_required" });
+      return;
+    }
+    const valid = validateScopeId(scopeId);
+    if (!valid.ok) {
+      sendJson(res, valid.status, { error: valid.error, runtime_scope_id: RUNTIME_SCOPE_ID });
+      return;
+    }
     const title = typeof body.title === "string" ? body.title : "doc";
     const text = typeof body.body === "string" ? body.body : typeof body.text === "string" ? body.text : "";
     if (!text) {
@@ -105,7 +148,7 @@ async function handleAddDoc(req: IncomingMessage, res: ServerResponse): Promise<
     }
     const event = createSwarmEvent(
       "context_doc",
-      { title, text, source: "api" },
+      { title, text, source: "api", scope_id: scopeId },
       { source: "feed" },
     );
     const seq = await appendEvent(event as unknown as Record<string, unknown>);
@@ -117,16 +160,30 @@ async function handleAddDoc(req: IncomingMessage, res: ServerResponse): Promise<
   }
 }
 
-/** POST /context/resolution: add a manual resolution/decision to the WAL (type resolution). Integrates as new context so facts re-run and drift can clear; graph and fact history record the resolution. */
+/** POST /context/resolution: add a manual resolution/decision to the WAL (type resolution). Integrates as new context so facts re-run and drift can clear; graph and fact history record the resolution. Optional node_ids: when provided (e.g. from Choose A/B), marks those contradiction nodes resolved. When absent (freeform), uses semantic matching to find and mark addressed contradictions. */
 async function handleAddResolution(req: IncomingMessage, res: ServerResponse): Promise<void> {
   try {
     const body = await readJsonBody(req);
+    const scopeId = readScopeIdFromRequest(req, body);
+    if (!scopeId) {
+      sendJson(res, 400, { error: "scope_required" });
+      return;
+    }
+    const valid = validateScopeId(scopeId);
+    if (!valid.ok) {
+      sendJson(res, valid.status, { error: valid.error, runtime_scope_id: RUNTIME_SCOPE_ID });
+      return;
+    }
     const decision = typeof body.decision === "string" ? body.decision : typeof body.text === "string" ? body.text : "";
     if (!decision.trim()) {
       sendJson(res, 400, { error: "decision or text required" });
       return;
     }
     const summary = typeof body.summary === "string" ? body.summary : "";
+    const nodeIds = Array.isArray(body.node_ids)
+      ? (body.node_ids as unknown[]).map(String).filter((id) => id.length > 0)
+      : [];
+
     const event = createSwarmEvent(
       "resolution",
       {
@@ -134,6 +191,7 @@ async function handleAddResolution(req: IncomingMessage, res: ServerResponse): P
         summary: summary.trim() || decision.trim().slice(0, 80),
         text: decision.trim(),
         source: "user",
+        scope_id: scopeId,
       },
       { source: "feed" },
     );
@@ -141,16 +199,53 @@ async function handleAddResolution(req: IncomingMessage, res: ServerResponse): P
     const bus = await getFeedBus();
     await bus.publishEvent(event);
     try {
-      await appendResolutionGoal(SCOPE_ID, decision.trim(), summary.trim());
+      await appendResolutionGoal(scopeId, decision.trim(), summary.trim());
     } catch (err) {
       process.stderr.write(
         `[feed] appendResolutionGoal failed: ${err instanceof Error ? err.message : String(err)}\n`,
       );
     }
+
+    let evaluationResult: Record<string, unknown> = {};
+    try {
+      const { markResolved: markResolvedSvc, markResolvedByText: markResolvedByTextSvc } = await import("./resolutionService.js");
+      const s3ForResolution = S3_BUCKET ? makeS3() : null;
+      if (nodeIds.length > 0) {
+        const resolvedIds: string[] = [];
+        for (const nodeId of nodeIds) {
+          try {
+            await markResolvedSvc({
+              scope_id: scopeId,
+              node_id: nodeId,
+              judgment: "resolved",
+              reason: "HITL resolution (Choose A/B)",
+              s3Client: s3ForResolution,
+              bucket: S3_BUCKET ?? undefined,
+            });
+            resolvedIds.push(nodeId);
+          } catch (err) {
+            process.stderr.write(`[feed] mark-resolved failed for ${nodeId}: ${err instanceof Error ? err.message : String(err)}\n`);
+          }
+        }
+        evaluationResult = { method: "explicit_node_ids", marked: resolvedIds };
+      } else {
+        const result = await markResolvedByTextSvc({
+          scope_id: scopeId,
+          resolution_text: decision.trim(),
+          s3Client: s3ForResolution,
+          bucket: S3_BUCKET ?? undefined,
+        });
+        evaluationResult = result as unknown as Record<string, unknown>;
+      }
+    } catch (err) {
+      process.stderr.write(`[feed] resolution service error: ${err instanceof Error ? err.message : String(err)}\n`);
+    }
+
     sendJson(res, 200, {
       seq,
       ok: true,
-      message: "Resolution added to context. Facts pipeline will run; drift may clear. Graph and fact history will record this manual resolution.",
+      message: "Resolution evaluated against active contradictions.",
+      evaluation: evaluationResult,
     });
   } catch (e) {
     sendJson(res, 500, { error: toErrorString(e) });
@@ -158,9 +253,19 @@ async function handleAddResolution(req: IncomingMessage, res: ServerResponse): P
 }
 
 /** GET /pending: proxy to MITL server pending list (for finality reviews and other proposals). */
-async function handleGetPending(res: ServerResponse): Promise<void> {
+async function handleGetPending(req: IncomingMessage, res: ServerResponse): Promise<void> {
   try {
-    const r = await fetch(`${MITL_URL}/pending`, { method: "GET" });
+    const scopeId = readScopeIdFromRequest(req);
+    if (!scopeId) {
+      sendJson(res, 400, { error: "scope_required", pending: [] });
+      return;
+    }
+    const valid = validateScopeId(scopeId);
+    if (!valid.ok) {
+      sendJson(res, valid.status, { error: valid.error, pending: [], runtime_scope_id: RUNTIME_SCOPE_ID });
+      return;
+    }
+    const r = await fetch(`${MITL_URL}/pending?scope_id=${encodeURIComponent(scopeId)}`, { method: "GET" });
     if (!r.ok) {
       sendJson(res, 502, { error: "mitl_unavailable", pending: [] });
       return;
@@ -176,6 +281,16 @@ async function handleGetPending(res: ServerResponse): Promise<void> {
 async function handleFinalityResponse(req: IncomingMessage, res: ServerResponse): Promise<void> {
   try {
     const body = await readJsonBody(req);
+    const scopeId = readScopeIdFromRequest(req, body);
+    if (!scopeId) {
+      sendJson(res, 400, { ok: false, error: "scope_required" });
+      return;
+    }
+    const validScope = validateScopeId(scopeId);
+    if (!validScope.ok) {
+      sendJson(res, validScope.status, { ok: false, error: validScope.error, runtime_scope_id: RUNTIME_SCOPE_ID });
+      return;
+    }
     const proposalId = typeof body.proposal_id === "string" ? body.proposal_id : "";
     const option = body.option as string | undefined;
     const valid: string[] = ["approve_finality", "provide_resolution", "escalate", "defer"];
@@ -187,7 +302,7 @@ async function handleFinalityResponse(req: IncomingMessage, res: ServerResponse)
     const r = await fetch(`${MITL_URL}/finality-response/${encodeURIComponent(proposalId)}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ option, days }),
+      body: JSON.stringify({ option, days, scope_id: scopeId }),
     });
     const data = (await r.json()) as { ok?: boolean; error?: string };
     sendJson(res, r.ok ? 200 : 404, data);
@@ -224,9 +339,19 @@ function toFactStringList(val: unknown): string[] {
 }
 
 /** GET /summary: state, facts summary, drift, and recent pipeline events for demo output. */
-async function handleSummary(res: ServerResponse): Promise<void> {
+async function handleSummary(req: IncomingMessage, res: ServerResponse): Promise<void> {
   try {
-    const state = await loadState(SCOPE_ID);
+    const scopeId = readScopeIdFromRequest(req);
+    if (!scopeId) {
+      sendJson(res, 400, { error: "scope_required" });
+      return;
+    }
+    const valid = validateScopeId(scopeId);
+    if (!valid.ok) {
+      sendJson(res, valid.status, { error: valid.error, runtime_scope_id: RUNTIME_SCOPE_ID });
+      return;
+    }
+    const state = await loadState(scopeId);
     const recent = await tailEvents(20);
     let facts: Record<string, unknown> | null = null;
     let drift: Record<string, unknown> | null = null;
@@ -264,7 +389,7 @@ async function handleSummary(res: ServerResponse): Promise<void> {
         const notes = (drift.notes as string[]) ?? [];
         let suggested_actions: string[] = [];
         try {
-          const config = getGovernanceForScope(SCOPE_ID, loadPolicies(GOVERNANCE_PATH));
+          const config = getGovernanceForScope(scopeId, loadPolicies(GOVERNANCE_PATH));
           suggested_actions = evaluateRules({ level, types }, config);
         } catch {
           // governance file optional for summary
@@ -286,12 +411,12 @@ async function handleSummary(res: ServerResponse): Promise<void> {
           const config = loadFinalityConfig();
           const near = config.goal_gradient?.near_finality_threshold ?? 0.75;
           const auto = config.goal_gradient?.auto_finality_threshold ?? 0.92;
-          const goal_score = await computeGoalScoreForScope(SCOPE_ID);
-          const result = await evaluateFinality(SCOPE_ID);
+          const goal_score = await computeGoalScoreForScope(scopeId);
+          const result = await evaluateFinality(scopeId);
           const status = result?.kind === "status" ? result.status : result?.kind === "review" ? "near_finality" : "ACTIVE";
           let last_decision: { option: string; created_at: string } | null = null;
           try {
-            const decision = await getLatestFinalityDecision(SCOPE_ID);
+            const decision = await getLatestFinalityDecision(scopeId);
             if (decision) last_decision = { option: decision.option, created_at: decision.created_at };
           } catch {
             // table may not exist
@@ -300,7 +425,7 @@ async function handleSummary(res: ServerResponse): Promise<void> {
           let convergence: Record<string, unknown> | null = null;
           try {
             const convConfig = config.convergence ?? {};
-            const convState: ConvergenceState = await getConvergenceState(SCOPE_ID, convConfig, auto);
+            const convState: ConvergenceState = await getConvergenceState(scopeId, convConfig, auto);
             convergence = {
               rate: convState.convergence_rate,
               estimated_rounds: convState.estimated_rounds,
@@ -329,7 +454,7 @@ async function handleSummary(res: ServerResponse): Promise<void> {
             // optional
           }
           try {
-            const cert = await getLatestCertificate(SCOPE_ID);
+            const cert = await getLatestCertificate(scopeId);
             if (cert) {
               finality_certificate = {
                 decision: cert.payload.decision,
@@ -354,7 +479,7 @@ async function handleSummary(res: ServerResponse): Promise<void> {
             convergence,
             dimensions: await (async () => {
               try {
-                const snap = await loadFinalitySnapshot(SCOPE_ID);
+                const snap = await loadFinalitySnapshot(scopeId);
                 const contraTotal = snap.contradictions_total_count || 0;
                 const contraResolved = contraTotal === 0 ? 1 : 1 - (snap.contradictions_unresolved_count / contraTotal);
                 return {
@@ -372,9 +497,23 @@ async function handleSummary(res: ServerResponse): Promise<void> {
       })(),
       state_graph: await (async () => {
         try {
-          return await getGraphSummary(SCOPE_ID);
+          return await getGraphSummary(scopeId);
         } catch {
           return null;
+        }
+      })(),
+      contradictions: await (async () => {
+        try {
+          return await loadAllContradictionsWithResolutions(scopeId);
+        } catch {
+          return null;
+        }
+      })(),
+      human_decisions: await (async () => {
+        try {
+          return await getAllFinalityDecisions(scopeId);
+        } catch {
+          return [];
         }
       })(),
     };
@@ -388,7 +527,11 @@ async function handleSummary(res: ServerResponse): Promise<void> {
 async function handleConvergence(req: IncomingMessage, res: ServerResponse): Promise<void> {
   try {
     const query = getQuery(req.url ?? "");
-    const scopeId = query.scope ?? SCOPE_ID;
+    const scopeId = query.scope ?? query.scope_id ?? "";
+    if (!scopeId) {
+      sendJson(res, 400, { error: "scope_required" });
+      return;
+    }
     const config = loadFinalityConfig();
     const convConfig = config.convergence ?? {};
     const auto = config.goal_gradient?.auto_finality_threshold ?? 0.92;
@@ -485,7 +628,7 @@ async function main(): Promise<void> {
           res.end(INDEX_HTML);
           return;
         }
-        await handleSummary(res);
+        await handleSummary(req, res);
         return;
       }
       if (req.method === "POST" && pathname === "/context/docs") {
@@ -500,7 +643,7 @@ async function main(): Promise<void> {
       }
       if (req.method === "GET" && pathname === "/pending") {
         if (!requireBearer(req, res)) return;
-        await handleGetPending(res);
+        await handleGetPending(req, res);
         return;
       }
       if (req.method === "POST" && pathname === "/finality-response") {
@@ -510,6 +653,16 @@ async function main(): Promise<void> {
       }
       if (req.method === "GET" && pathname === "/convergence") {
         if (!requireBearer(req, res)) return;
+        const scopeId = readScopeIdFromRequest(req);
+        if (!scopeId) {
+          sendJson(res, 400, { error: "scope_required" });
+          return;
+        }
+        const valid = validateScopeId(scopeId);
+        if (!valid.ok) {
+          sendJson(res, valid.status, { error: valid.error, runtime_scope_id: RUNTIME_SCOPE_ID });
+          return;
+        }
         await handleConvergence(req, res);
         return;
       }
@@ -553,7 +706,19 @@ async function main(): Promise<void> {
   });
 }
 
-main().catch((e) => {
-  process.stderr.write(JSON.stringify({ error: toErrorString(e) }) + "\n");
-  process.exit(1);
-});
+const isDirectRun = (() => {
+  const argv1 = process.argv[1];
+  if (!argv1) return false;
+  try {
+    return pathToFileURL(argv1).href === import.meta.url;
+  } catch {
+    return false;
+  }
+})();
+
+if (isDirectRun) {
+  main().catch((e) => {
+    process.stderr.write(JSON.stringify({ error: toErrorString(e) }) + "\n");
+    process.exit(1);
+  });
+}

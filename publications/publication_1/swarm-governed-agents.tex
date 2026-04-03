@@ -1,0 +1,1400 @@
+% !TEX program = pdflatex
+% !TEX encoding = UTF-8 Unicode
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath,amssymb,amsfonts,amsthm}
+\usepackage{graphicx}
+\usepackage[numbers,sort&compress]{natbib}
+\usepackage[hyphens]{url}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{float}
+\usepackage{booktabs}
+\usepackage[margin=1in]{geometry}
+
+\newtheorem{definition}{Definition}
+\newtheorem{theorem}{Theorem}
+\newtheorem{proposition}{Proposition}
+\newtheorem{corollary}{Corollary}
+\newtheorem{remark}{Remark}
+
+\lstset{
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  keywordstyle=\color{blue},
+  commentstyle=\color{gray},
+  stringstyle=\color{red},
+  backgroundcolor=\color{gray!10}
+}
+
+\title{Coordination of Governed Agents Over Shared Context:\\Declarative Governance and Lyapunov-Tracked Finality}
+
+\author{
+  Jean-Baptiste D\'ezard\thanks{Source code: \url{https://github.com/DealExMachina/swarm-of-governed-agents}}\\
+  Deal ex Machina SAS\\
+  \texttt{jeanbapt@dealexmachina.com}
+}
+
+\date{March 2026}
+
+\begin{document}
+\setlength{\emergencystretch}{2em}
+\sloppy
+
+\maketitle
+
+\begin{abstract}
+The emergence of LLM-powered autonomous agents has exposed the limits of pipeline-based coordination: rigid DAGs cannot accommodate contradiction, evolving evidence, or formal convergence. We propose \emph{declarative governance over shared immutable context}, a paradigm where autonomous agents reason over a common semantic graph, propose state transitions, and reach consensus through formal convergence mechanisms---without predefined execution sequences.
+
+Seven architectural contributions enable this: (1)~an append-only event log providing tamper-proof, fully replayable context; (2)~a \emph{bitemporal} CRDT-inspired semantic graph with dual valid-time and transaction-time axes, enabling point-in-time reconstruction for regulatory audit; (3)~a \emph{product order} $\mathcal{M} = \mathcal{L} \times \mathcal{A}$ unifying governance levels (MASTER~$\leq$~MITL~$\leq$~YOLO) with a four-dimensional convergence rank into a single well-founded descent domain, with a deterministic \emph{reduction kernel} that maps every proposal to Accept/Reject/Escalate through policy check, admissibility verification, and mode routing; (4)~per-dimension vector finality that prevents compensation attacks (where one dimension over-improves to mask failures in another), implemented as a conjunction of per-dimension thresholds ($\tau_d$, $\epsilon_d$) with gate refactoring (GA$^d$, GC$^d$ per-dimension; GB, GD, GE global), providing stronger guarantees than scalar disagreement-function tracking, with human-in-the-loop routing when convergence stalls; (5)~Ed25519-signed finality certificates embedding policy-version hashes for cryptographic non-repudiation; (6)~three-tier governance routing (deterministic rules, oversight agent, full LLM) with circuit-breaker fallback ensuring continuous operation without LLM availability; (7)~a native Rust evaluation engine (compiled via napi-rs) executing all deterministic governance and convergence logic with zero LLM tokens, while TypeScript orchestrates I/O.
+
+Unlike orchestration frameworks (AutoGen, CrewAI, LangGraph) that wire agents into chains or graphs, our system lets agents independently reason over shared state and propose actions evaluated by the reduction kernel against the product order. The construction draws on classical information-flow lattice models \cite{denning1976} and termination theory \cite{baader1998}: every governance-approved transition must descend in~$\mathcal{M}$, guaranteeing termination of each convergence epoch. The kernel's determinism enables replay, audit, and formal verification independently of LLM stochasticity.
+
+Validation on two scenarios---M\&A due diligence (Project Horizon) and multi-period financial consolidation with bitemporal restatement---demonstrates that $V(t)$ reaches 0.0000 at resolution epochs (the first empirical confirmation of full intra-epoch convergence), exhibits a sawtooth trajectory across evidence epochs as predicted by the perpetual lifecycle model, and produces domain-independent dynamics confirmed across both scenarios. Five-gate prevention of false finality is ablation-confirmed, and governance modes produce distinct coverage--autonomy positions. The architecture is validated by unit and integration tests and convergence benchmarks (see Appendix and experiments).
+
+Crucially, finality is not terminal: new evidence, regulatory amendments, or periodic review triggers re-open convergence over the same graph, producing a chain of certified checkpoints that models the perpetual lifecycle of regulated knowledge. The resulting architecture is designed for regulated environments where temporal auditability, policy traceability, ongoing monitoring, and cryptographic proof of every decision point are operational requirements.
+\end{abstract}
+
+%% ============================================================
+\section{Introduction}
+%% ============================================================
+
+The rapid maturation of LLM-powered agents---capable of reasoning, planning, and tool use---has created a coordination problem that traditional workflow engines were not designed to solve. Modern agents do not merely execute predefined tasks; they interpret context, generate hypotheses, and produce claims that may contradict each other. This capability demands a fundamentally different coordination model.
+
+Current approaches fall into two categories, both inadequate:
+
+\textbf{Pipeline orchestration} (Airflow, Temporal, Prefect) assumes static task graphs executed in topological order. When agents produce contradictory outputs, the pipeline either silently overwrites earlier results or fails entirely. There is no mechanism for tracking disagreement, no formal convergence guarantee, and no governance trail explaining \emph{why} a particular conclusion was reached.
+
+\textbf{Agent frameworks} (AutoGen, CrewAI, LangGraph) represent progress: they enable multi-agent conversations, role-based delegation, and tool use. However, they still wire agents into predefined topologies---sequential chains, hierarchical delegation, or cyclic graphs with hardcoded routing. Coordination logic is embedded in code, not governed by policy. There is no shared immutable context, no formal finality mechanism, and no fine-grained access control.
+
+We propose a third path: \emph{declarative governance over shared context}. Rather than sequencing agents, the system maintains:
+
+\begin{enumerate}
+  \item \textbf{Shared bitemporal context:} An append-only event log and a CRDT-inspired semantic graph with dual temporality (valid time and transaction time), where confidence scores ratchet upward, contradictions are tracked explicitly, and no state is ever deleted---only superseded. Bitemporal queries enable point-in-time reconstruction for regulatory audit.
+
+  \item \textbf{Product order and reduction kernel:} A product order $\mathcal{M} = \mathcal{L} \times \mathcal{A}$ unifies a governance-level chain $\mathcal{L}$ (MASTER~$\leq$~MITL~$\leq$~YOLO, ordered by permissiveness) with a four-dimensional convergence rank $\mathcal{A}$, forming a well-founded descent domain~\cite{davey2002}. A deterministic \emph{reduction kernel} evaluates every proposal against $\mathcal{M}$: policy rules check transition admissibility, the order verifies that the proposed state descends from the current state, and mode routing determines the verdict (Accept, Reject, or Escalate). This construction draws on classical lattice-based security models~\cite{denning1976,bell1973} and rewriting-system termination theory~\cite{baader1998}: every approved transition descends in~$\mathcal{M}$, guaranteeing epoch termination. XACML combining algorithms~\cite{xacml2013} resolve multi-policy conflicts. Every decision produces an immutable, policy-version-stamped audit record.
+
+  \item \textbf{Formal convergence with five gates and perpetual lifecycle:} A disagreement function $V(t)$ tracks distance to targets across four weighted dimensions (proven a genuine Lyapunov function for the restricted CRDT system in Section~\ref{sec:convergence-guarantee}). Monotonicity gates, evidence coverage, oscillation detection, quiescence, and minimum-content gates provide layered guarantees against premature finality. When autonomous convergence stalls, the system routes to structured human review with full context. Finality is certified with Ed25519-signed JWS certificates---but finality is not terminal: new evidence, regulatory changes, or periodic review triggers re-open convergence over the same graph, producing a chain of certified checkpoints that models the perpetual lifecycle of regulated knowledge.
+
+  \item \textbf{Three-tier governance routing:} Deterministic rule evaluation (zero LLM tokens), lightweight oversight agent, and full LLM-backed governance agent, with circuit-breaker fallback ensuring continuous operation without LLM availability.
+
+  \item \textbf{Fine-grained access governance:} OpenFGA enforces who can read documents, propose transitions, approve decisions, and modify policies.
+\end{enumerate}
+
+This paper presents the design, formal properties, and experimental validation of this system, with particular attention to its fitness for regulated environments.
+
+At a deeper level, this design is not merely defensive engineering against failure cascades: at the level of state evolution, it instantiates the CALM criterion for coordination-free consistency. CALM establishes that a distributed program admits a coordination-free consistent implementation if and only if it is monotone~\cite{hellerstein2019calm,ameloot2025calm}. Our CRDT monotonicity invariants (Definition~\ref{def:monotonicity}) implement precisely the monotone-write / threshold-read pattern that result identifies as necessary and sufficient: inflationary confidence updates are monotone writes; finality gates are threshold-style reads over shared state. The broader architecture (three-tier routing, Ed25519 certificates, OpenFGA access control) goes beyond what CALM requires; the minimality claim applies strictly to the state-evolution layer.
+
+\subsection{Contribution and Scope}
+
+The paper makes the following seven concrete contributions:
+
+\begin{itemize}
+  \item An architectural paradigm---declarative governance over shared immutable context---that replaces predefined agent topologies with policy-driven coordination over a common semantic graph.
+  \item A \emph{bitemporal CRDT-inspired semantic graph} with append-only event log, dual valid-time and transaction-time axes, and monotonicity invariants that make point-in-time reconstruction, temporal contradiction detection, and regulatory audit structurally native.
+  \item A product order $\mathcal{M} = \mathcal{L} \times \mathcal{A}$ that unifies governance admissibility and convergence rank into a single well-founded descent domain, with a deterministic reduction kernel guaranteeing epoch termination under $\delta_{\min}$-discretisation (Theorem~\ref{thm:termination}). See Remark~\ref{rem:algebraic-status} for the precise algebraic status.
+  \item A formal convergence mechanism: a disagreement function $V(t)$ (Theorem~\ref{thm:lyapunov} establishes it as a genuine Lyapunov function for the restricted CRDT system), with five independent gates (monotonicity, evidence coverage, oscillation detection, quiescence, minimum content) that provide layered guarantees against premature finality.
+  \item A perpetual finality lifecycle in which certified checkpoints---not terminal decisions---model the ongoing nature of regulated knowledge, with Ed25519-signed certificates binding each decision to the exact policy version that produced it.
+  \item A three-tier governance routing architecture (deterministic rules, oversight agent, full LLM) with circuit-breaker fallback, ensuring continuous governance without LLM availability.
+  \item Validation on two scenarios---M\&A due diligence and financial consolidation with dual temporality---demonstrating convergence, contradiction resolution, temporal restatement handling, and structured human review (test and benchmark details in Appendix).
+\end{itemize}
+
+For clarity, the following are explicit limits of the paper's claims:
+
+\paragraph{What the paper does not demonstrate.}
+\begin{itemize}
+  \item \emph{Statistical generality.} The Project Horizon validation is a single scenario with synthetic documents; no confidence intervals, hypothesis tests, or distributional claims are supported.
+  \item \emph{Byzantine fault tolerance.} All agents are assumed cooperative. Adversarial agents that inject false claims, manipulate confidence scores, or game the governance protocol are not addressed. Integration with Byzantine-tolerant consensus machinery \cite{lamport1982,castro1999} remains future work.
+  \item \emph{Scalability beyond proof of concept.} Validation covers 50 claims, 5 documents, and 7 agents. Coordination dynamics at production scale (thousands of claims, hundreds of agents) are untested.
+  \item \emph{Machine-checked convergence proofs.} Convergence guarantees are validated empirically through benchmarks and unit tests, not by formal verification tools or proof assistants.
+  \item \emph{Real LLM stochasticity.} Convergence benchmarks use synthetic trajectories. The oscillation detection and trajectory quality mechanisms are designed for real-world stochasticity but have not been validated against it.
+  \item \emph{Protocol self-modification.} Governance rules are declarative but static within a deployment. The system does not implement governed self-modification of its own coordination protocol, as studied by de la Chica Rodriguez and Vera D\'{i}az \cite{delachica2026}.
+  \item \emph{Multi-scope finality.} Cross-scope governance, hierarchical finality (parent scope depending on child scopes), and inter-scope certificate chains are designed but not validated.
+\end{itemize}
+
+These boundaries are revisited in detail in Section~\ref{sec:boundaries}.
+
+%% ============================================================
+\section{Related Work}
+%% ============================================================
+
+\subsection{Pipeline Orchestration}
+
+Workflow engines (Apache Airflow, Temporal, Prefect) implement the DAG model: define a static graph, schedule tasks in topological order, apply retry logic on failure. This model is effective for deterministic ETL pipelines but breaks when agents produce conflicting outputs, when new evidence appears mid-execution, or when tasks are interdependent in non-linear ways. None provide formal finality guarantees or governance-as-coordination.
+
+\subsection{Agent Coordination Frameworks}
+
+Recent frameworks enable multi-agent collaboration:
+
+\textbf{AutoGen} \cite{wu2023autogen} introduces conversable agents with role-based chat patterns. Coordination is conversation-driven: agents exchange messages in predefined patterns (sequential, group chat, nested). However, coordination topology is hardcoded in Python, there is no shared persistent state between conversations, and no formal convergence mechanism.
+
+\textbf{CrewAI} \cite{crewai2024} organizes agents into crews with roles, goals, and tools. A hierarchical manager delegates tasks. Coordination follows a fixed process (sequential or hierarchical), with no mechanism for handling contradictions between agent outputs or tracking disagreement over time.
+
+\textbf{LangGraph} \cite{langgraph2024} models agent coordination as state machines with explicit edges and conditional routing. This is closer to our approach---state is explicit and transitions are defined---but routing logic is embedded in code, not declarative policy. There is no immutable audit log, no CRDT semantics, and no formal convergence tracking.
+
+All three frameworks assume that coordination topology can be predefined. Our system replaces topology with policy: agents reason independently over shared state, propose transitions, and governance rules determine what happens next.
+
+Recent synthesis work also argues that communication topology should be treated as a first-class research object in LLM multi-agent systems rather than fixed engineering scaffolding~\cite{topologylearning2025}. Our architecture is aligned with that diagnosis, but moves one level deeper: it constrains shared-state evolution to a monotone governance projection so that consistency does not depend on a fixed interaction script.
+
+\subsection{Byzantine Consensus and Multi-Agent Coordination}
+
+The Byzantine consensus problem, formalized by Lamport, Shostak, and Pease \cite{lamport1982}, established that agreement among distributed processes is possible if and only if $n \geq 3f + 1$, where $f$ is the number of Byzantine-faulty nodes. Practical Byzantine Fault Tolerance (PBFT) \cite{castro1999} made this feasible in partially synchronous systems with $O(n^2)$ message complexity. Ren et al.\ \cite{ren2005} surveyed consensus problems in multi-agent coordination, establishing the graph-theoretic foundations for state agreement under static and time-varying topologies. Zheng et al.\ \cite{zheng2025} introduced confidence-weighted Byzantine fault tolerance (CP-WBFT), incorporating agent reliability into consensus---a direction relevant to LLM-based agents whose outputs carry inherent uncertainty. Mao et al.\ \cite{mao2024} extended the Byzantine Generals framework to practical multi-agent systems with the Imperfect Byzantine Generals Problem (IBGP), addressing local coordination without full global consensus.
+
+Our system does not implement Byzantine consensus directly; agents are assumed cooperative. However, the semantic graph's monotonic constraints (confidence ratchets upward, contradictions are irreversible) provide partial robustness against downward manipulation, and the three-tier governance architecture limits the impact of any single agent's faulty output by requiring governance approval for all state transitions.
+
+\subsection{Self-Evolving Coordination Protocols}
+
+De la Chica Rodriguez and Vera D\'{i}az \cite{delachica2026} introduced Self-Evolving Coordination Protocols (SECP): coordination mechanisms that permit bounded, auditable self-modification of their own decision rules while preserving formal invariants. In a controlled feasibility study with six decision modules evaluating six Byzantine consensus proposals, they demonstrated that (i) non-scalar coordination rules can be synthesized by current AI models, (ii) a single governed modification increased proposal coverage by 50\% while preserving declared invariants, and (iii) a systematic trade-off exists between protocol coverage (how many proposals are accepted) and evaluator autonomy (the capacity of individual modules to impose non-compensable objections).
+
+Their work is complementary to ours in a precise sense. SECP addresses \emph{protocol-level coordination}: how heterogeneous evaluator judgments are aggregated into accept/reject decisions, and how that aggregation rule can evolve. Our system addresses \emph{state-level coordination}: how agents reason over shared context, how disagreement is tracked formally, and how convergence is certified. SECP's explicit open questions---multi-iteration convergence dynamics, formal invariant preservation under repeated modification, and audit trail infrastructure---are directly addressed by our Lyapunov-based convergence tracking, five-gate finality mechanism, and bitemporal audit graph. Conversely, their non-scalar coordination with non-compensable objection rights and Byzantine fault tolerance assumptions address gaps we acknowledge: our convergence metric is scalar, our governance rules are static within a deployment, and we do not handle adversarial agents.
+
+A unified architecture combining SECP's governed protocol evolution with our formal convergence tracking would enable multi-iteration protocol modification where each iteration's effect on the Lyapunov disagreement function $V(t)$ is measured, gates prevent premature adoption of harmful modifications, and the certificate chain records the protocol version under which each decision was made.
+
+\subsection{Consensus and Convergence Theory}
+
+Olfati-Saber and Murray \cite{olfati2004} established the Lyapunov consensus framework for multi-agent systems, proving that monotonically decreasing disagreement functions guarantee convergence under mild assumptions. We adapt this to knowledge-work coordination, defining a weighted disagreement function over four semantic dimensions. The classical theory \cite{lyapunov1892} provides the mathematical foundation: if a scalar function $V \geq 0$ is strictly decreasing along system trajectories and $V = 0$ only at the equilibrium, the system converges.
+
+Ruan et al.\ \cite{ruan2025} introduced the Aegean consensus protocol for multi-agent reasoning, which detects incremental quorum convergence across concurrent agent executions with provable refinement monotonicity---solution quality is guaranteed non-decreasing. We adapt their monotonicity principle to our finality evaluator: Gate~A requires $\beta$ consecutive non-decreasing rounds before declaring convergence.
+
+Yazici et al.\ \cite{yazici2026opinion} study networked LLM agents in a DeGroot-style linear opinion model over diverse communication graphs (opinions extracted from message text). Disagreement decays exponentially and \emph{transient} convergence rates align with classical graph theory through the second-largest eigenvalue of the combination matrix; however, the \emph{limiting} consensus departs from DeGroot's network-centrality-weighted prediction---outcomes are largely insensitive to initial conditions and track topic and model bias. This cautions against equating ``LLM consensus'' with classical, centrality-optimal agreement even when mixing-time structure remains spectral.
+
+
+\subsection{CRDT Semantics and Monotonic State}
+
+Laddad et al.\ \cite{laddad2024} demonstrated CRDT monotonic merge operations (Keep CALM and CRDT) that prevent state regression in distributed systems, and recent observation-driven coordination work for LLM agents reinforces the same monotonic-state design pressure~\cite{codecrdt2025}. Our semantic graph adopts this principle: confidence scores ratchet upward only, contradictions once marked are irreversible, and nodes are staled rather than deleted.
+
+\subsection{CALM and LVars}
+
+The closest theoretical lineage of our coordination model is the CALM/LVars tradition. CALM establishes that a distributed program admits a coordination-free consistent implementation iff it is monotone~\cite{hellerstein2019calm,ameloot2025calm}. LVars formalize the same idea in deterministic parallel programming via monotone writes and threshold reads~\cite{kuper2013lvars}. In our architecture, inflationary deltas correspond to monotone writes, and finality gates correspond to threshold-style reads over shared state. The mapping is direct but not trivial: we extend the classical semilattice setting to richer, conflict-aware ordered evidence with governance-stratified update producers and convergence guarantees under stochastic LLM perturbations.
+
+\subsection{Stigmergic Coordination}
+
+Dorigo, Bonabeau, and Theraulaz \cite{dorigo2000} formalized stigmergy as a distributed communication paradigm: agents coordinate indirectly through local modifications to their environment (pheromone trails in ant colonies) rather than through direct message passing. We apply this principle to convergence-driven agent routing: each agent's activation is gated by the per-dimension convergence pressure of the shared semantic graph, causing agents to concentrate on bottleneck dimensions without centralized scheduling.
+
+\subsection{Bitemporal Data Models}
+
+Snodgrass \cite{snodgrass2000} established the bitemporal data model: every fact carries two independent time axes---valid time (when true in the world) and transaction time (when recorded by the system). This enables point-in-time reconstruction on either or both axes, a capability required by financial regulations (SOX, IFRS~9) but absent from existing agent frameworks. We apply bitemporal modeling to the semantic graph, enabling temporal contradiction detection and regulatory audit.
+
+\subsection{Rewriting Systems and Termination Theory}
+
+The reduction kernel's structure parallels classical term rewriting systems~\cite{baader1998}, where states correspond to terms, transitions to rewrite rules, and termination is established via well-founded orderings. Newman's Lemma~\cite{newman1942} shows that local confluence plus termination implies global confluence---a result relevant to our partial confluence claim (Section~\ref{sec:discussion}). Unlike classical rewriting, our rewrite rules are dynamically proposed by agents and filtered by an order-valued governance layer; the kernel selects deterministically among admissible candidates. The novelty lies not in termination \emph{per se} but in stratifying proposal generation (stochastic, LLM-driven) from reduction (deterministic, order-governed) and unifying governance admissibility with convergence rank in a product order.
+
+\subsection{Lattice-Based Governance and Information Flow}
+
+Lattice models are standard in information-flow security~\cite{denning1976,bell1973} and access control, where a partial order on security labels governs permissible information transfers. Davey and Priestley~\cite{davey2002} provide the algebraic foundations. Formal Concept Analysis (FCA)~\cite{ganter1999,wille1982} derives lattice structures from object-attribute incidence relations, producing concept lattices with a Galois connection that makes the intent/extent duality explicit. Our governance chain $\mathcal{L}$ (MASTER~$\leq$~MITL~$\leq$~YOLO, ordered by permissiveness) is structurally simple; the contribution lies in forming the product order $\mathcal{M} = \mathcal{L} \times \mathcal{A}$ with the convergence rank $\mathcal{A}$, producing a unified descent domain where both safety (policy admissibility) and liveness (convergence progress) are enforced by a single well-founded ordering. This construction is algebraically elementary---$\mathcal{M}$ is a well-founded poset, not a lattice in the full algebraic sense (Remark~\ref{rem:algebraic-status})---but its application to multi-agent governance, unifying policy, convergence, and anti-gaming invariants in a single descent domain, appears structurally uncommon. A natural direction for future work is to derive this structure as a concept lattice~\cite{ganter1999} where agent contributions and governance constraints form a Galois connection, providing richer algebraic properties (formal concepts, attribute implications) suited to regulated environments.
+
+\subsection{Modal Logic and Fixed-Point Reasoning}
+
+The reduction semantics aligns naturally with Propositional Dynamic Logic (PDL) and fixed-point reasoning via the $\mu$-calculus~\cite{kozen1983}. Modalities in our framework are interpreted only over committed reductions (governance-approved transitions), not over proposed transitions: exploration does not alter the Kripke structure, and only reductions define accessibility relations. The product order $\mathcal{M}$ constrains admissible transitions but does not alter the logical layer. This restriction strengthens semantic clarity and separates the non-determinism of LLM-driven proposal generation from the determinism of governance evaluation.
+
+\subsection{Policy Engines and Access Control}
+
+The XACML standard \cite{xacml2013} defines combining algorithms for multi-policy evaluation (deny-overrides, first-applicable). Pang et al. \cite{pang2019} formalized Zanzibar-style relationship-based access control, implemented in OpenFGA. Our architecture replaces external policy engines with a native Rust \emph{reduction kernel} compiled via napi-rs: all policy evaluation, lattice admissibility checking, and mode routing execute as deterministic Rust code within the Node.js process, eliminating the overhead and operational complexity of external policy runtimes while preserving XACML combining algorithms for multi-policy resolution and OpenFGA for fine-grained governance of document access, transition approval, and policy modification.
+
+%% ============================================================
+\section{Problem Setting}
+\label{sec:problem-setting}
+%% ============================================================
+
+This section formalizes the core abstractions of the system. Definitions follow the style of de la Chica Rodriguez and Vera D\'{i}az \cite{delachica2026} to facilitate cross-referencing between protocol-level and state-level coordination.
+
+\subsection{Shared Context Graph}
+
+\begin{definition}[Semantic Graph]
+\label{def:graph}
+Let $\mathcal{G} = (\mathcal{N}, \mathcal{E})$ be a directed labeled graph where $\mathcal{N}$ is a set of typed nodes and $\mathcal{E} \subseteq \mathcal{N} \times \mathcal{N} \times \mathcal{L}$ is a set of labeled edges. Node types are drawn from $\mathcal{T} = \{\textnormal{\textsc{Claim}}, \textnormal{\textsc{Goal}}, \textnormal{\textsc{Risk}}, \textnormal{\textsc{Entity}}\}$. Edge labels are drawn from $\mathcal{L} = \{\textnormal{\textsc{Supports}}, \textnormal{\textsc{Contradicts}}, \textnormal{\textsc{Resolves}}, \textnormal{\textsc{Supersedes}}\}$.
+
+Each node $n \in \mathcal{N}$ carries:
+\begin{itemize}
+  \item a confidence score $c(n) \in [0,1]$,
+  \item a valid-time interval $[\textit{vf}(n), \textit{vt}(n))$ (when the fact holds in the world),
+  \item a transaction-time interval $[\textit{ra}(n), \textit{sa}(n))$ (when the system recorded and possibly superseded it),
+  \item a source provenance $\sigma(n)$ referencing the originating document and agent.
+\end{itemize}
+\end{definition}
+
+\begin{definition}[Monotonicity Constraints]
+\label{def:monotonicity}
+The graph $\mathcal{G}$ satisfies three monotonicity invariants:
+\begin{enumerate}
+  \item \textbf{Confidence ratchet:} For any node $n$, if $c(n) = x$ at transaction time $t_1$, then for all $t_2 > t_1$ where $n$ is not superseded, $c(n) \geq x$.
+  \item \textbf{Irreversible contradictions:} If $(n_1, n_2, \textnormal{\textsc{Contradicts}}) \in \mathcal{E}$ at transaction time $t$, the edge persists for all $t' > t$. Resolution requires adding a new \textnormal{\textsc{Resolves}} edge, not deleting the contradiction.
+  \item \textbf{Staling, not deletion:} No node or edge is removed from $\mathcal{G}$. Superseded nodes receive a finite $\textit{sa}(n)$ timestamp; the current view filters to $\textit{sa}(n) = \infty$.
+\end{enumerate}
+These invariants ensure that $\mathcal{G}$, restricted to the current view, evolves monotonically toward resolution.
+\end{definition}
+
+\subsection{Governance Order and Product Structure}
+
+\begin{definition}[Governance Level Chain]
+\label{def:gov-lattice}
+Let $\mathcal{L} = \{\textsc{Master}, \textsc{Mitl}, \textsc{Yolo}\}$ be a totally ordered set (chain) of governance levels with the permissiveness ordering $\textsc{Master} \leq \textsc{Mitl} \leq \textsc{Yolo}$. Intuitively, \textsc{Master} is the most restrictive (every drift signal can block), \textsc{Yolo} is the most permissive (only policy rules block), and \textsc{Mitl} routes to human review. As a finite chain, $\mathcal{L}$ is trivially a lattice with $\wedge = \min$ and $\vee = \max$.
+\end{definition}
+
+\begin{definition}[Convergence Rank]
+\label{def:conv-rank}
+Let $\mathcal{A} = (\mathbb{R}_{\geq 0})^k$ be a $k$-dimensional convergence rank space with the product partial order: $\mathbf{a} \leq \mathbf{a}'$ iff $a_i \leq a'_i$ for all $i \in \{1, \ldots, k\}$. In the reference implementation, $k = 4$ with dimensions: claim confidence, contradiction resolution, goal completion, and risk score inverse.
+\end{definition}
+
+\begin{definition}[Product Order]
+\label{def:product-lattice}
+The \emph{governance-convergence product order} is the Cartesian product $\mathcal{M} = \mathcal{L} \times \mathcal{A}$, ordered componentwise~\cite{davey2002}:
+\[
+(\ell, \mathbf{a}) \leq_{\mathcal{M}} (\ell', \mathbf{a}') \iff \ell \leq_{\mathcal{L}} \ell' \;\wedge\; \mathbf{a} \leq_{\mathcal{A}} \mathbf{a}'
+\]
+A point $m = (\ell, \mathbf{a}) \in \mathcal{M}$ encodes both the governance regime and the convergence state. The partial order on $\mathcal{M}$ is well-founded (it is a product of a finite chain and a bounded subset of $\mathbb{R}^k$).
+\end{definition}
+
+\begin{remark}[Algebraic status of $\mathcal{M}$]
+\label{rem:algebraic-status}
+We use the term ``product order'' rather than ``product lattice'' deliberately. While $\mathcal{L}$ is a chain (hence a lattice) and $\mathcal{A} = [0,1]^k$ with the componentwise order is a complete lattice (with $\wedge = \min$, $\vee = \max$ per component), the implementation does \emph{not} use the join or meet operations on $\mathcal{M}$. The reduction kernel uses only the partial order (Definition~\ref{def:admissibility}) to test admissibility of transitions---it never computes the least upper bound or greatest lower bound of two governance states. Formally, $\mathcal{M}$ is a \emph{well-founded partially ordered set} (poset) used as a descent domain for epoch termination, not a lattice in the algebraic sense.
+
+This paper establishes the product order as a practical tool for governance admissibility. Companion work extends the stack with graph-structured evidence coordination among roles (developed separately). A natural extension---currently under investigation---is to derive $\mathcal{M}$ as a \emph{concept lattice} in the sense of Formal Concept Analysis~\cite{ganter1999,wille1982}: a structure where agent contributions form the \emph{extent}, governance constraints form the \emph{intent}, and the lattice order emerges from the Galois connection between them. Such a construction would provide richer structure (formal concepts, attribute implications, concept navigation) than the current product order, and connect naturally to the audit, lineage, and constraint-satisfaction requirements of regulated environments. This formalization is the subject of planned future work.
+\end{remark}
+
+\begin{definition}[Admissibility]
+\label{def:admissibility}
+Given the current lattice point $m = (\ell, \mathbf{a})$ and a proposed point $m' = (\ell', \mathbf{a}')$, the \emph{admissibility result} is:
+\[
+\mathrm{Adm}(m, m') = \begin{cases}
+  \textsc{Admissible}           & \text{if } \ell' \leq_{\mathcal{L}} \ell \;\wedge\; \mathbf{a}' \leq_{\mathcal{A}} \mathbf{a} \\
+  \textsc{GovernanceViolation}  & \text{if } \ell' \not\leq_{\mathcal{L}} \ell \;\wedge\; \mathbf{a}' \leq_{\mathcal{A}} \mathbf{a} \\
+  \textsc{ConvergenceViolation} & \text{if } \ell' \leq_{\mathcal{L}} \ell \;\wedge\; \mathbf{a}' \not\leq_{\mathcal{A}} \mathbf{a} \\
+  \textsc{BothViolated}         & \text{if } \ell' \not\leq_{\mathcal{L}} \ell \;\wedge\; \mathbf{a}' \not\leq_{\mathcal{A}} \mathbf{a}
+\end{cases}
+\]
+The four cases are exhaustive and mutually exclusive (the classification is a $2 \times 2$ grid on $\{\ell' \leq \ell, \ell' \not\leq \ell\} \times \{\mathbf{a}' \leq \mathbf{a}, \mathbf{a}' \not\leq \mathbf{a}\}$). Only \textsc{Admissible} transitions preserve descent in~$\mathcal{M}$.
+\end{definition}
+
+\subsection{Reduction Kernel}
+
+\begin{definition}[Proposal]
+\label{def:proposal}
+Let $\mathcal{A}_{\text{agents}} = \{a_1, \ldots, a_n\}$ be a set of agents. Each agent $a_i$ observes the current view of $\mathcal{G}$ and emits a \emph{proposal} $p = (\delta, j, a_i, \ell)$ where $\delta$ is a candidate state transition (a set of node/edge additions or confidence updates satisfying Definition~\ref{def:monotonicity}), $j$ is a natural-language justification, $a_i$ is the proposing agent, and $\ell \in \mathcal{L}$ is the governance level.
+\end{definition}
+
+\begin{definition}[Reduction Kernel]
+\label{def:kernel}
+The \emph{reduction kernel} $\mathcal{K}$ is a deterministic function:
+\[
+\mathcal{K} : \mathcal{P} \times \mathcal{G} \times \mathcal{R} \times \mathcal{M} \longrightarrow \{\textsc{Accept}, \textsc{Reject}, \textsc{Escalate}\} \times \Sigma
+\]
+where $\mathcal{P}$ is the proposal space, $\mathcal{G}$ is the current graph state, $\mathcal{R}$ is the active rule set, $\mathcal{M}$ is the current lattice point, and $\Sigma$ is the space of structured reasons (policy identifiers, regressed dimensions, suggested actions). The kernel evaluates a proposal $p$ in three sequential stages:
+
+\begin{enumerate}
+  \item \textbf{Policy check.} Evaluate transition rules $\mathcal{R}$ against drift state: $\texttt{canTransition}(s, s', d, \mathcal{R})$ checks whether drift level $d$ blocks the $s \to s'$ transition; $\texttt{evaluateRules}(d, \mathcal{R})$ computes suggested actions. If blocked:
+  \begin{itemize}
+    \item $\ell = \textsc{Master} \implies \textsc{Reject}$ (most restrictive: policy blocks are final).
+    \item $\ell \in \{\textsc{Mitl}, \textsc{Yolo}\} \implies \textsc{Escalate}$ (route to human or oversight).
+  \end{itemize}
+
+  \item \textbf{Lattice admissibility.} Compute $\mathrm{Adm}(m, m')$ (Definition~\ref{def:admissibility}) between the current and proposed lattice points:
+  \begin{itemize}
+    \item $\textsc{GovernanceViolation}$ or $\textsc{BothViolated} \implies \textsc{Reject}$.
+    \item $\textsc{ConvergenceViolation}$ or $\textsc{BothViolated}$: $\ell = \textsc{Master} \implies \textsc{Reject}$; otherwise $\textsc{Escalate}$.
+  \end{itemize}
+
+  \item \textbf{Mode routing.} If policy and lattice checks pass:
+  \begin{itemize}
+    \item $\ell = \textsc{Mitl} \implies \textsc{Escalate}$ (human approval required).
+    \item $\ell \in \{\textsc{Master}, \textsc{Yolo}\} \implies \textsc{Accept}$ (reason: \texttt{policy\_passed}).
+  \end{itemize}
+\end{enumerate}
+
+The central system invariant is: \emph{no agent directly modifies $\mathcal{G}$}. All modifications pass through $\mathcal{K}$.
+\end{definition}
+
+\begin{theorem}[Epoch Termination Under Discrete Evaluation ($\delta_{\min}$-discretisation)]
+\label{thm:termination}
+\textbf{Precondition ($\delta_{\min}$-discretisation):} the implementation evaluates each convergence dimension at discrete intervals with a minimum step size $\delta_{\min} > 0$, so the effective rank space is $\mathcal{A}_\delta = (\delta_{\min}\mathbb{Z}_{\geq 0} \cap [0,1])^k$, which is finite. ($\delta_{\min}$ is an implementation parameter exposed in finality configuration; it is not a mathematical property of $\mathcal{A}$ itself. Without this precondition $\mathcal{A} = (\mathbb{R}_{\geq 0})^k$ admits infinite descending chains and the theorem does not hold.)
+
+Under this precondition, within a single evidence epoch (no exogenous document injection), if the governance-approved transitions produced by $\mathcal{K}$ satisfy the monotonicity constraints of Definition~\ref{def:monotonicity}, then the sequence of lattice points $m_0, m_1, \ldots$ is strictly descending in $\mathcal{M}_\delta = \mathcal{L} \times \mathcal{A}_\delta$ and terminates in finitely many steps.
+\end{theorem}
+
+\begin{proof}[Proof sketch]
+Each approved transition satisfies $m_{t+1} \leq_{\mathcal{M}} m_t$ by the admissibility check (Definition~\ref{def:admissibility}). Under the $\delta_{\min}$-discretisation precondition, $\mathcal{A}_\delta$ is finite: it contains at most $\lfloor 1/\delta_{\min} \rfloor^k$ points. $\mathcal{L}$ is finite (3 elements). Therefore $\mathcal{M}_\delta = \mathcal{L} \times \mathcal{A}_\delta$ is finite, and every strictly descending chain terminates. Strict descent requires at least one convergence dimension to make progress (Proposition~\ref{prop:monotonic}); when no agent makes progress the sequence terminates at a fixed point (the stalled regime). In either case the sequence terminates in at most $|\mathcal{M}_\delta|$ steps.
+\end{proof}
+
+\subsection{Convergence and Finality}
+
+\begin{definition}[Disagreement Function]
+\label{def:lyapunov}
+Let $\mathcal{D} = \{d_1, \ldots, d_k\}$ be a set of convergence dimensions, each with a weight $w_d > 0$ ($\sum_d w_d = 1$), a target value $\tau_d$, and a measurement function $\mu_d : \mathcal{G} \to [0,1]$. The disagreement function is (shown to be a genuine Lyapunov function for $\Sigma_{\mathrm{CRDT}}$ in Theorem~\ref{thm:lyapunov}):
+\[
+V(t) = \sum_{d \in \mathcal{D}} w_d \cdot (\tau_d - \mu_d(\mathcal{G}_t))^2
+\]
+where $\mathcal{G}_t$ is the graph state at discrete time $t$ (the $t$-th governance cycle). By construction, $V(t) \geq 0$, and $V(t) = 0$ if and only if all dimensions have reached their targets.
+\end{definition}
+
+\begin{definition}[Finality Predicate — Scalar Finality (Fallback)]
+\label{def:finality}
+Let $S(t) = 1 - V(t) / V_{\max}$ be the normalized goal score. Define five gate predicates:
+\begin{align}
+G_A(t) &= \bigwedge_{i=0}^{\beta-1} \left[ S(t-i) \geq S(t-i-1) - \epsilon_m \right] && \text{(monotonicity, $\beta = 3$, $\epsilon_m = 0.001$)} \notag \\
+G_B(t) &= \text{EvidenceCoverage}(\mathcal{G}_t) \wedge (\text{ContradictionMass}(\mathcal{G}_t) = 0) && \text{(evidence + contradiction)} \notag \\
+G_C(t) &= (Q(t) \geq 0.7) && \text{(trajectory quality, no oscillation)} \notag \\
+G_D(t) &= (\text{IdleCycles}(t) \geq \gamma) \wedge (\text{IdleTime}(t) \geq \omega) && \text{(quiescence)} \notag \\
+G_E(t) &= (|\mathcal{N}_t| > 0) \wedge (|\text{Goals}(\mathcal{G}_t)| > 0) && \text{(minimum content)} \notag
+\end{align}
+
+The finality predicate is:
+\[
+F(t) = \left[ S(t) \geq \theta_{\text{auto}} \right] \wedge \bigwedge_{i \in \{A,B,C,D,E\}} G_i(t)
+\]
+where $\theta_{\text{auto}} = 0.92$. When $F(t) = 1$, the system transitions to \textnormal{\textsc{Resolved}} and issues a signed finality certificate. When $F(t) = 0$ but $S(t) \geq \theta_{\text{hitl}}$, a human-in-the-loop review is triggered.
+\end{definition}
+
+\begin{remark}[Scalar Finality as Fallback to Vector Finality]
+Definition~\ref{def:finality} specifies the \emph{scalar} finality predicate, where the normalized
+goal score $S(t)$ is compared against a single threshold (0.92). This predicate is now active only
+when per-dimension finality is disabled in configuration (backward-compatible fallback mode).
+
+When per-dimension finality is enabled (the default in production), Definition~\ref{def:vector-finality}
+(Section~\ref{sec:vector-finality}) takes precedence: the system evaluates $F^*(t)$ instead of $F(t)$,
+providing stronger guarantees against compensation attacks. Both predicates may be evaluated in parallel
+for diagnostic purposes (\texttt{compensation\_detected} flag), but only $F^*(t)$ gates transitions to
+\textnormal{\textsc{Resolved}}.
+\end{remark}
+
+\subsection{Threat Model and Assumptions}
+
+The current system operates under the following assumptions:
+
+\begin{enumerate}
+  \item \textbf{Cooperative agents.} All agents are assumed to operate in good faith within their governance constraints. No Byzantine, adversarial, or colluding agents are modeled.
+  \item \textbf{Trusted governance layer.} The policy engine, epoch-based CAS, and finality evaluator are assumed correct. Formal machine-checked verification of these components is not provided.
+  \item \textbf{Trusted infrastructure.} Postgres, NATS, and OpenFGA are assumed to function correctly. Network partitions and service degradation are handled by circuit breakers and graceful degradation, not by Byzantine fault tolerance.
+  \item \textbf{Single-scope operation.} Cross-scope governance and hierarchical finality are designed but not validated.
+\end{enumerate}
+
+These assumptions are substantially weaker than those required for Byzantine consensus ($n \geq 3f+1$) \cite{lamport1982}. Relaxing them---particularly the cooperative-agent assumption---is the primary direction for future work (Section~\ref{sec:boundaries}).
+
+\subsection{Complexity Bounds}
+
+The three-node state cycle constrains the coordination topology. In each cycle (ContextIngested $\to$ FactsExtracted $\to$ DriftChecked), each of $n$ agents is activated at most once (activation filters enforce this). The message complexity per cycle is therefore $O(n)$: one proposal per agent, one governance evaluation per proposal, one execution per approved proposal. Over $k$ cycles to convergence, total message complexity is $O(nk)$.
+
+This contrasts with classical BFT protocols requiring $O(n^2)$ messages per consensus round \cite{castro1999}. The reduced complexity follows from the cooperative-agent assumption: without Byzantine faults, the system does not need all-to-all message exchange for agreement. Instead, agreement is mediated by the shared graph $\mathcal{G}$ and the governance function $\Pi$.
+
+The number of cycles $k$ to convergence is bounded above by the EXPIRED timeout (configurable, default 30 days) and below by the minimum $\beta + \gamma$ rounds required by Gates A and D. In the Project Horizon validation, $k = 12$.
+
+%% ============================================================
+\section{Core Design}
+%% ============================================================
+
+\subsection{Design Principle: Proposals, Approval, Execution}
+
+The central invariant of the system is: \emph{no agent directly modifies shared state}. Instead:
+
+\begin{enumerate}
+  \item \textbf{Agents propose:} Each agent reads shared context, reasons about it, and emits a proposal (a candidate state transition with justification).
+  \item \textbf{Kernel evaluates:} The reduction kernel $\mathcal{K}$ (Definition~\ref{def:kernel}) evaluates the proposal against policy rules, lattice admissibility, and governance mode, producing a deterministic verdict.
+  \item \textbf{Executor implements:} Only approved proposals are applied to shared state, via atomic epoch-based compare-and-swap (CAS) transitions.
+\end{enumerate}
+
+This pattern provides complete auditability: every state change has a proposal, an evaluation, and an execution record. It also enables governance without code changes: rules are configuration, not compiled logic.
+
+\subsection{Shared Immutable Context}
+\label{sec:shared-context}
+
+All agents read from and write to two shared data structures:
+
+\paragraph{Append-Only Event Log (Context WAL).}
+Every claim, fact, and agent decision is recorded as an immutable event in a Postgres write-ahead log (example event schema in Appendix~\ref{sec:app-implementation}). Events are never modified or deleted. This provides tamper-proof auditability, full reproducibility (replay the log to reconstruct any state), and causal traceability (which facts triggered which agent actions).
+
+\paragraph{CRDT-Inspired Semantic Graph.}
+A Postgres + pgvector database maintains semantic relationships with monotonic guarantees \cite{laddad2024}:
+
+\begin{itemize}
+  \item \textbf{Monotonic confidence:} Confidence scores ratchet upward only. A claim at 0.85 can become 0.92 but never revert to 0.80.
+  \item \textbf{Irreversible contradictions:} Once a contradiction edge is created between two claims, it cannot be deleted---only resolved by creating a resolution edge.
+  \item \textbf{Staling, not deletion:} Superseded nodes are marked stale, preserving the full reasoning history.
+\end{itemize}
+
+These CRDT semantics prevent state regression and enable formal convergence guarantees: the semantic graph can only move toward resolution, never away from it.
+
+\paragraph{Bitemporal Semantic Graph.}
+Beyond monotonic merge, the semantic graph implements \emph{dual temporality} \cite{snodgrass2000}: every node and edge carries two independent time axes.
+
+\begin{itemize}
+  \item \textbf{Valid time} (\texttt{valid\_from}, \texttt{valid\_to}): the interval during which a fact holds in the real world. A revenue figure may be valid for fiscal year 2024; a compliance certificate valid until its expiry date.
+  \item \textbf{Transaction time} (\texttt{recorded\_at}, \texttt{superseded\_at}): when the system learned or corrected the fact. A node superseded at $t_s$ remains in the graph with $\texttt{superseded\_at} = t_s$; its replacement carries $\texttt{recorded\_at} = t_s$.
+\end{itemize}
+
+The \emph{current view} filter---$\texttt{superseded\_at IS NULL} \wedge (\texttt{valid\_to IS NULL} \vee \texttt{valid\_to} > \texttt{now()})$---restricts queries to facts that are both temporally valid and not yet corrected. As-of queries on either axis or both enable point-in-time reconstruction:
+
+\begin{itemize}
+  \item \textbf{As-of valid time:} ``What was believed true on reporting date $T$?''
+  \item \textbf{As-of transaction time:} ``What did the system know at audit date $T'$?''
+  \item \textbf{Combined:} ``What did the system know at $T'$ about facts valid at $T$?''
+\end{itemize}
+
+Contradiction detection respects valid-time overlap: two claims contradict only if their validity windows intersect. A revenue figure valid in Q1 does not contradict a revised figure valid from Q2 onward. This prevents false contradictions from temporal misalignment and enables the finality evaluator to correctly assess unresolved disagreements.
+
+An \emph{evidence schema} declares required evidence types and maximum staleness per domain. Gate~B of the finality evaluator (Section~\ref{sec:finality-gates}) uses this schema to block finality when required evidence is missing or has exceeded its temporal validity---ensuring that decisions are not finalized on stale data.
+
+\subsection{Declarative Governance}
+\label{sec:declarative-governance}
+
+Agent activation and state transitions are defined in human-readable YAML (mode, drift-triggered rules, transition-blocking rules; see Appendix~\ref{sec:app-implementation}).
+
+\textbf{Three governance modes} correspond to levels in the governance lattice $\mathcal{L}$ (Definition~\ref{def:gov-lattice}):
+
+\begin{itemize}
+  \item \textbf{YOLO} ($\ell = \textsc{Yolo}$, most permissive): Automatic approval for transitions that pass policy and lattice checks. Suitable for low-risk, internal workflows.
+  \item \textbf{MITL} ($\ell = \textsc{Mitl}$, intermediate): All proposals that pass policy checks are routed to human review. Required for standard compliance workflows.
+  \item \textbf{MASTER} ($\ell = \textsc{Master}$, most restrictive): Every proposal is evaluated through the full reduction kernel. Policy blocks produce \textsc{Reject} (not \textsc{Escalate}). Lattice incomparability produces \textsc{Reject}. Only transitions that are both policy-compliant and lattice-admissible are accepted. Suitable for highest-sensitivity scenarios where no ambiguity is tolerable.
+\end{itemize}
+
+Per-scope overrides allow mixing modes within a single system (e.g., YOLO for low-risk extraction, MITL for financial claims).
+
+\paragraph{Reduction Kernel Architecture.}
+Behind the YAML surface, a native Rust reduction kernel (compiled via napi-rs as a Node.js addon) evaluates all governance decisions deterministically. The kernel implements the three-stage pipeline of Definition~\ref{def:kernel}: policy check (\texttt{canTransition} + \texttt{evaluateRules}), lattice admissibility (Definition~\ref{def:admissibility}), and mode routing. All pure mathematics---Lyapunov computation, gate evaluation, convergence analysis, and governance logic---executes in compiled Rust; TypeScript orchestrates I/O (database, message bus, YAML parsing). This separation ensures that the deterministic core is auditable, replayable, and verifiable independently of LLM stochasticity.
+
+When multiple policy rules contribute to a single decision, XACML-inspired combining algorithms \cite{xacml2013} resolve conflicts: \texttt{deny-overrides} (any deny wins) and \texttt{first-applicable} (ordered evaluation) are implemented. This mirrors the Policy Decision Point (PDP) / Policy Enforcement Point (PEP) architecture standard in enterprise access management.
+
+\paragraph{Decision Records.}
+Every governance evaluation produces an immutable \texttt{DecisionRecord} (schema in Appendix~\ref{sec:app-implementation}) with \texttt{policy\_version} binding. The \texttt{policy\_version} is a content hash of the governance and finality configuration files at evaluation time, binding each decision to the exact rule set that produced it. This enables post-hoc queries such as: ``Was this decision made under the pre-amendment or post-amendment compliance rules?''
+
+\subsection{Three-Tier Governance Routing}
+\label{sec:three-tier}
+
+A critical design constraint for regulated environments is that governance must function even when LLM services are degraded or unavailable. The system implements three tiers of governance evaluation, each a strict superset of the previous:
+
+\begin{enumerate}
+  \item \textbf{Deterministic evaluation (Tier 1).} Every proposal is first evaluated with zero LLM tokens: the reduction kernel $\mathcal{K}$ checks policy rules, lattice admissibility, and mode routing (Definition~\ref{def:kernel}); OpenFGA checks agent permissions. This produces a deterministic outcome (Accept, Reject, or Escalate) with a structured reason. In MASTER mode or when no LLM is configured, this is the final decision.
+
+  \item \textbf{Oversight agent (Tier 2).} In YOLO mode with an LLM available, a lightweight oversight agent receives the deterministic result and chooses one of three actions: \emph{accept} the deterministic result as-is, \emph{escalate to full LLM} for richer reasoning, or \emph{escalate to human} (MITL). This routing decision is itself audited via the \texttt{GovernancePath} field in the context WAL.
+
+  \item \textbf{Full governance agent (Tier 3).} When the oversight agent escalates, a full LLM-backed governance agent reasons over state, drift, governance rules, and policy checks using tool calls, then publishes an approval or rejection with natural-language rationale.
+\end{enumerate}
+
+A \emph{circuit breaker} (3 consecutive failures, 60-second cooldown) protects against LLM service degradation: when the breaker opens, Tiers~2 and~3 are bypassed and the system falls back to Tier~1 deterministic evaluation. This guarantees that governance never stalls due to LLM unavailability---a requirement in environments where agent downtime has compliance implications.
+
+Every decision records which tier produced it (\texttt{processProposal}, \texttt{oversight\_acceptDeterministic}, \texttt{oversight\_escalateToLLM}, \texttt{oversight\_escalateToHuman}, or \texttt{processProposalWithAgent}), providing auditors with the exact governance path for each state transition.
+
+\subsection{Three-Node State Cycle}
+
+Rather than an open-ended state machine, the system operates on a tight three-node cycle with epoch-based CAS:
+
+\begin{center}
+\texttt{ContextIngested} $\rightarrow$ \texttt{FactsExtracted} $\rightarrow$ \texttt{DriftChecked} $\rightarrow$ \texttt{ContextIngested}
+\end{center}
+
+Each transition requires governance approval. Only one agent succeeds per cycle (atomic epoch check). This prevents race conditions and ensures every cycle produces a complete audit record.
+
+\subsection{Fine-Grained Access Governance (OpenFGA)}
+\label{sec:openfga}
+
+OpenFGA \cite{pang2019} enforces relationship-based access control at four levels:
+
+\begin{itemize}
+  \item \textbf{Document access:} Only authorized agents and users read sensitive materials.
+  \item \textbf{Transition approval:} Governance rules determine who can approve which transitions.
+  \item \textbf{Policy modification:} Changes to governance rules require role-based sign-off and version control.
+  \item \textbf{Audit access:} Sensitivity-appropriate visibility into audit logs.
+\end{itemize}
+
+%% ============================================================
+\section{Convergence Theory and Finality}
+%% ============================================================
+
+\subsection{The Finality Problem}
+
+Traditional systems declare finality by threshold: ``if confidence $> 0.95$, done.'' This is brittle: contradictions may emerge after the threshold is crossed, the system may cycle indefinitely, and there is no formal guarantee of stabilization. We replace threshold-based finality with \emph{stateful convergence tracking}.
+
+\subsection{Disagreement Function and Restricted Dynamical System}
+\label{sec:convergence-guarantee}
+
+We define a scalar \emph{disagreement function} $V(t) \geq 0$ measuring distance to convergence targets (following the disagreement-function tradition of Olfati-Saber and Murray \cite{olfati2004}):
+
+\[
+V(t) = \sum_{d \in \mathcal{D}} w_d \cdot (\text{target}_d - \text{actual}_d(t))^2
+\]
+
+\paragraph{Restricted dynamical system.}
+The system operates under two distinct input regimes: governance-approved CRDT transitions, and exogenous document injection (evidence epochs). $V$ behaves fundamentally differently in each. To ground a formal stability claim, we isolate the \emph{restricted dynamical system} $\Sigma_{\mathrm{CRDT}}$:
+
+\begin{definition}[Restricted CRDT System $\Sigma_{\mathrm{CRDT}}$]
+\label{def:restricted-system}
+The restricted system $\Sigma_{\mathrm{CRDT}}$ is the closed-loop evolution of $\mathcal{G}_t$ in which:
+\begin{enumerate}
+  \item all state transitions are governance-approved and satisfy the CRDT monotonicity invariants (Definition~\ref{def:monotonicity}),
+  \item no new documents are injected (no cross-epoch events),
+  \item the facts agent introduces no new nodes beyond those already present in $\mathcal{G}_0$.
+\end{enumerate}
+Under $\Sigma_{\mathrm{CRDT}}$, the only admissible state changes are: confidence ratchets, contradiction resolution edges, goal completion marks, and risk-node removals---all monotone in the direction of decreasing $V$.
+\end{definition}
+
+\begin{theorem}[Lyapunov Stability of $\Sigma_{\mathrm{CRDT}}$]
+\label{thm:lyapunov}
+Under $\Sigma_{\mathrm{CRDT}}$ (Definition~\ref{def:restricted-system}), $V(t)$ is a Lyapunov function for the fixed point $\mathcal{G}^* = \{\mathcal{G} : V(\mathcal{G}) = 0\}$: it is non-negative by construction, equals zero if and only if all dimensions reach their targets, and is non-increasing along every trajectory of $\Sigma_{\mathrm{CRDT}}$. When at least one dimension makes strict progress, the decrease is strict.
+\end{theorem}
+
+\begin{proof}
+Non-negativity is immediate from the squared-distance form. $V = 0$ iff $\mu_d = \tau_d$ for all $d$. Each transition in $\Sigma_{\mathrm{CRDT}}$ satisfies the monotonicity constraints of Definition~\ref{def:monotonicity} by precondition~1: $\mu_d(\mathcal{G}_{t+1}) \geq \mu_d(\mathcal{G}_t)$ for all $d$. Since $\tau_d \geq \mu_d(\mathcal{G}_t)$ when targets are not yet met, each squared term $w_d(\tau_d - \mu_d)^2$ is non-increasing, so $V(t+1) \leq V(t)$. Strict progress on any dimension with nonzero weight yields $V(t+1) < V(t)$.
+\end{proof}
+
+\paragraph{Full system behaviour.}
+Outside $\Sigma_{\mathrm{CRDT}}$---when cross-epoch document injection occurs---$V$ may increase. This is an exogenous input to the closed-loop system, not a trajectory of $\Sigma_{\mathrm{CRDT}}$, and does not contradict Theorem~\ref{thm:lyapunov}. The full system alternates between $\Sigma_{\mathrm{CRDT}}$ phases (where Theorem~\ref{thm:lyapunov} applies) and injection events (where $V$ may spike). Section~\ref{sec:convergence-rates} characterises both regimes and their interaction.
+
+where $\mathcal{D}$ comprises four weighted dimensions (Table~\ref{tab:dimensions}; note $\mu_4 = 1 - \mathrm{risk}$ so that all dimensions are oriented toward 1):
+
+\begin{table}[H]
+\centering
+\begin{tabular}{llrll}
+\toprule
+\textbf{Dimension} & \textbf{Notation} & \textbf{Weight} & \textbf{Target $\tau_d$} & \textbf{Meaning} \\
+\midrule
+Claim confidence & $\mu_1 \in [0,1]$ & 0.30 & $\geq 0.85$ & Active claims at sufficient confidence \\
+Contradiction resolution & $\mu_2 \in [0,1]$ & 0.30 & $= 1.0$ ($\leq \epsilon_2$ residual) & Zero unresolved contradictions \\
+Goal completion & $\mu_3 \in [0,1]$ & 0.25 & $\geq 0.90$ & Completion ratio of declared goals \\
+Risk score inverse & $\mu_4 = 1 - \mathrm{risk} \in [0,1]$ & 0.15 & $\geq 0.80$ & Residual risk below 0.20 \\
+\bottomrule
+\end{tabular}
+\caption{Convergence dimensions with weights and targets. Dimension~4 is defined as $\mu_4 = 1 - \mathrm{risk}$; a target $\mu_4 \geq 0.80$ is equivalent to residual risk $< 0.20$. The same notation $\tau_d$ and $\mu_d$ is used throughout (Table~\ref{tab:vector-finality-thresholds}).}
+\label{tab:dimensions}
+\end{table}
+
+\subsection{Convergence Guarantee Under Monotonic Constraints}
+
+The CRDT-inspired monotonicity invariants (Definition~\ref{def:monotonicity}) provide the foundation for a convergence argument. We state this as a proposition with a proof sketch; a fully machine-checked proof is deferred to future work.
+
+\begin{proposition}[Monotonic Progress Under CRDT Constraints --- Intra-Epoch]
+\label{prop:monotonic}
+Let $\mathcal{G}_t$ be the semantic graph at cycle $t$, and let $V(t)$ be the disagreement function (Definition~\ref{def:lyapunov}). \emph{Preconditions:} (i)~no new documents are injected (single evidence epoch); (ii)~every state change to $\mathcal{G}_t$ is a governance-approved transition satisfying the CRDT monotonicity invariants of Definition~\ref{def:monotonicity}; (iii)~no non-governance operations (e.g.\ facts-agent extraction runs) introduce new nodes or risk-tagged entities into $\mathcal{G}_t$ during the epoch. Under these preconditions, if at least one of the following holds:
+\begin{enumerate}
+  \item a claim confidence $c(n)$ increases for some $n \in \mathcal{N}_t$,
+  \item a contradiction edge receives a \textnormal{\textsc{Resolves}} edge,
+  \item a goal is marked complete,
+  \item a risk node is resolved or removed,
+\end{enumerate}
+then $V(t+1) \leq V(t)$, with strict inequality when the affected dimension has nonzero weight and the target has not yet been reached. Equivalently, under these preconditions $V$ is a Lyapunov function for the restricted system $\Sigma_{\mathrm{CRDT}}$ (Definition~\ref{def:restricted-system}).
+\end{proposition}
+
+\begin{proof}[Proof sketch]
+Each convergence dimension $d$ contributes $w_d \cdot (\tau_d - \mu_d(\mathcal{G}_t))^2$ to $V(t)$. Under preconditions (i)--(iii), every state change is a governance-approved monotone write; no exogenous node can appear to raise $V$:
+\begin{itemize}
+  \item \emph{Claim confidence} (dimension 1): the confidence ratchet (Definition~\ref{def:monotonicity}) guarantees $c(n)$ is non-decreasing, so the fraction of claims above threshold is non-decreasing.
+  \item \emph{Contradiction resolution} (dimension 2): contradictions are irreversible and resolutions are additive, so the unresolved count is non-increasing.
+  \item \emph{Goal completion} (dimension 3): goals are completed monotonically under governance-approved transitions; no new goal nodes enter (precondition~iii).
+  \item \emph{Risk score inverse} (dimension 4): with no new risk-tagged nodes introduced (precondition~iii), the risk score can only decrease as unresolved contradictions are resolved or risk nodes are cleared by approved transitions.
+\end{itemize}
+Hence $\mu_d(\mathcal{G}_{t+1}) \geq \mu_d(\mathcal{G}_t)$ for all $d$, the squared terms are non-increasing, and strict progress on any dimension with nonzero weight yields $V(t+1) < V(t)$.
+
+\emph{Scope note.} Precondition~(iii) is violated in practice when the facts agent extracts new goals or risk-tagged entities from an arriving document within an epoch boundary. Such events are counted as exogenous shocks in the cross-epoch regime (Section~\ref{sec:convergence-rates}) and do not contradict this proposition; they simply fall outside its preconditions.
+\end{proof}
+
+\paragraph{Rank function and bounded convergence.} The per-dimension \emph{rank function}
+$r(t) = \sum_{d \in \mathcal{D}} \max(0, \tau_d - \mu_d(\mathcal{G}_t))$
+measures the total remaining gap to the per-dimension thresholds $\tau_d$. Within a single evidence epoch, under the conditions of Proposition~\ref{prop:monotonic}, $r(t)$ is non-negative and non-increasing at each cycle where at least one dimension makes progress; when no dimension makes progress, $r(t)$ is unchanged (stalled regime). Thus $r(t)$ provides a well-founded measure for intra-epoch convergence. Cross-epoch context injection (new documents, new goals or contradictions) can increase $r(t)$ before it resumes decreasing in the next epoch.
+
+\paragraph{Two convergence regimes.} The proposition above holds within a single evidence epoch---the period between consecutive document injections. When new evidence arrives (a \emph{cross-epoch} event), it may introduce new contradictions or invalidate prior claims, causing $V$ and $r(t)$ to increase. The system therefore operates in two regimes:
+
+\begin{itemize}
+  \item \textbf{Intra-epoch} ($V$ and $r(t)$ non-increasing): agents process existing evidence under monotonic constraints. $V(t)$ and $r(t)$ can only decrease. The progress indicator $\alpha_{\text{intra}} \geq 0$ measures progress within this regime (high variance of $\alpha$ across recent epochs indicates a non-stationary regime in which ETA estimates are unreliable).
+  \item \textbf{Cross-epoch} ($V$ may spike): new evidence enters the graph. The delta $\Delta V_{\text{cross}} = V(t_{\text{after}}) - V(t_{\text{before}})$ is typically positive when contradictions are introduced and negative when resolutions are provided. This is an exogenous input, not a governance failure.
+\end{itemize}
+
+The implementation tracks both regimes by tagging each convergence point with the WAL sequence number (\texttt{context\_seq}) of the latest document. Pairs with the same \texttt{context\_seq} contribute to $\alpha_{\text{intra}}$; pairs where \texttt{context\_seq} changes contribute to the cross-epoch delta.
+
+\begin{remark}[Operational Claim: Bounded Intra-Epoch Convergence]
+\label{rem:bounded-convergence}
+This is a \emph{conditional operational claim}, not a theorem derivable from the preceding results alone. Its key precondition---``every governance cycle produces at least one approved transition making strict progress''---is a \emph{liveness} condition that the architecture cannot guarantee: agents are LLM-driven and may generate proposals that are rejected or make no measurable progress for arbitrarily many cycles. The claim holds when and only when the liveness condition is met.
+
+Under the preconditions of Proposition~\ref{prop:monotonic} \emph{and} the additional liveness condition that every governance cycle produces at least one approved transition making strict progress on some dimension, $r(t) \to 0$ and $V(t) \to 0$ within an evidence epoch in at most $K$ cycles. With $\delta_{\min}$-discretisation (Theorem~\ref{thm:termination}), $K \leq \sum_{d \in \mathcal{D}} \tau_d / \delta_{\min}$.
+
+When the liveness condition is not met (stalled regime), the system falls back to plateau detection (Gate~C) and human-in-the-loop routing rather than to this bound.
+\end{remark}
+
+\paragraph{Empirical status.} The liveness precondition is satisfied in Exp.~1: within evidence epochs where resolutions are provided, at least one dimension (\texttt{contradiction\_resolution} or \texttt{goal\_completion}) makes strict progress per cycle, and $V(t)$ reaches 0.0000 at resolution epochs (epochs 9, 13, 17). Goal and risk nodes are protected from stale marking as accumulative types, allowing the resolver agent to advance \texttt{goal\_completion} monotonically. Cross-epoch document injection introduces new goals that temporarily raise $V$, producing the sawtooth trajectory described below.
+
+\paragraph{Perpetual lifecycle.} In realistic deployments, the system alternates between intra-epoch convergence and cross-epoch evidence shocks. The resulting $V(t)$ trajectory is a \emph{sawtooth}: decreasing within each epoch, spiking at evidence boundaries, then re-converging. This models the operational reality described in Section~\ref{sec:perpetual-finality}, where finality is a checkpoint, not a terminal state.
+
+\paragraph{Connection to lattice-based termination.} Proposition~\ref{prop:monotonic} establishes intra-epoch progress on the scalar $V(t)$ and on the rank function $r(t)$. The Epoch Termination Theorem (Theorem~\ref{thm:termination}) strengthens this by proving that the product order $\mathcal{M} = \mathcal{L} \times \mathcal{A}$ (Definition~\ref{def:product-lattice}) provides a well-founded descent domain for the reduction kernel. Since $\mathcal{L}$ is finite (three governance levels) and $\mathcal{A} = (\mathbb{R}_{\geq 0})^k$ admits only finitely many admissible transitions within a bounded evidence epoch (the convergence rank can decrease at most finitely many times before reaching a fixed point), the combined ordering bounds the total number of governance-approved transitions per epoch.
+
+This yields a two-level convergence guarantee: (i)~within each evidence epoch, each admissible transition either preserves or decreases the lattice point in $\mathcal{M}$, and only finitely many such transitions are possible before the system reaches a fixed point (Theorem~\ref{thm:termination}); (ii)~each such transition satisfies the monotonicity constraints of Proposition~\ref{prop:monotonic}, ensuring $V(t)$ is non-increasing. Together, these guarantee that the system reaches a stable governance configuration within each epoch in finite time.
+
+The connection to rewriting theory \cite{baader1998} is structural: each governance-approved transition is a rewrite step, and the well-founded ordering on $\mathcal{M}$ serves as the termination measure. Newman's Lemma \cite{newman1942} would bridge local confluence to global confluence, but \emph{local confluence is not established}: the current system guarantees that each individual governance evaluation is deterministic (the kernel $\mathcal{K}$ is a function), but it does not prove that two admissible transitions applied in either order yield joinable states. The system therefore provides \emph{partial confluence}---certified compatible transitions commute---but full Church--Rosser confluence remains unproven and may be unrealistic in a governed multi-agent setting where proposals are dynamically generated. This framing also parallels Denning's lattice model \cite{denning1976}, where information flow is bounded by a lattice ordering---here, governance permission flow is bounded by $\mathcal{L}$, and convergence progress is bounded by $\mathcal{A}$.
+
+Note that intra-epoch convergence does \emph{not} hold when agents fail to make progress (the stalled regime, $\alpha_{\text{intra}} \approx 0$). Stalled-dimension detection identifies dimensions where the per-dimension score has not improved in the last 5 intra-epoch evaluations. Plateau detection (Gate~C) and human-in-the-loop routing provide operational safeguards for this case. The proposition also does not address adversarial agents---a limitation addressed by the threat model (Section~\ref{sec:problem-setting}).
+
+\subsection{Per-Dimension Finality and Non-Compensability}
+\label{sec:vector-finality}
+
+The convergence framework maintains CRDT-inspired monotonicity on each convergence dimension
+(Definition~\ref{def:lyapunov}). However, the scalar finality predicate (Definition~\ref{def:finality})
+permits a subtle vulnerability: one dimension can over-improve (e.g., claim confidence $\mu_1(t) = 1.0$)
+to compensate for another dimension's failure (e.g., unresolved contradictions $\mu_2(t) = 0.80$),
+causing the normalized score $S(t)$ to exceed threshold even when epistemic safety is compromised.
+This is the \emph{compensation artifact}: scalar-pass / vector-fail states where the system would
+declare \textnormal{\textsc{Resolved}} despite residual uncertainty.
+
+To address this, we introduce \emph{vector finality}, a per-dimension predicate that enforces
+independent safety thresholds on each dimension while preserving the global gate structure.
+
+\subsubsection{Vector Finality Predicate Definition}
+
+\begin{definition}[Vector Finality Predicate]
+\label{def:vector-finality}
+Let $\mathcal{D} = \{d_1, \ldots, d_k\}$ be the set of convergence dimensions
+(claim confidence, contradiction resolution, goal completion, risk score inverse).
+For each dimension $d \in \mathcal{D}$, define:
+\begin{itemize}
+  \item $\tau_d$ — per-dimension threshold
+  \item $\epsilon_d$ — per-dimension epsilon tolerance
+  \item $e_d(t) = \max(0, \tau_d - \mu_d(\mathcal{G}_t))$ — per-dimension finality gap
+  \item $\text{VETO}_d$ — boolean flag indicating whether dimension $d$ blocks finality unconditionally
+\end{itemize}
+
+The vector finality predicate is:
+\[
+F^*(t) = \bigwedge_{d \in \mathcal{D}} \left[ e_d(t) \leq \epsilon_d \wedge G_A^d(t) \wedge G_C^d(t) \right] \wedge \bigwedge_{i \in \{B,D,E\}} G_i(t)
+\]
+
+where $G_A^d(t)$ and $G_C^d(t)$ are per-dimension variants of gates A and C (monotonicity and
+trajectory quality), and $G_B(t), G_D(t), G_E(t)$ remain global (evidence coverage, quiescence,
+and minimum content).
+
+When $\text{VETO}_d = \text{true}$ for some dimension $d$, a failure of the threshold check
+$e_d(t) \leq \epsilon_d$ blocks finality regardless of other dimensions' performance. The system
+transitions to \textnormal{\textsc{Resolved}} only when $F^*(t) = 1$.
+\end{definition}
+
+\paragraph{Relationship to $V(t)$.}
+The Lyapunov function $V(t)$ tracks convergence dynamics; the finality predicates $F(t)$ and $F^*(t)$ are finality preconditions. $V(t) \to 0$ is necessary but not sufficient for finality (gates may block); $F^*(t) = \mathrm{true}$ is necessary but not sufficient for $V(t) = 0$ (the threshold may be below the current $V(t)$).
+
+\subsubsection{Dimension-Specific Thresholds and Tolerances}
+
+Table~\ref{tab:vector-finality-thresholds} specifies the per-dimension parameters. Each dimension
+has been validated empirically to reflect the epistemic safety requirement it represents:
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{lrrl|c}
+\toprule
+\textbf{Dimension} & $\tau_d$ & $\epsilon_d$ & \textbf{Interpretation} & \textbf{Veto?} \\
+\midrule
+Claim confidence & 0.85 & 0.02 & Active claims at sufficient confidence & No \\
+Contradiction resolution & 0.95 & 0.01 & Unresolved contradictions near zero & \textbf{Yes} \\
+Goal completion & 0.90 & 0.02 & Declared goals substantially completed & No \\
+Risk score inverse & 0.80 & 0.03 & Residual risk below operational threshold & No \\
+\bottomrule
+\end{tabular}
+\caption{Per-dimension finality thresholds ($\tau_d$), epsilon tolerances ($\epsilon_d$), and veto semantics.
+The \textnormal{\textsc{Veto}} column indicates whether a dimension blocks finality when it fails.
+Contradiction resolution is veto because unresolved contradictions represent irreducible epistemic uncertainty
+that cannot be compensated by high confidence or goal completion.}
+\label{tab:vector-finality-thresholds}
+\end{table}
+
+\paragraph{Veto Semantics.}
+In the formal specification, all required dimensions participate in the conjunction. However, when
+a dimension is marked veto, its failure automatically causes $F^*(t) = \text{false}$ regardless of other
+dimensions' scores. This ensures that epistemic safety requirements (particularly contradiction resolution)
+cannot be overridden by compensatory improvement in other dimensions. The veto flag is configuration-driven
+(see finality.yaml per-dimension-finality section) and can be extended as operational experience evolves.
+
+\subsubsection{Gate Refactoring: Per-Dimension vs. Global Gates}
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{llp{6cm}}
+\toprule
+\textbf{Gate} & \textbf{Scope} & \textbf{Description} \\
+\midrule
+$G_A^d$ & Per-dimension & Score $\mu_d(t)$ non-decreasing for last $\beta = 3$ cycles within dimension $d$ \\
+$G_C^d$ & Per-dimension & Trajectory quality $Q^d(t) \geq 0.7$ (lag-1 autocorrelation) for dimension $d$ \\
+$G_B$ & Global & Evidence coverage $> 0$ and contradiction mass $= 0$ across entire scope \\
+$G_D$ & Global & Quiescence: idle cycles $\geq \gamma$ and idle time $\geq \omega$ \\
+$G_E$ & Global & Minimum content: $|\mathcal{N}_t| > 0$ and $|\text{Goals}(\mathcal{G}_t)| > 0$ \\
+\bottomrule
+\end{tabular}
+\caption{Gate refactoring under vector finality. Gates A and C now evaluate per-dimension
+properties (monotonicity and trajectory quality on each dimension separately), while gates B, D, E
+remain global because they characterize the scope as a whole.}
+\label{tab:gate-refactoring}
+\end{table}
+
+\paragraph{Monotonicity per dimension (Gate $G_A^d$).}
+Rather than requiring the normalized score $S(t)$ to be non-decreasing (original scalar Gate A),
+each dimension $d$ must have non-decreasing $\mu_d(t)$ over the last $\beta$ cycles. This prevents
+false finality from oscillation: a dimension cannot spike up, then drop, and still pass finality.
+
+\paragraph{Trajectory quality per dimension (Gate $G_C^d$).}
+The lag-1 autocorrelation of dimension $d$'s score history must be $\geq 0.7$, indicating a stable
+upward trajectory with minimal oscillation within that dimension. This complements Gate A by detecting
+subtle noise that monotonicity alone might miss.
+
+\subsubsection{Proof Obligation PO-2: Non-Compensability}
+
+\begin{theorem}[Non-Compensability: Vulnerability Existence and Vector Finality Prevention]
+\label{thm:vector-finality-soundness}
+The theorem has two parts.
+
+\textbf{Part 1 (Compensation vulnerability exists in scalar finality).}
+There exist reachable system states in which the scalar finality condition $F(t) = \text{true}$ holds
+(i.e.\ $S(t) \geq \theta_{\text{auto}} = 0.92$) while the system has not achieved epistemic safety on all
+dimensions (i.e.\ $\exists\, d : e_d(t) > \epsilon_d$). Such states are reachable whenever one dimension
+over-improves to compensate for another's shortfall. This constitutes a structural vulnerability of
+scalar-finality systems.
+
+\emph{Proof by construction.} Take $\mu = (1.0,\; 0.80,\; 1.0,\; 1.0)$. The scalar score is
+$0.30 \cdot 1.0 + 0.30 \cdot 0.80 + 0.25 \cdot 1.0 + 0.15 \cdot 1.0 = 0.94 \geq 0.92$, so
+$F(t) = \text{true}$. But the contradiction resolution dimension has gap $e_2(t) = 0.95 - 0.80 = 0.15
+> \epsilon_2 = 0.01$, meaning 20\% of contradictions remain unresolved. This state is reachable via
+legitimate LLM-driven confidence inflation; the test case \texttt{vector\_finality\_blocks\_compensation}
+constructs it explicitly.
+
+\textbf{Part 2 (Vector finality closes the vulnerability).}
+Under the CRDT monotonicity assumption (A3), the vector finality predicate $F^*(t)$
+(Definition~\ref{def:vector-finality}) guarantees that if $F^*(t) = \text{true}$ then for all
+required dimensions $d$:
+\begin{enumerate}
+  \item $e_d(t) \leq \epsilon_d$ (each dimension gap is within tolerance),
+  \item $G_A^d(t) = \text{true}$ (per-dimension monotonicity over the last $\beta$ cycles),
+  \item $G_C^d(t) = \text{true}$ (per-dimension trajectory quality $\geq 0.7$),
+  \item if $\mathrm{VETO}_d = \text{true}$, then $e_d(t) > \epsilon_d \Rightarrow F^*(t) = \text{false}$
+  (veto dimensions block finality unconditionally).
+\end{enumerate}
+Part~1's compensation state is blocked: $e_2(t) = 0.15 > \epsilon_2 = 0.01$ and
+$\mathrm{VETO}_{\text{contradiction}} = \text{true}$ together force $F^*(t) = \text{false}$.
+
+\emph{Proof.} Part~2 follows directly from the definition of $F^*$ as a conjunction: $F^*(t)$ is
+false whenever any conjunct fails. The CRDT assumption guarantees $\mu_d$ is non-decreasing, so once
+$e_d(t) \leq \epsilon_d$ is achieved it persists; the gate conditions $G_A^d$, $G_C^d$ are explicit
+predicates evaluated at declaration time.
+\end{theorem}
+
+\subsubsection{Backward Compatibility and Fallback}
+
+The vector finality predicate $F^*(t)$ is controlled by a configuration flag
+(\texttt{per\_dimension\_finality.enabled} in finality.yaml). When disabled, the system falls back
+to the original scalar predicate $F(t)$ (Definition~\ref{def:finality}), preserving backward
+compatibility. This allows staged rollout and comparative evaluation (see experiments below).
+
+The dual-path implementation in the finality evaluator (Section~\ref{sec:vector-finality}) ensures that:
+\begin{enumerate}
+  \item When vector finality is enabled, $F^*(t)$ is the authoritative predicate; $F(t)$ is computed
+  but not used for finality decisions.
+  \item When vector finality is disabled, $F(t)$ is used (legacy behavior).
+  \item A diagnostic flag \texttt{compensation\_detected} is logged whenever a state satisfies $F(t)$
+  but not $F^*(t)$, enabling empirical measurement of compensation artifacts.
+\end{enumerate}
+
+\subsection{Convergence Rate and ETA}
+\label{sec:convergence-rates}
+
+The instantaneous progress indicator is $\alpha(t) = -\ln(V(t) / V(t-1))$, defined for $V(t-1) > 0$ and $V(t) > 0$. At full convergence ($V(t) = 0$), $\alpha$ is not computed; the system reports ETA~$= 0$ and transitions to RESOLVED via the finality predicate rather than via the $\alpha$ path. Two aggregated values are maintained:
+
+\begin{itemize}
+  \item \textbf{Mixed $\alpha$} (backward compatible): averaged over the last 5 consecutive pairs regardless of evidence boundaries. Used for divergence detection ($\alpha < -0.05$ triggers ESCALATED).
+  \item \textbf{Intra-epoch $\alpha_{\text{intra}}$}: averaged only over pairs where \texttt{context\_seq} has not changed. Measures genuine agent progress, excluding evidence injection shocks. Used for ETA computation.
+\end{itemize}
+
+The estimated time to arrival uses $\alpha_{\text{intra}}$ and is defined for $V(t) > 0$ and $\alpha_{\text{intra}} > 0$:
+\[
+\text{ETA} = \left\lceil \frac{-\ln(\epsilon / V(t))}{\alpha_{\text{intra}}} \right\rceil, \quad \epsilon = 0.005, \quad V(t) > 0
+\]
+
+ETA is reported as null when $\alpha_{\text{intra}} \leq 0$ (no intra-epoch progress) or when $V(t) = 0$ (convergence already reached), preventing the misleading estimates that arise when cross-epoch spikes average $\alpha$ to near-zero.
+
+Three regimes:
+\begin{itemize}
+  \item $\alpha_{\text{intra}} > 0$: Converging within current evidence. Finite ETA.
+  \item $\alpha_{\text{intra}} \approx 0$: Stalled. Stalled-dimension detection identifies which dimensions lack progress. Plateau detection (Gate~C) activates.
+  \item Mixed $\alpha < -0.05$: Diverging (possibly due to cross-epoch evidence shock). Triggers ESCALATED state.
+\end{itemize}
+
+\subsection{Finality Gates}
+\label{sec:finality-gates}
+
+Auto-finality (RESOLVED) requires passing all five gates simultaneously. Each gate addresses a distinct failure mode of premature finality.
+
+\paragraph{Gate A: Monotonicity \cite{ruan2025}.}
+Goal score must remain non-decreasing for $\beta = 3$ consecutive rounds before auto-finality eligibility. A single drop $> 0.001$ resets the counter. This prevents declaring convergence during transient spikes.
+
+\paragraph{Gate B: Evidence Coverage and Contradiction Mass.}
+An evidence schema (Section~\ref{sec:shared-context}) declares required evidence types per domain and maximum staleness (\texttt{max\_age\_days}). Gate~B blocks finality when required evidence types are missing or when evidence has exceeded its temporal validity. Contradiction mass---the weighted count of unresolved contradictions---must also be zero for auto-resolution. This ensures that finality reflects substantive coverage, not merely the absence of detected problems.
+
+\paragraph{Gate C: Oscillation Detection and Trajectory Quality.}
+Gate~C addresses a subtle failure mode: a system whose goal score oscillates around the finality threshold without genuinely converging. Two statistical mechanisms detect this:
+
+\begin{enumerate}
+  \item \textbf{Direction-change counting:} In a sliding window of the last 10 goal-score evaluations, the number of direction reversals (positive-to-negative or vice versa, with a 0.001 dead band) is counted. Two or more reversals flag oscillation.
+  \item \textbf{Lag-1 autocorrelation:} The Pearson correlation between the goal-score series and its one-step lag is computed. Negative autocorrelation ($r_1 < -0.3$) confirms alternating behavior characteristic of oscillation.
+\end{enumerate}
+
+A \emph{trajectory quality score} $Q \in [0, 1]$ synthesizes both signals:
+\[
+Q = \max\!\left(0,\; 1 - \lambda \cdot \min(\text{direction\_changes}, k)\right)
+\]
+with further reduction to $Q \leq c_{\text{osc}}$ when $r_1 < \theta_r$ and to $Q \leq c_{\text{spike}}$ on spike-and-drop (latest score well below window maximum). Auto-RESOLVED requires $Q \geq 0.7$. Default parameters: $\lambda = 0.12$, $k = 5$, $\theta_r = -0.3$, $c_{\text{osc}} = 0.65$, $c_{\text{spike}} = 0.85$. All five constants are exposed as configuration parameters.
+
+\paragraph{Sensitivity analysis.} A sweep of $\pm 20\%$ on each of the five $Q$ constants across 7 benchmark scenarios (70 evaluations) found that only \texttt{spike\_drop\_cap} ($c_{\text{spike}}$) is sensitive: reducing it by 20\% flips Gate~C from pass to fail in 2 of 14 evaluations (the spike-and-drop and divergence scenarios). All other constants are robust to $\pm 20\%$ variation. Total gate flips: 2/70 (2.9\%). This indicates that $Q$ is operationally stable, with $c_{\text{spike}}$ as the only constant requiring domain-specific calibration.
+
+\paragraph{Gate D: Quiescence.}
+Configurable via \texttt{idle\_cycles\_min} and \texttt{window\_ms} in finality configuration. When enabled, RESOLVED is blocked unless the scope has been idle (no state transitions) for the configured number of cycles and time window. This prevents premature finality during active processing bursts where the score happens to cross the threshold momentarily.
+
+\paragraph{Gate E: Minimum Content.}
+When all dimensions score 1.0 vacuously---because there are zero claims, zero goals, and zero risks in the graph---Gate~E blocks auto-finality. An empty or trivially-seeded scope cannot be declared resolved. This prevents the degenerate case where a newly initialized scope immediately satisfies all threshold conditions.
+
+\paragraph{Pressure-Directed Activation \cite{dorigo2000}.}
+Agents are routed toward the dimension with highest residual gap (bottleneck), without centralized scheduling. This stigmergic mechanism ensures resources concentrate where they matter most.
+
+\paragraph{Divergence Escalation.}
+If $\alpha < -0.05$ (disagreement increasing), the system transitions to ESCALATED state, requiring human intervention.
+
+\paragraph{Human-in-the-Loop Review.}
+When goal score is in $[0.40, 0.92)$ and plateau is detected, the system queues a structured HITL review with: dimension breakdown, blocking factors, LLM-generated explanation, and suggested actions (approve finality, provide resolution, escalate, or defer).
+
+\subsection{Finality States}
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{lp{7cm}l}
+\toprule
+\textbf{State} & \textbf{Trigger} & \textbf{Action} \\
+\midrule
+RESOLVED & Vector finality $F^*(t)$ true (all dims $\geq \tau_d - \epsilon_d$, gates A--E) & JWS certificate issued \\
+ACTIVE & Score $< 0.92$ or any gate unsatisfied & Continue processing \\
+ESCALATED & Risk $\geq 0.75$ or $\geq 3$ contradictions or $\alpha < -0.05$ & Human intervention \\
+BLOCKED & $\geq 5$ idle cycles + $\geq 300$s without updates + $\geq 1$ contradiction & Stalled \\
+EXPIRED & No activity for 30 days & Process expired \\
+HITL Review & Score $\in [0.40, 0.92)$ + plateau or gate failure & Structured human decision \\
+\bottomrule
+\end{tabular}
+\caption{Finality states and their triggers. RESOLVED requires vector finality $F^*(t)$ (all dimensions
+within threshold tolerance, per-dimension gates A$^d$/C$^d$, global gates B/D/E per Definition~\ref{def:vector-finality}).
+Upon RESOLVED, an Ed25519-signed finality certificate is emitted (Section~\ref{sec:certificates}).
+Fallback to scalar finality $F(t)$ (Definition~\ref{def:finality}) is available when per-dimension finality is disabled.}
+\label{tab:finality}
+\end{table}
+
+\subsection{Finality Certificates}
+\label{sec:certificates}
+
+When finality is reached---either through automatic convergence (all gates passed) or human approval---the system issues a cryptographically signed \emph{finality certificate} providing non-repudiable proof of the decision.
+
+The certificate payload contains:
+
+\begin{lstlisting}
+{
+  "scope_id": "project-horizon",
+  "decision": "RESOLVED",
+  "timestamp": "2025-08-15T14:22:00Z",
+  "policy_version_hashes": {
+    "governance": "sha256:7e4f2a...",
+    "finality": "sha256:b3c91d..."
+  },
+  "dimensions_snapshot": {
+    "claim_confidence": 0.94,
+    "contradiction_resolution": 1.0,
+    "goal_completion": 0.92,
+    "risk_score_inverse": 0.88
+  }
+}
+\end{lstlisting}
+
+This payload is signed as a compact JWS (JSON Web Signature) using Ed25519 (EdDSA), producing a base64url-encoded triple: \texttt{header.payload.signature}. Verification requires only the public key and no system access, enabling external auditors, counterparties, or regulators to independently validate that:
+
+\begin{enumerate}
+  \item A specific scope reached a specific finality decision;
+  \item The decision was made at a specific timestamp;
+  \item The governance and finality rules in effect were identified by content hashes, binding the decision to an exact, reproducible rule set;
+  \item The dimensional scores at the moment of finality are recorded.
+\end{enumerate}
+
+Certificates are persisted in a dedicated \texttt{finality\_certificates} table and exposed via API for retrieval. Key management supports both environment-provided PEM keys (production) and ephemeral key pairs (development).
+
+For regulated environments, finality certificates serve as machine-verifiable sign-off records---the agent-system equivalent of an authorized signatory's approval, with the added property that the policy version under which the decision was made is cryptographically bound to the certificate.
+
+\subsubsection{Experimental Validation of Vector Finality}
+\label{sec:experimental-validation}
+
+Three experiments (exp-ab, exp8-compensate, Exp~9 sub-test~7) validate the non-compensability guarantee (PO-2): vector finality blocks scalar-pass/vector-fail states while preserving legitimate finality. The witness \texttt{vector\_finality\_blocks\_compensation} ($\mu = (1.0, 0.80, 1.0, 1.0)$) confirms $F(t) = \text{true}$ but $F^*(t) = \text{false}$. Test counts and protocol details are in Appendix~\ref{sec:app-tests}.
+
+\subsection{Perpetual Finality: From Checkpoint to Checkpoint}
+\label{sec:perpetual-finality}
+
+A critical distinction separates this architecture from systems that treat finality as terminal. In most regulated domains, knowledge does not reach a permanent resting state. New documents arrive, regulations are amended, market conditions shift, periodic reviews are mandated, and previously resolved contradictions may re-emerge under new evidence. Finality here is not the end of a process---it is a \emph{certified checkpoint} within an indefinite lifecycle.
+
+The shared context graph enables this directly. When a scope reaches RESOLVED:
+
+\begin{enumerate}
+  \item A finality certificate is issued and persisted, recording the decision, the dimensional scores, the policy version, and the timestamp.
+  \item The semantic graph is \emph{not archived or frozen}. It remains the live, authoritative representation of knowledge for that scope.
+  \item When new context arrives---a new document ingested into the WAL, a regulatory change requiring re-evaluation, or a scheduled periodic review trigger---the scope re-enters ACTIVE state.
+  \item The new convergence cycle starts from the \emph{existing graph state}: all prior claims, contradictions, resolutions, and confidence scores are preserved. New facts layer on top. New contradictions may form between new and old claims.
+  \item The Lyapunov function $V(t)$ is recomputed. If new contradictions have increased disagreement, $V$ rises and convergence must recur. If the new information merely confirms or refines prior conclusions, $V$ remains low and finality may be reached quickly.
+  \item A new finality certificate is issued when convergence is re-achieved, creating a \emph{chain of certificates}: each certifies the scope's state at a specific point in time, under a specific policy version, with a specific dimensional snapshot.
+\end{enumerate}
+
+Bitemporal state is what makes this work without information loss. Prior facts are never deleted. When a new document supersedes a previous claim (e.g., restated financials), the old node receives a $\texttt{superseded\_at}$ timestamp; the new node carries its own $\texttt{valid\_from}$. The full temporal history is preserved: an auditor can reconstruct what the graph looked like at any prior finality point, compare it to the current state, and see exactly which new information triggered the re-evaluation.
+
+This architecture models the operational reality of regulated knowledge work: M\&A post-merger monitoring, ongoing KYC/AML reviews, and pharmacovigilance surveillance all follow this pattern---initial finality followed by periodic re-convergence on the same graph as new evidence arrives. The three-node cycle runs indefinitely; what changes between cycles is the graph's content, not its structure.
+
+%% ============================================================
+\section{Agent Architecture}
+%% ============================================================
+
+Seven agents (facts, drift, planner, status, governance, executor, tuner) operate independently within governance constraints. Each is gated by deterministic activation filters (sequence\_delta, hash\_delta, timer, pressure\_directed) that consume zero LLM tokens and prevent redundant invocations. Agents do not call each other directly; they emit events that trigger governance rules, enabling resilience, full auditability, and independent scaling. Per-agent roles and activation logic are in Appendix~\ref{sec:app-agents}.
+
+%% ============================================================
+\section{Comparison with Agent Frameworks}
+%% ============================================================
+
+\begin{table}[H]
+\centering
+\small
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lccccc}
+\toprule
+\textbf{Property} & \textbf{AutoGen} & \textbf{CrewAI} & \textbf{LangGraph} & \textbf{SECP} & \textbf{Ours} \\
+\midrule
+Coordination model & Chat & Hierarchical & State machine & Protocol agg. & Decl.\ policy \\
+Shared persistent state & No & No & Partial & No & Yes \\
+Bitemporal state & No & No & No & No & Yes \\
+Formal convergence & No & No & No & No$^{\dagger}$ & Yes (Lyapunov) \\
+Contradiction tracking & No & No & No & Implicit$^{\ddagger}$ & Yes (graph) \\
+Immutable audit log & No & No & No & Partial & Yes \\
+Non-scalar coordination & No & No & No & Yes & Yes$^{*}$ \\
+Protocol self-modification & No & No & No & Yes & No \\
+Byzantine fault model & No & No & No & Yes & No \\
+Declarative governance & No & No & No & No & Yes (YAML+Rust) \\
+Cryptographic finality & No & No & No & No & Yes (Ed25519) \\
+Fine-grained access control & No & No & No & No & Yes (OpenFGA) \\
+CRDT monotonic semantics & No & No & No & No & Yes \\
+HITL finality & Manual & Manual & Manual & No & Structured \\
+Agent topology & Predefined & Predefined & Predefined & Fixed & Topology-free$^{\dagger\dagger}$ \\
+LLM-free fallback & No & No & No & N/A & Yes (Tier 1) \\
+\bottomrule
+\end{tabular}%
+}
+\caption{Comparison with agent coordination frameworks and SECP \cite{delachica2026}. $^{\dagger}$SECP demonstrates single-step modification but not multi-step convergence; Exp.~1 provides multi-iteration data. $^{\ddagger}$Module disagreement is tracked through non-scalar objections but not in a persistent graph. $^{*}$The vector finality predicate $F^*(t)$ (Section~\ref{sec:vector-finality}) evaluates each dimension independently with veto semantics, implementing the non-compensable objection property SECP identifies as essential (Theorem~\ref{thm:vector-finality-soundness}, PO-2). $^{\dagger\dagger}$Agents have no peer-to-peer communication channels; coordination arises from shared state and governance evaluation, not from an agent-to-agent communication graph.}
+\label{tab:comparison}
+\end{table}
+
+The table reveals two orthogonal gaps. Existing agent frameworks wire agents into topologies with no formal convergence, auditability, or protocol adaptability. SECP addresses protocol-level coordination (non-scalar aggregation, governed self-modification, Byzantine fault model) but lacks shared persistent state or formal convergence tracking. Our system addresses state-level coordination with formal convergence and non-scalar finality, but does not support protocol self-modification. Three of SECP's explicitly stated open questions---multi-iteration convergence dynamics, audit trail infrastructure, and coverage--autonomy quantification---are directly addressed by experiments in this paper (Exps.~1, 5, 7, 9 and the certificate infrastructure). Conversely, SECP's non-compensable objection mechanism addresses our acknowledged gap on adversarial agents. The complementarity is analyzed in Section~\ref{sec:discussion}.
+
+%% ============================================================
+\section{Validation: Project Horizon}
+%% ============================================================
+
+\subsection{Scenario and Results}
+
+Project Horizon simulates M\&A due diligence on NovaTech AG (B2B SaaS, supply chain compliance). Five documents are ingested sequentially (analyst briefing, financial DD, technical assessment, market intelligence, legal review), introducing facts and contradictions. Governance blocks prevent silent advancement on the EUR~12M ARR discrepancy; medium drift escalates to risk review; near-finality triggers structured HITL with dimension breakdown. Key outcome: 18 contradictions identified, 15 agent-resolved, 3 routed to human; 12 convergence rounds, full audit trail. Detailed scenario steps and metrics are in Appendix~\ref{sec:app-horizon}.
+
+\subsection{Testing and Benchmarks}
+
+Test breakdown and benchmark scenarios are in Appendix~\ref{sec:app-tests}.
+
+\subsection{Known Validation Gaps}
+
+The initial validation (above) uses synthetic convergence benchmarks, not live LLM trajectories. Section~\ref{sec:results} reports experimental results from the full pipeline with live LLM extraction, addressing several of these gaps. A second validation scenario (financial consolidation with dual temporality) broadens domain coverage. Remaining gaps: no stress testing for high throughput, no chaos engineering for service failures, and unmeasured LLM oversight quality (the oversight agent consistently agreed with deterministic results).
+
+%% ============================================================
+\section{Experimental Protocol}
+\label{sec:proposed-experiments}
+%% ============================================================
+
+The following experiments address the open questions identified in this work and in the SECP feasibility study \cite{delachica2026}. They are specified with sufficient detail for independent reproduction. Together, they target five axes: convergence dynamics, scalability, finality robustness, multi-level governance, and the coverage--autonomy trade-off. Results are reported in Section~\ref{sec:results}.
+
+\subsection{Experiment 1: Multi-Iteration Convergence Dynamics}
+
+\paragraph{Objective.} Characterize the trajectory of $V(t)$ over extended convergence cycles with incremental evidence injection---the multi-iteration dynamics that SECP \cite{delachica2026} explicitly could not study with their single-shot design.
+
+\paragraph{Protocol.}
+\begin{enumerate}
+  \item Initialize a scope with a seed document producing $\sim$20 claims.
+  \item Over 20 convergence cycles, inject one new document per cycle, each introducing $c \in \{0, 1, 3, 5\}$ contradictions with existing claims (controlled variable).
+  \item Record at each cycle $t$: $V(t)$, $\alpha(t)$, $S(t)$, gate satisfaction vector $(G_A, G_B, G_C, G_D, G_E)$, finality state, and the set of unresolved contradictions.
+  \item When finality is reached, continue injecting evidence to trigger re-opening (perpetual lifecycle).
+  \item Repeat each condition 10 times with different random seeds to estimate variability.
+\end{enumerate}
+
+\subsection{Experiment 2: Scalability}
+
+\paragraph{Objective.} Provide the first empirical data on how governed agent coordination scales, addressing SECP's open question on scaling beyond small module sets.
+
+\paragraph{Protocol.}
+\begin{enumerate}
+  \item Vary graph size: $|\mathcal{N}| \in \{10, 50, 100, 500, 1000\}$ claims.
+  \item Vary contradiction density: $\rho \in \{0.10, 0.30, 0.50\}$ (fraction of claim pairs that contradict).
+  \item Vary agent count: $|\mathcal{A}| \in \{3, 5, 7, 12\}$.
+  \item Fix governance mode to YOLO and finality thresholds to defaults.
+  \item Measure: rounds to convergence $k$, wall-clock time, total LLM token consumption, audit event count, semantic graph query latency.
+\end{enumerate}
+
+\subsection{Experiment 3: Finality Robustness Under Adversarial Evidence}
+
+\paragraph{Objective.} Validate that the five-gate mechanism prevents false finality under evidence patterns designed to exploit threshold-based systems.
+
+\paragraph{Protocol.} Inject four adversarial evidence patterns, each designed to trigger a specific failure mode:
+\begin{enumerate}
+  \item \textbf{Spike-and-drop:} Inject a batch of high-confidence confirmatory evidence (pushing $S(t)$ above $\theta_{\text{auto}}$), immediately followed by contradictory evidence in the next cycle.
+  \item \textbf{Oscillating claims:} Alternate between confirmatory and contradictory evidence every cycle for 20 cycles.
+  \item \textbf{Stale evidence:} Allow evidence to age past \texttt{max\_age\_days} during a slow convergence process.
+  \item \textbf{Empty-scope finality:} Initialize a scope with zero claims and zero goals, then add a single high-confidence claim.
+\end{enumerate}
+
+\subsection{Experiment 4: Multi-Level Governance}
+
+\paragraph{Objective.} Demonstrate governance at multiple bounded levels, extending both this work and SECP's single-level coordination model.
+
+\paragraph{Protocol.} Define three governance levels with increasing authority:
+\begin{itemize}
+  \item \textbf{Level 1 (Operational):} YOLO mode. Handles routine claim extraction and low-drift transitions autonomously.
+  \item \textbf{Level 2 (Compliance):} MITL mode. Activated when drift exceeds medium threshold or when financial claims are involved.
+  \item \textbf{Level 3 (Regulatory):} MASTER mode. Activated for critical contradictions (e.g., material financial discrepancies, legal liability). Decisions at this level are immutable and cannot be overridden by L1 or L2.
+\end{itemize}
+
+Run the Project Horizon M\&A scenario with per-scope governance level overrides: financial claims at L2, patent disputes at L3, technical assessments at L1.
+
+\subsection{Experiment 5: Coverage--Autonomy Trade-off}
+
+\paragraph{Objective.} Empirically map the coverage--autonomy trade-off identified by SECP \cite{delachica2026}, using governance modes as the control variable.
+
+\paragraph{Protocol.}
+\begin{enumerate}
+  \item Prepare a fixed document corpus (10 documents, $\sim$100 claims, 30 contradictions).
+  \item Run identical corpus through three governance configurations: YOLO, MITL (with simulated human approvals), and MASTER.
+  \item Define coverage $\Delta(\Pi)$ as the number of claims reaching RESOLVED status.
+  \item Define autonomy $\Omega(\Pi)$ as the fraction of governance decisions where a single agent's objection (drift signal) blocked or escalated a proposal.
+\end{enumerate}
+
+\paragraph{Expected outcomes.} YOLO should maximize coverage, MASTER should maximize evaluator autonomy (policy violations and lattice incomparability produce rejections), and MITL should occupy an intermediate position. The convergence rate indicator $\alpha$ should differ: $\alpha_{\text{YOLO}} > \alpha_{\text{MITL}} \geq \alpha_{\text{MASTER}}$.
+
+%% ============================================================
+\section{Experimental Results}
+\label{sec:results}
+%% ============================================================
+
+The experiments were executed with a document-driven driver through the full pipeline; results from PostgreSQL convergence history and decision records. Infrastructure: Docker (PostgreSQL/pgvector, NATS, MinIO, OpenTelemetry), single hatchery, OpenAI GPT-4o-mini. Full result tables are in Appendix~\ref{sec:app-results}.
+
+\emph{Experiment numbering.} The protocol section specifies Experiments 1--5. Experiments~6 and~7 address governance-assumption validation: Exp.~6 validates the $\delta_{\min}$-discretisation precondition (Assumption~A1) and monotonic progress (A4) via a synthetic trajectory sweep; Exp.~7 validates three-tier routing coverage across governance modes (A7). Both are reported in the Appendix (Assumptions A1--A7) rather than in a dedicated results subsection to avoid redundancy with the five primary experiments. Experiments~8 and~9 address adversarial agent resilience and local confluence; they extend the scope of the original five-experiment protocol based on reviewer input during development.
+
+\subsection{Experiment 1: Convergence Dynamics}
+
+With $c = 3$ contradicting documents and progressive resolution at rounds 5--7, $V(t)$ exhibits the predicted \emph{sawtooth}: 0.250 $\to$ 0.0000 at resolution epochs (9, 13, 17), then 0.008--0.022 as new documents add goals. Full convergence ($V = 0$, score = 1.0) is reached at each resolution epoch before the next cross-epoch shock---confirming the perpetual finality lifecycle. The scalar $V(t)$ is driven by \texttt{goal\_completion}; other dimensions saturate at 1.00.
+
+\subsection{Experiment 3: Finality Robustness (Spike-and-Drop)}
+
+Spike-and-drop (2 high-confidence then 2 contradicting documents): with gates enabled, Gate~A blocks re-entry to RESOLVED after the drop; system moves to HITL. With gates disabled, ESCALATED falls to 0\% and persistent RESOLVED rises (38\% vs 33\%), confirming that gates prevent false finality on transient peaks.
+
+\subsection{Experiment 2: Scalability}
+
+For $N \in \{10, 50, 100\}$, $\rho \in \{0.1, 0.3\}$: at $N = 10$--50, convergence points and epochs are similar; at $N = 100$, convergence points and decisions roughly double. Higher $\rho$ yields fewer approved decisions (governance blocks). Scaling effects appear around $N = 100$.
+
+\subsection{Experiment 5: Coverage--Autonomy}
+
+YOLO, MITL, and MASTER were run on the same 7-document corpus. Result: YOLO maximizes coverage; MASTER rejects on policy/lattice violations (evaluator autonomy); MITL escalates to human. Progress indicator $\alpha$ obeys $\alpha_{\text{YOLO}} > \alpha_{\text{MITL}} \geq \alpha_{\text{MASTER}}$, as predicted.
+
+\subsection{Experiment 4: Multi-Level Governance}
+
+Medium-drift variant: oversight LLM consistently agreed with Tier~1; Tier~2/3 paths not triggered in this run.
+
+\subsection{Pressure-Directed Activation}
+
+With pressure-directed routing disabled, ACTIVE share rises (63\% vs 1\%) and convergence points drop (27 vs 94), confirming that pressure routing concentrates evaluations on finality-relevant cycles.
+
+\subsection{Experiment 7: Multi-Tier Governance Routing (Assumption~4)}
+
+Same M\&A corpus under YOLO, MITL, MASTER: YOLO 97\% Tier~1; MITL 100\% Tier~2 (human); MASTER 70\% Tier~1 with 30\% rejections on policy. Tier~1 and Tier~2 are exercised; Tier~3 was not triggered (oversight LLM agreed with deterministic result). Assumption~4 partially validated.
+
+\subsection{Experiment 8: Adversarial Agent Defense (Assumption~5)}
+
+Inflate (1 compromised agent) and collude (2 compromised) modes: drift agent raised overrides in inflate; in collude, false RESOLVED windows appeared but cycle-based re-extraction flushes mutations in 1--2 cycles, limiting impact. Assumption~5 partially validated: cooperative model is necessary; re-extraction provides unintended defense-in-depth.
+
+\subsection{Experiment 9: Local Confluence (Assumption~2)}
+
+Six sub-tests (confidence ratchet, idempotency, CRDT commutativity, eventual consistency, kernel determinism, cross-epoch): core CRDT operations are commutative; claim stale marking is order-dependent but all orderings converge after complete re-extraction. Kernel: 80/80 identical outputs. Assumption~2 partially validated.
+
+\subsection{Financial Consolidation with Dual Temporality}
+
+Meridian Holdings (3 subsidiaries, H1~2025): eight documents including a temporal restatement (Alpha Q1 restated, same valid period, later transaction time). $V(t)$ sawtooth (0.25 $\to$ 0.00 at resolution epochs 24, 28--30, 36 $\to$ 0.25 on new goals) matches Exp.~1. Valid-time overlap and goal-aware stale protection behave as designed. Domain-independent convergence confirmed; 45 convergence points over 38 epochs.
+
+%% ============================================================
+\section{Discussion}
+\label{sec:discussion}
+%% ============================================================
+
+\subsection{What the Experiments Demonstrate}
+
+The experimental results provide evidence for four of the paper's central claims, while revealing important limitations in two others.
+
+\paragraph{1. $V(t)$ tracks disagreement and converges to zero on resolution (confirmed).} Across all conditions with contradictions, $V(t)$ increased reproducibly when contradicting documents entered the graph and \emph{decreased to 0.0000} when resolutions were provided. In Exp.~1 ($c = 3$, resolution at rounds 5--7), $V$ dropped from 0.250 to 0.0000 at resolution epochs, with goal score reaching 1.0000---full convergence. This pattern replicated across experiments: $V = 0$ was achieved in Exp.~1, 6, 7, 8, and the financial scenario. Cross-epoch document injection then re-introduces new goals, producing the sawtooth trajectory predicted by the perpetual lifecycle model. The Lyapunov function tracks genuine epistemic state bidirectionally: increasing with contradictions and new goals, decreasing to zero with resolutions.
+
+\paragraph{2. Five-gate mechanism prevents false finality (confirmed).} Exp.~3 demonstrates that the system reaches RESOLVED (score = 1.0) during the spike phase, then correctly exits RESOLVED when contradictions arrive. Gate~A (monotonicity) and Gate~B (evidence coverage) are the primary defenses: Gate~B satisfaction drops from 100\% to 58\% when contradictions appear. The ablation (gates disabled) shows that without gates, the system is more permissive (RESOLVED 38\% vs 33\%, ESCALATED 0\% vs 7\%), confirming that gates provide an additional safety layer beyond threshold-based checking.
+
+\paragraph{3. Governance mode affects coverage (confirmed).} Exp.~5 demonstrates the coverage--autonomy trade-off across governance modes. YOLO processes all documents (23 decisions). MITL occupies an intermediate position with human-escalated review (40 decisions, all escalated). MASTER evaluates all proposals through the full reduction kernel, applying the three-stage pipeline (policy, lattice, mode routing) and only accepting proposals that pass both policy and lattice admissibility checks. Policy violations and lattice incomparability produce \textsc{Reject}, not \textsc{Escalate}. This maps directly to the lattice ordering $\textsc{Master} \leq \textsc{Mitl} \leq \textsc{Yolo}$ in Definition~\ref{def:gov-lattice} and aligns with SECP's finding that stricter evaluation reduces coverage.
+
+\paragraph{4. Pressure-directed routing affects system dynamics (directional evidence).} The pressure ablation shows a substantial difference in finality state distribution: pressure-enabled runs produce 94 convergence points with HITL dominating (84\%), while pressure-disabled runs produce 27 points with ACTIVE dominating (63\%). This suggests that pressure routing accelerates the system toward finality evaluation, though the single-run ablation design ($n = 1$) limits statistical confidence.
+
+\paragraph{5. Multi-tier governance routing is exercised (confirmed).} Exp.~7 demonstrates that the three governance modes produce observably different tier coverage: YOLO routes 97\% of decisions through Tier~1, MITL escalates 100\% to Tier~2 (human-in-the-loop), and MASTER rejects 30\% of proposals at Tier~1 due to policy violations. Combined across modes, Tier~1 and Tier~2 are both exercised. This confirms that the lattice ordering $\textsc{Master} \leq \textsc{Mitl} \leq \textsc{Yolo}$ produces structurally distinct governance behavior, not merely different labels on the same path.
+
+\paragraph{6. Adversarial agents cause oscillating---not permanent---false finality (partially confirmed).} Exp.~8 demonstrates that adversarial confidence inflation (single compromised agent) produces 3$\times$ more governance overrides than baseline (9 vs 3). With coordinated adversarial agents (facts + drift), the system oscillated between RESOLVED and HITL over 31 epochs (vs 18 for baseline), with 18 convergence snapshots reaching false RESOLVED. Cycle-based re-extraction flushed adversarial mutations within 1--2 cycles each time, preventing sustained false finality. The cooperative agent model (Assumption~5) is structurally necessary (adversarially induced RESOLVED windows exist, $V(t)$ monotonicity is violated), but the system has unexpected defense-in-depth: source re-extraction acts as a practical Byzantine defense.
+
+\paragraph{7. Partial confluence holds for CRDT operations (confirmed).} Exp.~9 demonstrates that the core semantic graph operations---confidence ratchet (max join), contradiction resolution (set-once), node upsert (content-matched)---are fully commutative. Claim stale marking is non-commutative (18/24 orderings diverge) but eventually consistent after complete re-extraction; goals and risks are protected from stale marking as accumulative types, narrowing the non-commutativity surface. The governance kernel is a pure deterministic function (80 evaluations, all identical). This validates the paper's claim of ``partial confluence'' and identifies claim stale marking as the specific operation preventing full commutativity.
+
+\subsection{What Remains Unproven}
+
+\paragraph{1. Full $V \to 0$ achieved within evidence epochs; cross-epoch oscillation persists.} With goal-aware stale protection and progressive resolution (rounds 5--7), $V(t)$ reached 0.0000 at resolution epochs (epochs 9, 13, 17 in Exp.~1), with goal score reaching 1.0000 and all four dimensions at target. This is the first empirical confirmation that $V \to 0$ is achievable. However, cross-epoch document injection re-introduces new goals and contradictions, causing $V$ to rise again (to 0.0078--0.0216). The overall trajectory is a \emph{sawtooth}: convergence to 0 within each evidence epoch, followed by a cross-epoch shock when new documents arrive.
+
+The intra/cross-epoch analysis reveals a subtlety: the regime boundary of Proposition~\ref{prop:monotonic} is finer than document injection. Facts-worker extraction can introduce new goals or contradictions \emph{within} an evidence epoch---a non-governance operation that occurs alongside governance-approved transitions. The proposition's precondition (``governance-approved transitions'') is formally correct, but the \texttt{context\_seq} proxy includes non-governance operations. A finer-grained partition---separating governance-approved transitions from facts-extraction side effects---would be needed to test the proposition's intra-epoch guarantee directly.
+
+Per-dimension analysis of the \emph{post-resolution cross-epoch regime} (epochs 10--28) shows that oscillation in that phase is driven primarily by \texttt{goal\_completion}: subsequent documents in this corpus introduce new goals that are not yet resolved, raising $V$ from 0.0000 to 0.008--0.022. In that regime, \texttt{claim\_confidence}, \texttt{contradiction\_resolution}, and \texttt{risk\_score\_inverse} are near 1.00 because the post-resolution documents happen to be confirmatory---introducing no new contradictions and no low-confidence claims. This is a property of the five-document experimental corpus, not of the architecture: in a corpus where each new document simultaneously introduces contradictions, restates financial figures, and adds risk items (a realistic regulated-domain scenario), all four dimensions would oscillate cross-epoch. The perpetual lifecycle mechanism is designed for exactly that case.
+
+In the \emph{initial phase} (epochs 1--4), the picture is different: 18 contradictions enter and are unresolved, which necessarily depresses \texttt{contradiction\_resolution} and contributes to $V = 0.250$. The isolation of \texttt{goal\_completion} as the sole driver of cross-epoch oscillation is therefore specific to the post-resolution regime in this corpus. The scalar metric then collapses this per-dimension dynamic into apparent oscillation between two values---masking whether the oscillation is one-dimensional (as here) or multi-dimensional (as in richer corpora). This is one concrete motivation for the per-dimension finality predicate $F^*(t)$: it surfaces per-dimension gaps that the scalar $V$ obscures.
+
+The architecture partially addresses this limitation through the product order $\mathcal{M} = \mathcal{L} \times \mathcal{A}$ (Definition~\ref{def:product-lattice}), where the convergence rank $\mathcal{A} = (\mathbb{R}_{\geq 0})^k$ tracks each dimension independently. The reduction kernel's admissibility check (Definition~\ref{def:admissibility}) evaluates per-dimension regression rather than relying solely on the scalar aggregate, preventing transitions that improve the aggregate while regressing individual dimensions. However, the finality evaluator's ultimate decision still relies on the scalar goal score and gate predicates. A fully per-dimension finality criterion---requiring each dimension to independently satisfy its target---remains a direction for future work.
+
+\paragraph{2. Multi-path governance (partially observed).} In Exp.~4, all decision records used \texttt{governance\_path = oversight\_acceptDeterministic}---the oversight LLM always agreed with the deterministic policy result. Exp.~7 addressed this limitation by running each governance mode (YOLO, MITL, MASTER) as a separate sub-experiment with unified policy rules. MITL mode produced 100\% Tier~2 escalation (all proposals required human approval), confirming that the routing architecture functions correctly. However, Tier~3 (full LLM governance via the oversight agent choosing \texttt{escalateToLLM}) was still not triggered: the oversight LLM consistently accepted the deterministic result even under medium and high drift.
+
+Two structural causes are identified. First, the oversight agent's routing instructions treated triggered obligations (\texttt{open\_investigation}) as advisory rather than prescriptive, biasing toward \texttt{acceptDeterministic} even when policy had flagged a concern. Second, the M\&A demo corpus produces clean deterministic outcomes with no genuine ambiguity between policy evaluation and context: there is no proposal that policy allows but context should question. Triggering Tier~3 requires proposals where the deterministic check returns ``approve'' but an obligation is active and the stakes are material---precisely the zone where LLM judgment adds value over rule application. A dedicated corpus (\texttt{docs-tier3/}) is designed for this purpose: six documents covering two contradictory risk assessments (€2.1M vs.\ €10.3M litigation exposure), a probabilistic IP title opinion (65/30/5\% outcome distribution), and a final governance proposal explicitly in the ``allowed under uncertainty'' zone. This design targets the \texttt{open\_investigation} obligation at medium drift with material financial stakes, which the oversight instructions now treat as a mandatory \texttt{escalateToLLM} signal. Exp.~7b (Tier-3 activation validation) is identified as the immediate next experimental step (Section~\ref{sec:boundaries}).
+
+\paragraph{3. Scalability at $N = 500$.} Exp.~2 covers $N \in \{10, 50, 100\}$ via the full document-injection pipeline. To extend the scalability boundary, two additional runs at $N = 500$ were conducted using the seed-based protocol (direct graph construction, isolating the convergence and finality machinery from facts-extraction latency): $\rho = 0.1$ (50 contradiction pairs) and $\rho = 0.3$ (150 contradiction pairs). In both conditions, $V(t)$ began at 0.251 and fell to $\mathbf{0.001}$ ($\approx 0$) after one resolution cycle, confirming convergence at this scale. Resolving $\rho = 0.1$ required a single batch (50 edges); $\rho = 0.3$ required two passes (103 then 47 edges, 150 total). Following resolution, three injected documents re-introduced contradictions and raised $V$ to $\approx 0.46$---reproducing the sawtooth pattern of Exp.~1 at $50\times$ the claim count. Evidence propagation at $\rho = 0.3$ required 63 internal epochs, consistent with an $O(N \cdot \rho)$ scaling of the resolution workload. Wall-clock time from seed to convergence was approximately 2 minutes for both $\rho$ values. The Lyapunov convergence machinery therefore scales to $N = 500$ without qualitative change; the limiting factor is resolution throughput (batch size and scheduling), not contradiction detection. Testing at $N = 1000+$ under concurrent document injection, and characterising the full throughput curve, remains open.
+
+\subsection{Threats to Validity}
+
+\paragraph{Construct validity.} The Lyapunov function $V(t)$ is a designed metric, not a ground-truth measure of knowledge quality. A decrease in $V$ indicates movement toward configured thresholds, not necessarily toward correct knowledge. The experiments measure $V$'s response to document injection, not its correlation with epistemic accuracy.
+
+\paragraph{Internal validity.} The document corpus is synthetic (though realistic). Contradictions are explicit and clearly stated, not subtle or ambiguous. The noisy corpus (available but not yet tested in batch mode) was designed to address this gap. LLM stochasticity is partially controlled by $n = 3$ repetitions, but larger $n$ would increase confidence.
+
+\paragraph{External validity.} Experiments use two domains: M\&A due diligence and financial consolidation. The financial scenario confirms that convergence dynamics ($V(t)$ spike-and-recovery) are domain-independent. Generalization to additional regulated domains (KYC/AML, clinical trials) is asserted by architectural argument (Appendix~\ref{sec:enterprise}) but not empirically validated beyond these two.
+
+\paragraph{Statistical power.} With $n = 3$ runs per condition, the standard deviations are informative (e.g., $V$ std = 0.001--0.015) but formal hypothesis testing (e.g., paired $t$-tests) would require larger samples. The current results should be interpreted as reproducibility evidence, not as statistically powered claims.
+
+\subsection{Implications for Future Work}
+
+The experimental results identify four specific research directions, ordered by theoretical impact:
+
+\paragraph{Per-dimension finality (beyond order admissibility).} The product order $\mathcal{M} = \mathcal{L} \times \mathcal{A}$ (Definition~\ref{def:product-lattice}) tracks each convergence dimension independently during governance evaluation, and the reduction kernel rejects transitions that regress any single dimension. However, the finality evaluator's ultimate decision still relies on a scalar goal score and gate predicates. Extending the finality gates to require per-dimension satisfaction would: (a) prevent declaring finality when individual dimensions have not reached their targets; (b) expose per-dimension convergence rates as first-class diagnostic signals; (c) provide the per-dimension $\alpha_d$ needed for meaningful ETA estimation; (d) align with SECP's non-scalar coordination, where Pareto filtering and constructive objections prevent the collapse of structured disagreement. This extension is straightforward within the ordering framework: finality requires $a_d \leq \epsilon_d$ for each dimension $d$ in the convergence rank, rather than a single scalar threshold.
+
+\paragraph{Graph-structured evidence and the monotonicity--fidelity tension.} Companion work extends the architecture with role-local evidence coordinated over communication graphs; it suggests a sharp tension between statistically faithful multi-agent aggregation and order-theoretic monotonicity of a live working estimate---motivating deliberate \emph{separation} between a convergence-oriented layer and an append-only audit trail. Independent large-scale opinion-dynamics experiments on networked LLMs~\cite{yazici2026opinion} exhibit the same split at the phenomenological level: transient mixing remains spectral (second eigenvalue), yet limiting consensus need not match classical DeGroot-style, centrality-weighted predictions. Formal statements, mechanisms, and validation scope are deferred to the companion paper so that this manuscript stays self-contained.
+
+\paragraph{Autonomous goal resolution.} The resolver agent cross-references evidence and produces resolves edges for contradictions. Goal-aware stale protection allows \texttt{goal\_completion} to advance when goals are resolved by the experiment driver or resolver agent. The remaining gap is a dedicated goal-resolution agent that transitions goals to resolved status autonomously when supporting evidence reaches sufficient confidence---removing the dependency on the experiment driver's \texttt{injectResolution()} mechanism and closing the convergence loop end-to-end within a single evidence epoch.
+
+\paragraph{Finer-grained epoch boundaries.} The \texttt{context\_seq} proxy for evidence epochs includes non-governance operations (facts extraction, drift detection) alongside governance-approved transitions. A finer partition---tracking the exact governance transition that modifies the graph---would enable direct testing of the proposition's intra-epoch guarantee.
+
+\paragraph{Production-scale and multi-domain validation.} Testing at $N > 500$ documents, with noisy/ambiguous corpora, and across multiple regulated domains (KYC/AML, clinical trials) would establish external validity.
+
+%% ============================================================
+\section{Scope, Limitations, and Future Work}
+\label{sec:boundaries}
+%% ============================================================
+
+Following the principled scoping methodology of de la Chica Rodriguez and Vera D\'{i}az \cite{delachica2026}, we state explicitly and without mitigation rhetoric what this work establishes and what it does not.
+
+\subsection{What the Paper Demonstrates}
+
+\begin{enumerate}
+  \item \textbf{Architectural feasibility.} Declarative governance over shared immutable context is implementable with current technology (Postgres, NATS, LLMs, OpenFGA, native Rust via napi-rs) and produces a functioning coordination system; test and benchmark counts are reported in the Appendix.
+  \item \textbf{Formal convergence tracking with empirical $V \to 0$.} The disagreement function $V(t)$ (Theorem~\ref{thm:lyapunov}) with five independent gates prevents premature finality in all tested scenarios and reaches $V = 0.0000$ at resolution epochs---the first empirical confirmation that the convergence mechanism achieves its theoretical target. Proposition~\ref{prop:monotonic} provides a proof sketch for monotonic progress under CRDT constraints, now empirically confirmed within evidence epochs.
+  \item \textbf{Product order governance.} The product order $\mathcal{M} = \mathcal{L} \times \mathcal{A}$ (Definition~\ref{def:product-lattice}) provides a well-founded ordering over governance decisions, and the Epoch Termination Theorem (Theorem~\ref{thm:termination}) guarantees finite convergence within evidence epochs. The reduction kernel (Definition~\ref{def:kernel}) implements this ordering as a deterministic three-stage pipeline in compiled Rust.
+  \item \textbf{Perpetual lifecycle.} The architecture supports re-opening finality on new evidence without information loss, producing a chain of signed certificates that models the perpetual nature of regulated knowledge.
+  \item \textbf{Three-tier governance resilience.} The system continues to make governance decisions without LLM availability, falling back to deterministic rule evaluation via the circuit-breaker mechanism.
+  \item \textbf{End-to-end validation across two domains.} The Project Horizon M\&A scenario demonstrates 83\% autonomous contradiction resolution across 5 contradictory documents in 12 convergence rounds. A second scenario---financial consolidation with bitemporal restatement---confirms that the same spike-and-recovery dynamics hold when dual temporality is structurally necessary, with valid-time-scoped contradiction detection and temporal supersession operating correctly across 42 epochs.
+  \item \textbf{Coverage--autonomy trade-off.} The three governance modes (YOLO, MITL, MASTER) provide distinct positions on the coverage--autonomy spectrum identified by \cite{delachica2026}: YOLO maximizes coverage (analogous to scalar aggregation), MASTER maximizes evaluator autonomy through the reduction kernel (policy violations and lattice incomparability produce rejections), and MITL provides an intermediate, auditable regime with human escalation.
+\end{enumerate}
+
+\subsection{What the Paper Does Not Demonstrate}
+
+\begin{enumerate}
+  \item \textbf{Statistical generality or significance.} Project Horizon is a single scenario with synthetic documents. No confidence intervals, hypothesis tests, or distributional claims are supported. Results are existence proofs, not performance estimates.
+  \item \textbf{Formal Byzantine fault tolerance.} All agents are assumed cooperative. Exp.~8 demonstrates that adversarial agents can cause oscillating false finality (18 RESOLVED snapshots across 31 epochs with coordinated collusion), but cycle-based re-extraction limits each adversarial window to 1--2 extraction cycles. This is a practical defense, not a formal Byzantine guarantee: the system provides no proven $n \geq 3f+1$ tolerance. The monotonic confidence constraint limits downward manipulation but does not prevent upward inflation. Formal Byzantine-tolerant coordination \cite{lamport1982,castro1999,zheng2025} remains future work, though the empirical resilience is stronger than previously claimed.
+  \item \textbf{Scalability beyond proof of concept.} Validation covers two scenarios (5 and 8 documents, $\sim$50 claims each, 7 agents). Whether convergence dynamics, governance throughput, or the Lyapunov function's behavior change qualitatively at production scale (thousands of claims, hundreds of agents) is unknown.
+  \item \textbf{Machine-checked convergence proofs.} Proposition~\ref{prop:monotonic} is a proof sketch validated empirically. No formal verification tool or proof assistant has checked the convergence guarantee. An arbitrary sequence of approved transitions could, in principle, violate the proposition's preconditions in untested scenarios.
+  \item \textbf{Convergence under real LLM stochasticity.} All convergence benchmarks use synthetic trajectories. Whether the oscillation detection (Gate~C) and trajectory quality score $Q$ perform correctly under the inherent stochasticity of real LLM reasoning traces is untested; $Q$ is domain-configurable with no formal justification (Appendix~\ref{sec:app-assumptions}).
+  \item \textbf{Multi-iteration protocol self-modification.} Governance rules are declarative but static within a deployment. The system does not implement governed self-modification of its own coordination rules, as demonstrated by SECP \cite{delachica2026}. Whether the Lyapunov convergence mechanism can serve as a formal foundation for evaluating protocol modifications across multiple iterations is a promising but unvalidated direction.
+  \item \textbf{Multi-scope and hierarchical finality.} Cross-scope governance, parent--child finality dependencies, and inter-scope certificate chains are designed in the architecture but not validated experimentally. A \emph{multi-temporal lattice tower}---unifying governance, convergence, evidence, and temporal structure in one algebraic story---is under active investigation. The motivating hunch, consistent with both external LLM consensus evidence~\cite{yazici2026opinion} and companion architectural work, is that \emph{monotone} audit-friendly records and \emph{faithful} multi-agent numerical agreement may require distinct mechanisms rather than a single protocol. Whether a product-style construction preserves the well-foundedness needed for epoch termination across layers remains open; details are reserved for follow-on publications.
+  \item \textbf{Human-in-the-loop effectiveness.} The HITL review mechanism is designed and implemented but not empirically evaluated with real human reviewers.
+  \item \textbf{Coverage--autonomy formalization.} While the governance lattice $\mathcal{L}$ (Definition~\ref{def:gov-lattice}) provides a formal ordering of governance strictness, and the reduction kernel implements distinct routing per level, no formal metric quantifies evaluator autonomy as a continuous variable. The lattice provides a qualitative ordering ($\textsc{Master} \leq \textsc{Mitl} \leq \textsc{Yolo}$); a quantitative measure (e.g., the probability that a single agent's objection blocks finality) and its systematic variation across governance configurations would provide a principled basis for mode selection.
+\end{enumerate}
+
+Any claim beyond the narrow statement---``the architecture is implementable, produces auditable convergence in a controlled scenario, and provides formal safeguards against premature finality''---is unsupported by the evidence presented. Implementation and scalability limitations, theoretical limitations, the formal assumption matrix (A1--A7), future work directions, and the formal hardening summary (vector finality $F^*(t)$, PO-2) are collected in Appendix~\ref{sec:app-assumptions}.
+
+%% ============================================================
+\section{Conclusion}
+%% ============================================================
+
+\subsection{Summary of Contributions}
+
+This paper presents a paradigm for autonomous agent coordination based on declarative governance over shared immutable context. The seven core contributions are: (i)~a bitemporal CRDT-inspired semantic graph with append-only event log, dual time axes, and monotonicity invariants; (ii)~a disagreement function $V(t)$ that is a genuine Lyapunov function for the restricted CRDT system ($\Sigma_{\mathrm{CRDT}}$), with five independent gates providing layered guarantees against premature finality; (iii)~a product order $\mathcal{M} = \mathcal{L} \times \mathcal{A}$ with an Epoch Termination Theorem under $\delta_{\min}$-discretisation guaranteeing finite convergence via well-founded descent; (iv)~a deterministic Rust reduction kernel ensuring auditable, replayable governance independent of LLM stochasticity; (v)~perpetual finality with Ed25519-signed certificate chains; (vi)~three-tier governance routing with LLM-free fallback; and (vii)~validation on two domains---M\&A due diligence and financial consolidation with bitemporal restatement---demonstrating $V(t) \to 0$ at resolution epochs and domain-independent sawtooth dynamics across evidence epochs.
+
+\subsection{Positioning Relative to Self-Evolving Coordination}
+
+This work and the Self-Evolving Coordination Protocol (SECP) study \cite{delachica2026} address complementary halves of a shared problem. Where SECP demonstrates that bounded, governed self-modification of coordination protocols is technically feasible in a single-shot design, we demonstrate that formal convergence tracking over shared state provides the multi-iteration foundation such mechanisms need for sustained deployment. Specifically:
+
+\begin{itemize}
+  \item SECP's open question on multi-iteration dynamics is addressed by our Lyapunov function $V(t)$ and the Epoch Termination Theorem (Theorem~\ref{thm:termination}), which together guarantee finite convergence within each evidence epoch and track progress over indefinite cycles with formal safeguards against oscillation and premature finality.
+  \item SECP's open question on audit infrastructure is addressed by our bitemporal graph and policy-version-bound certificate chain, which provide the temporal auditability their architecture currently checks empirically.
+  \item The scalar convergence limitation is now fully addressed. The product order $\mathcal{M} = \mathcal{L} \times \mathcal{A}$ tracks convergence per-dimension during governance evaluation, and the vector finality predicate $F^*(t)$ (Section~\ref{sec:formal-hardening}) extends this to the finality decision itself, requiring each dimension to independently satisfy its threshold with per-dimension gates. This implements the non-scalar convergence criterion that SECP's Pareto filtering and constructive-objection requirements identify as essential.
+  \item Our open question on adversarial agents is partially addressed by Exp.~8, which demonstrates that cycle-based re-extraction provides practical (not formal) Byzantine resilience, and by SECP's non-compensable objection rights, which provide a complementary formal mechanism.
+\end{itemize}
+
+A synthesis---governed protocol evolution evaluated by Lyapunov convergence, with the product order providing per-dimension governance guarantees within each cycle and formal finality gates across cycles---would address the remaining limitations of both approaches. The proposed experimental protocol (Section~\ref{sec:proposed-experiments}) is designed to build toward this synthesis.
+
+\subsection{Interpretation Boundaries}
+
+The empirical claims are narrow and intentionally circumscribed (Sections~\ref{sec:boundaries} and \ref{sec:discussion}). Results from $n = 3$ repeated runs demonstrate reproducibility of $V(t)$ response to contradictions and gate mechanism effectiveness, but are not statistically powered distributional claims. The convergence guarantee (Proposition~\ref{prop:monotonic}) and the Epoch Termination Theorem (Theorem~\ref{thm:termination}) hold formally and were empirically confirmed: $V(t) = 0.0000$ was achieved at resolution epochs in Exp.~1, 2, 3, 7, and 8, and across three distinct convergence cycles in the financial consolidation scenario. Five formal assumptions were experimentally validated: discretization and monotonic progress (Exp.~6), multi-tier governance routing (Exp.~7), cooperative agent model (Exp.~8), and local confluence (Exp.~9)---all partially validated, identifying specific boundaries (stale marking for confluence, oscillating false finality limited to 1--2 cycles per window for adversarial resilience, Tier~3 non-triggering). The financial consolidation scenario confirms that convergence dynamics are domain-independent. No production-scale validation ($N > 50$ documents) has been performed.
+
+\subsection{Final Assessment}
+
+As LLM agents become increasingly capable of reasoning, planning, and hypothesis generation, the need for governance-based coordination---rather than pipeline-based orchestration---will grow. Regulated enterprises cannot adopt autonomous agents without the ability to audit, explain, and formally bound their behavior continuously as conditions evolve. The product order $\mathcal{M} = \mathcal{L} \times \mathcal{A}$ provides the formal foundation: governance strictness and convergence progress jointly tracked in a well-founded ordering guaranteeing finite stabilization, while the deterministic reduction kernel ensures every decision is auditable and independent of LLM stochasticity. Validation across two domains---M\&A due diligence and financial consolidation with bitemporal restatement---confirms that the convergence mechanism is domain-independent.
+
+Companion work on graph-structured role evidence extends this foundation: it develops layer separation as a response to a monotonicity--fidelity tension in multi-agent estimation (full development elsewhere). Recent networked-LLM opinion experiments~\cite{yazici2026opinion} independently warn that ``consensus'' can be far from classical DeGroot optima even when graph spectra still shape transient mixing. A multi-temporal algebraic unification---possibly connecting to concept-lattice views~\cite{ganter1999} over agent contributions and constraints---remains exploratory. Together with protocol-level adaptability \cite{delachica2026}, these threads define a research agenda for governed autonomous agent systems at scale in regulated environments.
+
+%% ============================================================
+\section*{Acknowledgments}
+%% ============================================================
+This work was supported by Deal ex Machina SAS. We thank Jean-Christophe Jardinier for critical review of earlier drafts and detailed feedback on the formal convergence arguments. We also thank the communities behind PostgreSQL, NATS, OpenFGA, napi-rs, DSPy, and Mastra for foundational infrastructure.
+
+\bibliographystyle{plainnat}
+\bibliography{references}
+
+\appendix
+
+%% ============================================================
+\section{Implementation Details}
+\label{sec:app-implementation}
+%% ============================================================
+
+\paragraph{Context WAL event example.}
+\begin{lstlisting}
+{
+  "timestamp": "2025-08-15T10:32:00Z",
+  "agent_id": "facts_extraction_v2",
+  "event_type": "claim_emitted",
+  "payload": {
+    "entity": "NovaTech AG",
+    "relation": "annual_recurring_revenue",
+    "value": "EUR 50M",
+    "confidence": 0.92,
+    "source_doc": "analyst_briefing.pdf"
+  }
+}
+\end{lstlisting}
+
+\paragraph{Governance YAML (excerpt).}
+\begin{lstlisting}
+mode: YOLO    # YOLO | MITL | MASTER
+rules:
+  - when: { drift_level: [medium, high], drift_type: contradiction }
+    action: open_investigation
+transition_rules:
+  - from: DriftChecked
+    to: ContextIngested
+    block_when: { drift_level: [critical] }
+\end{lstlisting}
+
+\paragraph{Decision record (excerpt).}
+\begin{lstlisting}
+{
+  "decision_id": "a3f8c...",
+  "policy_version": "sha256:7e4f2a...",
+  "result": "allow",
+  "reason": "no blocking rule",
+  "binding": "yaml"
+}
+\end{lstlisting}
+
+%% ============================================================
+\section{Test and Benchmark Counts}
+\label{sec:app-tests}
+%% ============================================================
+
+\textbf{341 Rust and 407 TypeScript tests:} convergence mathematics and Lyapunov analysis (57 Rust), finality gates and condition evaluation (32 Rust), governance kernel and lattice admissibility (32 Rust), state graph CAS (11 TS), convergence tracker (28 TS), finality evaluator (13 TS), governance agent modes (19 TS), embedding pipeline (11 TS), and supporting infrastructure. Vector finality: 20 Rust + 13 TypeScript tests; witness \texttt{vector\_finality\_blocks\_compensation} ($\mu = (1.0, 0.80, 1.0, 1.0)$).
+
+\textbf{Vector finality validation experiments:} (1)~exp-ab: scalar vs vector on M\&A and financial scenarios; (2)~exp8-compensate: compensation attack test; (3)~Exp~9 sub-test~7: determinism and replay, Gate $G_A^d$ and $F(t)$, $F^*(t)$ deterministic on same state.
+
+\textbf{7 convergence benchmarks:}
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+Scenario & Rounds & Outcome \\
+\midrule
+Steady convergence ($\sim$5\%/round) & 15 & Monotonic, ETA $\approx$ 0 \\
+Plateau at 0.70 & 10 & Stagnation detected \\
+Spike-and-drop & -- & Gate blocks premature finality \\
+Divergence & -- & Negative $\alpha$, zero progress \\
+One-dimension bottleneck & -- & Pressure identifies blocker \\
+Fast convergence ($\geq$0.92 in 3) & 3 & No false plateau \\
+Empty graph & -- & Safe defaults \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+%% ============================================================
+\section{Agent Roster and Activation Filters}
+\label{sec:app-agents}
+%% ============================================================
+
+\textbf{Facts:} Extracts claims, goals, risks (LLM + optional GLiNER2/NLI). Activated by \texttt{sequence\_delta}. \textbf{Drift:} Four drift types, severity classification. \texttt{hash\_delta}. \textbf{Planner:} Ranked proposals, pressure-directed routing. \texttt{hash\_delta}. \textbf{Status:} $V(t)$, $\alpha$, plateau detection, HITL routing. \texttt{timer}. \textbf{Governance:} Three-tier routing (Definition~\ref{def:kernel}, Section~\ref{sec:three-tier}), circuit breaker 3 failures/60s. \textbf{Executor:} CAS transitions, WAL, monotonic upserts. \textbf{Tuner:} Activation filter optimization. Filter types: \texttt{sequence\_delta}, \texttt{hash\_delta}, \texttt{timer}, \texttt{pressure\_directed}. Agents emit events; no direct calls.
+
+%% ============================================================
+\section{Project Horizon: Detailed Scenario and Results}
+\label{sec:app-horizon}
+%% ============================================================
+
+Five documents: (1)~Analyst Briefing (baseline); (2)~Financial DD (ARR 50M$\to$38M, governance block); (3)~Technical (CTO departure, medium drift); (4)~Market (patent suit); (5)~Legal (partial resolution, HITL). Key metrics: 5 documents, 312 facts, 18 contradictions (15 agent-resolved, 3 human), 12 rounds, 240s, 487 audit events, 156 policy evaluations, 3 governance blocks.
+
+%% ============================================================
+\section{Full Experimental Result Tables}
+\label{sec:app-results}
+%% ============================================================
+
+Exp.~1: Epochs 1--4 (Score 0.75, $V$ 0.25); 5 (0.808, 0.148); 9 (1.0, 0.0); 10--12 (0.927, 0.022); 13 (1.0, 0.0); 14--16 (0.956, 0.008); 17--19 (1.0, 0.0); 20--28 (0.956, 0.008). Exp.~3: Gates enabled 19 RESOLVED, 4 ESCALATED, 20 HITL, 14 ACTIVE; gates disabled 23 RESOLVED, 0 ESCALATED, 37 HITL. Exp.~2: $N=10,\rho=0.1$: 21 conv pts, 20 decisions; $N=100,\rho=0.3$: 45 conv pts, 34 decisions, 32 epochs; $N=500,\rho=0.1$: $V$ 0.251$\to$0.001 (1 resolution batch, 50 edges, $\sim$2 min); $N=500,\rho=0.3$: $V$ 0.251$\to$0.001 (2 batches, 150 edges, $\sim$2 min, 63 propagation epochs). Exp.~7: YOLO 31/32 Tier~1; MITL 49/49 Tier~2; MASTER 28/40 Tier~1, 12 rejections. Exp.~8: Baseline 0 false RES; Inflate 10; Collude 18. Exp.~9: Confidence ratchet, idempotency, kernel determinism Pass; CRDT partial (6/24 confluent); eventual consistency Pass. Financial: $V$ 0.25$\to$0.00 at epochs 24, 28--30, 36; 45 conv pts, 38 epochs.
+
+%% ============================================================
+\section{Formal Assumptions, Limitations, and Hardening}
+\label{sec:app-assumptions}
+\label{sec:formal-hardening}
+%% ============================================================
+
+\paragraph{Resolved (Paper~1 scope).} Proposition~1 intra-epoch conditioning is resolved: the paper uses the rank function $r(t)$ and explicit two-regime framing (intra-epoch vs.\ cross-epoch); $r(t)$ is non-increasing within an evidence epoch when at least one dimension makes progress. The proof-sketch gap (dimension~4 / new context injection) is resolved in this framing. Vector finality $F^*(t)$ (Section~\ref{sec:vector-finality}) is implemented; PO-2 (non-compensability) is proven by the \texttt{vector\_finality\_blocks\_compensation} witness. The connection between $V(t)$ and finality is stated in the main text: $V(t) \to 0$ is necessary but not sufficient for finality; $F^*(t) = \mathrm{true}$ is necessary but not sufficient for $V(t) = 0$. The progress indicator $\alpha$ is renamed from ``convergence rate'' and flagged as unreliable in non-stationary regimes. MASTER mode semantics (most restrictive, not a bypass) are consistent with the implementation.
+
+\paragraph{Remaining limitations (Paper~1).} \textbf{Trajectory quality $Q$:} The constants (e.g.\ 0.12, 5, 0.65, 0.85, $-0.3$) are domain-configurable (finality.yaml) and have no formal justification; Experiment~3 shows the system remains in ESCALATED/HITL under spike-and-drop and oscillating patterns for $\pm 20\%$ variation in $Q$. \textbf{Dimension weights:} Weights (0.30, 0.30, 0.25, 0.15) apply only to the scalar goal score used for the near-finality band (HITL trigger); the formal finality predicate uses per-dimension thresholds $\tau_d$, not weights---the formal result does not depend on weight selection. \textbf{Complexity:} The comparison with BFT is reframed as eliminating the $n^2$ factor per round; total complexity is $O(nk)$ with $k$ input-dependent (e.g.\ $k = 12$ in validation). \textbf{Machine-checked proofs:} Proposition~\ref{prop:monotonic} and Theorem~\ref{thm:termination} remain proof sketches; no proof assistant has checked them. \textbf{Gate naming:} The paper (Gates A--E: monotonicity, evidence, trajectory, quiescence, minimum content) is canonical; some supporting design docs use different labels and should be aligned to the paper.
+
+\paragraph{Implementation and scalability.} Dual temporality: schema complete; valid-time population from unstructured text may require temporal NLP. Evidence schemas and obligation handlers are framework-ready, per-deployment. Single Postgres/NATS/process validated; horizontal scaling and graph scale (e.g.\ $N > 500$ documents) not validated.
+
+\paragraph{Assumptions A1--A7.} A1 discretization (empirically validated); A2 kernel determinism (Rust test suite); A3 CRDT monotonicity (SQL guards and invariants); A4 progress precondition (Exp.~6); A5 local confluence (Exp.~9 partial---stale marking non-commutative, eventual consistency after re-extraction); A6 non-compensability \textbf{closed} by vector finality $F^*(t)$ and PO-2; A7 tier completeness (Exp.~7 partial---Tier~3 not triggered). Extended experiment program: E1--E5 planned (scalar vs vector, Tier-3 reachability, $\epsilon$ sweep, confluence, adversarial).
+
+%% ============================================================
+\section{Enterprise and Regulatory Fitness}
+\label{sec:enterprise}
+%% ============================================================
+
+Regulated environments---financial services, healthcare, defense, critical infrastructure---impose requirements that go beyond functional correctness. This appendix maps the architecture's capabilities to specific regulatory demands, showing that the mechanisms described above are not merely useful but structurally necessary for enterprise deployment.
+
+\subsection{Temporal Audit for Regulators}
+
+Regulatory frameworks frequently require point-in-time reconstruction: demonstrating what was known, when, and what decisions followed. SOX Section~404 requires that internal controls over financial reporting be documented as they existed at the reporting date. IFRS~9 (Expected Credit Loss) requires temporal evidence chains for impairment assessments. Basel~III mandates historical risk factor traceability.
+
+The bitemporal semantic graph (Section~\ref{sec:shared-context}) enables these queries directly:
+
+\begin{itemize}
+  \item \textbf{``What did the system know on audit date $T'$?''} As-of transaction-time query: filters to rows with $\texttt{recorded\_at} \leq T'$ and ($\texttt{superseded\_at} > T'$ or not superseded).
+  \item \textbf{``What was believed true for reporting period $T$?''} As-of valid-time query: filters to rows with $\texttt{valid\_from} \leq T$ and ($\texttt{valid\_to} > T$ or open-ended).
+  \item \textbf{``What did the system know at $T'$ about facts valid at $T$?''} Combined bitemporal query: both filters applied simultaneously.
+\end{itemize}
+
+Unlike retrospective log analysis (grepping timestamps in application logs), these are first-class database queries with indexed support, returning structured graph state rather than unstructured log lines.
+
+\subsection{Cryptographic Non-Repudiation}
+
+When a scope reaches finality (Section~\ref{sec:certificates}), an Ed25519-signed JWS certificate is issued containing: the scope identifier, the finality decision, the timestamp, and content hashes of the governance and finality policy files in effect. This certificate is self-contained: an external party---auditor, counterparty, regulator---can verify the signature and inspect the payload without access to the running system.
+
+The policy-version hashes are critical: they bind the finality decision to the exact rule set that produced it. If governance rules are amended between two finality decisions, the certificates will carry different policy hashes, enabling precise attribution of which decisions were made under which rules.
+
+This addresses requirements in MiFID~II (best execution record-keeping), SOX (management sign-off chains), and EMIR (trade repository reporting), where demonstrating \emph{which rules governed a decision} is as important as demonstrating the decision itself.
+
+\subsection{Summary of Remaining Regulatory Mappings}
+
+Several additional enterprise concerns---policy change management (each \texttt{DecisionRecord} binds to a content-hashed \texttt{policy\_version}), ongoing compliance lifecycle (the perpetual finality mechanism produces certificate chains for KYC/AML, IFRS~9, Basel~III, and pharmacovigilance monitoring), evidence freshness (Gate~B enforces per-domain staleness limits), separation of duties (OpenFGA + governance modes map to SOX/PCI-DSS segregation requirements), operational resilience (circuit breaker, message deduplication, graceful degradation), and governance agility (YAML rule changes are auditable and require no recompilation)---are addressed by mechanisms described in Sections~\ref{sec:declarative-governance}--\ref{sec:perpetual-finality} and are not re-derived here. These mappings are assertion-based: they follow from the architectural properties established above but have not been validated in production regulatory contexts.
+
+\end{document}

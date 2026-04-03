@@ -1,0 +1,86 @@
+================================================================================
+CONFIDENTIAL — PROJECT HORIZON
+UPDATE: Pharmakon GmbH Contract Renewal Outcome
+Date: 2025-06-02
+Prepared by: Julia Hartmann, VP Sales — NovaTech AG
+================================================================================
+
+1. EXECUTIVE SUMMARY
+
+Following three months of intensive negotiations (referenced in Document 13),
+Pharmakon GmbH has agreed to a contract renewal with NovaTech AG. However, the
+renewed terms represent materially different economics than the expiring
+agreement.
+
+2. RENEWED CONTRACT TERMS
+
+  Contract Type:          Master Subscription Agreement (renewed)
+  Effective Date:         July 1, 2026
+  Term:                   2 years (expires June 30, 2028)
+  Annual Contract Value:  EUR 6.97 million
+  Prior ACV:              EUR 8.20 million
+  Price Reduction:        15% (EUR 1.23M annual reduction)
+
+3. KEY COMMERCIAL TERMS
+
+  (a) Price Reduction: Pharmakon negotiated a 15% reduction in annual fees
+      from EUR 8.20M to EUR 6.97M. This was driven by competitive pressure
+      from Veeva Systems, which offered a consolidated global platform at
+      a discount of approximately 25% vs. NovaTech's pricing.
+
+  (b) Termination for Convenience: The renewed contract retains a
+      termination-for-convenience clause, now with 180-day notice (increased
+      from 90-day in the prior contract). This provides modestly improved
+      revenue visibility.
+
+  (c) Performance Exit Clause: NEW — Pharmakon has added a performance-based
+      exit clause. If NovaTech's platform availability falls below 99.5% in
+      any rolling 3-month period, or if response times exceed SLA thresholds
+      for more than 72 consecutive hours, Pharmakon may terminate with 30-day
+      notice and receive a pro-rata refund.
+
+  (d) Scope Reduction: Pharmakon has excluded its newly acquired HelixBio AG
+      subsidiary from the NovaTech contract. HelixBio will continue using
+      Veeva Systems for US regulatory submissions and will migrate EU
+      submissions to Veeva over the 2-year contract term.
+
+  (e) Data Migration Clause: Pharmakon has negotiated a data portability
+      clause requiring NovaTech to provide full data export in standard
+      formats within 30 days of contract termination, at no additional cost.
+
+4. FINANCIAL IMPACT
+
+  Annual Revenue Impact:     -EUR 1.23M (from EUR 8.20M to EUR 6.97M)
+  Two-Year Guaranteed Value: EUR 13.94M
+  Risk of Mid-Term Exit:     MODERATE (performance clause creates pathway)
+
+  Pharmakon's share of adjusted ARR changes:
+    Prior:    EUR 8.20M / EUR 38.0M = 21.6%
+    Renewed:  EUR 6.97M / EUR 38.0M = 18.3%
+
+  Note: While the absolute concentration decreases, Pharmakon remains the
+  largest customer by a significant margin.
+
+5. STRATEGIC ASSESSMENT
+
+The renewal is a mixed outcome:
+
+  POSITIVE:
+  - Pharmakon retained as a customer for minimum 2 additional years
+  - Relationship preserved at executive level
+  - 180-day notice period provides better planning horizon
+
+  NEGATIVE:
+  - 15% price reduction sets a precedent for other contract renewals
+  - Performance exit clause creates operational risk
+  - HelixBio exclusion signals Pharmakon's long-term migration intent
+  - Data portability clause facilitates eventual departure
+
+6. IMPACT ON PROJECTIONS
+
+The five-year projections (Document 09) assumed Pharmakon renewal at existing
+rates. The EUR 1.23M annual reduction, combined with the HelixBio exclusion,
+reduces projected FY2027 revenue by approximately EUR 2.5M when accounting
+for foregone expansion revenue from the HelixBio subsidiary.
+
+Prepared by Julia Hartmann, VP Sales — NovaTech AG

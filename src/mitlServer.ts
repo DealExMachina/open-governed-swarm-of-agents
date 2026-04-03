@@ -1,4 +1,4 @@
-import pg from "pg";
+import type pg from "pg";
 import { createServer, type IncomingMessage, type ServerResponse } from "http";
 import type { Proposal } from "./events.js";
 import type { Action } from "./events.js";
@@ -70,12 +70,21 @@ export async function addPending(
   );
 }
 
-export async function getPending(pool?: pg.Pool): Promise<Array<{ proposal_id: string; proposal: Proposal }>> {
+export async function getPending(pool?: pg.Pool, scopeId?: string): Promise<Array<{ proposal_id: string; proposal: Proposal }>> {
   const p = getPool(pool);
   await ensureMitlPendingTable(p);
-  const res = await p.query(
-    "SELECT proposal_id, proposal FROM mitl_pending WHERE status = 'pending' ORDER BY created_at",
-  );
+  const res = scopeId
+    ? await p.query(
+      `SELECT proposal_id, proposal
+       FROM mitl_pending
+       WHERE status = 'pending'
+         AND proposal->'payload'->>'scope_id' = $1
+       ORDER BY created_at`,
+      [scopeId],
+    )
+    : await p.query(
+      "SELECT proposal_id, proposal FROM mitl_pending WHERE status = 'pending' ORDER BY created_at",
+    );
   return res.rows.map((row) => ({
     proposal_id: row.proposal_id,
     proposal: typeof row.proposal === "string" ? (JSON.parse(row.proposal) as Proposal) : (row.proposal as Proposal),
@@ -144,12 +153,19 @@ export async function resolveFinalityPending(
   proposalId: string,
   option: FinalityOptionAction,
   days?: number,
-  pool?: pg.Pool,
+  scopeOrPool?: string | pg.Pool,
+  maybePool?: pg.Pool,
 ): Promise<{ ok: boolean; error?: string }> {
+  const scopeId = typeof scopeOrPool === "string" ? scopeOrPool : undefined;
+  const pool = (typeof scopeOrPool === "string" ? maybePool : scopeOrPool) as pg.Pool | undefined;
   const item = await getPendingItem(proposalId, pool);
   if (!item) return { ok: false, error: "not_found" };
   if (item.actionPayload?.type !== "finality_review") {
     return { ok: false, error: "not_finality_review" };
+  }
+  const proposalScopeId = String((item.proposal.payload as { scope_id?: string } | undefined)?.scope_id ?? "");
+  if (scopeId && proposalScopeId && proposalScopeId !== scopeId) {
+    return { ok: false, error: "scope_mismatch" };
   }
   const actionPayload = {
     proposal_id: proposalId,
@@ -216,10 +232,15 @@ export function startMitlServer(port: number): void {
       }
       return;
     }
-    if (method === "GET" && url === "/pending") {
+    if (method === "GET" && url.startsWith("/pending")) {
       if (!requireBearer(req, res)) return;
       try {
-        const pending = await getPending();
+        const scopeId = String(new URL(url, "http://localhost").searchParams.get("scope_id") ?? "");
+        if (!scopeId) {
+          send(400, { error: "scope_required" });
+          return;
+        }
+        const pending = await getPending(undefined, scopeId);
         send(200, { pending });
       } catch (e) {
         send(500, { error: String(e) });
@@ -264,8 +285,13 @@ export function startMitlServer(port: number): void {
         send(400, { ok: false, error: "invalid_option" });
         return;
       }
+      const scopeId = typeof body.scope_id === "string" ? body.scope_id : "";
+      if (!scopeId) {
+        send(400, { ok: false, error: "scope_required" });
+        return;
+      }
       const days = option === "defer" ? Number(body.days) ?? 7 : undefined;
-      const result = await resolveFinalityPending(matchFinality[1], option, days);
+      const result = await resolveFinalityPending(matchFinality[1], option, days, scopeId);
       send(result.ok ? 200 : 404, result);
       return;
     }

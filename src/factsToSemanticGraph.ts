@@ -112,7 +112,43 @@ export function findClaimNodeId(
 }
 
 /**
+ * Significant words for token-overlap similarity.
+ * Strips punctuation/currency symbols and keeps words > 2 chars (to catch
+ * short but important domain terms like "ARR", "IP"), minus stop words.
+ */
+const SYNC_STOP = new Set([
+  "the","and","for","are","was","were","has","have","had","not","but","its",
+  "that","this","from","with","they","been","which","into","also","than",
+  "will","can","may","who","how","all","any","each","some","such","very",
+]);
+
+function sigWords(s: string): Set<string> {
+  return new Set(
+    s.toLowerCase()
+      .replace(/[^a-z0-9\s]/g, "")
+      .split(/\s+/)
+      .filter((w) => w.length > 2 && !SYNC_STOP.has(w))
+      .map((w) => (w.length > 6 ? w.slice(0, 6) : w)),
+  );
+}
+
+/**
+ * Token-overlap similarity (Jaccard-like) between two strings.
+ * Returns 0..1 where 1 means identical significant words.
+ */
+function tokenOverlap(a: string, b: string): number {
+  const wa = sigWords(a);
+  const wb = sigWords(b);
+  if (wa.size === 0 || wb.size === 0) return 0;
+  let overlap = 0;
+  for (const w of wa) if (wb.has(w)) overlap++;
+  return overlap / Math.max(wa.size, wb.size);
+}
+
+/**
  * Match a new claim against existing nodes by content similarity.
+ * Tries exact/prefix match first, then falls back to token overlap
+ * (threshold 0.6) to catch LLM rephrasings of the same fact.
  * Returns the matched node or null.
  */
 function matchExistingNode(
@@ -129,7 +165,17 @@ function matchExistingNode(
       return node;
     }
   }
-  return null;
+  // Fuzzy fallback: token overlap catches LLM rephrasings of the same contradiction/fact
+  let bestMatch: SemanticNode | null = null;
+  let bestScore = 0;
+  for (const node of existingNodes) {
+    const score = tokenOverlap(node.content, trimmed);
+    if (score > bestScore) {
+      bestScore = score;
+      bestMatch = node;
+    }
+  }
+  return bestScore >= 0.6 ? bestMatch : null;
 }
 
 /**
@@ -154,6 +200,7 @@ export async function syncFactsToSemanticGraph(
     (c): c is string => typeof c === "string",
   );
   const confidence = typeof facts.confidence === "number" ? facts.confidence : 1;
+  const minClaimConfidence = Number(process.env.MIN_CLAIM_CONFIDENCE ?? "0.65");
   const validFrom = facts.valid_from ?? undefined;
   const validTo = facts.valid_to ?? undefined;
   const hasValidTime = validFrom !== undefined || validTo !== undefined;
@@ -175,8 +222,10 @@ export async function syncFactsToSemanticGraph(
     const matchedGoalIds = new Set<string>();
     const matchedRiskIds = new Set<string>();
 
-    // --- Claims: upsert-if-better ---
-    for (const content of claims) {
+    // --- Claims: upsert-if-better (skip low-confidence batches to reduce noise) ---
+    if (confidence < minClaimConfidence) {
+      /* skip claims from low-confidence extraction */
+    } else for (const content of claims) {
       if (typeof content !== "string" || !content.trim()) continue;
       const trimmed = content.trim();
       const existing = matchExistingNode(existingClaims, trimmed);
@@ -194,6 +243,22 @@ export async function syncFactsToSemanticGraph(
         }
         claimContentToNodeId.set(trimmed, existing.node_id);
       } else {
+        // Check if resolution or other source already added this claim (avoid duplicate)
+        const dupRes = await client.query(
+          `SELECT node_id, confidence FROM nodes WHERE scope_id = $1 AND type = 'claim' AND status = 'active'
+           AND content = $2 AND superseded_at IS NULL LIMIT 1`,
+          [scopeId, trimmed],
+        );
+        if (dupRes.rowCount && dupRes.rows[0]) {
+          const dup = dupRes.rows[0] as { node_id: string; confidence: number };
+          matchedClaimIds.add(dup.node_id);
+          if (confidence >= dup.confidence) {
+            await updateNodeConfidence(dup.node_id, confidence, client);
+            nodesUpdated++;
+          }
+          claimContentToNodeId.set(trimmed, dup.node_id);
+          continue;
+        }
         // New claim — insert
         const nodeId = await appendNode(
           {
@@ -313,14 +378,12 @@ export async function syncFactsToSemanticGraph(
       const str = typeof raw === "string" ? raw : String(raw);
       if (!str.trim()) continue;
 
-      // Skip if this contradiction matches a previously resolved one
-      // Try MCP embedding similarity first, fall back to token overlap
       let matchesResolved = false;
       try {
-        const { isResolvedViaService } = await import("./resolutionMcp.js");
-        matchesResolved = await isResolvedViaService(str.trim(), scopeId);
+        const { isResolved } = await import("./resolutionService.js");
+        const result = await isResolved(str.trim(), scopeId);
+        matchesResolved = result.resolved;
       } catch {
-        // MCP unavailable: fall back to token overlap
         const lowerStr = str.trim().toLowerCase();
         matchesResolved = resolvedContents.has(lowerStr);
         if (!matchesResolved) {
@@ -340,13 +403,15 @@ export async function syncFactsToSemanticGraph(
 
       // Always create/upsert a contradiction node so it's counted in finality
       const existingContra = matchExistingNode(existingContras, str.trim());
+      let contraNodeId: string | null = null;
       if (existingContra) {
+        contraNodeId = existingContra.node_id;
         matchedContraIds.add(existingContra.node_id);
         if (existingContra.status !== "active") {
           await updateNodeStatus(existingContra.node_id, "active", client);
         }
       } else {
-        await appendNode(
+        contraNodeId = await appendNode(
           {
             scope_id: scopeId,
             type: "contradiction",
@@ -384,17 +449,22 @@ export async function syncFactsToSemanticGraph(
             client,
           );
           edgesCreated++;
+
+          // Store structural claim link on the contradiction node
+          if (contraNodeId) {
+            await client.query(
+              `UPDATE nodes SET metadata = metadata || $2::jsonb, updated_at = now()
+               WHERE node_id = $1`,
+              [contraNodeId, JSON.stringify({ claim_source_id: sourceId, claim_target_id: targetId })],
+            );
+          }
         }
       }
     }
 
-    // Stale unmatched contradiction nodes
-    for (const node of existingContras) {
-      if (!matchedContraIds.has(node.node_id) && node.status === "active") {
-        await updateNodeStatus(node.node_id, "irrelevant", client);
-        nodesStaled++;
-      }
-    }
+    // Contradictions: skip stale marking — contradictions accumulate across extractions
+    // and should only be resolved via the resolution flow (HITL, resolver agent, or MCP).
+    // Staling contradictions caused them to disappear before the user could address them.
   });
 
   if (opts?.embedClaims && nodesCreated > 0) {

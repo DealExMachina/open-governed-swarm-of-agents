@@ -1,7 +1,4 @@
 import { readFileSync } from "fs";
-// #region agent log
-fetch("http://127.0.0.1:7243/ingest/43a26554-c058-4ee2-bffa-258ea712c1dc", { method: "POST", headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "346e93" }, body: JSON.stringify({ sessionId: "346e93", location: "governance.ts:top", message: "governance.ts top-level", data: {}, timestamp: Date.now(), hypothesisId: "H3" }) }).catch(() => {});
-// #endregion
 import { parse as parseYaml } from "yaml";
 
 export interface PolicyRule {
