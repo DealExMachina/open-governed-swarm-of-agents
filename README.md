@@ -18,7 +18,7 @@ Most agent frameworks coordinate via DAGs: fixed pipelines where topology determ
 
 This project tests an alternative hypothesis: **declarative governance over shared state, combined with a semantic graph and formal convergence tracking, can produce auditable, converging agent coordination without fixed pipelines.**
 
-Concretely: ten agents (facts, drift, planner, status, governance, executor, tuner, resolver, propagation, deltas) operate independently on shared bitemporal context (Postgres WAL + semantic graph + S3). A three-tier governance pipeline -- Rust reduction kernel (sgrs-core), oversight agent, full LLM -- enforces declarative transition rules via a product order M = L x A (governance level x convergence rank), with circuit-breaker fallback ensuring governance never stalls. A finality evaluator tracks convergence via a Lyapunov disagreement function with six formal gates (A-F), triggers human-in-the-loop review when the system plateaus, and issues Ed25519-signed finality certificates when convergence is achieved. No agent knows about any other agent's existence. Coordination emerges from the shared state and the governance layer. Finality is not terminal: new documents, regulatory changes, or periodic reviews re-open convergence, producing a chain of certified checkpoints over an indefinite lifecycle.
+Concretely: governed agents (facts, drift, planner, status, governance, executor, tuner and supporting runtime roles) operate independently on shared bitemporal context (Postgres WAL + semantic graph + S3). A three-tier governance pipeline -- Rust reduction kernel (sgrs-core), oversight agent, full LLM -- enforces declarative transition rules via a product order M = L x A (governance level x convergence rank), with circuit-breaker fallback ensuring governance never stalls. A finality evaluator tracks convergence via formal gate checks, triggers human-in-the-loop review when the system plateaus, and issues Ed25519-signed finality certificates when convergence is achieved. No agent knows about any other agent's existence. Coordination emerges from the shared state and the governance layer. Finality is not terminal: new documents, regulatory changes, or periodic reviews re-open convergence, producing a chain of certified checkpoints over an indefinite lifecycle.
 
 The formal guarantee: if the Lyapunov function V(t) decreases monotonically across evaluation cycles, the system is asymptotically converging toward finality. If V increases, the system detects divergence and escalates. If V stalls, it detects plateau and routes to human review. See [docs/convergence.md](docs/convergence.md) for the full theory.
 
@@ -76,7 +76,7 @@ stateDiagram-v2
   DeltasExtracted --> ContextIngested: cycle wrap
 ```
 
-Ten agents (facts, drift, propagation, deltas, planner, resolver, status, governance, executor, tuner) are **reasoning roles**, not pipeline stages. Stage 2 adds sheaf-based evidence propagation: at each `DriftChecked` transit, the propagation agent runs one step of Laplacian diffusion on a bilattice evidence state (support/refutation per role per dimension), contracts inter-role disagreement, and publishes evidence along sheaf edges. Empirically: disagreement Omega contracts by 50–97% over 2–8 epochs; ISS small-gain condition satisfied throughout (see [docs/experiments.md](docs/experiments.md)). Coordination emerges from shared context, governance, and evidence diffusion — not from wiring. See [docs/architecture.md](docs/architecture.md) for the full technical deep dive.
+Agents are **reasoning roles**, not pipeline stages. Coordination emerges from shared context and governance, not hardwired sequencing. See [docs/architecture.md](docs/architecture.md) for the technical deep dive.
 
 ---
 
@@ -108,7 +108,7 @@ See [docs/convergence.md](docs/convergence.md) for the formal theory, configurat
 
 The Lyapunov function aggregates four dimensions into a single weighted score: $V(t) = \sum_d w_d (\tau_d - \mu_d)^2$. However, a scalar score permits a subtle vulnerability: **compensation artifacts** where one dimension over-improves to hide failures in another. For example, agents could inflate claim confidence to 1.0 and goal completion to 1.0 while leaving contradiction resolution at 0.80 — the scalar score would pass (0.94 ≥ 0.92) despite unresolved contradictions.
 
-To address this, the system enforces **per-dimension vector finality** as the default (Issue #18, [docs/formal-hardening.md](docs/formal-hardening.md)):
+To address this, the system enforces **per-dimension vector finality** as the default (Issue #18):
 
 $$F^*(t) = \bigwedge_{d \in \mathcal{D}} \left[ e_d(t) \leq \epsilon_d \wedge G_A^d(t) \wedge G_C^d(t) \right] \wedge GB \wedge GD \wedge GE$$
 
@@ -233,7 +233,7 @@ See [docs/archive/demo.md](docs/archive/demo.md) for the archived demo guide and
 
 ## Validation
 
-**460 TypeScript tests** across ~50 suites (Vitest) cover convergence math, finality decision paths, governance rule evaluation, semantic graph monotonicity, state machine CAS, policy engine, finality certificates, propagation, agent tools, and Gates B/C/D/F. **252 Rust lib tests** (sgrs-core) cover bilattice algebra (38 proptests + deterministic), sheaf Laplacian, gossip protocols, push-sum, ISS analysis, causal DAG (251 tests), topology builders, Π_A projection closure proptests, and vector finality. **12 propagation experiments** (E1-E12) validate sheaf diffusion contraction, bilattice algebra, topology sensitivity across 5 families, Tarski vs linear Pareto cost, operator choice analysis (gossip-average vs gossip-Tarski vs linear, 21-1024 nodes), and the monotonicity-correctness impossibility theorem (push-sum, E12). **7 convergence benchmark scenarios** validate the tracker with pure math (no Docker, no LLM). **138 Lean 4 machine-checked items** (46 theorems + 41 definitions + 4 structures) across 9 files and 1,169 lines, covering bilattice algebra, hybrid pipeline with Gate F, and Stage 3 FCA (concept lattice, Galois bridge, convergence, tower). A **TLA+ model-checked** kernel (10,160 states, 0 violations). A **sgrs load benchmark** demonstrates multiple concurrent instances sharing a single governance config: high throughput (~10^5 ops/s), sub-ms latencies, and identical outputs across instances (unified governance). An **E2E pipeline** (`scripts/run-e2e.sh`) tests the full Docker stack from document ingestion through governance to semantic graph verification.
+TypeScript and Rust test suites cover convergence, governance, semantic graph behavior, policy evaluation, certificates, and runtime correctness. A **sgrs load benchmark** demonstrates multiple concurrent instances sharing a single governance config. An **E2E pipeline** (`scripts/run-e2e.sh`) tests the full Docker stack from document ingestion through governance to semantic graph verification.
 
 **Scalability:** The governance/convergence kernel (sgrs-core) is load-benchmarked; propagation experiments validated at 1024 nodes on ring/3-regular/modular topologies. Node, Postgres, NATS, and S3 each have established scalability profiles.
 
@@ -265,9 +265,7 @@ See [docs/validation.md](docs/validation.md) for the complete test methodology a
 
 **Finality certificates:** When a scope reaches RESOLVED (all six gates passed) or is human-approved, a signed JWS (Ed25519) is stored in `finality_certificates` with policy version hashes and dimensional snapshot. Summary API and `GET /finality-certificate/:scope_id` expose certificates for audit. Perpetual lifecycle: new context re-opens convergence; new certificate extends the chain.
 
-**Finality:** After each governance round, `evaluateFinality(scopeId)` runs against the semantic graph and convergence history. Six gates: monotonicity (A), evidence coverage + contradiction mass (B), oscillation detection + trajectory quality (C), quiescence (D), minimum content (E), elimination completeness (F). Plus divergence escalation, plateau-triggered HITL, and ISS cascade check (small-gain condition).
-
-**Evidence propagation:** 5-node state cycle (ContextIngested → FactsExtracted → DriftChecked → EvidencePropagated → DeltasExtracted). Propagation agent runs sheaf Laplacian diffusion at DriftChecked; evidence bus publishes along sheaf edges. Causal contribution layer (migration 019): facts, drift, propagation, governance, resolver, and status agents plus `finalityEvaluator` (on RESOLVED) emit content-addressed contributions via `emitContribution`; evidence state space; ISS cascade stability. Three gossip operators: gossip-average (correct consensus, recommended default), push-sum (Kempe et al. 2003, algebraically equivalent for bilateral exchanges), and gossip-Tarski (knowledge-monotone but converges to global max, not mean). **Impossibility theorem (E12):** no gossip protocol on bilattice evidence can simultaneously converge to the true mean AND be knowledge-monotone — resolved through layer separation (correct consensus in propagation + monotone audit in causal DAG).
+**Finality:** After each governance round, `evaluateFinality(scopeId)` runs against the semantic graph and convergence history to enforce convergence and safety constraints, including divergence escalation and plateau-triggered HITL.
 
 **Facts-worker:** Python (FastAPI + OpenAI SDK). Runs in Docker. OpenAI by default; Ollama opt-in via `FACTS_WORKER_OLLAMA=1`.
 
@@ -436,8 +434,6 @@ pytest tests/ -v      # Python facts-worker unit + integration
 - **Pressure-directed activation:** Set filter type to `pressure_directed` in agent config. Agents activate based on convergence pressure.
 - **Observability:** `docker compose up -d` includes Prometheus (9090), Grafana (3004, anonymous read), and an OTEL collector. Agents default to `OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318` when started via `pnpm run swarm`. The feed server on port 3002 serves an observability dashboard with live events, convergence, and service health. Grafana ships with two pre-provisioned dashboards: **Swarm Governance** (governance mode, token economics, governance pipeline, agent performance, convergence) and **SGRS Core** (Rust kernel profiling). Key metrics: `swarm.governance.mode_active` (MASTER/MITL/YOLO per scope), `swarm.llm.tokens` and `swarm.llm.calls` (per role/model), `swarm.governance.path` (decision-path distribution), `swarm.state.transition` (cycle flow). If Grafana shows no data: (1) start the observability stack (`docker compose up -d otel-collector prometheus grafana`), (2) start the swarm with `pnpm run swarm`, (3) run some activity (e.g. demo), then open http://localhost:3004 and the Swarm Governance dashboard.
 - **Policy version and certificates:** Summary API (`GET /summary`) exposes `policy_version` (governance/finality config hashes) and `finality_certificate` when a scope has been resolved. MITL server exposes `GET /finality-certificate/:scope_id` for the latest signed certificate.
-For current status, verified functionality, and next steps, see **STATUS.md**.
-
 ---
 
 ## Further reading

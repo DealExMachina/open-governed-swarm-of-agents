@@ -1,6 +1,6 @@
 # Validation and Test Coverage
 
-> Back to [README](../README.md) | See also [STATUS.md](../STATUS.md), [experiments.md](experiments.md), [stage-2-status-and-experiments.md](stage-2-status-and-experiments.md) (Stage 2 experiments E1--E12).
+> Back to [README](../README.md) | See also [experiments.md](experiments.md).
 
 **Last updated:** 2026-03-28 (P0: WAL/DAG contract, model onboarding policy; plus 2026-03-27 theory sync).
 
@@ -59,12 +59,11 @@ flowchart TB
 | Π_A projection closure (bilattice box) | 6 proptests (monotone ≤_k, fixed-point on A, non-extensive) + `Projected<T>` newtype | Box clamp sufficient for all admissible sets |
 | Product poset **M = L × A** (kernel admissibility) | Rust governance + types tests; `PartialOrd` on convergence rank A | **Not** a lattice on pairs: partial order only, no join/meet on M |
 | Causal DAG (Rust) | 251 property-based + unit tests; SHA-256/CBOR content hashing | That DAG frontier determines concept lattice (Conj. 10.2) |
-| Causal contributions (TS) | `emitContribution` from facts, drift, propagation, governance, resolver, status; `finalityEvaluator` on RESOLVED | Runtime Contribution → EvidenceState mapping intentionally not implemented **by architecture lock** (audit-only DAG); FCA incidence extraction still not implemented |
+| Causal contributions (TS) | `emitContribution` from facts, drift, propagation, governance, resolver, status; `finalityEvaluator` on RESOLVED | Runtime Contribution → EvidenceState mapping intentionally not implemented **by architecture lock** (audit-only DAG) |
 | WAL vs causal DAG | Governance and other paths call `appendEvent` for semantic WAL; `createContribution` does not auto-append WAL | Feed/state consumers must not assume a contribution row implies a matching WAL event |
 | Model onboarding (P0) | `enforceModelOnboarding` in `modelConfig.ts`; policy JSON + unit tests | With `MODEL_ONBOARDING_ENFORCE` off or missing policy, any model is accepted (documented fallback) |
 | Lean 4 proofs | 138 items (46 theorems + 41 defs + 4 structures) across 9 files, type-checked | Proofs use Fin n -> Prop (not computable Finset); Rust must match structurally |
 | TLA+ model checking | KernelBilattice.tla: 4 safety invariants, 10,160 states, 0 violations | Covers two configurations; not exhaustive over all parameters |
-| FCA concept lattice | Lean proofs only (65 defs/theorems in Concept/) | No Rust implementation; no runnable experiments (E23-E26 blocked) |
 
 ---
 
@@ -314,9 +313,9 @@ validation** and represent known gaps:
 
 ---
 
-## 9. Stage 2 propagation experiments (E1--E12, all passing)
+## 9. Propagation experiment summary (historical snapshot)
 
-Stage 2 experiments validate sheaf diffusion, bilattice algebra, topology sensitivity, gossip protocols, and the impossibility theorem. All 12 pass as of 2026-03-10. Results committed under `docs/experiments/propagation/`.
+Propagation-focused experiments validated sheaf diffusion, bilattice algebra, topology sensitivity, gossip protocols, and the impossibility theorem in prior internal runs.
 
 | ID | Key Result | Run Date |
 |----|------------|----------|
@@ -350,7 +349,7 @@ artifacts under `artifacts/experiments/e19` and `artifacts/experiments/e20`.
 
 ### 9.2 Snapshot scope note
 
-This open snapshot intentionally excludes Stage 3 FCA experiment files and
+This open snapshot intentionally excludes advanced concept-lattice experiment files and
 their derived artifacts. The validation set retained here focuses on baseline
 swarm runtime, governance/finality behavior, and publication_1-aligned
 experiments.
@@ -379,15 +378,9 @@ Stage 1 experiments require Docker and test the full agent pipeline. Defined pro
 |------|-------|-------|--------|
 | Lean 4 | Bilattice algebra (Basic.lean) | 28 items | Type-checked, no Mathlib |
 | Lean 4 | Hybrid pipeline (HybridPipeline.lean) | 17 items | Type-checked, Gate F proven |
-| Lean 4 | FCA Context/Lattice | 8 definitions | Type-checked (textbook theorems removed) |
-| Lean 4 | FCA Galois bridge | 15 items | Type-checked, convergence preservation |
-| Lean 4 | FCA Convergence | 11 items | Type-checked, extent monotonicity |
-| Lean 4 | FCA Tower | 12 items | Type-checked, upward/downward finality lift |
 | TLA+ | KernelBilattice state machine | 4 safety invariants | 10,160 states, 0 violations |
 
 **Open proof obligations:** PO-3.5b (Markov rate bound, needs Mathlib R), PO-3.9 (spectral gap characterization).  
-PO-3.7e and PO-3.8 now have machine-checked Phase-3 baseline theorems in
-`proofs/lean4/Bilattice/Concept/Tower.lean` and
-`proofs/lean4/Bilattice/Concept/NextClosure.lean`.
+PO-3.7e and PO-3.8 are tracked as follow-up proof obligations.
 
-See [experiments.md](experiments.md) for full protocol details. When `per_dimension_finality.enabled` is true in `finality.yaml`, experiments run under **per-dimension (vector) finality**; see [formal-hardening.md](formal-hardening.md) for the assumption matrix.
+See [experiments.md](experiments.md) for full protocol details. When `per_dimension_finality.enabled` is true in `finality.yaml`, experiments run under **per-dimension (vector) finality**.

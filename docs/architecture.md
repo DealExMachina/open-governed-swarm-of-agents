@@ -19,7 +19,7 @@ Back to [README.md](../README.md).
 9. [Database schema](#9-database-schema)
 10. [Rust core (sgrs-core)](#10-rust-core-sgrs-core)
 11. [Agent Hatchery](#11-agent-hatchery)
-12. [Stage 2 (complete)](#12-stage-2-complete)
+12. [Extended propagation architecture](#12-extended-propagation-architecture)
 
 ---
 
@@ -117,7 +117,7 @@ is drained (all pending messages flushed) before disconnect.
 
 **Source:** `src/stateGraph.ts`
 
-### Five-node cycle (Stage 2)
+### Five-node cycle (extended runtime)
 
 ```mermaid
 stateDiagram-v2
@@ -945,16 +945,16 @@ AGENT_ROLE=facts pnpm run swarm
 
 ---
 
-## 12. Stage 2 (complete)
+## 12. Extended propagation architecture
 
-Stage 2 extends the architecture with a **causal contribution layer** (content-addressed DAG), **evidence state space and sheaf operators** (support/refutation channels, sheaf Laplacian, governance projection, ISS cascade stability), and **governed propagation** (topology-aware diffusion, small-gain condition). Implementation is complete: Rust kernel, TypeScript/DB integration, 5-node state machine (EvidencePropagated, DeltasExtracted), and experiments E1–E12 all passing. See [stage-2-implementation-plan.md](stage-2-implementation-plan.md) for the design and [stage-2-status-and-experiments.md](stage-2-status-and-experiments.md) for status and runnable experiments.
+The extended architecture adds a **causal contribution layer** (content-addressed DAG), **evidence state space and sheaf operators** (support/refutation channels, sheaf Laplacian, governance projection, ISS cascade stability), and **governed propagation** (topology-aware diffusion, small-gain condition). This is implemented in both Rust kernel and TypeScript runtime with the 5-node state machine (`EvidencePropagated`, `DeltasExtracted`).
 
-### Stage-2 architectural lock: causal DAG is audit-only
+### Architectural lock: causal DAG is audit-only
 
 - Contributions emitted via `emitContribution()` are persisted for lineage/audit
   and replayability.
 - Runtime `EvidenceState` updates are **not** driven by DAG rows.
-- Any bridge from DAG to FCA is a read-only provenance/extraction path and does
+- Any bridge from DAG to higher-order analysis is a read-only provenance/extraction path and does
   not mutate live propagation state.
 
 This lock avoids hidden coupling between causal traceability and runtime

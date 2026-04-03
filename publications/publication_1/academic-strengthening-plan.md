@@ -4,7 +4,7 @@
 
 **Paper status (v5):** All structural elements implemented in `swarm-governed-agents.tex`. Formal definitions (Section 3), Scope and Boundaries (Section 8), Proposed Experimental Protocol (Section 9), Limitations (Section 10) are in place. The five experiments are **defined** in the paper but **implementation scripts** remain to be built. See [docs/experiments.md](../../docs/experiments.md) and GitHub issues for experiment implementation tracking.
 
-**Stage 2:** The Stage 2 design (causal DAG, sheaf propagation, ISS cascade) adds formal verification targets (Phase 4) and Stage 2-specific experiments (E1-E7). The open snapshot intentionally omits Stage 2 planning/status documents.
+**Snapshot scope note:** This publication-support snapshot focuses on paper-1 materials and baseline runtime usage notes.
 
 ---
 
@@ -23,19 +23,19 @@ This is a **positioning reinforcement**, not a claim rewrite: central contributi
 
 ---
 
-## 0bis. Publication posture update (2026-03-31): FCA Path A
+## 0bis. Publication posture update (2026-03-31): extended research path
 
 For publication consistency across documents:
 
-- FCA is positioned as a **diagnostic research layer** over Stage 2, not as a
+- The concept-lattice line is positioned as a **diagnostic research layer** over the baseline runtime, not as a
   stronger finality engine.
 - Anti-circular hardening is considered a verified methodological contribution.
 - Current strict outcomes are negative for incremental-value claims (`E25` fail,
-  Stage2-vs-FCA fail), and are reported as such.
+  comparative claims not passing), and are reported as such.
 - Claim posture is frozen as:
   - `Verified`: methodological hardening and reproducibility,
-  - `Exploratory`: structural FCA diagnostics,
-  - `Blocked`: superiority/incremental-value claims over Stage 2.
+  - `Exploratory`: structural concept diagnostics,
+  - `Blocked`: superiority/incremental-value claims over the baseline runtime.
 
 ---
 
