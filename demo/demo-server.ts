@@ -815,7 +815,7 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
     @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 
     /* Main grid */
-    .main{display:grid;grid-template-columns:220px 1fr 260px;flex:1;min-height:0;max-height:100%;overflow:hidden;background:var(--bg)}
+    .main{display:grid;grid-template-columns:240px 1fr 320px;flex:1;min-height:0;max-height:100%;overflow:hidden;background:var(--bg)}
     .panel{display:flex;flex-direction:column;border-right:1px solid var(--border);overflow:hidden}
     .panel:last-child{border-right:none}
     .panel-header{padding:0.6rem 1rem;font-size:0.6875rem;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0}
