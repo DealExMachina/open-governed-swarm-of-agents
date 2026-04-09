@@ -8,15 +8,15 @@ The paper defines five experimental protocols designed to address open questions
 
 | Experiment | GitHub Issue |
 |------------|--------------|
-| 1. Convergence dynamics | [#12](https://github.com/DealExMachina/swarm-of-governed-agents/issues/12) |
-| 2. Scalability | [#13](https://github.com/DealExMachina/swarm-of-governed-agents/issues/13) |
-| 3. Finality robustness | [#14](https://github.com/DealExMachina/swarm-of-governed-agents/issues/14) |
-| 4. Multi-level governance | [#15](https://github.com/DealExMachina/swarm-of-governed-agents/issues/15) |
-| 5. Coverage-autonomy trade-off | [#16](https://github.com/DealExMachina/swarm-of-governed-agents/issues/16) (closed) |
-| 6. Monotonic progress + discretization (Assumptions 3, 1) | [#20](https://github.com/DealExMachina/swarm-of-governed-agents/issues/20) |
-| 7. Tier 2/3 governance (Assumption 4), Tier-3 reachability | [#21](https://github.com/DealExMachina/swarm-of-governed-agents/issues/21) |
-| 8. Cooperative agent model (Assumption 5) | [#22](https://github.com/DealExMachina/swarm-of-governed-agents/issues/22) |
-| 9. Local confluence (Assumption 2) | [#23](https://github.com/DealExMachina/swarm-of-governed-agents/issues/23) |
+| 1. Convergence dynamics | [#12](https://github.com/DealExMachina/open-governed-swarm-of-agents/issues/12) |
+| 2. Scalability | [#13](https://github.com/DealExMachina/open-governed-swarm-of-agents/issues/13) |
+| 3. Finality robustness | [#14](https://github.com/DealExMachina/open-governed-swarm-of-agents/issues/14) |
+| 4. Multi-level governance | [#15](https://github.com/DealExMachina/open-governed-swarm-of-agents/issues/15) |
+| 5. Coverage-autonomy trade-off | [#16](https://github.com/DealExMachina/open-governed-swarm-of-agents/issues/16) (closed) |
+| 6. Monotonic progress + discretization (Assumptions 3, 1) | [#20](https://github.com/DealExMachina/open-governed-swarm-of-agents/issues/20) |
+| 7. Tier 2/3 governance (Assumption 4), Tier-3 reachability | [#21](https://github.com/DealExMachina/open-governed-swarm-of-agents/issues/21) |
+| 8. Cooperative agent model (Assumption 5) | [#22](https://github.com/DealExMachina/open-governed-swarm-of-agents/issues/22) |
+| 9. Local confluence (Assumption 2) | [#23](https://github.com/DealExMachina/open-governed-swarm-of-agents/issues/23) |
 
 **Domain demos (use cases):** M&A (Project Horizon), Financial consolidation, Insurance onboarding and pricing, and European Green Bond Standard (EUGBS) lifecycle are documented in [docs/demos/](demos/README.md). They use the same driver and run via `run-experiment.sh financial`, `insurance`, `demo-baseline`, `green-bond`.
 
