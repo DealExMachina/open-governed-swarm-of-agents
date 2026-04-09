@@ -707,29 +707,30 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
   <meta name="theme-color" content="#0b0d12">
   <style>
     :root {
-      --bg: #0b0d12; --surface: #13151c; --surface2: #1a1d27;
-      --border: #252836; --border2: #303448;
-      --text: #e2e4f0; --muted: #6b7080;
-      --accent: #4f8ef7; --accent-dim: #1a2d55;
-      --green: #22c55e; --green-dim: #14532d;
-      --amber: #f59e0b; --amber-dim: #451a03;
-      --red: #ef4444; --red-dim: #450a0a;
-      --purple: #a78bfa; --purple-dim: #2e1065;
+      --bg: #09090b; --surface: #111113; --surface2: #1a1a1e;
+      --border: #27272a; --border2: #3f3f46;
+      --text: #fafafa; --muted: #71717a;
+      --accent: #22c55e; --accent-dim: #052e16;
+      --green: #22c55e; --green-dim: #052e16;
+      --amber: #eab308; --amber-dim: #1c1a00;
+      --red: #ef4444; --red-dim: #1c0606;
+      --purple: #a78bfa; --purple-dim: #1a0a3e;
       --radius: 8px;
       --font: 'Inter','Segoe UI',system-ui,-apple-system,sans-serif;
       --mono: 'JetBrains Mono','Fira Code','Cascadia Code',monospace;
     }
     *{box-sizing:border-box;margin:0;padding:0}
     html{height:100%}
-    html,body{min-height:100%;overflow:auto}
-    body{font-family:var(--font);background:#0b0d12;background:var(--bg);color:#e2e4f0;color:var(--text);font-size:14px;line-height:1.5;display:flex;flex-direction:column}
+    html,body{height:100%;overflow:hidden}
+    body.intro-active{overflow:auto}
+    body{font-family:var(--font);background:#09090b;background:var(--bg);color:#fafafa;color:var(--text);font-size:14px;line-height:1.5;display:flex;flex-direction:column}
 
     /* Intro */
-    .intro-overlay{position:fixed;top:0;right:0;bottom:0;left:0;background:#0b0d12;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:50;flex-direction:column;gap:1rem;padding:1.5rem 2rem;text-align:center;overflow-y:auto}
+    .intro-overlay{position:fixed;top:0;right:0;bottom:0;left:0;background:#09090b;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:50;flex-direction:column;gap:1rem;padding:1.5rem 2rem;text-align:center;overflow-y:auto}
     .intro-overlay.hidden{display:none}
-    .intro-title{font-size:2.25rem;font-weight:800;letter-spacing:-0.04em;color:#4f8ef7;color:var(--accent)}
+    .intro-title{font-size:2.25rem;font-weight:800;letter-spacing:-0.04em;color:#22c55e;color:var(--accent)}
     @supports (background-clip:text) or (-webkit-background-clip:text){
-      .intro-title{background:linear-gradient(135deg,var(--accent),var(--purple));background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+      .intro-title{background:linear-gradient(135deg,#22c55e,#4ade80);background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent}
     }
     .intro-sub{font-size:1rem;color:var(--muted);max-width:680px;line-height:1.7}
     .intro-scenario-label{font-size:1.125rem;font-weight:700;color:var(--text);margin-top:1.5rem;margin-bottom:0.5rem}
@@ -737,8 +738,8 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
     /* Scenario picker */
     .scenario-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1rem;max-width:1100px;width:100%;margin:0.5rem 0}
     .scenario-card{background:var(--surface);border:2px solid var(--border);border-radius:12px;padding:1.25rem;text-align:left;cursor:pointer;transition:all .25s;position:relative;overflow:hidden}
-    .scenario-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,0.3)}
-    .scenario-card.selected{border-color:var(--accent);background:var(--accent-dim);box-shadow:0 0 24px rgba(79,142,247,0.15)}
+    .scenario-card:hover{border-color:var(--green);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,0.3)}
+    .scenario-card.selected{border-color:var(--green);background:var(--green-dim);box-shadow:0 0 24px rgba(34,197,94,0.15)}
     .scenario-card.selected.color-green{border-color:var(--green);background:var(--green-dim);box-shadow:0 0 24px rgba(34,197,94,0.15)}
     .scenario-card.selected.color-purple{border-color:var(--purple);background:var(--purple-dim);box-shadow:0 0 24px rgba(167,139,250,0.15)}
     .scenario-card-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1rem;font-weight:800;color:#fff;margin-bottom:0.75rem}
@@ -791,7 +792,7 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
     .step-report-change.up{background:var(--green-dim);color:var(--green)}
     .step-report-change.down{background:var(--red-dim);color:var(--red)}
     .step-report-change.new{background:var(--accent-dim);color:var(--accent)}
-    .step-report-narrative{font-size:0.8125rem;color:var(--text);line-height:1.6;margin-bottom:0.35rem;padding:0.4rem 0.5rem;background:var(--surface2);border-radius:4px;border-left:2px solid var(--accent)}
+    .step-report-narrative{font-size:0.8125rem;color:var(--text);line-height:1.6;margin-bottom:0.35rem;padding:0.4rem 0.5rem;background:var(--surface2);border-radius:4px;border-left:2px solid var(--green)}
 
     /* Topbar */
     .topbar{display:flex;align-items:center;justify-content:space-between;padding:0 1.25rem;height:48px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0}
@@ -814,7 +815,7 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
     @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 
     /* Main grid */
-    .main{display:grid;grid-template-columns:240px 1fr 280px;flex:1;min-height:0;overflow:hidden;background:var(--bg)}
+    .main{display:grid;grid-template-columns:220px 1fr 260px;flex:1;min-height:0;max-height:100%;overflow:hidden;background:var(--bg)}
     .panel{display:flex;flex-direction:column;border-right:1px solid var(--border);overflow:hidden}
     .panel:last-child{border-right:none}
     .panel-header{padding:0.6rem 1rem;font-size:0.6875rem;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0}
@@ -842,12 +843,12 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
     /* Left panel step count (bottom) */
     .tl-progress{margin-top:auto;padding-top:0.75rem;border-top:1px solid var(--border);font-size:0.6875rem;color:var(--muted);text-align:center}
 
-    /* Center: Stage */
-    .center-panel{display:flex;flex-direction:column;overflow:hidden}
+    /* Center: Findings */
+    .center-panel{display:flex;flex-direction:column;overflow:hidden;min-height:0}
     .stage-header{display:flex;align-items:center;justify-content:space-between;padding:0.6rem 1rem;font-size:0.6875rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0}
-    .stage-label{font-size:0.75rem;color:var(--accent);font-weight:600;text-transform:none;letter-spacing:0}
+    .stage-label{font-size:0.75rem;color:var(--green);font-weight:600;text-transform:none;letter-spacing:0}
     /* live summary removed: right panel is the single source of truth for scores/counts */
-    .stage{flex:1;overflow-y:auto;padding:1.25rem;display:flex;flex-direction:column;gap:0.75rem}
+    .stage{flex:1;overflow-y:auto;padding:1.25rem;display:flex;flex-direction:column;gap:0.75rem;min-height:0}
     .stage-initial{font-size:0.875rem;color:var(--text);line-height:1.7}
     .stage-initial.hidden{display:none}
     .stage-initial code{background:var(--surface);padding:0.15rem 0.4rem;border-radius:4px;font-family:var(--mono);font-size:0.8rem}
@@ -876,8 +877,8 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
     .agent-card-msg{font-size:0.8rem;color:var(--muted);margin-top:2px;line-height:1.5}
 
     /* Step summary */
-    .step-summary{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:0.75rem 0.9rem;border-left:3px solid var(--accent);animation:fadeIn .3s ease}
-    .step-summary-title{font-size:0.6875rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--accent);margin-bottom:0.3rem}
+    .step-summary{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:0.75rem 0.9rem;border-left:3px solid var(--green);animation:fadeIn .3s ease}
+    .step-summary-title{font-size:0.6875rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--green);margin-bottom:0.3rem}
     .step-summary-body{font-size:0.8125rem;color:var(--text);line-height:1.6}
     .step-separator{margin:1.25rem 0 0.75rem;padding:0.35rem 0;font-size:0.6875rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);border-top:1px solid var(--border)}
 
@@ -931,7 +932,7 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
     .situation-stat{text-align:center;padding:0.5rem;background:var(--surface2);border-radius:6px;border:1px solid var(--border)}
     .situation-stat-num{font-size:1.25rem;font-weight:800;color:var(--text);display:block;line-height:1.2}
     .situation-stat-label{font-size:0.625rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-top:2px}
-    .situation-stat.claims .situation-stat-num{color:var(--accent)}
+    .situation-stat.claims .situation-stat-num{color:var(--green)}
     .situation-stat.goals .situation-stat-num{color:var(--purple)}
     .situation-stat.contra .situation-stat-num{color:var(--amber)}
     .situation-stat.risks .situation-stat-num{color:var(--red)}
@@ -941,8 +942,8 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
     .situation-goals-list{list-style:none;padding:0;margin:0;font-size:0.8125rem;color:var(--text);line-height:1.5}
     .situation-goals-list li{padding:0.25rem 0;padding-left:1rem;position:relative}
     .situation-goals-list li::before{content:'';position:absolute;left:0;top:0.55em;width:4px;height:4px;border-radius:50%;background:var(--purple)}
-    .statement-of-position{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.1rem 1.25rem;margin-bottom:1.25rem;border-left:4px solid var(--accent);animation:fadeIn .35s ease}
-    .statement-of-position .statement-title{font-size:0.6875rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);margin-bottom:0.6rem}
+    .statement-of-position{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.1rem 1.25rem;margin-bottom:1.25rem;border-left:4px solid var(--green);animation:fadeIn .35s ease}
+    .statement-of-position .statement-title{font-size:0.6875rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--green);margin-bottom:0.6rem}
     .statement-of-position .statement-body{font-size:0.9375rem;color:var(--text);line-height:1.7}
     .statement-of-position .statement-body p{margin:0 0 0.6rem 0}
     .statement-of-position .statement-body p:last-child{margin-bottom:0}
@@ -956,13 +957,28 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
     .report-title{font-size:1.5rem;font-weight:700;color:var(--text)}
     .report-sub{font-size:0.875rem;color:var(--muted);margin-top:0.25rem}
     .report-section{margin-bottom:1.25rem}
-    .report-section-title{font-size:0.6875rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--accent);margin-bottom:0.4rem}
+    .report-section-title{font-size:0.6875rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--green);margin-bottom:0.4rem}
     .report-row{display:flex;justify-content:space-between;padding:0.35rem 0;border-bottom:1px solid var(--border);font-size:0.8125rem}
     .report-row-label{color:var(--muted)} .report-row-value{color:var(--text);font-weight:600}
     .report-step{display:flex;gap:0.5rem;padding:0.4rem 0;border-bottom:1px solid var(--border);font-size:0.8125rem}
-    .report-step-num{color:var(--accent);font-weight:700;flex-shrink:0;width:20px}
+    .report-step-num{color:var(--green);font-weight:700;flex-shrink:0;width:20px}
     .report-step-text{color:var(--text)}
     .report-step-tag{font-size:0.625rem;font-weight:600;padding:1px 4px;border-radius:3px;flex-shrink:0}
+
+    /* Findings status bar (bottom of center panel) */
+    .findings-status-bar{padding:0.6rem 1rem;border-top:1px solid var(--border);background:var(--surface);display:flex;align-items:center;gap:1rem;flex-shrink:0}
+    .fsb-progress{display:flex;align-items:center;gap:0.5rem;min-width:140px}
+    .fsb-score{font-size:1.25rem;font-weight:800;color:var(--text);line-height:1;min-width:3rem}
+    .fsb-track{flex:1;height:6px;background:var(--surface2);border-radius:3px;position:relative;overflow:visible;min-width:60px}
+    .fsb-sub{font-size:0.625rem;color:var(--muted);display:none}
+    .fsb-dims{display:flex;gap:0.75rem;flex:1}
+    .fsb-dim{display:flex;align-items:center;gap:0.35rem;flex:1;min-width:0}
+    .fsb-dim-label{font-size:0.625rem;color:var(--muted);flex-shrink:0;width:42px}
+    .fsb-dim .dim-bar{flex:1;height:4px}
+    .fsb-dim-val{font-size:0.6875rem;font-weight:600;color:var(--text);width:28px;text-align:right;flex-shrink:0}
+    .fsb-counts{display:flex;gap:0.5rem;flex-shrink:0}
+    .fsb-count{font-size:0.6875rem;color:var(--muted);white-space:nowrap}
+    .fsb-count strong{color:var(--text);font-weight:700}
 
     /* Right panel */
     .right-panel{background:var(--surface);display:flex;flex-direction:column}
@@ -1031,9 +1047,9 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
     .situation-group[open] summary::after{transform:rotate(180deg)}
     .situation-group-count{font-size:0.6875rem;color:var(--muted);font-weight:500}
     .situation-cards{display:flex;flex-direction:column;gap:0.35rem;padding:0.5rem 0.65rem 0.65rem;border-top:1px solid var(--border)}
-    .situation-card{font-size:0.75rem;padding:0.4rem 0.55rem;border-radius:6px;border-left:3px solid;background:var(--surface);color:var(--text);line-height:1.4;cursor:default;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transition:background .15s}
+    .situation-card{font-size:0.8125rem;padding:0.6rem 0.75rem;border-radius:6px;border-left:3px solid;background:var(--surface);color:var(--text);line-height:1.55;cursor:default;max-width:100%;transition:background .15s}
     .situation-card:hover{background:var(--border2)}
-    .situation-card.type-claim{border-left-color:var(--accent)}
+    .situation-card.type-claim{border-left-color:var(--green)}
     .situation-card.type-goal{border-left-color:var(--purple)}
     .situation-card.type-risk{border-left-color:var(--red)}
     .situation-card.type-contradiction{border-left-color:var(--amber)}
@@ -1063,7 +1079,7 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
     .hitl-modal .hitl-narrative{font-size:0.9375rem;line-height:1.75}
     .hitl-modal .hitl-options{gap:0.75rem}
     .hitl-modal .hitl-option{padding:1rem 1.2rem;border:2px solid var(--border);transition:border-color .2s,box-shadow .2s,background .2s}
-    .hitl-modal .hitl-option:hover{border-color:var(--accent);background:var(--surface2)}
+    .hitl-modal .hitl-option:hover{border-color:var(--green);background:var(--surface2)}
     .hitl-modal .hitl-option.primary{border-color:var(--green);background:linear-gradient(135deg,var(--green-dim),rgba(20,83,45,0.5));box-shadow:0 0 20px rgba(34,197,94,0.1)}
     .hitl-modal .hitl-option.primary:hover{box-shadow:0 0 30px rgba(34,197,94,0.25);border-color:#4ade80}
     .hitl-modal .hitl-option.primary .hitl-option-name{font-size:1rem;color:var(--green)}
@@ -1074,7 +1090,7 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
     @keyframes pulseGlowAmber{0%,100%{box-shadow:0 0 24px rgba(245,158,11,0.5)}50%{box-shadow:0 0 40px rgba(245,158,11,0.8)}}
   </style>
 </head>
-<body>
+<body class="intro-active">
 
 <!-- Intro -->
 <div class="intro-overlay" id="introOverlay">
@@ -1093,7 +1109,7 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
     </div>
     <div class="intro-actions">
       <button class="begin-btn" id="runAllBtn" onclick="runAllDemo()" disabled style="background:var(--green)">Run all</button>
-      <button class="begin-btn" id="beginBtn" onclick="beginDemo()" disabled style="background:var(--accent)">Step by step</button>
+      <button class="begin-btn" id="beginBtn" onclick="beginDemo()" disabled style="background:transparent;border:2px solid var(--green);color:var(--green)">Step by step</button>
       <button class="reset-btn" id="resetBtn" onclick="resetDemo()">Reset</button>
     </div>
     <div class="intro-resolved-hint hidden" id="introResolvedHint">This case is already resolved. Click <strong>Reset</strong> to run again.</div>
@@ -1104,6 +1120,7 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
     <strong>Before starting:</strong> start the backend (<code>pnpm run swarm:start</code> then <code>pnpm run feed</code> in separate terminals).
     <a href="http://localhost:3002" target="_blank" rel="noopener">Open observability</a>
   </div>
+  <div style="margin-top:auto;padding-top:2rem;font-size:0.6875rem;color:var(--muted);letter-spacing:0.02em">&copy; Deal ex Machina SAS</div>
 </div>
 
 <!-- Topbar -->
@@ -1135,91 +1152,65 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
     </div>
   </div>
 
-  <!-- Center: Stage -->
+  <!-- Center: Findings -->
   <div class="panel center-panel">
     <div class="stage-header">
-      <span>Stage</span>
+      <span>Findings</span>
       <span class="stage-label" id="stageLabel"></span>
     </div>
     <div class="stage" id="stage">
       <div class="stage-initial"><p>Select a scenario and click Begin to start.</p></div>
     </div>
-  </div>
 
-  <!-- Right: Progress & state -->
-  <div class="panel right-panel">
-    <div class="panel-header">Progress &amp; state</div>
-    <div class="right-body">
-
-      <div class="r-section" id="progressSection">
-        <div class="r-label">Progress to Resolution</div>
-        <div class="r-score" id="rScore">0%</div>
-        <div class="r-score-sub" id="rScoreSub">Select a scenario to begin</div>
-        <div class="r-track">
+    <!-- Progress + dimensions: sticky bottom strip in center panel -->
+    <div class="findings-status-bar" id="findingsStatusBar">
+      <div class="fsb-progress">
+        <div class="fsb-score" id="rScore">0%</div>
+        <div class="fsb-track">
           <div class="r-track-fill" id="rTrackFill"></div>
           <div class="r-track-mark" style="left:75%;background:var(--amber)"></div>
           <div class="r-track-mark" style="left:92%;background:var(--green)"></div>
         </div>
-        <div class="r-legend">
-          <span><span class="r-legend-dot" style="background:var(--amber)"></span>75% needs human review</span>
-          <span><span class="r-legend-dot" style="background:var(--green)"></span>92% auto-resolved</span>
-        </div>
+        <div class="fsb-sub" id="rScoreSub">Select a scenario to begin</div>
       </div>
-
-      <div class="r-section" id="dimsSection">
-        <div class="r-label">How sure are we?</div>
-        <div class="dim-row">
-          <div class="dim-head"><span class="dim-name">Fact reliability</span><span class="dim-val" id="dClaim">--</span></div>
-          <div class="dim-bar"><div class="dim-fill accent" id="dClaimBar"></div></div>
-          <div class="dim-hint-inline">Do sources agree on the facts?</div>
-        </div>
-        <div class="dim-row">
-          <div class="dim-head"><span class="dim-name">Conflicts resolved</span><span class="dim-val" id="dContra">--</span></div>
-          <div class="dim-bar"><div class="dim-fill amber" id="dContraBar"></div></div>
-          <div class="dim-hint-inline">How many contradictions have been addressed?</div>
-        </div>
-        <div class="dim-row">
-          <div class="dim-head"><span class="dim-name">Objectives done</span><span class="dim-val" id="dGoal">--</span></div>
-          <div class="dim-bar"><div class="dim-fill purple" id="dGoalBar"></div></div>
-          <div class="dim-hint-inline">Are goals from documents resolved? Needs 90% for auto-close.</div>
-        </div>
-        <div class="dim-row">
-          <div class="dim-head"><span class="dim-name">Risk level</span><span class="dim-val" id="dRisk">--</span></div>
-          <div class="dim-bar"><div class="dim-fill red" id="dRiskBar"></div></div>
-          <div class="dim-hint-inline">Are critical risks under control?</div>
-        </div>
+      <div class="fsb-dims">
+        <div class="fsb-dim"><span class="fsb-dim-label">Facts</span><div class="dim-bar"><div class="dim-fill accent" id="dClaimBar"></div></div><span class="fsb-dim-val" id="dClaim">--</span></div>
+        <div class="fsb-dim"><span class="fsb-dim-label">Conflicts</span><div class="dim-bar"><div class="dim-fill amber" id="dContraBar"></div></div><span class="fsb-dim-val" id="dContra">--</span></div>
+        <div class="fsb-dim"><span class="fsb-dim-label">Goals</span><div class="dim-bar"><div class="dim-fill purple" id="dGoalBar"></div></div><span class="fsb-dim-val" id="dGoal">--</span></div>
+        <div class="fsb-dim"><span class="fsb-dim-label">Risk</span><div class="dim-bar"><div class="dim-fill red" id="dRiskBar"></div></div><span class="fsb-dim-val" id="dRisk">--</span></div>
       </div>
-
-      <div class="r-section" id="countsSection">
-        <div class="r-label">What agents found</div>
-        <div class="counts-grid">
-          <div class="count-card"><div class="count-num" id="cClaims">0</div><div class="count-label">Facts</div></div>
-          <div class="count-card"><div class="count-num" id="cGoals">0</div><div class="count-label">Goals</div></div>
-          <div class="count-card"><div class="count-num" id="cContra">0</div><div class="count-label">Conflicts</div></div>
-          <div class="count-card"><div class="count-num" id="cRisks">0</div><div class="count-label">Risks</div></div>
-        </div>
+      <div class="fsb-counts">
+        <span class="fsb-count"><strong id="cClaims">0</strong> facts</span>
+        <span class="fsb-count"><strong id="cGoals">0</strong> goals</span>
+        <span class="fsb-count"><strong id="cContra">0</strong> conflicts</span>
+        <span class="fsb-count"><strong id="cRisks">0</strong> risks</span>
       </div>
+    </div>
+  </div>
 
-      <!-- cycle section removed: internal state machine detail not shown to users -->
+  <!-- Right: System -->
+  <div class="panel right-panel">
+    <div class="panel-header">System</div>
+    <div class="right-body">
 
       <div class="r-section" id="situationSection">
-        <div class="r-label">What we know</div>
+        <div class="r-label">Knowledge</div>
         <div id="situationPanel">
-          <details class="situation-group" id="situation-goals" open>
-            <summary>Goals <span class="situation-group-count" id="situation-goals-count">0</span></summary>
-            <div class="situation-cards" id="situation-goals-cards"></div>
+          <details class="situation-group" id="situation-contradictions" open>
+            <summary>Contradictions <span class="situation-group-count" id="situation-contradictions-count">0</span></summary>
+            <div class="situation-cards" id="situation-contradictions-cards"></div>
           </details>
-          <details class="situation-group" id="situation-claims" open>
-            <summary>Facts <span class="situation-group-count" id="situation-claims-count">0</span></summary>
-            <div class="situation-cards" id="situation-claims-cards"></div>
-          </details>
-          <details class="situation-group" id="situation-risks">
+          <details class="situation-group" id="situation-risks" open>
             <summary>Risks <span class="situation-group-count" id="situation-risks-count">0</span></summary>
             <div class="situation-cards" id="situation-risks-cards"></div>
           </details>
-          <details class="situation-group" id="situation-contradictions">
-            <summary>Contradictions <span class="situation-group-count" id="situation-contradictions-count">0</span></summary>
-            <div class="situation-cards" id="situation-contradictions-cards"></div>
+          <details class="situation-group" id="situation-goals">
+            <summary>Goals <span class="situation-group-count" id="situation-goals-count">0</span></summary>
+            <div class="situation-cards" id="situation-goals-cards"></div>
+          </details>
+          <details class="situation-group" id="situation-claims">
+            <summary>Facts <span class="situation-group-count" id="situation-claims-count">0</span></summary>
+            <div class="situation-cards" id="situation-claims-cards"></div>
           </details>
         </div>
       </div>
@@ -1588,6 +1579,7 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
     hideHitlModal();
 
     document.getElementById('introOverlay').classList.remove('hidden');
+    document.body.classList.add('intro-active');
     document.getElementById('topbarBrand').textContent = 'Governed Swarm';
     document.getElementById('topbarSub').innerHTML = '&nbsp;&middot;&nbsp;Select a scenario';
     setStatus('idle', 'Ready');
@@ -1631,6 +1623,7 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
       }
     } catch(_) {}
     document.getElementById('introOverlay').classList.add('hidden');
+    document.body.classList.remove('intro-active');
     document.getElementById('topbarBrand').textContent = SCENARIO.name;
     document.getElementById('topbarSub').innerHTML = '&nbsp;&middot;&nbsp;Governed Swarm Demo';
     demoActive = true;
@@ -1659,6 +1652,7 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
     if (_svcCheckTimer) { clearInterval(_svcCheckTimer); _svcCheckTimer = null; }
 
     document.getElementById('introOverlay').classList.add('hidden');
+    document.body.classList.remove('intro-active');
     document.getElementById('topbarBrand').textContent = SCENARIO.name;
     document.getElementById('topbarSub').innerHTML = '&nbsp;&middot;&nbsp;Governed Swarm Demo';
     demoActive = true;
