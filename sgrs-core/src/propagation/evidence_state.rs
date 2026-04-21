@@ -198,6 +198,35 @@ impl EvidenceVector {
             refutation: self.support.clone(),
         }
     }
+
+    /// Pure support contribution: the positive part of this evidence in the knowledge order.
+    /// Defined as join_k(self, zeros). Since values are in [0,1] this equals self.clone().
+    /// Named separately to expose the positive-projection structure.
+    pub fn positive_part_k(&self) -> EvidenceVector {
+        let zeros = EvidenceVector::zeros(self.num_dims());
+        self.join_k(&zeros)
+    }
+
+    /// Pure refutation contribution: the negative part viewed through the knowledge order.
+    /// Defined as join_k(neg(self), zeros) = neg(self).
+    /// Returns a vector whose support channel is the original refutation channel.
+    pub fn negative_part_k(&self) -> EvidenceVector {
+        let zeros = EvidenceVector::zeros(self.num_dims());
+        self.neg().join_k(&zeros)
+    }
+
+    /// True when two evidence vectors are non-overlapping: for every dimension,
+    /// at most one vector carries meaningful evidence (modulus = max(support, refutation)).
+    /// Checks: min(modulus_self[d], modulus_other[d]) < epsilon for all d.
+    pub fn is_non_overlapping_k(&self, other: &EvidenceVector, epsilon: f64) -> bool {
+        assert_eq!(self.num_dims(), other.num_dims());
+        for d in 0..self.num_dims() {
+            let m_self  = self.support[d].max(self.refutation[d]);
+            let m_other = other.support[d].max(other.refutation[d]);
+            if m_self.min(m_other) > epsilon { return false; }
+        }
+        true
+    }
 }
 
 /// Evidence state for the entire system: n roles, each with a 2D-dimensional vector.

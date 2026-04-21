@@ -98,6 +98,31 @@ pub fn dimension_final(score: f64, threshold: f64, epsilon: f64) -> bool {
     dimension_gap(score, threshold) <= epsilon
 }
 
+/// Per-dimension finality gap vector.
+/// gap[d] = max(0, threshold[d] - score[d])
+///
+/// The zero vector iff all dimensions have reached their thresholds.
+/// Equivalent to applying `dimension_gap` to each element.
+pub fn finality_gap_vector(scores: &[f64; 4], thresholds: &[f64; 4]) -> [f64; 4] {
+    let mut gap = [0.0f64; 4];
+    for i in 0..4 { gap[i] = dimension_gap(scores[i], thresholds[i]); }
+    gap
+}
+
+/// The infimum of the finality region: the per-dimension threshold vector restricted
+/// to required dimensions.
+///
+/// The finality region is the principal filter {A : A ≥ τ} in the convergence
+/// lattice. The threshold vector τ is its greatest lower bound.
+/// Non-required dimensions contribute 0 (no constraint from this filter level).
+pub fn finality_filter_lower_bound(config: &VectorFinalityConfig) -> [f64; 4] {
+    let mut lb = [0.0f64; 4];
+    for i in 0..4 {
+        if config.required[i] { lb[i] = config.thresholds[i]; }
+    }
+    lb
+}
+
 /// Evaluate vector finality predicate.
 ///
 /// F*(t) = AND_d[e_d <= eps_d AND GA_d AND GC_d] AND GB AND GD AND GE

@@ -7,5 +7,6 @@ pub use kernel::{
     evaluate_kernel, EliminationCertificate, KernelInput, KernelOutput, ReductionVerdict,
 };
 pub use policy::{
-    can_transition, evaluate_rules, DriftLevel, PolicyRule, TransitionDecision, TransitionRule,
+    can_transition, evaluate_rules, required_governance_level,
+    DriftLevel, PolicyRule, TransitionDecision, TransitionRule,
 };
