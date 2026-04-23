@@ -370,7 +370,7 @@ This design follows the CRDT principle that merge operations must be commutative
 
 ## 6. Benchmark scenarios
 
-The benchmark harness (`scripts/benchmark-convergence.ts`) runs eleven pure-math scenarios with no external dependencies (no Docker, no Postgres, no NATS, no LLM). Each scenario generates a sequence of `FinalitySnapshot` values, converts them to `ConvergencePoint` records, and runs `analyzeConvergence()` to verify the outcome. Scenarios 1–7 cover core convergence mechanics; scenarios A–D (8–11) verify the Riesz-space lattice properties added in the v2 retrofit.
+The benchmark harness (`scripts/benchmark-convergence.ts`) runs eleven pure-math scenarios with no external dependencies (no Docker, no Postgres, no NATS, no LLM). Each scenario generates a sequence of `FinalitySnapshot` values, converts them to `ConvergencePoint` records, and runs `analyzeConvergence()` to verify the outcome. Scenarios 1–7 cover core convergence mechanics; scenarios A–D (8–11) verify additional order and monotonicity properties of M = L × A added in the v2 retrofit.
 
 Run with:
 
@@ -396,7 +396,7 @@ With `--runs=N` (N ≥ 2), each of the eleven scenarios is executed N times. The
 | C | Contradiction resolution | Pre: 3/4 contradictions unresolved; post: 0 unresolved | V decreases; contradiction_resolution pressure drops | Resolving contradictions ascends the convergence order and descends V |
 | D | Anti-compensation | Veto dim (contradiction_resolution) stuck at 0.50; non-veto dims at 1.0 | V non-zero; improving non-veto dims does not reduce V to zero | Vector finality blocks what scalar finality permits; no dimension can compensate for veto deficit |
 
-Each scenario validates a specific failure mode or edge case. Scenarios 1–7 cover the five core mechanisms: V(t) computation, convergence rate, monotonicity gate, plateau detection, and pressure identification. Scenarios A–D verify that M = L × A is a distributive lattice with Riesz-space stalks and that agent routing toward high-pressure dimensions equals steepest V-descent.
+Each scenario validates a specific failure mode or edge case. Scenarios 1–7 cover the five core mechanisms: V(t) computation, convergence rate, monotonicity gate, plateau detection, and pressure identification. Scenarios A–D verify that M = L × A is a distributive lattice carrying a norm-monotone V on its rank factor, and that agent routing toward high-pressure dimensions equals steepest V-descent.
 
 ---
 
