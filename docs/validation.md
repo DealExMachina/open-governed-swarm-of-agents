@@ -17,7 +17,7 @@ and where assumptions begin.
 flowchart TB
   subgraph tested["Tested / validated"]
     U[Unit tests: 460 TS Vitest + 252 Rust]
-    BENCH[Convergence benchmark 7 scenarios]
+    BENCH[Convergence benchmark 11 scenarios]
     SGRS[sgrs load benchmark unified governance]
     PROP[Propagation experiments E1-E12]
     LEAN[Lean 4 proofs: 138 items, 9 files]
@@ -57,7 +57,7 @@ flowchart TB
 | ISS cascade stability | E7: adversarial kappa ~ 0.19, parametric sweep confirms boundary kappa* = 0.5775 | LLM perturbation bound assumed, not enforced |
 | Gossip protocols (average, Tarski, push-sum) | E10-E12: 1024-node stress test; impossibility theorem confirmed (24/24 configs) | Bilateral exchange assumption (push-sum equivalence) |
 | Π_A projection closure (bilattice box) | 6 proptests (monotone ≤_k, fixed-point on A, non-extensive) + `Projected<T>` newtype | Box clamp sufficient for all admissible sets |
-| Product poset **M = L × A** (kernel admissibility) | Rust governance + types tests; `PartialOrd` on convergence rank A | **Not** a lattice on pairs: partial order only, no join/meet on M |
+| Product lattice **M = L × A** (kernel admissibility + meet/join) | Rust governance + types tests; `meet/join` on `GovernanceLevel`, `ConvergenceRank`, `LatticePoint`; Riesz-space properties via `gap_norm_squared`, `lyapunov_order_property`, `pressure_equals_gap_weights` | Distributive lattice; Riesz stalks give norm-monotone V |
 | Causal DAG (Rust) | 251 property-based + unit tests; SHA-256/CBOR content hashing | That DAG frontier determines concept lattice (Conj. 10.2) |
 | Causal contributions (TS) | `emitContribution` from facts, drift, propagation, governance, resolver, status; `finalityEvaluator` on RESOLVED | Runtime Contribution → EvidenceState mapping intentionally not implemented **by architecture lock** (audit-only DAG) |
 | WAL vs causal DAG | Governance and other paths call `appendEvent` for semantic WAL; `createContribution` does not auto-append WAL | Feed/state consumers must not assume a contribution row implies a matching WAL event |
@@ -107,7 +107,7 @@ flowchart TB
 
 ---
 
-## 3. Convergence benchmark (7 scenarios)
+## 3. Convergence benchmark (11 scenarios)
 
 **Pure math. No Docker, no Postgres, no NATS, no LLM.**
 
@@ -115,7 +115,9 @@ Run: `pnpm tsx scripts/benchmark-convergence.ts`
 
 The benchmark generates synthetic `FinalitySnapshot` sequences, pipes them through
 `computeLyapunovV`, `computePressure`, `computeDimensionScores`, and
-`analyzeConvergence`, then checks outcomes against expectations.
+`analyzeConvergence`, then checks outcomes against expectations. Four additional
+lattice-algebra scenarios (A–D) verify the Riesz-space structure added in the
+v2 retrofit.
 
 | Scenario | Rounds | What it tests | Expected outcome |
 |----------|--------|--------------|------------------|
@@ -126,8 +128,12 @@ The benchmark generates synthetic `FinalitySnapshot` sequences, pipes them throu
 | One-dimension bottleneck | 5 | 3 dims at target, contradiction_resolution stuck at 25% | Plateau, highest pressure = contradiction_resolution |
 | Fast convergence | 3 | Reaches 0.92+ in 3 rounds | Converging, monotonic, no false plateau |
 | Empty graph | 1 | No claims, no goals, zero snapshot | Safe defaults, no crash, no convergence |
+| **A: Governance escalation** | 3 | V1 > V2 > V3 across Yolo→Mitl→Master stages | V non-increasing; governance order and convergence order aligned |
+| **B: Conservative merger** | — | meet(A,B) vs join(A,B) for incomparable agents | V(meet) ≥ V(join); meet is the safe kernel decision |
+| **C: Contradiction resolution** | 2 | Pre→post resolution: 3/4 contradictions resolved | V decreases; contradiction_resolution pressure drops |
+| **D: Anti-compensation** | — | Veto dim (contradiction_resolution) stuck at 0.50 | V non-zero; improving non-veto dims does not reduce V |
 
-All 7 scenarios must pass for the benchmark to exit 0. The benchmark validates
+All 11 scenarios must pass for the benchmark to exit 0. The benchmark validates
 the mathematical properties of the convergence tracker (Lyapunov stability
 theory applied to finality scoring) but does **not** validate that real LLM
 output produces trajectories that match these synthetic patterns.
