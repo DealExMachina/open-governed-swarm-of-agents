@@ -53,14 +53,36 @@ impl EvidenceVector {
         }
     }
 
-    /// Dimensions where both support and refutation exceed threshold (contradiction).
+    /// Dimensions where both support and refutation exceed threshold
+    /// ("contradiction" in Belnap's FOUR sense — a single role simultaneously
+    /// asserts and refutes the same claim).
+    ///
+    /// Do **not** confuse this with the inter-role disagreement detected by
+    /// `crate::propagation::contradiction::extract_contradictions`, which
+    /// flags pairs of roles whose (s, r) differ on a shared dimension. The
+    /// two notions are orthogonal:
+    ///   - intra-role (this function): `s_i(d) > θ ∧ r_i(d) > θ`
+    ///   - inter-role: `|s_i(d) - s_j(d)| > θ  ∨  |r_i(d) - r_j(d)| > θ`
+    ///
+    /// See also `belnap_contradiction_dimensions`, which is an alias kept for
+    /// callers who want the naming to make the intra-role semantics explicit.
     pub fn contradiction_dimensions(&self, threshold: f64) -> Vec<usize> {
         (0..self.num_dims())
             .filter(|&d| self.support[d] > threshold && self.refutation[d] > threshold)
             .collect()
     }
 
-    /// Dimensions where both support and refutation are below threshold (ignorance).
+    /// Alias of `contradiction_dimensions`, emphasising that this is the
+    /// Belnap-style intra-role contradiction (per-role, per-dimension:
+    /// `s > θ ∧ r > θ`), not an inter-role disagreement. Kept so code sites
+    /// that explicitly need the disambiguated name can opt into it.
+    #[inline]
+    pub fn belnap_contradiction_dimensions(&self, threshold: f64) -> Vec<usize> {
+        self.contradiction_dimensions(threshold)
+    }
+
+    /// Dimensions where both support and refutation are below threshold
+    /// ("ignorance" in Belnap's FOUR sense — `⊥ = (0, 0)`).
     pub fn ignorance_dimensions(&self, threshold: f64) -> Vec<usize> {
         (0..self.num_dims())
             .filter(|&d| self.support[d] < threshold && self.refutation[d] < threshold)
@@ -196,6 +218,28 @@ impl EvidenceVector {
         EvidenceVector {
             support: self.refutation.clone(),
             refutation: self.support.clone(),
+        }
+    }
+
+    /// Conflation: conf(s,r) = (1-r, 1-s). Second involution of the bilattice.
+    ///
+    /// Together with `neg` this realises the Klein-4 group of involutions on the
+    /// Arieli-Avron bilattice. On the four Belnap corners (using the (s,r)
+    /// encoding where ⊥=(0,0), t=(1,0), f=(0,1), ⊤=(1,1)):
+    ///   conf: ⊥ ↔ ⊤, t fixed, f fixed     (swaps epistemic extremes)
+    ///   neg:  t ↔ f, ⊥ fixed, ⊤ fixed     (swaps truth values)
+    ///   neg ∘ conf = conf ∘ neg           (the two involutions commute)
+    ///
+    /// Order-theoretic role:
+    ///   `a ≤_k b  ⇒  conf(b) ≤_k conf(a)`   (reverses knowledge order)
+    ///   `a ≤_t b  ⇒  conf(a) ≤_t conf(b)`   (preserves truth order)
+    ///
+    /// This is the canonical complement / De Morgan dual for the knowledge
+    /// lattice, just as `neg` is for the truth lattice.
+    pub fn conf(&self) -> EvidenceVector {
+        EvidenceVector {
+            support: self.refutation.iter().map(|r| 1.0 - r).collect(),
+            refutation: self.support.iter().map(|s| 1.0 - s).collect(),
         }
     }
 
