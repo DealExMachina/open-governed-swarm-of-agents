@@ -307,4 +307,73 @@ proptest! {
             prop_assert!(a.meet_t(&c).leq_k(&b.meet_t(&c)));
         }
     }
+
+    // ═════════════════════════════════════════════════════════════════
+    // Conflation: second involution of the Arieli-Avron bilattice
+    // conf(s,r) = (1-r, 1-s)
+    // ═════════════════════════════════════════════════════════════════
+
+    // conf is an involution: conf(conf(a)) = a.
+    #[test]
+    fn conf_involution(a in arb_evidence()) {
+        prop_assert!(ev_approx_eq(&a.conf().conf(), &a));
+    }
+
+    // neg and conf commute: neg ∘ conf = conf ∘ neg (Klein-4 group).
+    #[test]
+    fn neg_conf_commute(a in arb_evidence()) {
+        prop_assert!(ev_approx_eq(&a.neg().conf(), &a.conf().neg()));
+    }
+
+    // conf reverses the knowledge ordering: a ≤_k b ⇒ conf(b) ≤_k conf(a).
+    #[test]
+    fn conf_reverses_leq_k(a in arb_evidence(), b in arb_evidence()) {
+        if a.leq_k(&b) {
+            prop_assert!(b.conf().leq_k(&a.conf()));
+        }
+    }
+
+    // conf preserves the truth ordering: a ≤_t b ⇒ conf(a) ≤_t conf(b).
+    #[test]
+    fn conf_preserves_leq_t(a in arb_evidence(), b in arb_evidence()) {
+        if a.leq_t(&b) {
+            prop_assert!(a.conf().leq_t(&b.conf()));
+        }
+    }
+
+    // De Morgan for the knowledge lattice:
+    //   conf(join_k(a, b)) = meet_k(conf(a), conf(b))
+    #[test]
+    fn conf_de_morgan_join_k(a in arb_evidence(), b in arb_evidence()) {
+        let lhs = a.join_k(&b).conf();
+        let rhs = a.conf().meet_k(&b.conf());
+        prop_assert!(ev_approx_eq(&lhs, &rhs));
+    }
+
+    // De Morgan for the knowledge lattice:
+    //   conf(meet_k(a, b)) = join_k(conf(a), conf(b))
+    #[test]
+    fn conf_de_morgan_meet_k(a in arb_evidence(), b in arb_evidence()) {
+        let lhs = a.meet_k(&b).conf();
+        let rhs = a.conf().join_k(&b.conf());
+        prop_assert!(ev_approx_eq(&lhs, &rhs));
+    }
+
+    // conf distributes over join_t (truth-order self-duality):
+    //   conf(join_t(a, b)) = join_t(conf(a), conf(b))
+    #[test]
+    fn conf_distributes_join_t(a in arb_evidence(), b in arb_evidence()) {
+        let lhs = a.join_t(&b).conf();
+        let rhs = a.conf().join_t(&b.conf());
+        prop_assert!(ev_approx_eq(&lhs, &rhs));
+    }
+
+    // conf distributes over meet_t (truth-order self-duality):
+    //   conf(meet_t(a, b)) = meet_t(conf(a), conf(b))
+    #[test]
+    fn conf_distributes_meet_t(a in arb_evidence(), b in arb_evidence()) {
+        let lhs = a.meet_t(&b).conf();
+        let rhs = a.conf().meet_t(&b.conf());
+        prop_assert!(ev_approx_eq(&lhs, &rhs));
+    }
 }
