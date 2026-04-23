@@ -803,7 +803,7 @@ The formal core (convergence math, finality gates, governance **product poset** 
 
 ### Premise
 
-The theory defines a product order M = L x A: governance level L (permissiveness) and convergence rank A (per-dimension scores). Coordination is well-founded descent in M. (Note: M is a product order / well-founded poset, not a product lattice -- the implementation uses only partial order for admissibility checks.) V2 extracts this into a Rust engine so that invariants are enforced by the type system; the TS layer approximates this no longer—it delegates.
+The theory defines a product lattice M = L × A: governance level L (permissiveness chain MASTER ≤ MITL ≤ YOLO) and convergence rank A ([0,1]^4, componentwise order). Both factors carry explicit meet and join (implemented as `GovernanceLevel::meet/join`, `ConvergenceRank::meet/join`, `LatticePoint::meet/join`). The stalks A form a Riesz space: V(t) = ‖g(t)‖²_w is the squared weighted gap norm, monotone decreasing in the lattice order. Coordination is well-founded descent in M. V2 extracts this into a Rust engine so that invariants are enforced by the type system; the TS layer approximates this no longer—it delegates.
 
 ### What lives in Rust vs TypeScript
 

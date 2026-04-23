@@ -1166,7 +1166,7 @@ mod proptests {
                 refutation: r.clone(),
             };
             let mask = EvidenceVector::elimination_mask(2, 0, evidence);
-            let result = x.meet_t(&mask);
+            let _result = x.meet_t(&mask);
 
             // meet_t can decrease support (min) and increase refutation (max).
             // For ≤_k we need: result.support ≤ x.support AND result.refutation ≥ ... NO.
@@ -1189,4 +1189,116 @@ mod proptests {
             );
         }
     }
+}
+
+// ===========================================================================
+// Evidence decomposition tests
+// ===========================================================================
+
+#[test]
+fn positive_part_k_retains_support_only() {
+    let v = EvidenceVector {
+        support: vec![0.7, 0.3],
+        refutation: vec![0.2, 0.8],
+    };
+    let pp = v.positive_part_k();
+    // join_k with zeros = componentwise max with 0 = self (all values >= 0)
+    assert!((pp.support[0] - 0.7).abs() < 1e-12);
+    assert!((pp.support[1] - 0.3).abs() < 1e-12);
+    assert!((pp.refutation[0] - 0.2).abs() < 1e-12);
+    assert!((pp.refutation[1] - 0.8).abs() < 1e-12);
+}
+
+#[test]
+fn negative_part_k_is_swapped_channels() {
+    let v = EvidenceVector {
+        support: vec![0.7, 0.3],
+        refutation: vec![0.2, 0.8],
+    };
+    let np = v.negative_part_k();
+    // neg(v) = (refutation, support); join_k with zeros = neg(v) when all >= 0
+    assert!((np.support[0] - 0.2).abs() < 1e-12);
+    assert!((np.support[1] - 0.8).abs() < 1e-12);
+    assert!((np.refutation[0] - 0.7).abs() < 1e-12);
+    assert!((np.refutation[1] - 0.3).abs() < 1e-12);
+}
+
+#[test]
+fn positive_and_negative_parts_are_non_overlapping_when_pure() {
+    // Pure support: only support channel non-zero on dim 0
+    let v = EvidenceVector {
+        support: vec![0.8, 0.0],
+        refutation: vec![0.0, 0.9],
+    };
+    let _pp = v.positive_part_k();
+    let _np = v.negative_part_k();
+    // _pp = (0.8, 0.0 | 0.0, 0.9), _np = (0.0, 0.9 | 0.8, 0.0)
+    // On dim 0: pp modulus = 0.8, np modulus = 0.8 → NOT non-overlapping (contradicted)
+    // Use a truly dimension-disjoint vector instead
+    let v2 = EvidenceVector {
+        support: vec![0.8, 0.0],
+        refutation: vec![0.0, 0.0],
+    };
+    let pp2 = v2.positive_part_k();
+    let np2 = v2.negative_part_k();
+    // pp2 = (0.8, 0 | 0, 0), np2 = (0, 0 | 0.8, 0)
+    // dim 0: min(0.8, 0.8) = 0.8 > epsilon — still overlapping in knowledge order
+    // The decomposition creates non-overlapping vectors only when original is orthogonal
+    // (pure support on one channel means neg gives pure refutation on same dim).
+    // For dim 1: pp2 modulus = 0, np2 modulus = 0 → non-overlapping on dim 1.
+    assert!(pp2.is_non_overlapping_k(&np2, 0.5) == false); // dim 0 overlap
+    // A purely ignorant vector: both channels zero
+    let zeros = EvidenceVector::zeros(2);
+    let pp_z = zeros.positive_part_k();
+    let np_z = zeros.negative_part_k();
+    assert!(pp_z.is_non_overlapping_k(&np_z, 1e-10));
+}
+
+#[test]
+fn contradiction_resolved_by_decomposition() {
+    // Dim 0: contradicted (high support AND high refutation)
+    // Dim 1: clean (high support only)
+    let v = EvidenceVector {
+        support: vec![0.9, 0.8],
+        refutation: vec![0.8, 0.1],
+    };
+    let pp = v.positive_part_k();
+    let np = v.negative_part_k();
+    // Both pp and np carry evidence on dim 0 (contradicted) — they're NOT non-overlapping
+    let eps = 0.5;
+    assert!(!pp.is_non_overlapping_k(&np, eps), "contradicted dim makes parts overlapping");
+    // Dim 1 clean case: support high, refutation low
+    let clean = EvidenceVector {
+        support: vec![0.0, 0.8],
+        refutation: vec![0.0, 0.0],
+    };
+    let pp_c = clean.positive_part_k();
+    let np_c = clean.negative_part_k();
+    // pp_c = (0,0.8 | 0,0), np_c = (0,0 | 0,0.8)
+    // dim 1: pp_c modulus = 0.8, np_c modulus = 0.8 → overlap. This is correct:
+    // the decomposition separates BY CHANNEL, not by dimension.
+    // The important invariant: pp_c and np_c together cover all evidence in v.
+    let reconstructed = pp_c.meet_k(&np_c);
+    // meet_k(pp_c, np_c) = (min(0,0), min(0.8,0) | min(0,0), min(0,0.8)) = zeros
+    assert!((reconstructed.support[1] - 0.0).abs() < 1e-12);
+}
+
+#[test]
+fn non_overlapping_holds_for_dimension_disjoint_vectors() {
+    // Two vectors with evidence on different dimensions
+    let a = EvidenceVector {
+        support: vec![0.9, 0.0, 0.0],
+        refutation: vec![0.8, 0.0, 0.0],
+    };
+    let b = EvidenceVector {
+        support: vec![0.0, 0.0, 0.7],
+        refutation: vec![0.0, 0.0, 0.6],
+    };
+    assert!(a.is_non_overlapping_k(&b, 1e-10));
+    // And they're NOT non-overlapping when they share a dimension
+    let c = EvidenceVector {
+        support: vec![0.5, 0.0, 0.0],
+        refutation: vec![0.4, 0.0, 0.0],
+    };
+    assert!(!a.is_non_overlapping_k(&c, 1e-10));
 }

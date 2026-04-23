@@ -370,7 +370,7 @@ This design follows the CRDT principle that merge operations must be commutative
 
 ## 6. Benchmark scenarios
 
-The benchmark harness (`scripts/benchmark-convergence.ts`) runs seven pure-math scenarios with no external dependencies (no Docker, no Postgres, no NATS, no LLM). Each scenario generates a sequence of `FinalitySnapshot` values, converts them to `ConvergencePoint` records, and runs `analyzeConvergence()` to verify the outcome.
+The benchmark harness (`scripts/benchmark-convergence.ts`) runs eleven pure-math scenarios with no external dependencies (no Docker, no Postgres, no NATS, no LLM). Each scenario generates a sequence of `FinalitySnapshot` values, converts them to `ConvergencePoint` records, and runs `analyzeConvergence()` to verify the outcome. Scenarios 1–7 cover core convergence mechanics; scenarios A–D (8–11) verify the Riesz-space lattice properties added in the v2 retrofit.
 
 Run with:
 
@@ -380,7 +380,7 @@ pnpm tsx scripts/benchmark-convergence.ts
 pnpm tsx scripts/benchmark-convergence.ts --runs=5
 ```
 
-With `--runs=N` (N ≥ 2), each of the seven scenarios is executed N times. The harness compares outcomes (pass/fail, convergence_rate, is_plateaued, is_monotonic, trajectory_quality, etc.). If any run differs from the first, the run fails and reports which scenario and which field differed. Use this to verify determinism and regression-proof the tracker.
+With `--runs=N` (N ≥ 2), each of the eleven scenarios is executed N times. The harness compares outcomes (pass/fail, convergence_rate, is_plateaued, is_monotonic, trajectory_quality, etc.). If any run differs from the first, the run fails and reports which scenario and which field differed. Use this to verify determinism and regression-proof the tracker.
 
 | # | Scenario | Description | Expected outcome | What it validates |
 |---|----------|-------------|------------------|-------------------|
@@ -391,8 +391,12 @@ With `--runs=N` (N ≥ 2), each of the seven scenarios is executed N times. The 
 | 5 | One-dimension bottleneck | 3 dimensions at target; contradiction_resolution stuck at 0.25 for 5 rounds | Not converging, plateaued, monotonic (constant score), highest pressure = contradiction_resolution | Pressure-directed activation correctly identifies the blocking dimension |
 | 6 | Fast convergence | Reaches 0.92+ in 3 rounds with large jumps | Converging, monotonic, no plateau | No false plateau during rapid convergence; system correctly reports near-zero or zero ETA |
 | 7 | Empty graph | No claims, no goals, score = 0.15 (only risk_inverse contributes) | Not converging, not plateaued, not monotonic | Safe defaults with single data point; no division by zero; no crashes on degenerate input |
+| A | Governance escalation | V measured at Yolo, Mitl, Master governance stages with improving rank | V non-increasing across stages | Governance order and convergence order are aligned; escalation descends V |
+| B | Conservative merger | meet(rankA, rankB) vs join(rankA, rankB) for incomparable agents | V(meet) ≥ V(join) | Conservative kernel decision (meet) carries more remaining work; safe choice is explicit |
+| C | Contradiction resolution | Pre: 3/4 contradictions unresolved; post: 0 unresolved | V decreases; contradiction_resolution pressure drops | Resolving contradictions ascends the convergence order and descends V |
+| D | Anti-compensation | Veto dim (contradiction_resolution) stuck at 0.50; non-veto dims at 1.0 | V non-zero; improving non-veto dims does not reduce V to zero | Vector finality blocks what scalar finality permits; no dimension can compensate for veto deficit |
 
-Each scenario validates a specific failure mode or edge case. Together they cover the five mechanisms: V(t) computation, convergence rate, monotonicity gate, plateau detection, and pressure identification.
+Each scenario validates a specific failure mode or edge case. Scenarios 1–7 cover the five core mechanisms: V(t) computation, convergence rate, monotonicity gate, plateau detection, and pressure identification. Scenarios A–D verify that M = L × A is a distributive lattice with Riesz-space stalks and that agent routing toward high-pressure dimensions equals steepest V-descent.
 
 ---
 
