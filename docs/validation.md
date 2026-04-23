@@ -52,12 +52,12 @@ flowchart TB
 | E2E pipeline (Docker, all services) | `run-e2e.sh` script (manual, ~2 min) | Pipeline stability under sustained load |
 | Policy (OpenFGA) | 4 unit tests with mocked fetch | OpenFGA model completeness and correctness |
 | Event bus (NATS JetStream) | 7 unit tests with mocked NATS | Message ordering and exactly-once delivery under backpressure |
-| Bilattice algebra (7 ops, orderings, interlacing) | 38 proptest + 6 deterministic = 44 Rust tests on [0,1]^4 x [0,1]^4 | Interlacing for infinite bilattices (componentwise argument) |
+| Kernel evidence algebra (orderings, monotonicity) | proptest + deterministic Rust tests on [0,1]^4 x [0,1]^4 | Componentwise lifting to infinite rank spaces |
 | Sheaf diffusion (L_F, contraction, spectral gap) | 12 propagation experiments E1-E12 across 5 topologies | Identity restriction maps only (constant sheaf); non-trivial sheaf untested |
 | ISS cascade stability | E7: adversarial kappa ~ 0.19, parametric sweep confirms boundary kappa* = 0.5775 | LLM perturbation bound assumed, not enforced |
 | Gossip protocols (average, Tarski, push-sum) | E10-E12: 1024-node stress test; impossibility theorem confirmed (24/24 configs) | Bilateral exchange assumption (push-sum equivalence) |
-| Π_A projection closure (bilattice box) | 6 proptests (monotone ≤_k, fixed-point on A, non-extensive) + `Projected<T>` newtype | Box clamp sufficient for all admissible sets |
-| Product lattice **M = L × A** (kernel admissibility + meet/join) | Rust governance + types tests; `meet/join` on `GovernanceLevel`, `ConvergenceRank`, `LatticePoint`; Riesz-space properties via `gap_norm_squared`, `lyapunov_order_property`, `pressure_equals_gap_weights` | Distributive lattice; Riesz stalks give norm-monotone V |
+| Π_A projection closure (kernel-admissible set) | 6 proptests (monotonicity, fixed-point on A, non-extensive) + `Projected<T>` newtype | Box clamp sufficient for all admissible sets |
+| Product lattice **M = L × A** (kernel admissibility + meet/join) | Rust governance + types tests; `meet/join` on `GovernanceLevel`, `ConvergenceRank`, `LatticePoint`; norm/monotonicity properties via `gap_norm_squared`, `lyapunov_order_property`, `pressure_equals_gap_weights` | Distributive lattice; norm-monotone V on the rank factor |
 | Causal DAG (Rust) | 251 property-based + unit tests; SHA-256/CBOR content hashing | That DAG frontier determines concept lattice (Conj. 10.2) |
 | Causal contributions (TS) | `emitContribution` from facts, drift, propagation, governance, resolver, status; `finalityEvaluator` on RESOLVED | Runtime Contribution → EvidenceState mapping intentionally not implemented **by architecture lock** (audit-only DAG) |
 | WAL vs causal DAG | Governance and other paths call `appendEvent` for semantic WAL; `createContribution` does not auto-append WAL | Feed/state consumers must not assume a contribution row implies a matching WAL event |
@@ -69,7 +69,7 @@ flowchart TB
 
 ## 2. Unit tests (Vitest)
 
-**460 tests across ~50 test files.** All run with `pnpm test` (no Docker, no network). Some integration suites are skipped unless Docker services are available. **Rust:** 252 lib tests via `cargo test --manifest-path sgrs-core/Cargo.toml` (bilattice algebra, sheaf propagation, gossip protocols, causal DAG, governance, finality, convergence, topology). **Total:** 712 tests (252 Rust + 460 TypeScript).
+**460 tests across ~50 test files.** All run with `pnpm test` (no Docker, no network). Some integration suites are skipped unless Docker services are available. **Rust:** lib tests via `cargo test --manifest-path sgrs-core/Cargo.toml` (kernel evidence algebra, sheaf propagation, gossip protocols, causal DAG, governance, finality, convergence, topology). **Total:** 700+ tests across Rust + TypeScript.
 
 | Test file | Tests | Coverage area | Key assertions |
 |-----------|-------|--------------|----------------|
@@ -116,8 +116,8 @@ Run: `pnpm tsx scripts/benchmark-convergence.ts`
 The benchmark generates synthetic `FinalitySnapshot` sequences, pipes them through
 `computeLyapunovV`, `computePressure`, `computeDimensionScores`, and
 `analyzeConvergence`, then checks outcomes against expectations. Four additional
-lattice-algebra scenarios (A–D) verify the Riesz-space structure added in the
-v2 retrofit.
+lattice-algebra scenarios (A–D) verify the order and norm-monotonicity structure
+added in the v2 retrofit.
 
 | Scenario | Rounds | What it tests | Expected outcome |
 |----------|--------|--------------|------------------|
@@ -321,7 +321,7 @@ validation** and represent known gaps:
 
 ## 9. Propagation experiment summary (historical snapshot)
 
-Propagation-focused experiments validated sheaf diffusion, bilattice algebra, topology sensitivity, gossip protocols, and the impossibility theorem in prior internal runs.
+Propagation-focused experiments validated sheaf diffusion, kernel evidence algebra, topology sensitivity, gossip protocols, and the impossibility theorem in prior internal runs.
 
 | ID | Key Result | Run Date |
 |----|------------|----------|
@@ -343,7 +343,7 @@ Propagation-focused experiments validated sheaf diffusion, bilattice algebra, to
 Two Phase-2 follow-on checks were added to close the Extract/escalation gap:
 
 - **E19 (Extract boundary loss):** `2/1000` disagreement (`0.20%`) between
-  bilattice-aware and scalarized finality on a controlled random corpus; below
+  vector-aware and scalarized finality on a controlled random corpus; below
   the `5%` alert threshold.
 - **E20 (escalation necessity):** pressure-directed governance converges faster
   than always-MASTER in the controlled M&A proxy (`7.27` vs `7.71` mean steps)

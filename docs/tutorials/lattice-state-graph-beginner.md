@@ -240,7 +240,7 @@ flowchart TB
 - **Edge (semantic graph):** relation between knowledge items
 - **Edge (role graph):** evidence communication channel between roles
 - **Lattice:** partially ordered set with **join** and **meet** for every pair
-- **Product lattice M = L × A:** pairs (governance level, convergence rank) with componentwise order and explicit **meet** and **join** on both factors; used for kernel admissibility, conservative/liberal proposal merging, and V-monotonicity proofs. **L** is a three-element chain (MASTER ≤ MITL ≤ YOLO); **A** = [0,1]^4 is a Riesz space (vector lattice) with componentwise min/max as meet/join.
+- **Product lattice M = L × A:** pairs (governance level, convergence rank) with componentwise order and explicit **meet** and **join** on both factors; used for kernel admissibility, conservative/liberal proposal merging, and V-monotonicity proofs. **L** is a three-element chain (MASTER ≤ MITL ≤ YOLO); **A** = [0,1]^4 carries componentwise min/max as meet/join.
 - **Stalk (sheaf):** local evidence space attached to one role vertex
 - **Restriction map:** projection used to compare neighboring roles on shared edge space
 - **Epoch:** CAS counter for atomic state transitions
@@ -250,7 +250,7 @@ flowchart TB
 ## 8) Where to read next
 
 - Implementation flow: `docs/architecture.md`
-- Math foundations: `docs/math-tutorial/en/index.md`
+- Convergence theory: `docs/convergence.md`
 - State machine source: `src/stateGraph.ts`
 - Agent role source: `src/agentRegistry.ts`
 - Semantic graph source: `src/semanticGraph.ts`
