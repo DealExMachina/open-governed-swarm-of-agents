@@ -26,7 +26,7 @@ SGRS provides all five. No existing framework does.
 An event-driven agent swarm where:
 - **Agents are reasoning roles**, not pipeline stages. No agent knows any other agent exists.
 - **Coordination emerges from shared state** (Postgres WAL + semantic graph + S3) and **declarative governance** (`governance.yaml`), not hardwired sequencing.
-- A **Rust reduction kernel** (`sgrs-core`) enforces transition rules via a product order **M = L x A** (governance level x convergence rank). Zero LLM tokens. Always available.
+- A **Rust reduction kernel** (`sgrs-core`) enforces transition rules via a product lattice **M = L × A** (governance level × convergence rank), with explicit meet/join on both factors and Riesz-space stalks. Zero LLM tokens. Always available.
 - **Formal convergence** is tracked via a Lyapunov disagreement function V(t), with monotonicity gates, plateau detection, and divergence escalation.
 - **Ed25519-signed finality certificates** chain over time as new evidence and regulations arrive.
 
