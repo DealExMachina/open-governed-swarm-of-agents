@@ -90,6 +90,16 @@ impl GovernanceLevel {
             Self::Yolo => "YOLO",
         }
     }
+
+    /// Conservative merger: choose the more restrictive governance level.
+    pub fn meet(a: Self, b: Self) -> Self {
+        if a.permissiveness() <= b.permissiveness() { a } else { b }
+    }
+
+    /// Liberal merger: choose the more permissive governance level.
+    pub fn join(a: Self, b: Self) -> Self {
+        if a.permissiveness() >= b.permissiveness() { a } else { b }
+    }
 }
 
 impl PartialOrd for GovernanceLevel {
@@ -183,6 +193,35 @@ impl ConvergenceRank {
             .sum::<f64>()
             .max(0.0)
     }
+
+    /// Conservative estimate: componentwise minimum (greatest lower bound in the convergence order).
+    pub fn meet(a: &Self, b: &Self) -> Self {
+        let mut dims = [0.0f64; 4];
+        for i in 0..4 { dims[i] = a.dimensions[i].min(b.dimensions[i]); }
+        ConvergenceRank { dimensions: dims, epoch: a.epoch.max(b.epoch) }
+    }
+
+    /// Optimistic estimate: componentwise maximum (least upper bound in the convergence order).
+    pub fn join(a: &Self, b: &Self) -> Self {
+        let mut dims = [0.0f64; 4];
+        for i in 0..4 { dims[i] = a.dimensions[i].max(b.dimensions[i]); }
+        ConvergenceRank { dimensions: dims, epoch: a.epoch.max(b.epoch) }
+    }
+
+    /// Componentwise remaining deficit toward `target`, clamped to non-negative.
+    /// gap[i] = max(0, target[i] - self.dimensions[i])
+    pub fn gap_to_target(&self, target: &[f64; 4]) -> [f64; 4] {
+        let mut gap = [0.0f64; 4];
+        for i in 0..4 { gap[i] = (target[i] - self.dimensions[i]).max(0.0); }
+        gap
+    }
+
+    /// Per-dimension remaining work in the admissible cone.
+    /// Alias for gap_to_target; named separately to make the positive-cone projection
+    /// explicit at call sites that reason about admissibility rather than distance.
+    pub fn positive_part_wrt(&self, target: &[f64; 4]) -> [f64; 4] {
+        self.gap_to_target(target)
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -197,6 +236,22 @@ pub struct LatticePoint {
 }
 
 impl LatticePoint {
+    /// Conservative merger of two governance proposals.
+    pub fn meet(a: &Self, b: &Self) -> Self {
+        LatticePoint {
+            governance: GovernanceLevel::meet(a.governance, b.governance),
+            rank: ConvergenceRank::meet(&a.rank, &b.rank),
+        }
+    }
+
+    /// Liberal merger of two governance proposals.
+    pub fn join(a: &Self, b: &Self) -> Self {
+        LatticePoint {
+            governance: GovernanceLevel::join(a.governance, b.governance),
+            rank: ConvergenceRank::join(&a.rank, &b.rank),
+        }
+    }
+
     /// Check whether transitioning from `self` to `after` is admissible.
     ///
     /// Rules:
@@ -528,5 +583,127 @@ mod tests {
             before.check_transition(&after, true),
             AdmissibilityResult::Admissible
         );
+    }
+
+    // --- GovernanceLevel meet / join ---
+
+    #[test]
+    fn governance_meet_chooses_most_restrictive() {
+        assert_eq!(GovernanceLevel::meet(GovernanceLevel::Yolo, GovernanceLevel::Master), GovernanceLevel::Master);
+        assert_eq!(GovernanceLevel::meet(GovernanceLevel::Mitl, GovernanceLevel::Yolo), GovernanceLevel::Mitl);
+        assert_eq!(GovernanceLevel::meet(GovernanceLevel::Master, GovernanceLevel::Master), GovernanceLevel::Master);
+    }
+
+    #[test]
+    fn governance_join_chooses_most_permissive() {
+        assert_eq!(GovernanceLevel::join(GovernanceLevel::Master, GovernanceLevel::Yolo), GovernanceLevel::Yolo);
+        assert_eq!(GovernanceLevel::join(GovernanceLevel::Mitl, GovernanceLevel::Master), GovernanceLevel::Mitl);
+        assert_eq!(GovernanceLevel::join(GovernanceLevel::Yolo, GovernanceLevel::Yolo), GovernanceLevel::Yolo);
+    }
+
+    // --- ConvergenceRank meet / join ---
+
+    fn rank(dims: [f64; 4]) -> ConvergenceRank {
+        ConvergenceRank { dimensions: dims, epoch: 1 }
+    }
+
+    #[test]
+    fn convergence_rank_meet_is_componentwise_min() {
+        let a = rank([0.8, 0.4, 0.7, 0.9]);
+        let b = rank([0.5, 0.9, 0.6, 0.3]);
+        let m = ConvergenceRank::meet(&a, &b);
+        assert!((m.dimensions[0] - 0.5).abs() < EPSILON);
+        assert!((m.dimensions[1] - 0.4).abs() < EPSILON);
+        assert!((m.dimensions[2] - 0.6).abs() < EPSILON);
+        assert!((m.dimensions[3] - 0.3).abs() < EPSILON);
+    }
+
+    #[test]
+    fn convergence_rank_join_is_componentwise_max() {
+        let a = rank([0.8, 0.4, 0.7, 0.9]);
+        let b = rank([0.5, 0.9, 0.6, 0.3]);
+        let j = ConvergenceRank::join(&a, &b);
+        assert!((j.dimensions[0] - 0.8).abs() < EPSILON);
+        assert!((j.dimensions[1] - 0.9).abs() < EPSILON);
+        assert!((j.dimensions[2] - 0.7).abs() < EPSILON);
+        assert!((j.dimensions[3] - 0.9).abs() < EPSILON);
+    }
+
+    #[test]
+    fn convergence_rank_meet_dominated_by_both_inputs() {
+        let a = rank([0.8, 0.4, 0.7, 0.9]);
+        let b = rank([0.5, 0.9, 0.6, 0.3]);
+        let m = ConvergenceRank::meet(&a, &b);
+        assert!(a.dominates(&m));
+        assert!(b.dominates(&m));
+    }
+
+    #[test]
+    fn convergence_rank_join_dominates_both_inputs() {
+        let a = rank([0.8, 0.4, 0.7, 0.9]);
+        let b = rank([0.5, 0.9, 0.6, 0.3]);
+        let j = ConvergenceRank::join(&a, &b);
+        assert!(j.dominates(&a));
+        assert!(j.dominates(&b));
+    }
+
+    #[test]
+    fn gap_to_target_is_nonnegative_residual() {
+        let r = rank([0.6, 1.2, 0.9, 0.5]);
+        let target = [1.0, 1.0, 1.0, 1.0];
+        let gap = r.gap_to_target(&target);
+        assert!((gap[0] - 0.4).abs() < EPSILON);
+        assert!((gap[1] - 0.0).abs() < EPSILON); // exceeds target → clamped to 0
+        assert!((gap[2] - 0.1).abs() < EPSILON);
+        assert!((gap[3] - 0.5).abs() < EPSILON);
+    }
+
+    #[test]
+    fn positive_part_wrt_equals_gap_to_target() {
+        let r = rank([0.3, 0.7, 0.5, 0.9]);
+        let target = [0.85, 0.95, 0.90, 0.80];
+        let gap = r.gap_to_target(&target);
+        let pp  = r.positive_part_wrt(&target);
+        for i in 0..4 {
+            assert!((gap[i] - pp[i]).abs() < 1e-15);
+        }
+    }
+
+    // --- LatticePoint meet / join ---
+
+    #[test]
+    fn lattice_point_meet_is_conservative() {
+        let a = LatticePoint {
+            governance: GovernanceLevel::Mitl,
+            rank: rank([0.8, 0.4, 0.7, 0.9]),
+        };
+        let b = LatticePoint {
+            governance: GovernanceLevel::Yolo,
+            rank: rank([0.5, 0.9, 0.6, 0.3]),
+        };
+        let m = LatticePoint::meet(&a, &b);
+        // More restrictive governance
+        assert_eq!(m.governance, GovernanceLevel::Mitl);
+        // Rank dominated by both inputs
+        assert!(a.rank.dominates(&m.rank));
+        assert!(b.rank.dominates(&m.rank));
+    }
+
+    #[test]
+    fn lattice_point_join_is_liberal() {
+        let a = LatticePoint {
+            governance: GovernanceLevel::Mitl,
+            rank: rank([0.8, 0.4, 0.7, 0.9]),
+        };
+        let b = LatticePoint {
+            governance: GovernanceLevel::Master,
+            rank: rank([0.5, 0.9, 0.6, 0.3]),
+        };
+        let j = LatticePoint::join(&a, &b);
+        // More permissive governance
+        assert_eq!(j.governance, GovernanceLevel::Mitl);
+        // Rank dominates both inputs
+        assert!(j.rank.dominates(&a.rank));
+        assert!(j.rank.dominates(&b.rank));
     }
 }

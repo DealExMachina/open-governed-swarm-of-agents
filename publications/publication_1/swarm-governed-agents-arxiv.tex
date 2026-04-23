@@ -49,8 +49,8 @@
 \begin{abstract}
 LLM-powered agents that reason, hypothesise, and contradict each other require coordination mechanisms beyond static DAGs or predefined topologies.
 We propose \emph{declarative governance over shared immutable context}: agents reason over a bitemporal, CRDT-inspired semantic graph and propose state transitions evaluated by a deterministic reduction kernel.
-A product order $\mathcal{M} = \mathcal{L} \times \mathcal{A}$ unifies governance admissibility with a multi-dimensional convergence rank, and an Epoch Termination Theorem guarantees finite stabilisation under $\delta_{\min}$-discretisation.
-Convergence is tracked by a Lyapunov disagreement function $V(t)$; a \emph{vector finality} predicate prevents compensation attacks where one dimension masks another's failure.
+A product lattice $\mathcal{M} = \mathcal{L} \times \mathcal{A}$ with explicit meet and join unifies governance admissibility with a multi-dimensional convergence rank; the stalks carry Riesz-space structure making $V(t) = \|\mathbf{g}(t)\|^2_\mathbf{w}$ monotone in the order. An Epoch Termination Theorem guarantees finite stabilisation under $\delta_{\min}$-discretisation.
+Convergence is tracked by this Lyapunov function; a \emph{vector finality} predicate prevents compensation attacks where one dimension masks another's failure.
 Five independent gates guard against premature finality, and Ed25519-signed certificates provide cryptographic non-repudiation.
 Finality is not terminal: new evidence re-opens convergence, producing a chain of certified checkpoints.
 Validation on M\&A due diligence and financial consolidation with bitemporal restatement shows $V(t) \to 0$ at resolution epochs, sawtooth dynamics across evidence epochs, and gate-confirmed robustness against adversarial evidence patterns.
@@ -74,7 +74,7 @@ There is no shared immutable context, no formal finality mechanism, and no fine-
 
 We propose a third path: \emph{declarative governance over shared context}.
 Rather than sequencing agents, the system maintains a \emph{bitemporal CRDT-inspired semantic graph} where confidence scores ratchet upward and contradictions are tracked explicitly.
-A \emph{product order} $\mathcal{M} = \mathcal{L} \times \mathcal{A}$ unifies governance levels with a multi-dimensional convergence rank into a well-founded descent domain.
+A \emph{product lattice} $\mathcal{M} = \mathcal{L} \times \mathcal{A}$, with explicit meet and join on both factors, unifies governance levels with a multi-dimensional convergence rank; the stalks carry Riesz-space structure making $V$ a norm-monotone Lyapunov function.
 A deterministic \emph{reduction kernel} evaluates every proposal against $\mathcal{M}$, producing Accept, Reject, or Escalate.
 A Lyapunov disagreement function $V(t)$ tracks convergence, and a \emph{vector finality} predicate with per-dimension gates prevents both premature and compensated finality.
 Finality is a certified checkpoint, not a terminal state: new evidence re-opens convergence over the same graph.
@@ -82,7 +82,7 @@ Finality is a certified checkpoint, not a terminal state: new evidence re-opens 
 The paper makes the following contributions:
 \begin{enumerate}
   \item A bitemporal CRDT-inspired semantic graph with monotonicity invariants enabling point-in-time reconstruction and regulatory audit.
-  \item A product order $\mathcal{M} = \mathcal{L} \times \mathcal{A}$ with a deterministic reduction kernel and an Epoch Termination Theorem guaranteeing finite convergence.
+  \item A product lattice $\mathcal{M} = \mathcal{L} \times \mathcal{A}$ with explicit meet and join, Riesz-space stalks, a deterministic reduction kernel, and an Epoch Termination Theorem guaranteeing finite convergence.
   \item Lyapunov-tracked convergence with vector finality that provably prevents compensation attacks (Theorem~\ref{thm:vector-finality-soundness}).
   \item A perpetual finality lifecycle with Ed25519-signed certificate chains modelling the ongoing nature of regulated knowledge.
   \item Validation on two domains---M\&A due diligence and financial consolidation---demonstrating $V(t) \to 0$ at resolution epochs and domain-independent dynamics.
@@ -120,10 +120,10 @@ Laddad et al.~\cite{laddad2024} demonstrated CRDT monotonic merge preventing sta
 \subsection{Formal Foundations}
 
 Lattice-based security models~\cite{denning1976,bell1973} govern information flow via partial orders; Davey and Priestley~\cite{davey2002} provide algebraic foundations.
-Our governance chain $\mathcal{L}$ is structurally simple; the contribution lies in the product order $\mathcal{M} = \mathcal{L} \times \mathcal{A}$ unifying governance admissibility with convergence rank.
+Our governance chain $\mathcal{L}$ is structurally simple; the contribution lies in the product lattice $\mathcal{M} = \mathcal{L} \times \mathcal{A}$ unifying governance admissibility with convergence rank, with the stalks $\mathcal{A} = [0,1]^k$ carrying Riesz-space structure~\cite{ghrist2022}: $V(t) = \|\mathbf{g}(t)\|^2_\mathbf{w}$ is a lattice norm monotone in the order, and evidence decomposes into non-overlapping positive/negative parts.
 The reduction kernel parallels classical term rewriting~\cite{baader1998}: states correspond to terms, transitions to rewrite rules, and termination is established via well-founded orderings.
 Newman's Lemma~\cite{newman1942} relates local confluence to global confluence---relevant to our partial confluence claim (Section~\ref{sec:discussion}).
-Formal Concept Analysis~\cite{ganter1999,wille1982} derives lattice structures from incidence relations; extending $\mathcal{M}$ as a concept lattice is future work.
+Formal Concept Analysis~\cite{ganter1999,wille1982} derives lattice structures from incidence relations; further specialisations of $\mathcal{M}$ remain exploratory.
 
 The Byzantine Generals Problem~\cite{lamport1982} and PBFT~\cite{castro1999} address agreement under adversarial faults.
 Zheng et al.~\cite{zheng2025} introduced confidence-weighted Byzantine fault tolerance; Mao et al.~\cite{mao2024} extended it to local coordination.
@@ -177,15 +177,16 @@ $\mathcal{L} = \{\tsc{Master}, \tsc{Mitl}, \tsc{Yolo}\}$ is a chain with $\tsc{M
 $\mathcal{A} = (\mathbb{R}_{\geq 0})^k$ with the product partial order ($k = 4$: claim confidence, contradiction resolution, goal completion, risk score inverse).
 \end{definition}
 
-\begin{definition}[Product Order]
+\begin{definition}[Product Lattice]
 \label{def:product-lattice}
-The governance-convergence product order is $\mathcal{M} = \mathcal{L} \times \mathcal{A}$, ordered componentwise~\cite{davey2002}:
-$(\ell, \mathbf{a}) \leq_{\mathcal{M}} (\ell', \mathbf{a}') \iff \ell \leq_{\mathcal{L}} \ell' \wedge \mathbf{a} \leq_{\mathcal{A}} \mathbf{a}'$.
+The \emph{governance-convergence product lattice} is $\mathcal{M} = \mathcal{L} \times \mathcal{A}$, ordered componentwise~\cite{davey2002}:
+$(\ell, \mathbf{a}) \leq_{\mathcal{M}} (\ell', \mathbf{a}') \iff \ell \leq_{\mathcal{L}} \ell' \wedge \mathbf{a} \leq_{\mathcal{A}} \mathbf{a}'$,
+with meet $(\ell,\mathbf{a}) \wedge (\ell',\mathbf{a}') = (\ell \wedge_{\mathcal{L}} \ell',\, \mathbf{a} \wedge_{\mathcal{A}} \mathbf{a}')$ and join defined dually.
 \end{definition}
 
 \begin{remark}[Algebraic status]
 \label{rem:algebraic-status}
-$\mathcal{M}$ is a well-founded poset used as a descent domain, not a lattice in the algebraic sense: the reduction kernel uses only the partial order for admissibility, never computing joins or meets.
+$\mathcal{M}$ is a \emph{complete distributive lattice}. $\mathcal{L}$ (chain MASTER~$\leq$~MITL~$\leq$~YOLO) and $\mathcal{A} = [0,1]^k$ (componentwise order, $\wedge = \min$, $\vee = \max$) both carry explicit meet and join, implemented as \texttt{GovernanceLevel::meet/join}, \texttt{ConvergenceRank::meet/join}, \texttt{LatticePoint::meet/join}. The stalks $\mathcal{A}$ further form a \emph{Riesz space} (vector lattice): $V(t) = \|\mathbf{g}(t)\|^2_\mathbf{w}$ is the squared weighted norm of the gap vector $\mathbf{g}(t) = (\tau - \mathbf{a}(t))^+$, monotone decreasing in the lattice order. Evidence decomposes into non-overlapping positive/negative parts; the drift chain $\mathcal{D}$ couples to $\mathcal{L}$ via an anti-monotone map (higher drift forces more restrictive governance), making the stabilising feedback algebraically explicit.
 \end{remark}
 
 \begin{definition}[Admissibility]
@@ -555,8 +556,8 @@ Three directions, ordered by theoretical impact:
 %% ============================================================
 
 This paper presents declarative governance over shared immutable context as a paradigm for autonomous agent coordination.
-The product order $\mathcal{M} = \mathcal{L} \times \mathcal{A}$ jointly tracks governance strictness and convergence progress in a well-founded ordering guaranteeing finite stabilisation.
-A Lyapunov disagreement function provides formal convergence tracking; vector finality with per-dimension gates prevents both premature and compensated finality; Ed25519-signed certificates provide cryptographic non-repudiation within a perpetual checkpoint lifecycle.
+The product lattice $\mathcal{M} = \mathcal{L} \times \mathcal{A}$, with explicit meet and join on both factors and Riesz-space stalks, jointly tracks governance strictness and convergence progress in a well-founded ordering guaranteeing finite stabilisation.
+The Lyapunov function $V(t) = \|\mathbf{g}(t)\|^2_\mathbf{w}$ is monotone in the lattice order; vector finality with per-dimension gates prevents both premature and compensated finality; Ed25519-signed certificates provide cryptographic non-repudiation within a perpetual checkpoint lifecycle.
 Validation across M\&A due diligence and financial consolidation with bitemporal restatement confirms that $V(t) \to 0$ at resolution epochs and that convergence dynamics are domain-independent.
 
 %% ============================================================

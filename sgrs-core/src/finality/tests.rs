@@ -842,3 +842,114 @@ fn dimension_results_have_correct_metadata() {
     assert_eq!(risk.dimension, DimensionId::RiskInverse);
     assert!(risk.passed);
 }
+
+// ---------------------------------------------------------------------------
+// finality_gap_vector and finality_filter_lower_bound
+// ---------------------------------------------------------------------------
+
+#[test]
+fn finality_gap_vector_matches_dimension_gap_applied_elementwise() {
+    use crate::finality::vector::{dimension_gap, finality_gap_vector};
+    let scores = [0.6, 0.7, 0.5, 0.9];
+    let thresholds = [0.85f64, 0.95, 0.90, 0.80];
+    let gap_vec = finality_gap_vector(&scores, &thresholds);
+    for i in 0..4 {
+        let expected = dimension_gap(scores[i], thresholds[i]);
+        assert!(
+            (gap_vec[i] - expected).abs() < 1e-15,
+            "gap_vec[{}] = {} != dimension_gap = {}", i, gap_vec[i], expected
+        );
+    }
+}
+
+#[test]
+fn finality_gap_vector_is_zero_at_threshold() {
+    use crate::finality::vector::finality_gap_vector;
+    let thresholds = [0.85f64, 0.95, 0.90, 0.80];
+    let gap = finality_gap_vector(&thresholds, &thresholds);
+    for i in 0..4 {
+        assert!(gap[i].abs() < 1e-15, "gap[{}] should be 0 at threshold, got {}", i, gap[i]);
+    }
+}
+
+#[test]
+fn finality_filter_lower_bound_uses_required_thresholds() {
+    use crate::finality::vector::{finality_filter_lower_bound, VectorFinalityConfig};
+    let config = VectorFinalityConfig {
+        thresholds: [0.85, 0.95, 0.90, 0.80],
+        required: [true, true, false, true],
+        ..Default::default()
+    };
+    let lb = finality_filter_lower_bound(&config);
+    assert!((lb[0] - 0.85).abs() < 1e-15);
+    assert!((lb[1] - 0.95).abs() < 1e-15);
+    assert!((lb[2] - 0.0).abs() < 1e-15); // not required → 0
+    assert!((lb[3] - 0.80).abs() < 1e-15);
+}
+
+#[test]
+fn any_rank_below_lower_bound_fails_finality() {
+    use crate::finality::vector::{dimension_final, finality_filter_lower_bound, VectorFinalityConfig};
+    let config = VectorFinalityConfig::default();
+    let lb = finality_filter_lower_bound(&config);
+    // For each required dimension, a score just below the lower bound must fail
+    for i in 0..4 {
+        if config.required[i] && lb[i] > 0.0 {
+            let score_below = lb[i] - 0.05;
+            let eps = config.epsilon[i];
+            assert!(
+                !dimension_final(score_below, config.thresholds[i], eps),
+                "dim {} score {:.3} below lower bound {:.3} should fail finality",
+                i, score_below, lb[i]
+            );
+        }
+    }
+}
+
+#[test]
+fn gap_to_target_matches_finality_gap_vector_at_default_targets() {
+    use crate::finality::vector::finality_gap_vector;
+    use crate::types::ConvergenceRank;
+    let rank = ConvergenceRank { dimensions: [0.6, 0.7, 0.5, 0.9], epoch: 1 };
+    // Default finality thresholds [0.85, 0.95, 0.90, 0.80]
+    let finality_thresholds = [0.85f64, 0.95, 0.90, 0.80];
+    let gap_conv = rank.gap_to_target(&finality_thresholds);
+    let gap_fin  = finality_gap_vector(&rank.dimensions, &finality_thresholds);
+    for i in 0..4 {
+        assert!(
+            (gap_conv[i] - gap_fin[i]).abs() < 1e-15,
+            "gap_to_target[{}]={} != finality_gap_vector[{}]={}", i, gap_conv[i], i, gap_fin[i]
+        );
+    }
+}
+
+#[test]
+fn compensation_detected_when_scalar_passes_but_veto_fails() {
+    use crate::finality::vector::{evaluate_vector_finality, VectorFinalityConfig};
+    use crate::finality::gates::GateState;
+    use crate::types::DimensionId;
+
+    // contradiction_resolution (dim 1) is the veto dimension; score = 0.5, threshold = 0.95
+    // Other dims at full score. scalar_score is manually set to exceed scalar_threshold.
+    let scores = [1.0f64, 0.50, 1.0, 1.0];
+    let config = VectorFinalityConfig::default(); // veto = [false, true, false, false]
+    let per_dim_monotonic = [true; 4];
+    let per_dim_traj = [1.0f64; 4];
+    let global_gates = GateState {
+        a_monotonic: true,
+        b_evidence: true,
+        c_trajectory: true,
+        d_quiescent: true,
+        e_has_content: true,
+        f_elimination_complete: true,
+    };
+    // Use a scalar_score above scalar_threshold to trigger compensation_detected
+    let result = evaluate_vector_finality(
+        &scores, &config, &per_dim_monotonic, &per_dim_traj, &global_gates,
+        0.95, 0.90, // scalar_score=0.95 > scalar_threshold=0.90
+    );
+    assert!(result.veto_triggered, "veto should trigger on contradiction_resolution = 0.5");
+    assert!(result.veto_causes.contains(&DimensionId::ContradictionResolution));
+    assert!(!result.finality_reached);
+    assert!(result.compensation_detected, "scalar passes but vector blocks → compensation_detected");
+}

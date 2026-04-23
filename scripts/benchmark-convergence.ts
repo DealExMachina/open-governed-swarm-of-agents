@@ -306,6 +306,249 @@ const scenarios: Scenario[] = [
       };
     },
   },
+
+  // ── Riesz algebra scenarios ─────────────────────────────────────────────
+
+  {
+    name: "Governance escalation aligns with V",
+    description:
+      "Three stages: Yolo/low → Mitl/medium → Master/high. V is non-increasing.",
+    run(config) {
+      const snap1 = makeSnapshot({
+        claims_active_avg_confidence: 0.4,
+        goals_completion_ratio: 0.4,
+        contradictions_unresolved_count: 2,
+        contradictions_total_count: 3,
+        scope_risk_score: 0.5,
+      });
+      const snap2 = makeSnapshot({
+        claims_active_avg_confidence: 0.65,
+        goals_completion_ratio: 0.65,
+        contradictions_unresolved_count: 1,
+        contradictions_total_count: 3,
+        scope_risk_score: 0.3,
+      });
+      const snap3 = makeSnapshot({
+        claims_active_avg_confidence: 0.9,
+        goals_completion_ratio: 0.9,
+        contradictions_unresolved_count: 0,
+        contradictions_total_count: 3,
+        scope_risk_score: 0.05,
+      });
+
+      const v1 = computeLyapunovV(snap1);
+      const v2 = computeLyapunovV(snap2);
+      const v3 = computeLyapunovV(snap3);
+
+      if (!(v1 > v2 && v2 > v3)) {
+        throw new Error(
+          `V should decrease across escalation stages: V1=${v1.toFixed(4)}, V2=${v2.toFixed(4)}, V3=${v3.toFixed(4)}`
+        );
+      }
+
+      const points = [snap1, snap2, snap3].map((s, i) =>
+        snapshotToPoint(i + 1, s, goalScore(s))
+      );
+      return {
+        points,
+        expected: {
+          should_converge: true,
+          should_plateau: false,
+          should_be_monotonic: true,
+          should_have_eta: false,
+        },
+      };
+    },
+  },
+
+  {
+    name: "Conservative merger has higher V",
+    description:
+      "Agents A and B have incomparable scores. Meet (componentwise min) has higher V than join (componentwise max).",
+    run(config) {
+      // Agent A: strong on claim/goal, weak on contradiction_resolution
+      // Agent B: weak on claim/goal, strong on contradiction_resolution
+      // Both at the same risk level.
+      const DEFAULT_WEIGHTS = [0.3, 0.3, 0.25, 0.15];
+      const DEFAULT_TARGETS = [1.0, 1.0, 1.0, 1.0];
+
+      function vFromScores(s: number[]): number {
+        return s.reduce((sum, score, i) => sum + DEFAULT_WEIGHTS[i] * (DEFAULT_TARGETS[i] - score) ** 2, 0);
+      }
+
+      const scoresA = [1.0, 0.5, 0.9, 0.85]; // strong claim/goal, weak contra
+      const scoresB = [0.4, 1.0, 0.4, 0.85]; // weak claim/goal, strong contra
+
+      const meetScores = scoresA.map((a, i) => Math.min(a, scoresB[i]));
+      const joinScores = scoresA.map((a, i) => Math.max(a, scoresB[i]));
+
+      const vMeet = vFromScores(meetScores);
+      const vJoin = vFromScores(joinScores);
+
+      if (!(vMeet >= vJoin)) {
+        throw new Error(
+          `V(meet) should be >= V(join): V(meet)=${vMeet.toFixed(4)}, V(join)=${vJoin.toFixed(4)}`
+        );
+      }
+      if (vJoin >= vMeet) {
+        // verify they are genuinely different (incomparable inputs)
+        const areIncomparable =
+          !scoresA.every((a, i) => a >= scoresB[i]) &&
+          !scoresB.every((b, i) => b >= scoresA[i]);
+        if (!areIncomparable) {
+          throw new Error("Scores A and B must be incomparable for this scenario to be meaningful");
+        }
+      }
+
+      // Use the optimistic (join) trajectory for the analyzeConvergence checks
+      const snapJoin = makeSnapshot({
+        claims_active_avg_confidence: 0.85,   // maps to claim_score ≈ 1.0
+        goals_completion_ratio: 0.9,
+        contradictions_unresolved_count: 0,
+        contradictions_total_count: 4,
+        scope_risk_score: 0.15,
+      });
+      const points = Array.from({ length: 5 }, (_, i) =>
+        snapshotToPoint(i + 1, snapJoin, goalScore(snapJoin))
+      );
+      return {
+        points,
+        expected: {
+          should_converge: false,
+          should_plateau: true,
+          should_be_monotonic: true,
+          should_have_eta: false,
+        },
+      };
+    },
+  },
+
+  {
+    name: "Contradiction resolution descends V",
+    description:
+      "Resolving contradictions moves the system up in the convergence order and down in V.",
+    run(config) {
+      // Pre-resolution: 3 of 4 contradictions unresolved → low contra score
+      const snapPre = makeSnapshot({
+        claims_active_avg_confidence: 0.85,
+        goals_completion_ratio: 0.85,
+        contradictions_unresolved_count: 3,
+        contradictions_total_count: 4,
+        scope_risk_score: 0.1,
+      });
+      // Post-resolution: 0 unresolved → contra score = 1.0
+      const snapPost = makeSnapshot({
+        claims_active_avg_confidence: 0.85,
+        goals_completion_ratio: 0.85,
+        contradictions_unresolved_count: 0,
+        contradictions_total_count: 4,
+        scope_risk_score: 0.1,
+      });
+
+      const vPre  = computeLyapunovV(snapPre);
+      const vPost = computeLyapunovV(snapPost);
+
+      if (!(vPost < vPre)) {
+        throw new Error(
+          `Resolving contradictions should decrease V: V_pre=${vPre.toFixed(4)}, V_post=${vPost.toFixed(4)}`
+        );
+      }
+
+      const pressurePre  = computePressure(snapPre);
+
+      // Before resolution, contradiction_resolution should be the highest-pressure dim
+      const maxDimPre = Object.entries(pressurePre).reduce(
+        (best, [dim, p]) => (p > best.p ? { dim, p } : best),
+        { dim: "", p: -Infinity }
+      );
+      if (maxDimPre.dim !== "contradiction_resolution") {
+        throw new Error(
+          `Highest pressure before resolution should be contradiction_resolution, got ${maxDimPre.dim}`
+        );
+      }
+
+      // Build a trajectory: 2 pre-resolution steps then 3 post-resolution
+      const points = [
+        snapshotToPoint(1, snapPre, goalScore(snapPre)),
+        snapshotToPoint(2, snapPre, goalScore(snapPre)),
+        snapshotToPoint(3, snapPost, goalScore(snapPost)),
+        snapshotToPoint(4, snapPost, goalScore(snapPost)),
+        snapshotToPoint(5, snapPost, goalScore(snapPost)),
+      ];
+      return {
+        points,
+        expected: {
+          should_converge: true,
+          should_plateau: false,
+          should_be_monotonic: true, // pre flat then post flat: never regresses
+          should_have_eta: true,     // positive rate, some remaining work → ETA > 0
+        },
+      };
+    },
+  },
+
+  {
+    name: "Anti-compensation: veto blocks scalar pass",
+    description:
+      "contradiction_resolution stuck at 0.5; all other dims at target. " +
+      "V is non-zero and pressure is concentrated on the stuck dimension. " +
+      "Improving already-satisfied dims does not reduce V.",
+    run(config) {
+      // contradiction_resolution = 0.5 (below threshold 0.95); all others = 1.0
+      const snapVeto = makeSnapshot({
+        claims_active_avg_confidence: 0.95, // claim_score ≈ 1.0
+        goals_completion_ratio: 1.0,
+        contradictions_unresolved_count: 2,
+        contradictions_total_count: 4, // contra_score = 0.5
+        scope_risk_score: 0.0,           // risk_score = 1.0
+      });
+
+      const vVeto = computeLyapunovV(snapVeto);
+      if (!(vVeto > 0)) {
+        throw new Error(`V should be non-zero when contradiction_resolution < target: V=${vVeto}`);
+      }
+
+      const pressure = computePressure(snapVeto);
+      const maxDim = Object.entries(pressure).reduce(
+        (best, [dim, p]) => (p > best.p ? { dim, p } : best),
+        { dim: "", p: -Infinity }
+      );
+      if (maxDim.dim !== "contradiction_resolution") {
+        throw new Error(
+          `Highest pressure should be contradiction_resolution, got ${maxDim.dim}`
+        );
+      }
+
+      // Verify: improving a non-veto dim that is already at target does NOT reduce V
+      const snapClaimExtra = makeSnapshot({
+        claims_active_avg_confidence: 0.99, // claim even higher — still at score 1.0
+        goals_completion_ratio: 1.0,
+        contradictions_unresolved_count: 2,
+        contradictions_total_count: 4,
+        scope_risk_score: 0.0,
+      });
+      const vClaimExtra = computeLyapunovV(snapClaimExtra);
+      if (Math.abs(vClaimExtra - vVeto) > 1e-10) {
+        throw new Error(
+          `Improving an already-satisfied dim should not change V: V_base=${vVeto.toFixed(6)}, V_extra=${vClaimExtra.toFixed(6)}`
+        );
+      }
+
+      const points = Array.from({ length: 5 }, (_, i) =>
+        snapshotToPoint(i + 1, snapVeto, goalScore(snapVeto))
+      );
+      return {
+        points,
+        expected: {
+          should_converge: false,
+          should_plateau: true,
+          should_be_monotonic: true,
+          expected_highest_pressure: "contradiction_resolution",
+          should_have_eta: false,
+        },
+      };
+    },
+  },
 ];
 
 // ---------------------------------------------------------------------------

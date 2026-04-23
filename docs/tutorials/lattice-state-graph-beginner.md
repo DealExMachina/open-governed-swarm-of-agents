@@ -93,7 +93,7 @@ Most swarm roles are declared in `src/agentRegistry.ts` (`AgentRole` + `AGENT_SP
 ### Governance + executor path
 
 - Agents publish proposals.
-- Governance evaluates policy and **order admissibility** on the product poset M = L × A (partial order, not joins/meets on M).
+- Governance evaluates policy and **order admissibility** on the product lattice M = L × A; meet/join are available for conservative/liberal proposal merging.
 - Executor performs approved `advance_state`, which updates `swarm_state` with CAS on `epoch`.
 
 So the state graph is not manually edited; it is advanced by agent proposals filtered through governance and executed atomically.
@@ -240,7 +240,7 @@ flowchart TB
 - **Edge (semantic graph):** relation between knowledge items
 - **Edge (role graph):** evidence communication channel between roles
 - **Lattice:** partially ordered set with **join** and **meet** for every pair
-- **Product poset M = L × A:** pairs (governance level, convergence rank) with the **product order**; used for kernel admissibility. **Not** a lattice on pairs (no general join/meet in M). **L** is a chain; **A** is componentwise partial order on ranks.
+- **Product lattice M = L × A:** pairs (governance level, convergence rank) with componentwise order and explicit **meet** and **join** on both factors; used for kernel admissibility, conservative/liberal proposal merging, and V-monotonicity proofs. **L** is a three-element chain (MASTER ≤ MITL ≤ YOLO); **A** = [0,1]^4 is a Riesz space (vector lattice) with componentwise min/max as meet/join.
 - **Stalk (sheaf):** local evidence space attached to one role vertex
 - **Restriction map:** projection used to compare neighboring roles on shared edge space
 - **Epoch:** CAS counter for atomic state transitions
