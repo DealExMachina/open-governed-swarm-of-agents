@@ -648,6 +648,15 @@ mod tests {
     }
 
     #[test]
+    fn convergence_rank_compare_dimensions_when_equal() {
+        let a = rank([0.5, 0.5, 0.5, 0.5]);
+        let b = rank([0.5, 0.5, 0.5, 0.5]);
+        let (improved, regressed) = a.compare_dimensions(&b);
+        assert!(improved.is_empty(), "equal dimensions should have no improvements");
+        assert!(regressed.is_empty(), "equal dimensions should have no regressions");
+    }
+
+    #[test]
     fn gap_to_target_is_nonnegative_residual() {
         let r = rank([0.6, 1.2, 0.9, 0.5]);
         let target = [1.0, 1.0, 1.0, 1.0];

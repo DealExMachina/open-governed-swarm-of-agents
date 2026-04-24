@@ -93,10 +93,10 @@ pub fn lyapunov_order_property(
     }
 }
 
-/// Confirm that pressure equals the weighted gap vector for targets = [1,1,1,1].
+/// Verify that pressure equals the weighted gap vector.
 /// pressure[i] = weights[i] × max(0, targets[i] - scores[i])
 /// Returns false if the relationship does not hold within EPSILON.
-pub fn pressure_equals_gap_weights(scores: &[f64; 4], targets: &[f64; 4], weights: &[f64; 4]) -> bool {
+pub fn verify_pressure_equals_gap_weights(scores: &[f64; 4], targets: &[f64; 4], weights: &[f64; 4]) -> bool {
     use crate::types::EPSILON;
     let pressure = compute_pressure(scores, weights);
     for i in 0..4 {
@@ -302,13 +302,13 @@ mod tests {
         assert!(lyapunov_order_property(&scores_a, &scores_b, &targets, &DEFAULT_WEIGHTS));
     }
 
-    // --- pressure_equals_gap_weights ---
+    // --- verify_pressure_equals_gap_weights ---
 
     #[test]
     fn pressure_is_weighted_gap() {
         let scores  = [0.6, 0.7, 0.5, 0.8];
         let targets = [1.0, 1.0, 1.0, 1.0];
-        assert!(pressure_equals_gap_weights(&scores, &targets, &DEFAULT_WEIGHTS));
+        assert!(verify_pressure_equals_gap_weights(&scores, &targets, &DEFAULT_WEIGHTS));
     }
 
     #[test]

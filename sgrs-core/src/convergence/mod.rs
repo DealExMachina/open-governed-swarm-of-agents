@@ -6,7 +6,7 @@ pub mod trajectory;
 pub use analyze::{analyze_convergence, ConvergenceAnalysis, ConvergenceConfig, ConvergencePointInput};
 pub use scores::{
     compute_dimension_scores, compute_pressure, scalar_lyapunov_v,
-    gap_norm_squared, lyapunov_order_property, pressure_equals_gap_weights,
+    gap_norm_squared, lyapunov_order_property, verify_pressure_equals_gap_weights,
     SnapshotInput,
 };
 pub use trajectory::{

@@ -47,12 +47,12 @@ impl DriftLevel {
         }
     }
 
-    /// Conservative drift estimate: the higher severity.
+    /// Pessimistic drift estimate: the higher severity (least upper bound).
     pub fn join(a: Self, b: Self) -> Self {
         if a.severity() >= b.severity() { a } else { b }
     }
 
-    /// Optimistic drift estimate: the lower severity.
+    /// Optimistic drift estimate: the lower severity (greatest lower bound).
     pub fn meet(a: Self, b: Self) -> Self {
         if a.severity() <= b.severity() { a } else { b }
     }

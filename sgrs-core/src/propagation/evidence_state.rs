@@ -243,17 +243,17 @@ impl EvidenceVector {
         }
     }
 
-    /// Pure support contribution: the positive part of this evidence in the knowledge order.
-    /// Defined as join_k(self, zeros). Since values are in [0,1] this equals self.clone().
-    /// Named separately to expose the positive-projection structure.
+    /// Support-channel projection: the "positive part" in the bilattice knowledge order.
+    /// Defined as join_k(self, zeros) = self, since all values are in [0,1].
+    /// This is a bilattice channel decomposition, not a classical positive/negative split.
     pub fn positive_part_k(&self) -> EvidenceVector {
         let zeros = EvidenceVector::zeros(self.num_dims());
         self.join_k(&zeros)
     }
 
-    /// Pure refutation contribution: the negative part viewed through the knowledge order.
-    /// Defined as join_k(neg(self), zeros) = neg(self).
-    /// Returns a vector whose support channel is the original refutation channel.
+    /// Refutation-channel projection: the "negative part" obtained by negating and projecting.
+    /// Defined as join_k(neg(self), zeros) = neg(self), which swaps support ↔ refutation channels.
+    /// This is a bilattice channel decomposition, not a classical positive/negative split.
     pub fn negative_part_k(&self) -> EvidenceVector {
         let zeros = EvidenceVector::zeros(self.num_dims());
         self.neg().join_k(&zeros)

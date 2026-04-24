@@ -307,7 +307,11 @@ const scenarios: Scenario[] = [
     },
   },
 
-  // ── Riesz algebra scenarios ─────────────────────────────────────────────
+  // ── Riesz algebra scenarios ──────────────────────────────────────────────
+  // Note: These scenarios perform inline property validation (e.g., V decreases,
+  // pressure values are correct) via throw statements, in addition to returning
+  // an expected struct for framework-level validation. Inline assertions test
+  // mathematical properties that analyzeConvergence does not directly expose.
 
   {
     name: "Governance escalation aligns with V",
