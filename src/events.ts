@@ -63,3 +63,27 @@ export interface Action {
   action_type?: string;
   payload?: Record<string, unknown>;
 }
+
+/**
+ * Emitted on NATS subject `scope.document.removed` when a context document is removed
+ * from a scope and its derived claims have been cascade-invalidated.
+ *
+ * TODO(future-release): Gated behind ENABLE_DOCUMENT_MUTATION=true.
+ * See src/documentRemovalService.ts for the full invalidation cascade.
+ */
+export interface DocumentRemovedEvent {
+  /** Fixed NATS/WAL event type. */
+  readonly type: "scope.document.removed";
+  /** Scope from which the document was removed. */
+  scope_id: string;
+  /** WAL sequence number of the original context_doc event (used as the document id). */
+  document_seq: number;
+  /** Title of the removed document (from the original context_doc payload). */
+  document_title: string;
+  /** Number of claim nodes set to status="invalidated" by this removal. */
+  claims_invalidated: number;
+  /** Number of contradiction nodes transitively invalidated (referenced an invalidated claim). */
+  contradictions_invalidated: number;
+  /** Whether a fresh convergence point was successfully recorded after removal. */
+  convergence_recomputed: boolean;
+}

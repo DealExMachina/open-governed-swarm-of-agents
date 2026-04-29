@@ -126,6 +126,51 @@ export function validateScopedRequest(
   return { ok: true, scopeId };
 }
 
+/**
+ * DELETE /context/docs/:seq — remove a document and cascade-invalidate derived claims.
+ *
+ * TODO(future-release): This endpoint is intentionally disabled in production until
+ * the document-removal feature is fully validated. Set ENABLE_DOCUMENT_MUTATION=true
+ * to enable it. See src/documentRemovalService.ts for the full invalidation design.
+ *
+ * :seq must be the WAL sequence number returned when the document was added via
+ * POST /context/docs. The handler will 404 if the seq does not point to a context_doc event.
+ */
+async function handleRemoveDoc(req: IncomingMessage, res: ServerResponse, documentSeq: number): Promise<void> {
+  // Feature flag — disabled by default; must be explicitly opted in.
+  if (process.env.ENABLE_DOCUMENT_MUTATION !== "true") {
+    sendJson(res, 501, {
+      error: "feature_disabled",
+      message: "Document mutation is not enabled. Set ENABLE_DOCUMENT_MUTATION=true to enable this feature.",
+    });
+    return;
+  }
+  try {
+    const body = await readJsonBody(req);
+    const scopeId = readScopeIdFromRequest(req, body);
+    if (!scopeId) {
+      sendJson(res, 400, { error: "scope_required" });
+      return;
+    }
+    const valid = validateScopeId(scopeId);
+    if (!valid.ok) {
+      sendJson(res, valid.status, { error: valid.error, runtime_scope_id: RUNTIME_SCOPE_ID });
+      return;
+    }
+    const { removeDocument } = await import("./documentRemovalService.js");
+    const bus = await getFeedBus();
+    const result = await removeDocument(scopeId, documentSeq, bus);
+    sendJson(res, 200, { ok: true, ...result });
+  } catch (e) {
+    const code = (e as { code?: string }).code;
+    if (code === "DOCUMENT_NOT_FOUND") {
+      sendJson(res, 404, { error: "document_not_found", message: String(e) });
+      return;
+    }
+    sendJson(res, 500, { error: toErrorString(e) });
+  }
+}
+
 /** POST /context/docs: add a document to the WAL (type context_doc). Triggers facts pipeline. */
 async function handleAddDoc(req: IncomingMessage, res: ServerResponse): Promise<void> {
   try {
@@ -634,6 +679,15 @@ async function main(): Promise<void> {
       if (req.method === "POST" && pathname === "/context/docs") {
         if (!requireBearer(req, res)) return;
         await handleAddDoc(req, res);
+        return;
+      }
+      // TODO(future-release): DELETE /context/docs/:seq — requires ENABLE_DOCUMENT_MUTATION=true.
+      // :seq is the WAL sequence number returned by POST /context/docs.
+      const docRemoveMatch = /^\/context\/docs\/(\d+)$/.exec(pathname);
+      if (req.method === "DELETE" && docRemoveMatch) {
+        if (!requireBearer(req, res)) return;
+        const documentSeq = parseInt(docRemoveMatch[1], 10);
+        await handleRemoveDoc(req, res, documentSeq);
         return;
       }
       if (req.method === "POST" && pathname === "/context/resolution") {
