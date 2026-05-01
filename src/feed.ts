@@ -49,6 +49,7 @@ const NATS_STREAM = process.env.NATS_STREAM ?? "SWARM_JOBS";
 const S3_BUCKET = process.env.S3_BUCKET ?? null;
 const GOVERNANCE_PATH = process.env.GOVERNANCE_PATH ?? join(process.cwd(), "governance.yaml");
 const RUNTIME_SCOPE_ID = process.env.SCOPE_ID ?? "default";
+const ACCEPT_ANY_SCOPE = process.env.ACCEPT_ANY_SCOPE === "1";
 const MITL_URL = (process.env.MITL_URL ?? "http://localhost:3001").replace(/\/$/, "");
 
 function getPathname(url: string): string {
@@ -104,7 +105,7 @@ function readScopeIdFromRequest(req: IncomingMessage, body?: Record<string, unkn
 
 function validateScopeId(scopeId: string): { ok: true } | { ok: false; status: number; error: string } {
   if (!scopeId) return { ok: false, status: 400, error: "scope_required" };
-  if (scopeId !== RUNTIME_SCOPE_ID) {
+  if (!ACCEPT_ANY_SCOPE && scopeId !== RUNTIME_SCOPE_ID) {
     return { ok: false, status: 409, error: "unsupported_scope_for_runtime" };
   }
   return { ok: true };

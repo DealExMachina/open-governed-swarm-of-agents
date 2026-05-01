@@ -12,7 +12,7 @@ docker compose up -d otel-collector prometheus grafana
 
 **Ports:** 3004 (Grafana), 9090 (Prometheus), 4317/4318 (OTLP), 8889 (scrape)
 
-**When data appears:** Start the swarm (`pnpm run swarm`), run demo activity (feed documents), then open http://localhost:3004. Swarm emits metrics to `http://localhost:4318`; Prometheus scrapes the collector every 15s. Allow 30–60 seconds after the first document is processed.
+**When data appears:** Start the swarm hatchery (`pnpm run swarm:start` or `./scripts/swarm-hatchery.sh`; not facts-only `pnpm run swarm`), run demo activity (feed documents), then open http://localhost:3004. Swarm emits metrics to `http://localhost:4318`; Prometheus scrapes the collector every 15s. Allow 30–60 seconds after the first document is processed.
 
 **Troubleshooting (no data in Grafana):**
 1. Ensure otel-collector, prometheus, and grafana are running: `docker compose ps`

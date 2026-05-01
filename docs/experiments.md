@@ -1,6 +1,6 @@
 # Demo Scenarios and Benchmarks
 
-> Back to [README](../README.md) | See also [validation.md](validation.md) and [demos/README.md](demos/README.md).
+> Back to [README](../README.md) | See also [validation.md](validation.md) | [Codebase hygiene](codebase-hygiene.md) | [demos/README.md](demos/README.md).
 
 This page documents the demo scenarios shipped with the public snapshot and the load/convergence benchmarks used to validate the reference implementation. For the formal experimental protocols that accompany the paper, refer to the publication and its companion research surface.
 
