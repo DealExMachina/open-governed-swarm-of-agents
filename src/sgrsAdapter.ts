@@ -285,6 +285,7 @@ export interface GateState {
   c_trajectory: boolean;
   d_quiescent: boolean;
   e_has_content: boolean;
+  f_elimination_complete: boolean;
   all_passed: boolean;
 }
 
@@ -312,6 +313,7 @@ export function evaluateGates(
     c_trajectory: dto.cTrajectory,
     d_quiescent: dto.dQuiescent,
     e_has_content: dto.eHasContent,
+    f_elimination_complete: dto.fEliminationComplete,
     all_passed: dto.allPassed,
   };
 }
@@ -480,6 +482,7 @@ export function evaluateVectorFinality(
         cTrajectory: globalGates.c_trajectory,
         dQuiescent: globalGates.d_quiescent,
         eHasContent: globalGates.e_has_content,
+        fEliminationComplete: globalGates.f_elimination_complete,
         allPassed: globalGates.all_passed,
       },
       scalarScore,

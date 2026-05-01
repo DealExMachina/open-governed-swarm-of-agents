@@ -194,7 +194,7 @@ async function processActionWithAgent(action: Action, bus: EventBus, s3: ReturnT
       maxSteps: 5,
       abortSignal: abortController.signal,
       modelSettings: DETERMINISTIC_SETTINGS,
-      structuredOutput: { schema: ExecutorOutputSchema, jsonPromptInjection: true },
+      structuredOutput: { schema: ExecutorOutputSchema as any, jsonPromptInjection: true },
     }));
     trackAgentTokens("executor", genResult);
   } catch (e) {

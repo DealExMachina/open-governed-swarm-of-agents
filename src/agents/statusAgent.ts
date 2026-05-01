@@ -77,7 +77,7 @@ export async function runStatusAgent(
       const genResult = await agent.generate(prompt, {
         maxSteps: 5,
         modelSettings: isFull ? EXTENDED_SETTINGS : DETERMINISTIC_SETTINGS,
-        structuredOutput: { schema: StatusOutputSchema, jsonPromptInjection: true },
+        structuredOutput: { schema: StatusOutputSchema as any, jsonPromptInjection: true },
       });
       trackAgentTokens("status", genResult);
       const factsRaw = await s3GetText(s3, bucket, "facts/latest.json");

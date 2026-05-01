@@ -250,12 +250,13 @@ function buildMAGraph(
     graph.addNode(role.id, makeAgentNode(role, llm, rng, skipLlm, pkg));
   }
 
-  // Sequential pipeline: role[0] -> role[1] -> ... -> END
-  graph.addEdge("__start__", roles[0].id);
+  // Sequential pipeline: role[0] -> role[1] -> ... -> END (edges loosened: LangGraph brands literal node IDs)
+  const rg = graph as unknown as { addEdge: (a: string, b: string) => void };
+  rg.addEdge("__start__", roles[0].id);
   for (let i = 0; i < roles.length - 1; i++) {
-    graph.addEdge(roles[i].id, roles[i + 1].id);
+    rg.addEdge(roles[i].id, roles[i + 1].id);
   }
-  graph.addEdge(roles[roles.length - 1].id, "__end__");
+  rg.addEdge(roles[roles.length - 1].id, "__end__");
 
   return graph.compile();
 }
