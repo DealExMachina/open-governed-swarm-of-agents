@@ -112,7 +112,7 @@ export async function runDriftAgent(
           maxSteps: 5,
           abortSignal: abortController.signal,
           modelSettings: REASONING_SETTINGS,
-          structuredOutput: { schema: DriftOutputSchema, jsonPromptInjection: true },
+          structuredOutput: { schema: DriftOutputSchema as any, jsonPromptInjection: true },
         });
         trackAgentTokens("drift", genResult);
       } finally {
