@@ -1,0 +1,28 @@
+# Standalone feed image: code copied into the image (no host bind mount).
+# Built by CI and pushed to GHCR. For dev with live reload, use Dockerfile.feed + compose volumes.
+FROM node:20-alpine
+
+RUN apk add --no-cache curl build-base musl-dev \
+  && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable --profile minimal
+
+ENV PATH="/root/.cargo/bin:${PATH}"
+ENV CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER=gcc
+ENV CARGO_TARGET_X86_64_UNKNOWN_LINUX_MUSL_LINKER=gcc
+
+WORKDIR /app
+
+COPY package.json pnpm-lock.yaml ./
+COPY tsconfig.json ./
+COPY governance.yaml finality.yaml evidence_schemas.yaml propagation.yaml ./
+COPY src ./src
+COPY sgrs-core ./sgrs-core
+
+RUN corepack enable && corepack prepare pnpm@10.30.1 --activate \
+  && pnpm install --frozen-lockfile \
+  && cd sgrs-core && pnpm install --frozen-lockfile \
+  && pnpm exec napi build --release --platform
+
+EXPOSE 3002
+ENV FEED_PORT=3002
+
+CMD ["pnpm", "run", "feed"]

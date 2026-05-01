@@ -1,0 +1,14 @@
+# Use prebuilt feed image from GHCR (no local build, no repo bind mount).
+# Requires Docker Compose v2.24+ for merge `!reset`.
+#
+#   export SWARM_FEED_IMAGE=ghcr.io/dealexmachina/swarm-feed:latest
+#   docker compose -f docker-compose.yml -f docker-compose.public-images.yml up -d
+#
+# See docs/deployment.md
+
+services:
+  feed:
+    image: ${SWARM_FEED_IMAGE:-ghcr.io/dealexmachina/swarm-feed:latest}
+    build: !reset null
+    working_dir: /app
+    volumes: !reset []
