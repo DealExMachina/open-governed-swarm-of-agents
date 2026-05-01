@@ -11,9 +11,7 @@ fn make_point(overrides: PartialPoint) -> ConvergencePointInput {
         goal_score: overrides.goal_score.unwrap_or(0.5),
         lyapunov_v: overrides.lyapunov_v.unwrap_or(0.1),
         dimension_scores: overrides.dimension_scores.unwrap_or([0.5, 0.5, 0.5, 0.5]),
-        pressure: overrides
-            .pressure
-            .unwrap_or([0.15, 0.15, 0.125, 0.075]),
+        pressure: overrides.pressure.unwrap_or([0.15, 0.15, 0.125, 0.075]),
         context_seq: overrides.context_seq.unwrap_or(None),
     }
 }
@@ -35,10 +33,18 @@ impl ConvergencePointInput {
     }
 }
 
-fn make_improving_history(n: usize, start_score: f64, end_score: f64) -> Vec<ConvergencePointInput> {
+fn make_improving_history(
+    n: usize,
+    start_score: f64,
+    end_score: f64,
+) -> Vec<ConvergencePointInput> {
     let mut points = Vec::with_capacity(n);
     for i in 0..n {
-        let t = if n == 1 { 1.0 } else { i as f64 / (n - 1) as f64 };
+        let t = if n == 1 {
+            1.0
+        } else {
+            i as f64 / (n - 1) as f64
+        };
         let score = start_score + t * (end_score - start_score);
         let v = ((1.0 - score).powi(2) * 0.3).max(0.001);
         let gap = (1.0 - score).max(0.0);
@@ -47,12 +53,7 @@ fn make_improving_history(n: usize, start_score: f64, end_score: f64) -> Vec<Con
             goal_score: score,
             lyapunov_v: v,
             dimension_scores: [score, score, score, score],
-            pressure: [
-                0.3 * gap,
-                0.3 * gap,
-                0.25 * gap,
-                0.15 * gap,
-            ],
+            pressure: [0.3 * gap, 0.3 * gap, 0.25 * gap, 0.15 * gap],
             context_seq: None,
         });
     }
@@ -525,7 +526,9 @@ fn detects_stalled_dimensions() {
         }));
     }
     let state = analyze_convergence(&history, &ConvergenceConfig::default(), 0.92);
-    assert!(state.stalled_dimensions.contains(&DimensionId::GoalCompletion));
+    assert!(state
+        .stalled_dimensions
+        .contains(&DimensionId::GoalCompletion));
     assert!(state
         .stalled_dimensions
         .contains(&DimensionId::ContradictionResolution));

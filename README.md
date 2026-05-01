@@ -19,6 +19,8 @@ SGRS provides all five. No existing framework does.
 
 > **Want the full picture?** This repo is the open-access companion to a publication. It contains the working system, demo scenarios, and formal validation. For production deployment, advisory, or the extended kernel: [jeanbapt@dealexmachina.com](mailto:jeanbapt@dealexmachina.com)
 
+**Related repository:** the browser Studio, multi-tenant REST API, and npm/PyPI clients live in [DealExMachina/sgrs](https://github.com/DealExMachina/sgrs). Use this repo for the orchestration kernel and `docker compose` stack; use that repo to connect from Studio or SDKs.
+
 ---
 
 ## What SGRS is
@@ -42,8 +44,11 @@ Agents --> shared bitemporal state --> governance kernel --> finality certificat
 
 | What you want | Where to go |
 |---|---|
+| Deploy, connect to cloud, or self-host | [Deployment guide](docs/deployment.md) |
 | Understand the terminology | [Beginner Tutorial: Lattice-State Graph](docs/tutorials/lattice-state-graph-beginner.md) |
+| Missing files, E2E caveats, prototypes | [Codebase hygiene](docs/codebase-hygiene.md) |
 | Run the M&A demo (5 docs, contradictions, HITL) | [Demo Guide](demo/DEMO.md) |
+| Static SGRS Studio (graph UI prototype) | [`prototype/studio-preview/`](prototype/studio-preview/index.html) — serve as static files |
 | Read the paper | [publications/publication_1/swarm-governed-agents.pdf](publications/publication_1/swarm-governed-agents.pdf) |
 | Formal convergence theory | [docs/convergence.md](docs/convergence.md) |
 | Architecture deep dive | [docs/architecture.md](docs/architecture.md) |
@@ -74,7 +79,10 @@ pnpm run ensure-stream           # Create NATS stream
 pnpm run seed:all                # Seed context WAL
 pnpm run bootstrap-once          # Bootstrap job
 
-pnpm run swarm                   # Start the agent hatchery
+# Full pipeline (facts, drift, propagation, governance, executor, …)
+pnpm run swarm:start
+
+# Note: `pnpm run swarm` alone runs a single role (often facts-only in dev); prefer `swarm:start` for the full hatchery.
 ```
 
 **Run the demo:**
@@ -87,7 +95,9 @@ pnpm run demo                    # Demo UI on http://localhost:3003
 ./scripts/run-e2e.sh
 ```
 
-**Ports:** 3002 API/observability, 3003 demo UI, 3004 Grafana, 5433 Postgres, 4222 NATS, 9000 MinIO, 8010 facts-worker, 9090 Prometheus.
+**Ports (default compose):** 3002 feed API, 3003 demo UI, 3004 Grafana, 3000/8080 OpenFGA (HTTP/gRPC), 5433 Postgres, 4222 NATS, 8222 NATS metrics, 9000/9001 MinIO, 8010 facts-worker, 9090 Prometheus, 4317/4318 OTLP.
+
+To run **SGRS Studio** or the product **API** against an environment, see the companion monorepo [DealExMachina/sgrs](https://github.com/DealExMachina/sgrs) (Quickstart, `ROUTING_ARCHITECTURE.md`, and client packages).
 
 ---
 
@@ -229,18 +239,20 @@ See [docs/demos/README.md](docs/demos/README.md) for detailed protocols.
 ## Validation
 
 ```bash
-pnpm run test                                    # 460 TypeScript tests (~50 suites)
-cargo test --manifest-path sgrs-core/Cargo.toml   # 252 Rust lib tests
-npx tsx scripts/benchmark-convergence.ts          # 7 convergence scenarios (no Docker)
-pnpm run benchmark:sgrs                           # sgrs load benchmark
-./scripts/run-e2e.sh                              # Full E2E pipeline
+pnpm run test                                     # Vitest (requires test/ — see hygiene doc)
+cargo test --manifest-path sgrs-core/Cargo.toml  # Rust kernel, propagation, governance, …
+npx tsx scripts/benchmark-convergence.ts         # Synthetic convergence scenarios (no Docker)
+pnpm run benchmark:sgrs                          # sgrs load benchmark
+./scripts/run-e2e.sh                             # Docker E2E (applies a subset of migrations — prefer ensure-schema for full DB)
 ```
 
-**What's proven:** Convergence dynamics (E1-E9), per-dimension vector finality (non-compensability), governance path coverage, sheaf propagation at 1024 nodes, CRDT monotonicity, deterministic replay.
+The repository ships **Vitest config** but **no `test/` tree**: `pnpm run test` will report *no test files* until tests are added. **Rust** carries the primary automated coverage (`sgrs-core`). See [docs/codebase-hygiene.md](docs/codebase-hygiene.md) for missing assets, E2E vs. `ensure-schema`, and prototype code.
 
-**What's theoretical:** Full-system scalability beyond ~10 agents (kernel validated to 1024), long convergence over hundreds of epochs, adversarial robustness beyond 2-agent collusion.
+**What's proven (high level):** Convergence math (benchmark + Rust), kernel load benchmark, propagation experiments in `sgrs-core`, governance path audit script after E2E seed.
 
-See [docs/validation.md](docs/validation.md) for the complete methodology and known gaps.
+**What's theoretical:** Full-stack behaviour without the TypeScript unit suite, long-horizon LLM trajectories matching synthetic convergence paths, adversarial robustness beyond tested collusion models.
+
+See [docs/validation.md](docs/validation.md) for methodology and known gaps.
 
 ---
 
@@ -248,7 +260,8 @@ See [docs/validation.md](docs/validation.md) for the complete methodology and kn
 
 | Script | Purpose |
 |--------|---------|
-| `pnpm run swarm` | Start agent hatchery. `swarm:start` = preflight + hatchery. |
+| `pnpm run swarm:start` | Hatchery (full agent set). Recommended for demos. |
+| `pnpm run swarm` | Single-process swarm entrypoint (role via env; often not the full hatchery). |
 | `pnpm run check:services` | Preflight: Postgres, S3, NATS, facts-worker. |
 | `pnpm run ensure-schema` | Run all DB migrations. |
 | `pnpm run ensure-bucket` | Create S3 bucket. |
@@ -283,6 +296,9 @@ See [docs/validation.md](docs/validation.md) for the complete methodology and kn
 - [Convergence](docs/convergence.md) -- formal theory, Gate C, configuration reference, benchmarks
 - [Experiments](docs/experiments.md) -- protocols and results
 - [Validation](docs/validation.md) -- test methodology, known gaps
+- [Codebase hygiene](docs/codebase-hygiene.md) -- missing assets, E2E caveats, dead paths
+- [Deployment](docs/deployment.md) -- hosted vs self-host, GHCR feed image, enterprise contact
+- [Experimental terms (disclaimer)](docs/experimental-terms.md)
 - [Publications index](publications/README.md)
 
 ---
@@ -316,6 +332,10 @@ See [docs/validation.md](docs/validation.md) for the complete methodology and kn
 ```
 
 ---
+
+## Terms (experimental)
+
+Use is at your own risk. See [docs/experimental-terms.md](docs/experimental-terms.md).
 
 ## License
 

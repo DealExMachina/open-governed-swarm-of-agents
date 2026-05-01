@@ -49,6 +49,7 @@ const NATS_STREAM = process.env.NATS_STREAM ?? "SWARM_JOBS";
 const S3_BUCKET = process.env.S3_BUCKET ?? null;
 const GOVERNANCE_PATH = process.env.GOVERNANCE_PATH ?? join(process.cwd(), "governance.yaml");
 const RUNTIME_SCOPE_ID = process.env.SCOPE_ID ?? "default";
+const ACCEPT_ANY_SCOPE = process.env.ACCEPT_ANY_SCOPE === "1";
 const MITL_URL = (process.env.MITL_URL ?? "http://localhost:3001").replace(/\/$/, "");
 
 function getPathname(url: string): string {
@@ -104,7 +105,7 @@ function readScopeIdFromRequest(req: IncomingMessage, body?: Record<string, unkn
 
 function validateScopeId(scopeId: string): { ok: true } | { ok: false; status: number; error: string } {
   if (!scopeId) return { ok: false, status: 400, error: "scope_required" };
-  if (scopeId !== RUNTIME_SCOPE_ID) {
+  if (!ACCEPT_ANY_SCOPE && scopeId !== RUNTIME_SCOPE_ID) {
     return { ok: false, status: 409, error: "unsupported_scope_for_runtime" };
   }
   return { ok: true };
@@ -338,6 +339,178 @@ function toFactStringList(val: unknown): string[] {
   return [];
 }
 
+/**
+ * Build studio/demo summary JSON for a scope (shared by feed and control plane).
+ */
+export async function buildScopeSummaryForScope(scopeId: string): Promise<Record<string, unknown>> {
+  const state = await loadState(scopeId);
+  const recent = await tailEvents(20);
+  let facts: Record<string, unknown> | null = null;
+  let drift: Record<string, unknown> | null = null;
+  if (S3_BUCKET) {
+    try {
+      const s3 = makeS3();
+      const factsRaw = await s3GetText(s3, S3_BUCKET, "facts/latest.json");
+      const driftRaw = await s3GetText(s3, S3_BUCKET, "drift/latest.json");
+      if (factsRaw) facts = JSON.parse(factsRaw) as Record<string, unknown>;
+      if (driftRaw) drift = JSON.parse(driftRaw) as Record<string, unknown>;
+    } catch {
+      // S3 optional for summary
+    }
+  }
+  return {
+    scope_id: scopeId,
+    state: state
+      ? { lastNode: state.lastNode, epoch: state.epoch, runId: state.runId, updatedAt: state.updatedAt }
+      : null,
+    facts: facts
+      ? {
+          goals: toFactStringList(facts.goals),
+          claims: toFactStringList(facts.claims),
+          risks: toFactStringList(facts.risks),
+          contradictions: toFactStringList(facts.contradictions),
+          assumptions: toFactStringList(facts.assumptions),
+          confidence: facts.confidence ?? null,
+          hash: (facts as { hash?: string }).hash ?? null,
+          keys: Object.keys(facts).filter((k) => !["hash", "goals", "confidence", "claims", "risks", "contradictions", "assumptions"].includes(k)),
+        }
+      : null,
+    drift: (() => {
+      if (!drift) return null;
+      const level = String(drift.level ?? "unknown");
+      const types = (drift.types as string[]) ?? [];
+      const notes = (drift.notes as string[]) ?? [];
+      let suggested_actions: string[] = [];
+      try {
+        const config = getGovernanceForScope(scopeId, loadPolicies(GOVERNANCE_PATH));
+        suggested_actions = evaluateRules({ level, types }, config);
+      } catch {
+        // governance file optional for summary
+      }
+      const references = (drift.references as Array<{ type?: string; doc?: string; excerpt?: string }>) ?? [];
+      return { level, types, notes, suggested_actions, references };
+    })(),
+    what_changed: recent
+      .filter((e) => ["state_transition", "facts_extracted", "drift_analyzed", "context_doc", "bootstrap", "resolution"].includes((e.data as { type?: string })?.type ?? ""))
+      .slice(-10)
+      .map((e) => ({
+        seq: e.seq,
+        type: (e.data as { type?: string }).type,
+        ts: e.ts,
+        payload: (e.data as { payload?: Record<string, unknown> }).payload ?? {},
+      })),
+    finality: await (async () => {
+      try {
+        const config = loadFinalityConfig();
+        const near = config.goal_gradient?.near_finality_threshold ?? 0.75;
+        const auto = config.goal_gradient?.auto_finality_threshold ?? 0.92;
+        const goal_score = await computeGoalScoreForScope(scopeId);
+        const result = await evaluateFinality(scopeId);
+        const status = result?.kind === "status" ? result.status : result?.kind === "review" ? "near_finality" : "ACTIVE";
+        let last_decision: { option: string; created_at: string } | null = null;
+        try {
+          const decision = await getLatestFinalityDecision(scopeId);
+          if (decision) last_decision = { option: decision.option, created_at: decision.created_at };
+        } catch {
+          // table may not exist
+        }
+        let convergence: Record<string, unknown> | null = null;
+        try {
+          const convConfig = config.convergence ?? {};
+          const convState: ConvergenceState = await getConvergenceState(scopeId, convConfig, auto);
+          convergence = {
+            rate: convState.convergence_rate,
+            estimated_rounds: convState.estimated_rounds,
+            is_plateaued: convState.is_plateaued,
+            plateau_rounds: convState.plateau_rounds,
+            lyapunov_v: convState.history.length > 0 ? convState.history[convState.history.length - 1].lyapunov_v : null,
+            highest_pressure: convState.highest_pressure_dimension,
+            is_monotonic: convState.is_monotonic,
+            trajectory_quality: convState.trajectory_quality,
+            oscillation_detected: convState.oscillation_detected,
+            history: convState.history.map((p) => ({
+              epoch: p.epoch,
+              score: p.goal_score,
+              v: p.lyapunov_v,
+            })),
+          };
+        } catch {
+          // convergence_history table may not exist
+        }
+
+        let policy_version: { governance?: string; finality?: string } | undefined;
+        let finality_certificate: { decision: string; timestamp: string; has_jws: boolean } | null = null;
+        try {
+          policy_version = { governance: getGovernancePolicyVersion(), finality: getFinalityPolicyVersion() };
+        } catch {
+          // optional
+        }
+        try {
+          const cert = await getLatestCertificate(scopeId);
+          if (cert) {
+            finality_certificate = {
+              decision: cert.payload.decision,
+              timestamp: cert.payload.timestamp,
+              has_jws: !!cert.certificate_jws,
+            };
+          }
+        } catch {
+          // table may not exist
+        }
+        return {
+          goal_score: Math.round(goal_score * 100) / 100,
+          status,
+          near_threshold: near,
+          auto_threshold: auto,
+          resolved: status === "RESOLVED",
+          dimension_breakdown: result?.kind === "review" ? result.request.dimension_breakdown : null,
+          blockers: result?.kind === "review" ? result.request.blockers : null,
+          last_decision: last_decision ?? undefined,
+          policy_version: policy_version ?? undefined,
+          finality_certificate: finality_certificate ?? undefined,
+          convergence,
+          dimensions: await (async () => {
+            try {
+              const snap = await loadFinalitySnapshot(scopeId);
+              const contraTotal = snap.contradictions_total_count || 0;
+              const contraResolved = contraTotal === 0 ? 1 : 1 - (snap.contradictions_unresolved_count / contraTotal);
+              return {
+                claim_avg_confidence: snap.claims_active_avg_confidence,
+                contradiction_resolution_ratio: contraResolved,
+                goal_completion_ratio: snap.goals_completion_ratio,
+                risk_score_inverse: 1 - Math.min(snap.scope_risk_score, 1),
+              };
+            } catch { return null; }
+          })(),
+        };
+      } catch {
+        return null;
+      }
+    })(),
+    state_graph: await (async () => {
+      try {
+        return await getGraphSummary(scopeId);
+      } catch {
+        return null;
+      }
+    })(),
+    contradictions: await (async () => {
+      try {
+        return await loadAllContradictionsWithResolutions(scopeId);
+      } catch {
+        return null;
+      }
+    })(),
+    human_decisions: await (async () => {
+      try {
+        return await getAllFinalityDecisions(scopeId);
+      } catch {
+        return [];
+      }
+    })(),
+  };
+}
+
 /** GET /summary: state, facts summary, drift, and recent pipeline events for demo output. */
 async function handleSummary(req: IncomingMessage, res: ServerResponse): Promise<void> {
   try {
@@ -351,172 +524,7 @@ async function handleSummary(req: IncomingMessage, res: ServerResponse): Promise
       sendJson(res, valid.status, { error: valid.error, runtime_scope_id: RUNTIME_SCOPE_ID });
       return;
     }
-    const state = await loadState(scopeId);
-    const recent = await tailEvents(20);
-    let facts: Record<string, unknown> | null = null;
-    let drift: Record<string, unknown> | null = null;
-    if (S3_BUCKET) {
-      try {
-        const s3 = makeS3();
-        const factsRaw = await s3GetText(s3, S3_BUCKET, "facts/latest.json");
-        const driftRaw = await s3GetText(s3, S3_BUCKET, "drift/latest.json");
-        if (factsRaw) facts = JSON.parse(factsRaw) as Record<string, unknown>;
-        if (driftRaw) drift = JSON.parse(driftRaw) as Record<string, unknown>;
-      } catch {
-        // S3 optional for summary
-      }
-    }
-    const summary = {
-      state: state
-        ? { lastNode: state.lastNode, epoch: state.epoch, runId: state.runId, updatedAt: state.updatedAt }
-        : null,
-      facts: facts
-        ? {
-            goals: toFactStringList(facts.goals),
-            claims: toFactStringList(facts.claims),
-            risks: toFactStringList(facts.risks),
-            contradictions: toFactStringList(facts.contradictions),
-            assumptions: toFactStringList(facts.assumptions),
-            confidence: facts.confidence ?? null,
-            hash: (facts as { hash?: string }).hash ?? null,
-            keys: Object.keys(facts).filter((k) => !["hash", "goals", "confidence", "claims", "risks", "contradictions", "assumptions"].includes(k)),
-          }
-        : null,
-      drift: (() => {
-        if (!drift) return null;
-        const level = String(drift.level ?? "unknown");
-        const types = (drift.types as string[]) ?? [];
-        const notes = (drift.notes as string[]) ?? [];
-        let suggested_actions: string[] = [];
-        try {
-          const config = getGovernanceForScope(scopeId, loadPolicies(GOVERNANCE_PATH));
-          suggested_actions = evaluateRules({ level, types }, config);
-        } catch {
-          // governance file optional for summary
-        }
-        const references = (drift.references as Array<{ type?: string; doc?: string; excerpt?: string }>) ?? [];
-        return { level, types, notes, suggested_actions, references };
-      })(),
-      what_changed: recent
-        .filter((e) => ["state_transition", "facts_extracted", "drift_analyzed", "context_doc", "bootstrap", "resolution"].includes((e.data as { type?: string })?.type ?? ""))
-        .slice(-10)
-        .map((e) => ({
-          seq: e.seq,
-          type: (e.data as { type?: string }).type,
-          ts: e.ts,
-          payload: (e.data as { payload?: Record<string, unknown> }).payload ?? {},
-        })),
-      finality: await (async () => {
-        try {
-          const config = loadFinalityConfig();
-          const near = config.goal_gradient?.near_finality_threshold ?? 0.75;
-          const auto = config.goal_gradient?.auto_finality_threshold ?? 0.92;
-          const goal_score = await computeGoalScoreForScope(scopeId);
-          const result = await evaluateFinality(scopeId);
-          const status = result?.kind === "status" ? result.status : result?.kind === "review" ? "near_finality" : "ACTIVE";
-          let last_decision: { option: string; created_at: string } | null = null;
-          try {
-            const decision = await getLatestFinalityDecision(scopeId);
-            if (decision) last_decision = { option: decision.option, created_at: decision.created_at };
-          } catch {
-            // table may not exist
-          }
-          // Convergence data (graceful degradation)
-          let convergence: Record<string, unknown> | null = null;
-          try {
-            const convConfig = config.convergence ?? {};
-            const convState: ConvergenceState = await getConvergenceState(scopeId, convConfig, auto);
-            convergence = {
-              rate: convState.convergence_rate,
-              estimated_rounds: convState.estimated_rounds,
-              is_plateaued: convState.is_plateaued,
-              plateau_rounds: convState.plateau_rounds,
-              lyapunov_v: convState.history.length > 0 ? convState.history[convState.history.length - 1].lyapunov_v : null,
-              highest_pressure: convState.highest_pressure_dimension,
-              is_monotonic: convState.is_monotonic,
-              trajectory_quality: convState.trajectory_quality,
-              oscillation_detected: convState.oscillation_detected,
-              history: convState.history.map((p) => ({
-                epoch: p.epoch,
-                score: p.goal_score,
-                v: p.lyapunov_v,
-              })),
-            };
-          } catch {
-            // convergence_history table may not exist
-          }
-
-          let policy_version: { governance?: string; finality?: string } | undefined;
-          let finality_certificate: { decision: string; timestamp: string; has_jws: boolean } | null = null;
-          try {
-            policy_version = { governance: getGovernancePolicyVersion(), finality: getFinalityPolicyVersion() };
-          } catch {
-            // optional
-          }
-          try {
-            const cert = await getLatestCertificate(scopeId);
-            if (cert) {
-              finality_certificate = {
-                decision: cert.payload.decision,
-                timestamp: cert.payload.timestamp,
-                has_jws: !!cert.certificate_jws,
-              };
-            }
-          } catch {
-            // table may not exist
-          }
-          return {
-            goal_score: Math.round(goal_score * 100) / 100,
-            status,
-            near_threshold: near,
-            auto_threshold: auto,
-            resolved: status === "RESOLVED",
-            dimension_breakdown: result?.kind === "review" ? result.request.dimension_breakdown : null,
-            blockers: result?.kind === "review" ? result.request.blockers : null,
-            last_decision: last_decision ?? undefined,
-            policy_version: policy_version ?? undefined,
-            finality_certificate: finality_certificate ?? undefined,
-            convergence,
-            dimensions: await (async () => {
-              try {
-                const snap = await loadFinalitySnapshot(scopeId);
-                const contraTotal = snap.contradictions_total_count || 0;
-                const contraResolved = contraTotal === 0 ? 1 : 1 - (snap.contradictions_unresolved_count / contraTotal);
-                return {
-                  claim_avg_confidence: snap.claims_active_avg_confidence,
-                  contradiction_resolution_ratio: contraResolved,
-                  goal_completion_ratio: snap.goals_completion_ratio,
-                  risk_score_inverse: 1 - Math.min(snap.scope_risk_score, 1),
-                };
-              } catch { return null; }
-            })(),
-          };
-        } catch {
-          return null;
-        }
-      })(),
-      state_graph: await (async () => {
-        try {
-          return await getGraphSummary(scopeId);
-        } catch {
-          return null;
-        }
-      })(),
-      contradictions: await (async () => {
-        try {
-          return await loadAllContradictionsWithResolutions(scopeId);
-        } catch {
-          return null;
-        }
-      })(),
-      human_decisions: await (async () => {
-        try {
-          return await getAllFinalityDecisions(scopeId);
-        } catch {
-          return [];
-        }
-      })(),
-    };
+    const summary = await buildScopeSummaryForScope(scopeId);
     sendJson(res, 200, summary);
   } catch (e) {
     sendJson(res, 500, { error: toErrorString(e) });

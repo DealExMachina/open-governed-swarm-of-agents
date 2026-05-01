@@ -116,6 +116,24 @@ async function main(): Promise<void> {
     process.on("SIGINT", () => void hatcheryShutdown("SIGINT"));
 
     await hatchery.start();
+    try {
+      const { startControlPlaneServer } = await import("./controlPlaneServer.js");
+      startControlPlaneServer();
+      const pool = (await import("./db.js")).getPool();
+      if (config.tenantId) {
+        await pool.query(
+          `UPDATE cluster_runtime_lease SET active_scope_id = $1, active_tenant_id = $2::uuid, paused = false, updated_at = now() WHERE id = 1`,
+          [config.scopeId, config.tenantId],
+        );
+      } else {
+        await pool.query(
+          `UPDATE cluster_runtime_lease SET active_scope_id = $1, active_tenant_id = NULL, paused = false, updated_at = now() WHERE id = 1`,
+          [config.scopeId],
+        );
+      }
+    } catch (e) {
+      logger.warn("control_plane_lease_update_failed", { error: String(e) });
+    }
     await new Promise<void>(() => {}); // block forever; shutdown via signal
     return;
   }

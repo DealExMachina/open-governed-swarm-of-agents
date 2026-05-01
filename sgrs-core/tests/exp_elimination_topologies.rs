@@ -47,8 +47,18 @@ fn complete_edges(n: usize) -> Vec<(usize, usize)> {
 /// Vertices 0..7, each with degree 3. Manually constructed to avoid RNG.
 fn regular3_edges_8() -> Vec<(usize, usize)> {
     vec![
-        (0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 7), (7, 0), // ring
-        (0, 4), (1, 5), (2, 6), (3, 7), // cross-links
+        (0, 1),
+        (1, 2),
+        (2, 3),
+        (3, 4),
+        (4, 5),
+        (5, 6),
+        (6, 7),
+        (7, 0), // ring
+        (0, 4),
+        (1, 5),
+        (2, 6),
+        (3, 7), // cross-links
     ]
 }
 
@@ -60,11 +70,31 @@ struct TopologyCase {
 
 fn all_topologies() -> Vec<TopologyCase> {
     vec![
-        TopologyCase { name: "chain(8)", n: 8, edges: chain_edges(8) },
-        TopologyCase { name: "ring(8)", n: 8, edges: ring_edges(8) },
-        TopologyCase { name: "star(8)", n: 8, edges: star_edges(8) },
-        TopologyCase { name: "complete(8)", n: 8, edges: complete_edges(8) },
-        TopologyCase { name: "3-regular(8)", n: 8, edges: regular3_edges_8() },
+        TopologyCase {
+            name: "chain(8)",
+            n: 8,
+            edges: chain_edges(8),
+        },
+        TopologyCase {
+            name: "ring(8)",
+            n: 8,
+            edges: ring_edges(8),
+        },
+        TopologyCase {
+            name: "star(8)",
+            n: 8,
+            edges: star_edges(8),
+        },
+        TopologyCase {
+            name: "complete(8)",
+            n: 8,
+            edges: complete_edges(8),
+        },
+        TopologyCase {
+            name: "3-regular(8)",
+            n: 8,
+            edges: regular3_edges_8(),
+        },
     ]
 }
 
@@ -134,10 +164,14 @@ fn hybrid_contraction_across_topologies() {
         let mut hybrid = initial.clone();
 
         for _ in 1..=steps {
-            let std_result =
-                propagation_step(&sheaf, &standard, &zero_perturb, &proj, alpha);
+            let std_result = propagation_step(&sheaf, &standard, &zero_perturb, &proj, alpha);
             let hyb_result = propagation_step_with_elimination(
-                &sheaf, &hybrid, &zero_perturb, &proj, alpha, &elimination_targets,
+                &sheaf,
+                &hybrid,
+                &zero_perturb,
+                &proj,
+                alpha,
+                &elimination_targets,
             );
             standard = std_result.new_state;
             hybrid = hyb_result.propagation.new_state;
@@ -149,7 +183,12 @@ fn hybrid_contraction_across_topologies() {
 
         println!(
             "  {:<15} | {:<8.4} | {:<8.5} | {:<12.6} | {:<12.6e} | {:<12.6e} | {}",
-            tc.name, sa.spectral_gap, alpha, omega_0, omega_std, omega_hyb,
+            tc.name,
+            sa.spectral_gap,
+            alpha,
+            omega_0,
+            omega_std,
+            omega_hyb,
             if pass { "PASS" } else { "FAIL" }
         );
 
@@ -160,7 +199,9 @@ fn hybrid_contraction_across_topologies() {
         );
     }
 
-    println!("\nResult: hybrid pipeline contracts at least as well as standard on all topologies ✓");
+    println!(
+        "\nResult: hybrid pipeline contracts at least as well as standard on all topologies ✓"
+    );
 }
 
 // ─── E8-T.2: Per-dimension elimination effectiveness ─────────────────────────
@@ -197,7 +238,12 @@ fn elimination_per_dimension_across_topologies() {
         let mut state = initial;
         for _ in 1..=steps {
             let result = propagation_step_with_elimination(
-                &sheaf, &state, &zero_perturb, &proj, alpha, &elimination_targets,
+                &sheaf,
+                &state,
+                &zero_perturb,
+                &proj,
+                alpha,
+                &elimination_targets,
             );
             state = result.propagation.new_state;
         }
@@ -233,7 +279,10 @@ fn elimination_per_dimension_across_topologies() {
     }
 
     // Print non-target dims to show they're preserved
-    println!("\n  Per-dimension final Ω (showing all dims, target=dim {}):", target_dim);
+    println!(
+        "\n  Per-dimension final Ω (showing all dims, target=dim {}):",
+        target_dim
+    );
     for tc in all_topologies() {
         let stalk_dim = 2 * num_dims;
         let sheaf = CellularSheaf::constant(tc.n, stalk_dim, &tc.edges);
@@ -246,7 +295,12 @@ fn elimination_per_dimension_across_topologies() {
         let mut state = initial;
         for _ in 1..=steps {
             let result = propagation_step_with_elimination(
-                &sheaf, &state, &zero_perturb, &proj, alpha, &elimination_targets,
+                &sheaf,
+                &state,
+                &zero_perturb,
+                &proj,
+                alpha,
+                &elimination_targets,
             );
             state = result.propagation.new_state;
         }
@@ -320,7 +374,8 @@ fn tarski_convergence_across_topologies() {
         assert!(
             steps < max_steps,
             "{}: Tarski should converge before {} steps",
-            tc.name, max_steps
+            tc.name,
+            max_steps
         );
         // Must reach a fixed point
         assert!(is_fixed, "{}: should be at fixed point", tc.name);
@@ -328,7 +383,9 @@ fn tarski_convergence_across_topologies() {
         assert!(
             omega_final <= omega_0 + 1e-10,
             "{}: Ω should not increase ({:.6} vs {:.6})",
-            tc.name, omega_final, omega_0
+            tc.name,
+            omega_final,
+            omega_0
         );
     }
 
@@ -340,7 +397,7 @@ fn tarski_convergence_across_topologies() {
     );
     println!("  {:-<4}-+-{:-<15}-+-{:-<15}-+-{:-<15}", "", "", "", "");
 
-    let topo_select = vec![
+    let topo_select = [
         ("chain(8)", chain_edges(8)),
         ("complete(8)", complete_edges(8)),
         ("3-regular(8)", regular3_edges_8()),
@@ -384,10 +441,7 @@ fn tarski_monotonicity_topologies_and_dims() {
         "  {:<15} | {:<5} | {:<8} | {:<40}",
         "Topology", "D", "steps", "≤_k holds per step"
     );
-    println!(
-        "  {:-<15}-+-{:-<5}-+-{:-<8}-+-{:-<40}",
-        "", "", "", ""
-    );
+    println!("  {:-<15}-+-{:-<5}-+-{:-<8}-+-{:-<40}", "", "", "", "");
 
     for tc in all_topologies() {
         for &num_dims in &dims_to_test {
@@ -472,10 +526,14 @@ fn hybrid_scaling_dims_and_topologies() {
             let mut hybrid = initial.clone();
 
             for _ in 1..=steps {
-                let std_result =
-                    propagation_step(&sheaf, &standard, &zero_perturb, &proj, alpha);
+                let std_result = propagation_step(&sheaf, &standard, &zero_perturb, &proj, alpha);
                 let hyb_result = propagation_step_with_elimination(
-                    &sheaf, &hybrid, &zero_perturb, &proj, alpha, &elimination_targets,
+                    &sheaf,
+                    &hybrid,
+                    &zero_perturb,
+                    &proj,
+                    alpha,
+                    &elimination_targets,
                 );
                 standard = std_result.new_state;
                 hybrid = hyb_result.propagation.new_state;
@@ -495,7 +553,12 @@ fn hybrid_scaling_dims_and_topologies() {
 
             println!(
                 "  {:<15} | {:<4} | {:<10.4} | {:<12.6} | {:<12.6e} | {:<12.6e} | {:<10.4}",
-                tc.name, num_dims, sa.spectral_gap, omega_0, omega_std, omega_hyb,
+                tc.name,
+                num_dims,
+                sa.spectral_gap,
+                omega_0,
+                omega_std,
+                omega_hyb,
                 if speedup.is_finite() { speedup } else { 99.0 }
             );
 
@@ -503,7 +566,10 @@ fn hybrid_scaling_dims_and_topologies() {
             assert!(
                 omega_hyb <= omega_std + 1e-10,
                 "{} D={}: hybrid Ω ({:.2e}) > standard Ω ({:.2e})",
-                tc.name, num_dims, omega_hyb, omega_std
+                tc.name,
+                num_dims,
+                omega_hyb,
+                omega_std
             );
         }
     }

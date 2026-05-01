@@ -30,10 +30,10 @@ pub fn per_dimension_disagreement(state: &EvidenceState) -> Vec<f64> {
     let mean = state.mean();
     let mut result = vec![0.0; state.num_dims];
     for role in &state.role_states {
-        for d in 0..state.num_dims {
+        for (d, rd) in result.iter_mut().enumerate() {
             let ds = role.support[d] - mean.support[d];
             let dr = role.refutation[d] - mean.refutation[d];
-            result[d] += ds * ds + dr * dr;
+            *rd += ds * ds + dr * dr;
         }
     }
     result

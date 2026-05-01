@@ -26,6 +26,7 @@ import type { Proposal, Action } from "../events.js";
 import { makeReadGovernanceRulesTool } from "./sharedTools.js";
 import { composeInstructions } from "../skills/loader.js";
 import { trackAgentTokens } from "../skills/tokenTracker.js";
+import { getActiveScopeId } from "../billingContext.js";
 
 /** Result of deterministic governance evaluation (no side effects). */
 export interface DeterministicResult {
@@ -71,7 +72,6 @@ const llmBreaker = new CircuitBreaker("governance-llm", 3, 60000);
 
 const AGENT_ID = process.env.AGENT_ID ?? "governance-1";
 const NATS_STREAM = process.env.NATS_STREAM ?? "SWARM_JOBS";
-const SCOPE_ID = process.env.SCOPE_ID ?? "default";
 setLogContext({ agent_id: AGENT_ID, role: "governance" });
 
 export interface GovernanceAgentEnv {
@@ -148,7 +148,7 @@ function createOversightTools(
           type: "proposal_pending_approval",
           proposal_id,
           governance_path: "oversight_escalateToHuman",
-          scope_id: SCOPE_ID,
+          scope_id: getActiveScopeId(),
         });
         await emitContribution("governance-agent", "assessment", {
           type: "proposal_pending_approval",
@@ -251,7 +251,7 @@ function createGovernanceTools(proposal: Proposal, env: GovernanceAgentEnv) {
       }).nullable(),
     }),
     execute: async () => {
-      const state = await loadState(SCOPE_ID);
+      const state = await loadState(getActiveScopeId());
       return { state };
     },
   });
@@ -288,7 +288,7 @@ function createGovernanceTools(proposal: Proposal, env: GovernanceAgentEnv) {
         ? (JSON.parse(raw) as { level: string; types: string[] })
         : { level: "none", types: [] as string[] };
       const govPath = process.env.GOVERNANCE_PATH ?? join(process.cwd(), "governance.yaml");
-      const governance = getGovernanceForScope(SCOPE_ID, loadPolicies(govPath));
+      const governance = getGovernanceForScope(getActiveScopeId(), loadPolicies(govPath));
       if (from === undefined || to === undefined) {
         return { allowed: false, reason: "missing_from_or_to" };
       }
@@ -303,7 +303,7 @@ function createGovernanceTools(proposal: Proposal, env: GovernanceAgentEnv) {
       try {
         await persistDecisionRecord(record, {
           governance_path: "processProposalWithAgent",
-          scope_id: SCOPE_ID,
+          scope_id: getActiveScopeId(),
           scope_mode: scopeMode,
         });
       } catch (err) {
@@ -339,7 +339,7 @@ function createGovernanceTools(proposal: Proposal, env: GovernanceAgentEnv) {
     execute: async (input) => {
       if (decided) return { ok: false, error: "already_decided" };
       const reason = (input as { reason?: string })?.reason ?? "policy_passed";
-      const state = await loadState(SCOPE_ID);
+      const state = await loadState(getActiveScopeId());
       if (!state || state.epoch !== expectedEpoch) {
         return { ok: false, error: "state_epoch_mismatch" };
       }
@@ -348,7 +348,7 @@ function createGovernanceTools(proposal: Proposal, env: GovernanceAgentEnv) {
         ? (JSON.parse(driftRaw) as { level: string; types: string[] })
         : { level: "none", types: [] as string[] };
       const govPath = process.env.GOVERNANCE_PATH ?? join(process.cwd(), "governance.yaml");
-      const governance = getGovernanceForScope(SCOPE_ID, loadPolicies(govPath));
+      const governance = getGovernanceForScope(getActiveScopeId(), loadPolicies(govPath));
       if (from === undefined || to === undefined) {
         return { ok: false, error: "missing_from_or_to" };
       }
@@ -363,7 +363,7 @@ function createGovernanceTools(proposal: Proposal, env: GovernanceAgentEnv) {
       try {
         await persistDecisionRecord(transitionRecord, {
           governance_path: "processProposalWithAgent",
-          scope_id: SCOPE_ID,
+          scope_id: getActiveScopeId(),
           scope_mode: scopeModeForPublish,
         });
       } catch (err) {
@@ -386,7 +386,7 @@ function createGovernanceTools(proposal: Proposal, env: GovernanceAgentEnv) {
         result: "approved",
         reason,
         action_type: "advance_state",
-        payload: { expectedEpoch, runId: state.runId, from, to, scope_id: SCOPE_ID },
+        payload: { expectedEpoch, runId: state.runId, from, to, scope_id: getActiveScopeId() },
       };
       await env.getPublishAction()("swarm.actions.advance_state", action as unknown as Record<string, unknown>);
       await appendEvent({
@@ -394,7 +394,7 @@ function createGovernanceTools(proposal: Proposal, env: GovernanceAgentEnv) {
         proposal_id: proposal.proposal_id,
         reason,
         governance_path: "processProposalWithAgent",
-        scope_id: SCOPE_ID,
+        scope_id: getActiveScopeId(),
       });
       await emitContribution("governance-agent", "assessment", {
         type: "proposal_approved",
@@ -430,7 +430,7 @@ function createGovernanceTools(proposal: Proposal, env: GovernanceAgentEnv) {
         proposal_id: proposal.proposal_id,
         reason,
         governance_path: "processProposalWithAgent",
-        scope_id: SCOPE_ID,
+        scope_id: getActiveScopeId(),
       });
       await emitContribution("governance-agent", "assessment", {
         type: "proposal_rejected",
@@ -529,7 +529,7 @@ export async function evaluateProposalDeterministic(
   }
 
   const { expectedEpoch, from, to } = payload as { expectedEpoch: number; from: string; to: string };
-  const state = await loadState(SCOPE_ID);
+  const state = await loadState(getActiveScopeId());
   if (!state || state.epoch !== expectedEpoch) {
     return { outcome: "reject", reason: "state_epoch_mismatch" };
   }
@@ -539,7 +539,7 @@ export async function evaluateProposalDeterministic(
     ? (JSON.parse(driftRaw) as { level: string; types: string[] })
     : { level: "none", types: [] as string[] };
   const govPath = process.env.GOVERNANCE_PATH ?? join(process.cwd(), "governance.yaml");
-  const governance = getGovernanceForScope(SCOPE_ID, loadPolicies(govPath));
+  const governance = getGovernanceForScope(getActiveScopeId(), loadPolicies(govPath));
 
   // All modes (YOLO, MITL, MASTER) flow through the sgrs reduction kernel.
   const policyVersion = getGovernancePolicyVersion(govPath);
@@ -630,14 +630,14 @@ export async function commitDeterministicResult(
   }
 
   const govPath = process.env.GOVERNANCE_PATH ?? join(process.cwd(), "governance.yaml");
-  const scopeMode = getGovernanceForScope(SCOPE_ID, loadPolicies(govPath)).mode ?? "YOLO";
-  recordGovernanceMode(SCOPE_ID, scopeMode);
+  const scopeMode = getGovernanceForScope(getActiveScopeId(), loadPolicies(govPath)).mode ?? "YOLO";
+  recordGovernanceMode(getActiveScopeId(), scopeMode);
   recordGovernancePath(path);
   if (result.record) {
     try {
       await persistDecisionRecord(result.record, {
         governance_path: path,
-        scope_id: SCOPE_ID,
+        scope_id: getActiveScopeId(),
         scope_mode: scopeMode,
       });
     } catch (err) {
@@ -660,7 +660,7 @@ export async function commitDeterministicResult(
       proposal_id,
       reason: result.reason,
       governance_path: path,
-      scope_id: SCOPE_ID,
+      scope_id: getActiveScopeId(),
     });
     await emitContribution("governance-agent", "assessment", {
       type: "proposal_rejected",
@@ -683,7 +683,7 @@ export async function commitDeterministicResult(
       type: "proposal_pending_approval",
       proposal_id,
       governance_path: path,
-      scope_id: SCOPE_ID,
+      scope_id: getActiveScopeId(),
     });
     await emitContribution("governance-agent", "assessment", {
       type: "proposal_pending_approval",
@@ -703,7 +703,7 @@ export async function commitDeterministicResult(
       result: "approved",
       reason: result.reason,
       action_type: "advance_state",
-      payload: { ...result.actionPayload, scope_id: SCOPE_ID },
+      payload: { ...result.actionPayload, scope_id: getActiveScopeId() },
     };
     await env.getPublishAction()("swarm.actions.advance_state", action as unknown as Record<string, unknown>);
     await appendEvent({
@@ -711,7 +711,7 @@ export async function commitDeterministicResult(
       proposal_id,
       reason: result.reason,
       governance_path: path,
-      scope_id: SCOPE_ID,
+      scope_id: getActiveScopeId(),
     });
     await emitContribution("governance-agent", "assessment", {
       type: "proposal_approved",
@@ -757,6 +757,40 @@ export async function runFinalityCheck(scopeId: string): Promise<void> {
     await submitFinalityReviewForScope(scopeId, result);
   } else {
     logger.info("finality outcome", { scope_id: scopeId, outcome: "ACTIVE" });
+  }
+
+  // ── Push V(t) + finality state to Studio read model ────────────────────────
+  // The Studio's ProgressCard reads GET /api/finality/:scopeId which the swarm
+  // owns — this is the canonical write of the Lyapunov score to the UI.
+  // Fire-and-forget: Studio unavailability must never block governance.
+  try {
+    const { syncFinalityToSgrs } = await import("../sgrsSync.js");
+    const { loadFinalitySnapshot, computeGoalScore, loadFinalityConfig } = await import("../finalityEvaluator.js");
+    const { getConvergenceState } = await import("../convergenceTracker.js");
+    const snap   = await loadFinalitySnapshot(scopeId);
+    const config = loadFinalityConfig();
+    const score  = computeGoalScore(snap, config.goal_gradient);
+    const conv   = await getConvergenceState(scopeId, config.convergence ?? {}, 0.92);
+    // SGRS API state convention: lowercase ("active" | "near-final" | "resolved" | "escalated")
+    // Evaluator produces ACTIVE / RESOLVED / ESCALATED — .toLowerCase() is the exact transform.
+    const swarmStatus = result?.kind === "status" ? result.status
+      : result?.kind === "review" ? "ESCALATED" : "ACTIVE";
+    const state = swarmStatus.toLowerCase() as "active" | "near-final" | "resolved" | "escalated";
+    const contraTotal = snap.contradictions_total_count || 0;
+    const perDimension = {
+      claim_confidence:         snap.claims_active_avg_confidence,
+      contradiction_resolution: contraTotal === 0 ? 1 : 1 - snap.contradictions_unresolved_count / contraTotal,
+      goal_completion:          snap.goals_completion_ratio,
+      risk_score_inverse:       1 - Math.min(snap.scope_risk_score, 1),
+    };
+    await syncFinalityToSgrs(
+      scopeId, score, state, perDimension,
+      conv.history.length, conv.plateau_rounds, conv.convergence_rate,
+      state === "escalated",
+    );
+    logger.info("sgrs finality sync", { scopeId, score: score.toFixed(3), state });
+  } catch (e) {
+    logger.warn("sgrs finality sync skipped", { scopeId, error: String(e) });
   }
 }
 
@@ -864,7 +898,7 @@ export async function runGovernanceAgentLoop(bus: EventBus, s3: S3Client, bucket
           }
         }
         recordGovernanceLoopMs(Date.now() - govLoopStart);
-        await bus.publish("swarm.finality.evaluate", { scope_id: SCOPE_ID } as Record<string, string>);
+        await bus.publish("swarm.finality.evaluate", { scope_id: getActiveScopeId() } as Record<string, string>);
         watchdogState.lastProposalAt = Date.now();
         await markProcessed(consumer, msg.id);
       },

@@ -1,4 +1,5 @@
 import { randomUUID } from "crypto";
+import { getActiveScopeId, getActiveTenantId } from "./billingContext.js";
 
 /**
  * Unified event envelope for all events across NATS and the context WAL.
@@ -11,21 +12,36 @@ export interface SwarmEvent extends Record<string, unknown> {
   source: string;
   correlation_id: string;
   payload: Record<string, unknown>;
+  /** Multi-tenant routing (optional in legacy mode). */
+  tenant_id?: string;
+  scope_id?: string;
 }
 
 export function createSwarmEvent(
   type: string,
   payload: Record<string, unknown>,
-  opts?: { source?: string; correlation_id?: string; id?: string; ts?: string },
+  opts?: {
+    source?: string;
+    correlation_id?: string;
+    id?: string;
+    ts?: string;
+    tenant_id?: string;
+    scope_id?: string;
+  },
 ): SwarmEvent {
-  return {
+  const tenantId = opts?.tenant_id ?? getActiveTenantId() ?? undefined;
+  const scopeId = opts?.scope_id ?? (payload.scope_id as string | undefined) ?? getActiveScopeId();
+  const out: SwarmEvent = {
     id: opts?.id ?? randomUUID(),
     type,
     ts: opts?.ts ?? new Date().toISOString(),
     source: opts?.source ?? "system",
     correlation_id: opts?.correlation_id ?? "",
-    payload,
+    payload: { ...payload, ...(payload.scope_id == null && scopeId ? { scope_id: scopeId } : {}) },
   };
+  if (tenantId) out.tenant_id = tenantId;
+  if (scopeId) out.scope_id = scopeId;
+  return out;
 }
 
 /**

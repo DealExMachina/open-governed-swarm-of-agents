@@ -1,4 +1,5 @@
 import { recordLLMTokens, recordLLMCall } from "../metrics.js";
+import { recordUsageTokensFromContext } from "../usageEvents.js";
 
 interface MastraUsage {
   promptTokens?: number;
@@ -19,10 +20,9 @@ export function trackAgentTokens(role: string, result: unknown, model?: string):
   const usage = (result as GenerateResultLike).usage;
   if (!usage) return;
   recordLLMCall(role, model);
-  if (usage.promptTokens) {
-    recordLLMTokens(role, "input", usage.promptTokens, model);
-  }
-  if (usage.completionTokens) {
-    recordLLMTokens(role, "output", usage.completionTokens, model);
-  }
+  const inputT = usage.promptTokens ?? 0;
+  const outputT = usage.completionTokens ?? 0;
+  if (inputT) recordLLMTokens(role, "input", inputT, model);
+  if (outputT) recordLLMTokens(role, "output", outputT, model);
+  void recordUsageTokensFromContext(role, inputT, outputT, model);
 }

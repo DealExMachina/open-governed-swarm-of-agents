@@ -9,9 +9,9 @@
 //! Run: cargo test --test exp_elimination -- --nocapture
 
 use sgrs_core::propagation::{
-    compute_disagreement, propagation_step, propagation_step_with_elimination,
-    spectral_analysis, tarski_converge, tarski_step, AdmissibleProjection, CellularSheaf,
-    EvidenceState, EvidenceVector,
+    compute_disagreement, propagation_step, propagation_step_with_elimination, spectral_analysis,
+    tarski_converge, tarski_step, AdmissibleProjection, CellularSheaf, EvidenceState,
+    EvidenceVector,
 };
 
 fn complete_edges(n: usize) -> Vec<(usize, usize)> {
@@ -42,10 +42,22 @@ fn hybrid_pipeline_contracts_at_least_as_well() {
     // Opposing roles: dim 0 contested, dim 1 agrees
     let initial = EvidenceState {
         role_states: vec![
-            EvidenceVector { support: vec![0.9, 0.6], refutation: vec![0.1, 0.4] },
-            EvidenceVector { support: vec![0.1, 0.6], refutation: vec![0.9, 0.4] },
-            EvidenceVector { support: vec![0.8, 0.6], refutation: vec![0.2, 0.4] },
-            EvidenceVector { support: vec![0.2, 0.6], refutation: vec![0.7, 0.4] },
+            EvidenceVector {
+                support: vec![0.9, 0.6],
+                refutation: vec![0.1, 0.4],
+            },
+            EvidenceVector {
+                support: vec![0.1, 0.6],
+                refutation: vec![0.9, 0.4],
+            },
+            EvidenceVector {
+                support: vec![0.8, 0.6],
+                refutation: vec![0.2, 0.4],
+            },
+            EvidenceVector {
+                support: vec![0.2, 0.6],
+                refutation: vec![0.7, 0.4],
+            },
         ],
         num_roles: n,
         num_dims,
@@ -58,13 +70,21 @@ fn hybrid_pipeline_contracts_at_least_as_well() {
     let mut standard = initial.clone();
     let mut hybrid = initial.clone();
 
-    println!("  {:<4} | {:<16} | {:<16} | {:<8}", "t", "Ω_standard", "Ω_hybrid", "Hybrid ≤?");
+    println!(
+        "  {:<4} | {:<16} | {:<16} | {:<8}",
+        "t", "Ω_standard", "Ω_hybrid", "Hybrid ≤?"
+    );
     println!("  {:-<4}-+-{:-<16}-+-{:-<16}-+-{:-<8}", "", "", "", "");
 
     for t in 1..=steps {
         let std_result = propagation_step(&sheaf, &standard, &zero_perturb, &proj, alpha);
         let hyb_result = propagation_step_with_elimination(
-            &sheaf, &hybrid, &zero_perturb, &proj, alpha, &elimination_targets,
+            &sheaf,
+            &hybrid,
+            &zero_perturb,
+            &proj,
+            alpha,
+            &elimination_targets,
         );
 
         if t <= 5 || t == steps {
@@ -73,7 +93,9 @@ fn hybrid_pipeline_contracts_at_least_as_well() {
                 t,
                 std_result.disagreement_after,
                 hyb_result.propagation.disagreement_after,
-                if hyb_result.propagation.disagreement_after <= std_result.disagreement_after + 1e-10 {
+                if hyb_result.propagation.disagreement_after
+                    <= std_result.disagreement_after + 1e-10
+                {
                     "✓"
                 } else {
                     "✗"
@@ -95,7 +117,8 @@ fn hybrid_pipeline_contracts_at_least_as_well() {
     assert!(
         omega_hyb <= omega_std + 1e-10,
         "hybrid Ω ({:.2e}) should be <= standard Ω ({:.2e})",
-        omega_hyb, omega_std
+        omega_hyb,
+        omega_std
     );
 
     println!("\nResult: hybrid pipeline contracts at least as well as standard ✓");
@@ -132,7 +155,12 @@ fn elimination_correctly_modifies_target_dim() {
     let elimination_targets = vec![(1, 0.9)];
 
     let result = propagation_step_with_elimination(
-        &sheaf, &initial, &zero_perturb, &proj, alpha, &elimination_targets,
+        &sheaf,
+        &initial,
+        &zero_perturb,
+        &proj,
+        alpha,
+        &elimination_targets,
     );
 
     println!("  Eliminations applied: {}", result.eliminations_applied);
@@ -148,19 +176,22 @@ fn elimination_correctly_modifies_target_dim() {
         assert!(
             role.support[1] < 0.1,
             "role {} dim 1 support should be near 0 after elimination, got {}",
-            i, role.support[1]
+            i,
+            role.support[1]
         );
         // Dim 1 refutation should be high (meet_t with 0.9)
         assert!(
             role.refutation[1] > 0.5,
             "role {} dim 1 refutation should be high after elimination, got {}",
-            i, role.refutation[1]
+            i,
+            role.refutation[1]
         );
         // Other dims should be relatively unchanged (within diffusion effects)
         assert!(
             role.support[0] > 0.3,
             "role {} dim 0 support should survive elimination, got {}",
-            i, role.support[0]
+            i,
+            role.support[0]
         );
     }
 
@@ -179,10 +210,22 @@ fn tarski_laplacian_converges() {
 
     let initial = EvidenceState {
         role_states: vec![
-            EvidenceVector { support: vec![0.9, 0.5], refutation: vec![0.1, 0.3] },
-            EvidenceVector { support: vec![0.3, 0.7], refutation: vec![0.6, 0.2] },
-            EvidenceVector { support: vec![0.5, 0.4], refutation: vec![0.4, 0.5] },
-            EvidenceVector { support: vec![0.7, 0.6], refutation: vec![0.3, 0.4] },
+            EvidenceVector {
+                support: vec![0.9, 0.5],
+                refutation: vec![0.1, 0.3],
+            },
+            EvidenceVector {
+                support: vec![0.3, 0.7],
+                refutation: vec![0.6, 0.2],
+            },
+            EvidenceVector {
+                support: vec![0.5, 0.4],
+                refutation: vec![0.4, 0.5],
+            },
+            EvidenceVector {
+                support: vec![0.7, 0.6],
+                refutation: vec![0.3, 0.4],
+            },
         ],
         num_roles: n,
         num_dims,
@@ -212,7 +255,8 @@ fn tarski_laplacian_converges() {
     assert!(
         *omegas.last().unwrap() <= omega_0,
         "Ω should not increase: {:.6} vs {:.6}",
-        omegas.last().unwrap(), omega_0
+        omegas.last().unwrap(),
+        omega_0
     );
 
     // Verify fixed point: one more step should not change state
@@ -225,7 +269,10 @@ fn tarski_laplacian_converges() {
     // At fixed point, all roles should agree on meet_k
     // (each role has the consensus of all neighbors)
     let mean = final_state.mean();
-    println!("\n  Fixed point mean: support={:?}, refutation={:?}", mean.support, mean.refutation);
+    println!(
+        "\n  Fixed point mean: support={:?}, refutation={:?}",
+        mean.support, mean.refutation
+    );
 
     for (i, role) in final_state.role_states.iter().enumerate() {
         let dist = role.distance_squared(&mean).sqrt();
@@ -247,9 +294,18 @@ fn tarski_monotone_in_knowledge() {
 
     let state = EvidenceState {
         role_states: vec![
-            EvidenceVector { support: vec![0.5, 0.3], refutation: vec![0.4, 0.6] },
-            EvidenceVector { support: vec![0.7, 0.5], refutation: vec![0.3, 0.4] },
-            EvidenceVector { support: vec![0.6, 0.4], refutation: vec![0.5, 0.5] },
+            EvidenceVector {
+                support: vec![0.5, 0.3],
+                refutation: vec![0.4, 0.6],
+            },
+            EvidenceVector {
+                support: vec![0.7, 0.5],
+                refutation: vec![0.3, 0.4],
+            },
+            EvidenceVector {
+                support: vec![0.6, 0.4],
+                refutation: vec![0.5, 0.5],
+            },
         ],
         num_roles: n,
         num_dims,
@@ -268,7 +324,9 @@ fn tarski_monotone_in_knowledge() {
         assert!(
             before.leq_k(after),
             "role {} should not lose knowledge: before={:?}, after={:?}",
-            i, before, after
+            i,
+            before,
+            after
         );
         println!(
             "  Role {}: before ≤_k after ✓ (Δsup={:?}, Δref={:?})",
@@ -309,10 +367,22 @@ fn hybrid_and_tarski_both_converge() {
 
     let initial = EvidenceState {
         role_states: vec![
-            EvidenceVector { support: vec![0.9, 0.2], refutation: vec![0.1, 0.8] },
-            EvidenceVector { support: vec![0.2, 0.8], refutation: vec![0.7, 0.3] },
-            EvidenceVector { support: vec![0.6, 0.5], refutation: vec![0.4, 0.5] },
-            EvidenceVector { support: vec![0.4, 0.6], refutation: vec![0.5, 0.4] },
+            EvidenceVector {
+                support: vec![0.9, 0.2],
+                refutation: vec![0.1, 0.8],
+            },
+            EvidenceVector {
+                support: vec![0.2, 0.8],
+                refutation: vec![0.7, 0.3],
+            },
+            EvidenceVector {
+                support: vec![0.6, 0.5],
+                refutation: vec![0.4, 0.5],
+            },
+            EvidenceVector {
+                support: vec![0.4, 0.6],
+                refutation: vec![0.5, 0.4],
+            },
         ],
         num_roles: n,
         num_dims,
@@ -345,8 +415,16 @@ fn hybrid_and_tarski_both_converge() {
     let omega_linear = compute_disagreement(&linear);
     let omega_tarski = compute_disagreement(&tarski);
 
-    println!("\n  Linear final Ω = {:.2e} (ratio = {:.2e})", omega_linear, omega_linear / omega_0);
-    println!("  Tarski final Ω = {:.2e} (ratio = {:.2e})", omega_tarski, omega_tarski / omega_0);
+    println!(
+        "\n  Linear final Ω = {:.2e} (ratio = {:.2e})",
+        omega_linear,
+        omega_linear / omega_0
+    );
+    println!(
+        "  Tarski final Ω = {:.2e} (ratio = {:.2e})",
+        omega_tarski,
+        omega_tarski / omega_0
+    );
 
     assert!(
         omega_linear < omega_0 * 0.01,

@@ -38,7 +38,10 @@ export const AGENT_SPECS: AgentSpec[] = [
     capabilities: ["extract_facts"],
     jobType: "extract_facts",
     requiresNode: "ContextIngested",
-    requiresNodeList: ["ContextIngested", "DeltasExtracted"],
+    // Facts can run from any "completed" pipeline state — new docs should always
+    // trigger re-extraction regardless of where the pipeline left off.
+    // The sequence_delta filter prevents re-running on unchanged WAL data.
+    requiresNodeList: ["ContextIngested", "DeltasExtracted", "DriftChecked", "EvidencePropagated"],
     targetNode: "FactsExtracted",
     proposesAdvance: true,
     advancesTo: "FactsExtracted",

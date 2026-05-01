@@ -94,8 +94,12 @@ pub fn evaluate_kernel(
     transition_rules: &[TransitionRule],
 ) -> KernelOutput {
     // 1. Policy evaluation
-    let transition =
-        can_transition(&input.from_state, &input.to_state, &input.drift_level, transition_rules);
+    let transition = can_transition(
+        &input.from_state,
+        &input.to_state,
+        &input.drift_level,
+        transition_rules,
+    );
     let suggested_actions = evaluate_rules(&input.drift_level, &input.drift_types, rules);
 
     // 2. If policy blocks

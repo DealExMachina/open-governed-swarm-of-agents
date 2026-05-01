@@ -8,8 +8,8 @@
 //! Run: cargo test --test exp_projection -- --nocapture
 
 use sgrs_core::propagation::{
-    spectral_analysis, AdmissibleProjection, CellularSheaf, EvidenceState, EvidenceVector,
-    compute_disagreement, propagation_step,
+    compute_disagreement, propagation_step, spectral_analysis, AdmissibleProjection, CellularSheaf,
+    EvidenceState, EvidenceVector,
 };
 
 fn complete_edges(n: usize) -> Vec<(usize, usize)> {
@@ -30,9 +30,21 @@ struct ProjectionCase {
 
 fn projection_cases() -> Vec<ProjectionCase> {
     vec![
-        ProjectionCase { name: "[0.0, 1.0]", lo: 0.0, hi: 1.0 },
-        ProjectionCase { name: "[0.1, 0.9]", lo: 0.1, hi: 0.9 },
-        ProjectionCase { name: "[0.2, 0.8]", lo: 0.2, hi: 0.8 },
+        ProjectionCase {
+            name: "[0.0, 1.0]",
+            lo: 0.0,
+            hi: 1.0,
+        },
+        ProjectionCase {
+            name: "[0.1, 0.9]",
+            lo: 0.1,
+            hi: 0.9,
+        },
+        ProjectionCase {
+            name: "[0.2, 0.8]",
+            lo: 0.2,
+            hi: 0.8,
+        },
     ]
 }
 
@@ -44,12 +56,20 @@ fn make_test_states(n: usize, num_dims: usize) -> Vec<EvidenceState> {
                 .map(|i| {
                     let phase = (seed as f64 * 0.3 + i as f64 * 0.7).sin().abs();
                     EvidenceVector {
-                        support: (0..num_dims).map(|d| ((phase + d as f64 * 0.2) * 1.3) % 1.0).collect(),
-                        refutation: (0..num_dims).map(|d| ((phase + d as f64 * 0.15 + 0.5) * 1.1) % 1.0).collect(),
+                        support: (0..num_dims)
+                            .map(|d| ((phase + d as f64 * 0.2) * 1.3) % 1.0)
+                            .collect(),
+                        refutation: (0..num_dims)
+                            .map(|d| ((phase + d as f64 * 0.15 + 0.5) * 1.1) % 1.0)
+                            .collect(),
                     }
                 })
                 .collect();
-            EvidenceState { role_states, num_roles: n, num_dims }
+            EvidenceState {
+                role_states,
+                num_roles: n,
+                num_dims,
+            }
         })
         .collect()
 }
@@ -105,12 +125,20 @@ fn projection_firmly_non_expansive() {
             let phase_b = ((seed as f64 + 7.0) * 0.41).cos().abs();
 
             let x = EvidenceVector {
-                support: (0..num_dims).map(|d| ((phase_a + d as f64 * 0.3) * 1.5) % 1.2).collect(),
-                refutation: (0..num_dims).map(|d| ((phase_a + d as f64 * 0.2 + 0.4) * 1.3) % 1.2).collect(),
+                support: (0..num_dims)
+                    .map(|d| ((phase_a + d as f64 * 0.3) * 1.5) % 1.2)
+                    .collect(),
+                refutation: (0..num_dims)
+                    .map(|d| ((phase_a + d as f64 * 0.2 + 0.4) * 1.3) % 1.2)
+                    .collect(),
             };
             let y = EvidenceVector {
-                support: (0..num_dims).map(|d| ((phase_b + d as f64 * 0.25) * 1.4) % 1.2).collect(),
-                refutation: (0..num_dims).map(|d| ((phase_b + d as f64 * 0.35 + 0.3) * 1.2) % 1.2).collect(),
+                support: (0..num_dims)
+                    .map(|d| ((phase_b + d as f64 * 0.25) * 1.4) % 1.2)
+                    .collect(),
+                refutation: (0..num_dims)
+                    .map(|d| ((phase_b + d as f64 * 0.35 + 0.3) * 1.2) % 1.2)
+                    .collect(),
             };
 
             let dist_before = x.distance_squared(&y);
@@ -127,8 +155,15 @@ fn projection_firmly_non_expansive() {
             }
         }
 
-        assert_eq!(violations, 0, "Box {}: {} violations of non-expansiveness", pc.name, violations);
-        println!("  Box {}: max ‖Π(x)−Π(y)‖²/‖x−y‖² = {:.6} ≤ 1.0 ✓", pc.name, max_ratio);
+        assert_eq!(
+            violations, 0,
+            "Box {}: {} violations of non-expansiveness",
+            pc.name, violations
+        );
+        println!(
+            "  Box {}: max ‖Π(x)−Π(y)‖²/‖x−y‖² = {:.6} ≤ 1.0 ✓",
+            pc.name, max_ratio
+        );
     }
 
     println!("\nResult: firm non-expansiveness verified ✓");
@@ -151,7 +186,10 @@ fn projected_diffusion_omega_monotone() {
         "{:<12} | Ω(0)     | Ω(50)      | monotone | violations",
         "Box"
     );
-    println!("{:-<12}-+-{:-<9}-+-{:-<11}-+-{:-<9}-+-{:-<10}", "", "", "", "", "");
+    println!(
+        "{:-<12}-+-{:-<9}-+-{:-<11}-+-{:-<9}-+-{:-<10}",
+        "", "", "", "", ""
+    );
 
     for pc in projection_cases() {
         let proj = AdmissibleProjection::new(
@@ -190,10 +228,18 @@ fn projected_diffusion_omega_monotone() {
 
         println!(
             "{:<12} | {:<8.6} | {:<10.2e} | {:<8} | {}",
-            pc.name, omega_0, omega_final, if is_mono { "YES" } else { "NO" }, violations
+            pc.name,
+            omega_0,
+            omega_final,
+            if is_mono { "YES" } else { "NO" },
+            violations
         );
 
-        assert!(is_mono, "Box {}: Ω not monotone ({} violations)", pc.name, violations);
+        assert!(
+            is_mono,
+            "Box {}: Ω not monotone ({} violations)",
+            pc.name, violations
+        );
     }
 
     println!("\nResult: Ω monotonically non-increasing for all projection boxes ✓");
@@ -214,7 +260,10 @@ fn projected_contraction_preserves_bound() {
     let steps = 50;
     let zero_perturb = EvidenceState::zeros(n, num_dims);
 
-    println!("  Sheaf: complete(4), stalk_dim={}, λ₁={:.4}, ρ={:.4}\n", stalk_dim, sa.spectral_gap, rho);
+    println!(
+        "  Sheaf: complete(4), stalk_dim={}, λ₁={:.4}, ρ={:.4}\n",
+        stalk_dim, sa.spectral_gap, rho
+    );
 
     // [0,1] box — H⁰∩A ≠ ∅ (any constant in [0,1] works)
     let proj = AdmissibleProjection::unit_box(num_dims);
@@ -235,15 +284,21 @@ fn projected_contraction_preserves_bound() {
 
     for t in 1..=steps {
         let result = propagation_step(&sheaf, &state, &zero_perturb, &proj, alpha);
-        let bound = omega_0 * rho_sq.powi(t as i32) * 1.05;
+        let bound = omega_0 * rho_sq.powi(t) * 1.05;
         if result.disagreement_after > bound && result.disagreement_after > 1e-14 {
             po7_holds = false;
-            println!("  VIOLATION at t={}: Ω={:.2e} > bound={:.2e}", t, result.disagreement_after, bound);
+            println!(
+                "  VIOLATION at t={}: Ω={:.2e} > bound={:.2e}",
+                t, result.disagreement_after, bound
+            );
         }
         state = result.new_state;
     }
 
-    assert!(po7_holds, "PO-7 contraction bound violated with unit box projection");
+    assert!(
+        po7_holds,
+        "PO-7 contraction bound violated with unit box projection"
+    );
     println!("  PO-7 holds: Ω(t) ≤ Ω(0)·ρ^{{2t}} for t=1..{} ✓", steps);
 
     println!("\nResult: projected contraction preserves theoretical bound ✓");
@@ -266,7 +321,10 @@ fn projection_convergence_speed_comparison() {
         "{:<12} | Ω(0)     | Ω(25)      | Ω(50)      | contraction",
         "Box"
     );
-    println!("{:-<12}-+-{:-<9}-+-{:-<11}-+-{:-<11}-+-{:-<11}", "", "", "", "", "");
+    println!(
+        "{:-<12}-+-{:-<9}-+-{:-<11}-+-{:-<11}-+-{:-<11}",
+        "", "", "", "", ""
+    );
 
     for pc in projection_cases() {
         let proj = AdmissibleProjection::new(
@@ -298,7 +356,11 @@ fn projection_convergence_speed_comparison() {
         }
 
         let omega_50 = compute_disagreement(&state);
-        let contraction = if omega_0 > 1e-15 { omega_50 / omega_0 } else { 0.0 };
+        let contraction = if omega_0 > 1e-15 {
+            omega_50 / omega_0
+        } else {
+            0.0
+        };
 
         println!(
             "{:<12} | {:<8.6} | {:<10.2e} | {:<10.2e} | {:.2e}",

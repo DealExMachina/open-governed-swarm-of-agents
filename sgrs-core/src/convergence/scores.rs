@@ -70,8 +70,13 @@ pub fn compute_pressure(scores: &[f64; 4], weights: &[f64; 4]) -> [f64; 4] {
 /// Differs from scalar_lyapunov_v when a score exceeds its target:
 /// the excess does not contribute (gap is clamped to 0, not squared as a negative).
 pub fn gap_norm_squared(scores: &[f64; 4], targets: &[f64; 4], weights: &[f64; 4]) -> f64 {
-    scores.iter().enumerate()
-        .map(|(i, &s)| { let g = (targets[i] - s).max(0.0); weights[i] * g * g })
+    scores
+        .iter()
+        .enumerate()
+        .map(|(i, &s)| {
+            let g = (targets[i] - s).max(0.0);
+            weights[i] * g * g
+        })
         .sum()
 }
 
@@ -84,7 +89,10 @@ pub fn lyapunov_order_property(
     weights: &[f64; 4],
 ) -> bool {
     use crate::types::EPSILON;
-    let b_dominates_a = scores_b.iter().zip(scores_a.iter()).all(|(b, a)| *b >= *a - EPSILON);
+    let b_dominates_a = scores_b
+        .iter()
+        .zip(scores_a.iter())
+        .all(|(b, a)| *b >= *a - EPSILON);
     if b_dominates_a {
         gap_norm_squared(scores_b, targets, weights)
             <= gap_norm_squared(scores_a, targets, weights) + EPSILON
@@ -96,12 +104,18 @@ pub fn lyapunov_order_property(
 /// Confirm that pressure equals the weighted gap vector for targets = [1,1,1,1].
 /// pressure[i] = weights[i] × max(0, targets[i] - scores[i])
 /// Returns false if the relationship does not hold within EPSILON.
-pub fn pressure_equals_gap_weights(scores: &[f64; 4], targets: &[f64; 4], weights: &[f64; 4]) -> bool {
+pub fn pressure_equals_gap_weights(
+    scores: &[f64; 4],
+    targets: &[f64; 4],
+    weights: &[f64; 4],
+) -> bool {
     use crate::types::EPSILON;
     let pressure = compute_pressure(scores, weights);
     for i in 0..4 {
         let gap = (targets[i] - scores[i]).max(0.0);
-        if (pressure[i] - weights[i] * gap).abs() > EPSILON { return false; }
+        if (pressure[i] - weights[i] * gap).abs() > EPSILON {
+            return false;
+        }
     }
     true
 }
@@ -169,7 +183,6 @@ mod tests {
             contradictions_total_count: 4,
             goals_completion_ratio: 0.6,
             scope_risk_score: 0.3,
-            ..make_snapshot()
         };
         let v = lyapunov_v_from_snapshot(&s);
         assert!(v > 0.0);
@@ -260,7 +273,7 @@ mod tests {
         let scores = [0.6, 0.5, 0.7, 0.8];
         let targets = [1.0, 1.0, 1.0, 1.0];
         let v_scalar = scalar_lyapunov_v(&scores, &targets, &DEFAULT_WEIGHTS);
-        let v_gap    = gap_norm_squared(&scores, &targets, &DEFAULT_WEIGHTS);
+        let v_gap = gap_norm_squared(&scores, &targets, &DEFAULT_WEIGHTS);
         assert!((v_scalar - v_gap).abs() < 1e-12);
     }
 
@@ -274,7 +287,7 @@ mod tests {
     #[test]
     fn gap_norm_squared_clamps_excess_to_zero() {
         // When score exceeds target, gap = 0, not negative
-        let scores  = [1.2, 0.5, 1.0, 1.0];
+        let scores = [1.2, 0.5, 1.0, 1.0];
         let targets = [1.0, 1.0, 1.0, 1.0];
         let v = gap_norm_squared(&scores, &targets, &DEFAULT_WEIGHTS);
         // only dim 1 contributes: 0.3 * (0.5)^2 = 0.075
@@ -287,38 +300,54 @@ mod tests {
     fn lyapunov_order_property_holds_when_b_dominates_a() {
         let scores_a = [0.5, 0.5, 0.5, 0.5];
         let scores_b = [0.7, 0.7, 0.7, 0.7];
-        let targets  = [1.0, 1.0, 1.0, 1.0];
-        assert!(lyapunov_order_property(&scores_a, &scores_b, &targets, &DEFAULT_WEIGHTS));
+        let targets = [1.0, 1.0, 1.0, 1.0];
+        assert!(lyapunov_order_property(
+            &scores_a,
+            &scores_b,
+            &targets,
+            &DEFAULT_WEIGHTS
+        ));
     }
 
     #[test]
     fn lyapunov_order_property_v_actually_decreases() {
         let scores_a = [0.5, 0.6, 0.5, 0.5];
         let scores_b = [0.8, 0.9, 0.8, 0.8];
-        let targets  = [1.0, 1.0, 1.0, 1.0];
+        let targets = [1.0, 1.0, 1.0, 1.0];
         let va = gap_norm_squared(&scores_a, &targets, &DEFAULT_WEIGHTS);
         let vb = gap_norm_squared(&scores_b, &targets, &DEFAULT_WEIGHTS);
         assert!(vb < va);
-        assert!(lyapunov_order_property(&scores_a, &scores_b, &targets, &DEFAULT_WEIGHTS));
+        assert!(lyapunov_order_property(
+            &scores_a,
+            &scores_b,
+            &targets,
+            &DEFAULT_WEIGHTS
+        ));
     }
 
     // --- pressure_equals_gap_weights ---
 
     #[test]
     fn pressure_is_weighted_gap() {
-        let scores  = [0.6, 0.7, 0.5, 0.8];
+        let scores = [0.6, 0.7, 0.5, 0.8];
         let targets = [1.0, 1.0, 1.0, 1.0];
-        assert!(pressure_equals_gap_weights(&scores, &targets, &DEFAULT_WEIGHTS));
+        assert!(pressure_equals_gap_weights(
+            &scores,
+            &targets,
+            &DEFAULT_WEIGHTS
+        ));
     }
 
     #[test]
     fn v_equals_sum_of_squared_pressure_over_weight() {
         // V = Σ p[i]² / w[i] iff gap_norm_squared = Σ w[i]*gap[i]² = Σ p[i]²/w[i]
         // (since p[i] = w[i]*gap[i] → p[i]²/w[i] = w[i]*gap[i]²)
-        let scores  = [0.6, 0.7, 0.5, 0.8];
+        let scores = [0.6, 0.7, 0.5, 0.8];
         let targets = [1.0, 1.0, 1.0, 1.0];
         let pressure = compute_pressure(&scores, &DEFAULT_WEIGHTS);
-        let v_from_pressure: f64 = pressure.iter().enumerate()
+        let v_from_pressure: f64 = pressure
+            .iter()
+            .enumerate()
             .map(|(i, &p)| p * p / DEFAULT_WEIGHTS[i])
             .sum();
         let v_direct = gap_norm_squared(&scores, &targets, &DEFAULT_WEIGHTS);

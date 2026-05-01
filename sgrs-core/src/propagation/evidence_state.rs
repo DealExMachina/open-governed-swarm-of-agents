@@ -126,16 +126,30 @@ impl EvidenceVector {
     /// More knowledge = higher in both support and refutation.
     pub fn leq_k(&self, other: &EvidenceVector) -> bool {
         assert_eq!(self.num_dims(), other.num_dims());
-        self.support.iter().zip(other.support.iter()).all(|(a, b)| *a <= *b + f64::EPSILON)
-            && self.refutation.iter().zip(other.refutation.iter()).all(|(a, b)| *a <= *b + f64::EPSILON)
+        self.support
+            .iter()
+            .zip(other.support.iter())
+            .all(|(a, b)| *a <= *b + f64::EPSILON)
+            && self
+                .refutation
+                .iter()
+                .zip(other.refutation.iter())
+                .all(|(a, b)| *a <= *b + f64::EPSILON)
     }
 
     /// Truth ordering: (s₁,r₁) ≤_t (s₂,r₂) iff s₁ ≤ s₂ and r₁ ≥ r₂ (componentwise).
     /// More true = higher support, lower refutation.
     pub fn leq_t(&self, other: &EvidenceVector) -> bool {
         assert_eq!(self.num_dims(), other.num_dims());
-        self.support.iter().zip(other.support.iter()).all(|(a, b)| *a <= *b + f64::EPSILON)
-            && self.refutation.iter().zip(other.refutation.iter()).all(|(a, b)| *a >= *b - f64::EPSILON)
+        self.support
+            .iter()
+            .zip(other.support.iter())
+            .all(|(a, b)| *a <= *b + f64::EPSILON)
+            && self
+                .refutation
+                .iter()
+                .zip(other.refutation.iter())
+                .all(|(a, b)| *a >= *b - f64::EPSILON)
     }
 
     /// Knowledge join: join_k(a,b) = (max(s), max(r)).
@@ -143,10 +157,18 @@ impl EvidenceVector {
     pub fn join_k(&self, other: &EvidenceVector) -> EvidenceVector {
         assert_eq!(self.num_dims(), other.num_dims());
         EvidenceVector {
-            support: self.support.iter().zip(other.support.iter())
-                .map(|(a, b)| a.max(*b)).collect(),
-            refutation: self.refutation.iter().zip(other.refutation.iter())
-                .map(|(a, b)| a.max(*b)).collect(),
+            support: self
+                .support
+                .iter()
+                .zip(other.support.iter())
+                .map(|(a, b)| a.max(*b))
+                .collect(),
+            refutation: self
+                .refutation
+                .iter()
+                .zip(other.refutation.iter())
+                .map(|(a, b)| a.max(*b))
+                .collect(),
         }
     }
 
@@ -155,10 +177,18 @@ impl EvidenceVector {
     pub fn meet_k(&self, other: &EvidenceVector) -> EvidenceVector {
         assert_eq!(self.num_dims(), other.num_dims());
         EvidenceVector {
-            support: self.support.iter().zip(other.support.iter())
-                .map(|(a, b)| a.min(*b)).collect(),
-            refutation: self.refutation.iter().zip(other.refutation.iter())
-                .map(|(a, b)| a.min(*b)).collect(),
+            support: self
+                .support
+                .iter()
+                .zip(other.support.iter())
+                .map(|(a, b)| a.min(*b))
+                .collect(),
+            refutation: self
+                .refutation
+                .iter()
+                .zip(other.refutation.iter())
+                .map(|(a, b)| a.min(*b))
+                .collect(),
         }
     }
 
@@ -167,10 +197,18 @@ impl EvidenceVector {
     pub fn join_t(&self, other: &EvidenceVector) -> EvidenceVector {
         assert_eq!(self.num_dims(), other.num_dims());
         EvidenceVector {
-            support: self.support.iter().zip(other.support.iter())
-                .map(|(a, b)| a.max(*b)).collect(),
-            refutation: self.refutation.iter().zip(other.refutation.iter())
-                .map(|(a, b)| a.min(*b)).collect(),
+            support: self
+                .support
+                .iter()
+                .zip(other.support.iter())
+                .map(|(a, b)| a.max(*b))
+                .collect(),
+            refutation: self
+                .refutation
+                .iter()
+                .zip(other.refutation.iter())
+                .map(|(a, b)| a.min(*b))
+                .collect(),
         }
     }
 
@@ -180,10 +218,18 @@ impl EvidenceVector {
     pub fn meet_t(&self, other: &EvidenceVector) -> EvidenceVector {
         assert_eq!(self.num_dims(), other.num_dims());
         EvidenceVector {
-            support: self.support.iter().zip(other.support.iter())
-                .map(|(a, b)| a.min(*b)).collect(),
-            refutation: self.refutation.iter().zip(other.refutation.iter())
-                .map(|(a, b)| a.max(*b)).collect(),
+            support: self
+                .support
+                .iter()
+                .zip(other.support.iter())
+                .map(|(a, b)| a.min(*b))
+                .collect(),
+            refutation: self
+                .refutation
+                .iter()
+                .zip(other.refutation.iter())
+                .map(|(a, b)| a.max(*b))
+                .collect(),
         }
     }
 
@@ -265,9 +311,11 @@ impl EvidenceVector {
     pub fn is_non_overlapping_k(&self, other: &EvidenceVector, epsilon: f64) -> bool {
         assert_eq!(self.num_dims(), other.num_dims());
         for d in 0..self.num_dims() {
-            let m_self  = self.support[d].max(self.refutation[d]);
+            let m_self = self.support[d].max(self.refutation[d]);
             let m_other = other.support[d].max(other.refutation[d]);
-            if m_self.min(m_other) > epsilon { return false; }
+            if m_self.min(m_other) > epsilon {
+                return false;
+            }
         }
         true
     }
@@ -285,7 +333,9 @@ impl EvidenceState {
     /// Create a zero-initialized evidence state.
     pub fn zeros(num_roles: usize, num_dims: usize) -> Self {
         EvidenceState {
-            role_states: (0..num_roles).map(|_| EvidenceVector::zeros(num_dims)).collect(),
+            role_states: (0..num_roles)
+                .map(|_| EvidenceVector::zeros(num_dims))
+                .collect(),
             num_roles,
             num_dims,
         }

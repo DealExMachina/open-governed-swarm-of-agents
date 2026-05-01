@@ -15,8 +15,8 @@
 mod scenarios;
 
 use sgrs_core::propagation::{
-    compute_disagreement, gossip_average_converge, gossip_converge,
-    push_sum_converge, EvidenceState, EvidenceVector,
+    compute_disagreement, gossip_average_converge, gossip_converge, push_sum_converge,
+    EvidenceState,
 };
 
 // ─── Topology builders ──────────────────────────────────────────────────────
@@ -41,11 +41,6 @@ fn star_edges(n: usize) -> Vec<(usize, usize)> {
     (1..n).map(|i| (0, i)).collect()
 }
 
-fn fmt_vec(v: &[f64]) -> String {
-    let parts: Vec<String> = v.iter().map(|x| format!("{:.4}", x)).collect();
-    format!("[{}]", parts.join(", "))
-}
-
 // ─── E12.1: Push-sum converges to true mean on M&A phases ──────────────────
 
 #[test]
@@ -53,9 +48,7 @@ fn e12_1_push_sum_converges_to_mean() {
     println!("\n═══ E12.1: Push-Sum Convergence to True Mean ═══\n");
     println!(
         "  {:<14} {:>4} {:>6} {:>5}  {:>10} {:>10} {:>10}  {:>10} {:>10}",
-        "Phase", "n", "Topo", "|E|",
-        "PS dist", "GAvg dist", "GMax dist",
-        "PS Ω%", "GAvg Ω%"
+        "Phase", "n", "Topo", "|E|", "PS dist", "GAvg dist", "GMax dist", "PS Ω%", "GAvg Ω%"
     );
     println!("  {}", "─".repeat(100));
 
@@ -75,8 +68,7 @@ fn e12_1_push_sum_converges_to_mean() {
 
             for (topo_name, edges) in &topologies {
                 // Push-sum
-                let (_, ps_final, ps_om) =
-                    push_sum_converge(&state, edges, max_steps, 1e-15, 42);
+                let (_, ps_final, ps_om) = push_sum_converge(&state, edges, max_steps, 1e-15, 42);
                 let ps_est = ps_final.to_evidence_state();
 
                 // Gossip-average
@@ -84,8 +76,7 @@ fn e12_1_push_sum_converges_to_mean() {
                     gossip_average_converge(&state, edges, max_steps, 1e-15, 42);
 
                 // Gossip-Tarski
-                let (_, gmax_final, _) =
-                    gossip_converge(&state, edges, max_steps, 1e-15, 42);
+                let (_, gmax_final, _) = gossip_converge(&state, edges, max_steps, 1e-15, 42);
 
                 let dist = |final_st: &EvidenceState| -> f64 {
                     (0..n)
@@ -99,14 +90,24 @@ fn e12_1_push_sum_converges_to_mean() {
                 let gmax_dist = dist(&gmax_final);
 
                 let pct = |om: &[f64]| {
-                    if omega_0 > 1e-15 { om.last().unwrap() / omega_0 * 100.0 } else { 0.0 }
+                    if omega_0 > 1e-15 {
+                        om.last().unwrap() / omega_0 * 100.0
+                    } else {
+                        0.0
+                    }
                 };
 
                 println!(
                     "  {:<14} {:>4} {:>6} {:>5}  {:>10.4} {:>10.4} {:>10.4}  {:>9.2}% {:>9.2}%",
-                    phase_name, n, topo_name, edges.len(),
-                    ps_dist, gavg_dist, gmax_dist,
-                    pct(&ps_om), pct(&gavg_om)
+                    phase_name,
+                    n,
+                    topo_name,
+                    edges.len(),
+                    ps_dist,
+                    gavg_dist,
+                    gmax_dist,
+                    pct(&ps_om),
+                    pct(&gavg_om)
                 );
 
                 // Push-sum should converge close to true mean (within tolerance)
@@ -114,7 +115,8 @@ fn e12_1_push_sum_converges_to_mean() {
                 assert!(
                     ps_dist < gmax_dist + 1.0,
                     "push-sum should be closer to mean than gossip-Tarski: ps={:.4} vs gmax={:.4}",
-                    ps_dist, gmax_dist
+                    ps_dist,
+                    gmax_dist
                 );
             }
         }
@@ -156,17 +158,23 @@ fn e12_2_knowledge_monotonicity_impossibility() {
                 let (_, ps_final, _) = push_sum_converge(&state, edges, max_steps, 1e-15, 42);
                 let ps_est = ps_final.to_evidence_state();
                 let ps_mono = (0..n).all(|i| state.role_states[i].leq_k(&ps_est.role_states[i]));
-                if !ps_mono { ps_violations += 1; }
+                if !ps_mono {
+                    ps_violations += 1;
+                }
 
                 // Gossip-average
                 let (_, gavg_final, _) =
                     gossip_average_converge(&state, edges, max_steps, 1e-15, 42);
-                let gavg_mono = (0..n).all(|i| state.role_states[i].leq_k(&gavg_final.role_states[i]));
-                if !gavg_mono { gavg_violations += 1; }
+                let gavg_mono =
+                    (0..n).all(|i| state.role_states[i].leq_k(&gavg_final.role_states[i]));
+                if !gavg_mono {
+                    gavg_violations += 1;
+                }
 
                 // Gossip-Tarski (always monotone, but wrong fixed point)
                 let (_, gmax_final, _) = gossip_converge(&state, edges, max_steps, 1e-15, 42);
-                let gmax_mono = (0..n).all(|i| state.role_states[i].leq_k(&gmax_final.role_states[i]));
+                let gmax_mono =
+                    (0..n).all(|i| state.role_states[i].leq_k(&gmax_final.role_states[i]));
 
                 // Is gossip-Tarski correct? (close to mean)
                 let gmax_dist: f64 = (0..n)
@@ -174,26 +182,51 @@ fn e12_2_knowledge_monotonicity_impossibility() {
                     .sum::<f64>()
                     .sqrt();
                 let is_correct = gmax_dist < 0.5;
-                if is_correct { gmax_correct += 1; }
+                if is_correct {
+                    gmax_correct += 1;
+                }
 
                 let tag = |b: bool| if b { "YES" } else { "NO" };
                 println!(
                     "  {:<14} {:>4} {:>6}  {:>10} {:>10} {:>10}  {:>10}",
-                    phase_name, n, topo_name,
-                    tag(ps_mono), tag(gavg_mono), tag(gmax_mono),
+                    phase_name,
+                    n,
+                    topo_name,
+                    tag(ps_mono),
+                    tag(gavg_mono),
+                    tag(gmax_mono),
                     tag(is_correct)
                 );
 
                 // Gossip-Tarski MUST be monotone
-                assert!(gmax_mono, "{}/{}: gossip-Tarski must be ≤_k-monotone", phase_name, topo_name);
+                assert!(
+                    gmax_mono,
+                    "{}/{}: gossip-Tarski must be ≤_k-monotone",
+                    phase_name, topo_name
+                );
             }
         }
     }
 
     println!("\n  ── Impossibility summary ({} configs) ──", total);
-    println!("    Push-sum ≤_k violations:    {}/{} ({:.0}%)", ps_violations, total, ps_violations as f64 / total as f64 * 100.0);
-    println!("    Gossip-avg ≤_k violations:  {}/{} ({:.0}%)", gavg_violations, total, gavg_violations as f64 / total as f64 * 100.0);
-    println!("    Gossip-Tarski correct:      {}/{} ({:.0}%)", gmax_correct, total, gmax_correct as f64 / total as f64 * 100.0);
+    println!(
+        "    Push-sum ≤_k violations:    {}/{} ({:.0}%)",
+        ps_violations,
+        total,
+        ps_violations as f64 / total as f64 * 100.0
+    );
+    println!(
+        "    Gossip-avg ≤_k violations:  {}/{} ({:.0}%)",
+        gavg_violations,
+        total,
+        gavg_violations as f64 / total as f64 * 100.0
+    );
+    println!(
+        "    Gossip-Tarski correct:      {}/{} ({:.0}%)",
+        gmax_correct,
+        total,
+        gmax_correct as f64 / total as f64 * 100.0
+    );
     println!();
     println!("  Conclusion: protocols that converge to mean (push-sum, gossip-avg) violate ≤_k.");
     println!("  The only ≤_k-monotone protocol (gossip-Tarski) converges to WRONG fixed point.");
@@ -202,11 +235,15 @@ fn e12_2_knowledge_monotonicity_impossibility() {
     // Structural assertions
     assert!(
         ps_violations > total / 2,
-        "push-sum should violate ≤_k in majority of configs: {}/{}", ps_violations, total
+        "push-sum should violate ≤_k in majority of configs: {}/{}",
+        ps_violations,
+        total
     );
     assert!(
         gavg_violations > total / 2,
-        "gossip-avg should violate ≤_k in majority of configs: {}/{}", gavg_violations, total
+        "gossip-avg should violate ≤_k in majority of configs: {}/{}",
+        gavg_violations,
+        total
     );
 }
 
@@ -237,7 +274,8 @@ fn e12_3_convergence_rate_comparison() {
         for (phase_name, state) in scenarios::scaled_phases(n) {
             for (topo_name, edges) in &topologies {
                 let (ps_t, _, ps_om) = push_sum_converge(&state, edges, max_steps, tol, 42);
-                let (gavg_t, _, gavg_om) = gossip_average_converge(&state, edges, max_steps, tol, 42);
+                let (gavg_t, _, gavg_om) =
+                    gossip_average_converge(&state, edges, max_steps, tol, 42);
 
                 let winner = if ps_t < gavg_t {
                     ps_wins += 1;
@@ -251,16 +289,23 @@ fn e12_3_convergence_rate_comparison() {
 
                 println!(
                     "  {:<14} {:>4} {:>6}  {:>8} {:>8}  {:>10.6} {:>10.6}  {:>8}",
-                    phase_name, n, topo_name,
-                    ps_t, gavg_t,
-                    ps_om.last().unwrap(), gavg_om.last().unwrap(),
+                    phase_name,
+                    n,
+                    topo_name,
+                    ps_t,
+                    gavg_t,
+                    ps_om.last().unwrap(),
+                    gavg_om.last().unwrap(),
                     winner
                 );
             }
         }
     }
 
-    println!("\n  Rate summary: push-sum wins {}, gossip-avg wins {}", ps_wins, gavg_wins);
+    println!(
+        "\n  Rate summary: push-sum wins {}, gossip-avg wins {}",
+        ps_wins, gavg_wins
+    );
 }
 
 // ─── E12.4: Scaled stress test (256-1024 nodes) ─────────────────────────────
@@ -270,10 +315,7 @@ fn e12_4_large_scale_push_sum() {
     println!("\n═══ E12.4: Push-Sum at Scale (n=256..1024) ═══\n");
     println!(
         "  {:<14} {:>5} {:>8} {:>5}  {:>6} {:>6}  {:>10} {:>10}  {:>10} {:>10}",
-        "Phase", "n", "Topo", "|E|",
-        "PS τ", "GA τ",
-        "PS dist", "GA dist",
-        "GMax dist", "PS mono?"
+        "Phase", "n", "Topo", "|E|", "PS τ", "GA τ", "PS dist", "GA dist", "GMax dist", "PS mono?"
     );
     println!("  {}", "─".repeat(110));
 
@@ -286,9 +328,10 @@ fn e12_4_large_scale_push_sum() {
             ("modular-16", scenarios::modular_edges(n, 16)),
         ];
 
-        let phases = vec![
-            ("P3-scaled", scenarios::scale_phase(&scenarios::phase3_contested_mixed(), n, 0.15, 300)),
-        ];
+        let phases = vec![(
+            "P3-scaled",
+            scenarios::scale_phase(&scenarios::phase3_contested_mixed(), n, 0.15, 300),
+        )];
 
         for (phase_name, state) in &phases {
             let true_mean = state.mean();
@@ -297,7 +340,8 @@ fn e12_4_large_scale_push_sum() {
                 let (ps_t, ps_final, _) = push_sum_converge(state, edges, max_steps, 1e-10, 42);
                 let ps_est = ps_final.to_evidence_state();
 
-                let (ga_t, ga_final, _) = gossip_average_converge(state, edges, max_steps, 1e-10, 42);
+                let (ga_t, ga_final, _) =
+                    gossip_average_converge(state, edges, max_steps, 1e-10, 42);
                 let (_, gmax_final, _) = gossip_converge(state, edges, max_steps, 1e-10, 42);
 
                 let dist = |final_st: &EvidenceState| -> f64 {
@@ -311,9 +355,14 @@ fn e12_4_large_scale_push_sum() {
 
                 println!(
                     "  {:<14} {:>5} {:>8} {:>5}  {:>6} {:>6}  {:>10.4} {:>10.4}  {:>10.4} {:>10}",
-                    phase_name, n, topo_name, edges.len(),
-                    ps_t, ga_t,
-                    dist(&ps_est), dist(&ga_final),
+                    phase_name,
+                    n,
+                    topo_name,
+                    edges.len(),
+                    ps_t,
+                    ga_t,
+                    dist(&ps_est),
+                    dist(&ga_final),
                     dist(&gmax_final),
                     if ps_mono { "YES" } else { "NO" }
                 );
@@ -333,5 +382,8 @@ fn e12_4_large_scale_push_sum() {
         .sum::<f64>()
         .sqrt();
 
-    println!("\n  Structural check: push-sum dist-to-mean at n=1024, 3-regular = {:.4}", ps_dist);
+    println!(
+        "\n  Structural check: push-sum dist-to-mean at n=1024, 3-regular = {:.4}",
+        ps_dist
+    );
 }
