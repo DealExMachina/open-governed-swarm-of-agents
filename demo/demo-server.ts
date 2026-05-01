@@ -815,7 +815,7 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
     @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 
     /* Main grid */
-    .main{display:grid;grid-template-columns:240px 1fr 320px;flex:1;min-height:0;max-height:100%;overflow:hidden;background:var(--bg)}
+    .main{display:grid;grid-template-columns:200px 1fr 280px;flex:1;min-height:0;max-height:100%;overflow:hidden;background:var(--bg)}
     .panel{display:flex;flex-direction:column;border-right:1px solid var(--border);overflow:hidden}
     .panel:last-child{border-right:none}
     .panel-header{padding:0.6rem 1rem;font-size:0.6875rem;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0}
@@ -848,7 +848,7 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
     .stage-header{display:flex;align-items:center;justify-content:space-between;padding:0.6rem 1rem;font-size:0.6875rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0}
     .stage-label{font-size:0.75rem;color:var(--green);font-weight:600;text-transform:none;letter-spacing:0}
     /* live summary removed: right panel is the single source of truth for scores/counts */
-    .stage{flex:1;overflow-y:auto;padding:1.25rem;display:flex;flex-direction:column;gap:0.75rem;min-height:0}
+    .stage{flex:1;overflow-y:auto;padding:0.5rem;display:flex;flex-direction:column;gap:0.4rem;min-height:0}
     .stage-initial{font-size:0.875rem;color:var(--text);line-height:1.7}
     .stage-initial.hidden{display:none}
     .stage-initial code{background:var(--surface);padding:0.15rem 0.4rem;border-radius:4px;font-family:var(--mono);font-size:0.8rem}
@@ -856,46 +856,46 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
 
     /* Doc card */
     .doc-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;animation:fadeIn .3s ease}
-    .doc-card-head{padding:0.6rem 0.9rem;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:0.5rem}
+    .doc-card-head{padding:0.4rem 0.65rem;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:0.4rem}
     .doc-card-head>div:first-child{flex:1;min-width:0}
-    .doc-card-title{font-size:0.8125rem;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-    .doc-card-role{font-size:0.6875rem;color:var(--muted)}
-    .doc-card-title-row{display:flex;align-items:baseline;gap:0.5rem;flex-wrap:wrap}
+    .doc-card-title{font-size:0.75rem;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .doc-card-role{font-size:0.625rem;color:var(--muted)}
+    .doc-card-title-row{display:flex;align-items:baseline;gap:0.4rem;flex-wrap:wrap}
     .doc-card-title-row .doc-card-title{flex-shrink:0}
-    .doc-card-role-inline{font-size:0.6875rem;color:var(--muted);font-weight:500}
-    .doc-card-body{padding:0.75rem 0.9rem;font-size:0.8rem;color:var(--muted);line-height:1.6}
-    .doc-card-status{display:inline-flex;align-items:center;gap:0.3rem;font-size:0.6875rem;font-weight:600;padding:0.15rem 0.5rem;border-radius:4px;white-space:nowrap;flex-shrink:0}
+    .doc-card-role-inline{font-size:0.625rem;color:var(--muted);font-weight:500}
+    .doc-card-body{padding:0.4rem 0.65rem;font-size:0.7rem;color:var(--muted);line-height:1.5}
+    .doc-card-status{display:inline-flex;align-items:center;gap:0.25rem;font-size:0.625rem;font-weight:600;padding:0.1rem 0.4rem;border-radius:4px;white-space:nowrap;flex-shrink:0}
     .doc-card-status.feeding{background:var(--accent-dim);color:var(--accent)} .doc-card-status.done{background:var(--green-dim);color:var(--green)}
 
     /* Agent cards */
-    .agent-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:0.75rem 0.9rem;display:flex;align-items:flex-start;gap:0.65rem;animation:fadeIn .4s ease}
+    .agent-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:0.5rem 0.65rem;display:flex;align-items:flex-start;gap:0.5rem;animation:fadeIn .4s ease}
     .agent-card.accent{border-left:3px solid var(--accent)} .agent-card.amber{border-left:3px solid var(--amber)} .agent-card.red{border-left:3px solid var(--red)} .agent-card.green{border-left:3px solid var(--green)} .agent-card.purple{border-left:3px solid var(--purple)}
-    .agent-icon{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:800;color:#fff;flex-shrink:0}
+    .agent-icon{width:24px;height:24px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:800;color:#fff;flex-shrink:0}
     .agent-icon.accent{background:var(--accent)} .agent-icon.amber{background:var(--amber)} .agent-icon.red{background:var(--red)} .agent-icon.green{background:var(--green)} .agent-icon.purple{background:var(--purple)}
     .agent-card-content{flex:1;min-width:0}
-    .agent-card-name{font-size:0.75rem;font-weight:700;color:var(--text)}
-    .agent-card-msg{font-size:0.8rem;color:var(--muted);margin-top:2px;line-height:1.5}
+    .agent-card-name{font-size:0.6875rem;font-weight:700;color:var(--text)}
+    .agent-card-msg{font-size:0.75rem;color:var(--muted);margin-top:1px;line-height:1.45}
 
     /* Step summary */
-    .step-summary{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:0.75rem 0.9rem;border-left:3px solid var(--green);animation:fadeIn .3s ease}
-    .step-summary-title{font-size:0.6875rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--green);margin-bottom:0.3rem}
-    .step-summary-body{font-size:0.8125rem;color:var(--text);line-height:1.6}
-    .step-separator{margin:1.25rem 0 0.75rem;padding:0.35rem 0;font-size:0.6875rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);border-top:1px solid var(--border)}
+    .step-summary{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:0.5rem 0.65rem;border-left:3px solid var(--green);animation:fadeIn .3s ease}
+    .step-summary-title{font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--green);margin-bottom:0.2rem}
+    .step-summary-body{font-size:0.7rem;color:var(--text);line-height:1.5}
+    .step-separator{margin:0.75rem 0 0.4rem;padding:0.25rem 0;font-size:0.625rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);border-top:1px solid var(--border)}
 
     /* HITL panel */
-    .hitl-panel{animation:fadeIn .4s ease}
+    .hitl-panel{animation:fadeIn .4s ease;font-size:0.875rem}
     .hitl-section{margin-bottom:1.25rem}
     .hitl-section-title{font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--purple);margin-bottom:0.5rem}
     .hitl-narrative{font-size:0.875rem;color:var(--text);line-height:1.7;margin-bottom:0.75rem}
-    .hitl-blockers{display:flex;flex-direction:column;gap:0.5rem}
-    .hitl-blocker{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:0.65rem 0.8rem;border-left:3px solid var(--amber)}
-    .hitl-blocker-title{font-size:0.8125rem;font-weight:700;color:var(--amber)}
-    .hitl-blocker-content{font-size:0.8125rem;color:var(--text);margin-top:4px;padding:4px 0;border-left:2px solid var(--border);padding-left:8px}
-    .hitl-blocker-desc{font-size:0.8rem;color:var(--text);margin-top:2px}
-    .hitl-blocker-choices{display:flex;flex-wrap:wrap;gap:0.5rem;margin-top:6px}
-    .hitl-choice-btn{font-size:0.75rem;padding:0.35rem 0.6rem;background:var(--accent);color:#fff;border:none;border-radius:4px;cursor:pointer;font-family:var(--font)}
-    .hitl-choice-btn:hover{opacity:0.9}
-    .hitl-blocker-hint{font-size:0.75rem;color:var(--muted);margin-top:4px;line-height:1.5}
+    .hitl-blockers{display:flex;flex-direction:column;gap:0.75rem}
+    .hitl-blocker{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1rem 1.1rem;border-left:4px solid var(--amber)}
+    .hitl-blocker-title{font-size:0.9375rem;font-weight:700;color:var(--amber)}
+    .hitl-blocker-content{font-size:0.875rem;color:var(--text);margin-top:6px;padding:6px 0 6px 10px;border-left:2px solid var(--border);line-height:1.6}
+    .hitl-blocker-desc{font-size:0.8125rem;color:var(--text);margin-top:4px;line-height:1.5}
+    .hitl-blocker-choices{display:flex;flex-wrap:wrap;gap:0.6rem;margin-top:10px}
+    .hitl-choice-btn{font-size:0.8125rem;padding:0.5rem 1rem;background:var(--green);color:#fff;border:none;border-radius:8px;cursor:pointer;font-family:var(--font);font-weight:600;transition:all .15s;box-shadow:0 2px 8px rgba(34,197,94,0.2)}
+    .hitl-choice-btn:hover{background:#4ade80;box-shadow:0 4px 16px rgba(34,197,94,0.35);transform:translateY(-1px)}
+    .hitl-blocker-hint{font-size:0.8125rem;color:var(--muted);margin-top:8px;line-height:1.5}
     .hitl-dims{display:flex;flex-direction:column;gap:0.5rem}
     .hitl-dim{display:flex;align-items:center;gap:0.5rem}
     .hitl-dim-name{font-size:0.75rem;color:var(--muted);width:150px;flex-shrink:0}
@@ -904,14 +904,14 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
     .hitl-dim-fill.accent{background:var(--accent)} .hitl-dim-fill.amber{background:var(--amber)} .hitl-dim-fill.purple{background:var(--purple)} .hitl-dim-fill.red{background:var(--red)} .hitl-dim-fill.green{background:var(--green)}
     .hitl-dim-val{font-size:0.75rem;font-weight:600;color:var(--text);width:36px;text-align:right}
     .hitl-dim-explain{font-size:0.6875rem;color:var(--muted);padding-left:150px;margin-top:-2px}
-    .hitl-options{display:flex;flex-direction:column;gap:0.5rem}
-    .hitl-option{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:0.75rem 0.9rem;cursor:pointer;text-align:left;font-family:var(--font);transition:border-color .15s;display:block;width:100%}
-    .hitl-option:hover{border-color:var(--accent)}
-    .hitl-option.primary{border-color:var(--green);background:var(--green-dim)}
-    .hitl-option.primary:hover{filter:brightness(1.1)}
-    .hitl-option:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-    .hitl-option-name{font-size:0.8125rem;font-weight:700;color:var(--text)}
-    .hitl-option-desc{font-size:0.75rem;color:var(--muted);margin-top:2px;line-height:1.5}
+    .hitl-options{display:flex;flex-direction:column;gap:0.65rem}
+    .hitl-option{background:var(--surface);border:2px solid var(--border);border-radius:10px;padding:0.9rem 1.1rem;cursor:pointer;text-align:left;font-family:var(--font);transition:border-color .2s,box-shadow .2s,background .2s;display:block;width:100%}
+    .hitl-option:hover{border-color:var(--green);background:var(--surface2)}
+    .hitl-option.primary{border-color:var(--green);background:linear-gradient(135deg,var(--green-dim),rgba(20,83,45,0.4))}
+    .hitl-option.primary:hover{box-shadow:0 0 20px rgba(34,197,94,0.2);border-color:#4ade80}
+    .hitl-option:focus-visible{outline:2px solid var(--green);outline-offset:2px}
+    .hitl-option-name{font-size:0.875rem;font-weight:700;color:var(--text)}
+    .hitl-option-desc{font-size:0.8125rem;color:var(--muted);margin-top:3px;line-height:1.5}
 
     /* Resolution input */
     .resolution-area{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:0.75rem 0.9rem;animation:fadeIn .3s ease}
@@ -973,16 +973,16 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
     .fsb-sub{font-size:0.625rem;color:var(--muted);display:none}
     .fsb-dims{display:flex;gap:0.75rem;flex:1}
     .fsb-dim{display:flex;align-items:center;gap:0.35rem;flex:1;min-width:0}
-    .fsb-dim-label{font-size:0.625rem;color:var(--muted);flex-shrink:0;width:42px}
+    .fsb-dim-label{font-size:0.6875rem;color:var(--muted);flex-shrink:0;width:48px}
     .fsb-dim .dim-bar{flex:1;height:4px}
-    .fsb-dim-val{font-size:0.6875rem;font-weight:600;color:var(--text);width:28px;text-align:right;flex-shrink:0}
-    .fsb-counts{display:flex;gap:0.5rem;flex-shrink:0}
-    .fsb-count{font-size:0.6875rem;color:var(--muted);white-space:nowrap}
+    .fsb-dim-val{font-size:0.75rem;font-weight:600;color:var(--text);width:30px;text-align:right;flex-shrink:0}
+    .fsb-counts{display:flex;gap:0.6rem;flex-shrink:0}
+    .fsb-count{font-size:0.75rem;color:var(--muted);white-space:nowrap}
     .fsb-count strong{color:var(--text);font-weight:700}
 
     /* Right panel */
-    .right-panel{background:var(--surface);display:flex;flex-direction:column}
-    .right-body{flex:1;overflow-y:auto;padding:0.75rem}
+    .right-panel{background:var(--surface);display:flex;flex-direction:column;border-left:1px solid var(--border)}
+    .right-body{flex:1;overflow-y:auto;padding:0.4rem}
     .r-section{margin-bottom:1rem}
     .r-label{font-size:0.6875rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:0.4rem}
     .r-score{font-size:2rem;font-weight:800;color:var(--text);line-height:1}
@@ -1040,14 +1040,15 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
     .feed-item.error .feed-item-msg{color:var(--red)}
 
     /* Situation: unfoldable groups and cards */
-    .situation-group{margin-bottom:0.5rem;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;background:var(--surface2)}
-    .situation-group summary{font-size:0.75rem;font-weight:600;color:var(--text);padding:0.5rem 0.65rem;cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;user-select:none}
+    .situation-group{margin-bottom:0.6rem;border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--surface2)}
+    .situation-group summary{font-size:0.8125rem;font-weight:700;color:var(--text);padding:0.6rem 0.85rem;cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;user-select:none}
     .situation-group summary::-webkit-details-marker{display:none}
     .situation-group summary::after{content:'';width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-top:5px solid var(--muted);margin-left:0.25rem;transition:transform .2s}
     .situation-group[open] summary::after{transform:rotate(180deg)}
-    .situation-group-count{font-size:0.6875rem;color:var(--muted);font-weight:500}
+    .situation-group-count{font-size:0.75rem;color:var(--muted);font-weight:500}
+    .situation-cards{padding:0 0.5rem 0.5rem}
     .situation-cards{display:flex;flex-direction:column;gap:0.35rem;padding:0.5rem 0.65rem 0.65rem;border-top:1px solid var(--border)}
-    .situation-card{font-size:0.8125rem;padding:0.6rem 0.75rem;border-radius:6px;border-left:3px solid;background:var(--surface);color:var(--text);line-height:1.55;cursor:default;max-width:100%;transition:background .15s}
+    .situation-card{font-size:0.8125rem;padding:0.6rem 0.85rem;border-radius:6px;border-left:3px solid;background:var(--surface);color:var(--text);line-height:1.6;cursor:default;max-width:100%;transition:background .15s;white-space:normal;word-wrap:break-word}
     .situation-card:hover{background:var(--border2)}
     .situation-card.type-claim{border-left-color:var(--green)}
     .situation-card.type-goal{border-left-color:var(--purple)}
@@ -1059,35 +1060,53 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
 
     @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
     @keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
-    .processing-shimmer{background:linear-gradient(90deg,var(--surface) 25%,var(--surface2) 50%,var(--surface) 75%);background-size:200% 100%;animation:shimmer 2s infinite linear;border-radius:var(--radius);padding:1rem;margin:0.5rem 0;height:48px}
+    .processing-shimmer{background:linear-gradient(90deg,var(--surface) 25%,var(--surface2) 50%,var(--surface) 75%);background-size:200% 100%;animation:shimmer 2s infinite linear;border-radius:var(--radius);padding:0.5rem;margin:0.3rem 0;height:32px;font-size:0.7rem}
     ::-webkit-scrollbar{width:5px;height:5px} ::-webkit-scrollbar-track{background:transparent} ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:99px}
 
     /* HITL Modal overlay */
-    .hitl-modal-backdrop{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(11,13,18,0.88);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:100;display:flex;align-items:center;justify-content:center;padding:2rem;animation:modalFadeIn .3s ease}
+    .hitl-modal-backdrop{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(11,13,18,0.88);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:9999;display:flex;align-items:center;justify-content:center;padding:2rem;animation:modalFadeIn .3s ease}
     .hitl-modal-backdrop.hidden{display:none}
-    .hitl-modal{background:var(--surface);border:1px solid var(--border2);border-radius:14px;max-width:700px;width:100%;max-height:85vh;overflow-y:auto;box-shadow:0 24px 80px rgba(0,0,0,0.6),0 0 0 1px rgba(79,142,247,0.12);animation:modalSlideIn .4s ease}
-    .hitl-modal-header{display:flex;align-items:center;gap:0.85rem;padding:1.25rem 1.5rem;border-bottom:1px solid var(--border);background:var(--surface2);border-radius:14px 14px 0 0;position:sticky;top:0;z-index:1}
-    .hitl-modal-header-icon{width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;font-weight:800;flex-shrink:0;color:#fff}
-    .hitl-modal-header-icon.purple{background:var(--purple);box-shadow:0 0 24px rgba(167,139,250,0.5);animation:pulseGlowPurple 2s infinite}
-    .hitl-modal-header-icon.amber{background:var(--amber);color:#000;box-shadow:0 0 24px rgba(245,158,11,0.5);animation:pulseGlowAmber 2s infinite}
+    .hitl-modal{background:var(--surface);border:1px solid var(--border2);border-radius:14px;max-width:640px;width:100%;max-height:82vh;display:flex;flex-direction:column;box-shadow:0 24px 80px rgba(0,0,0,0.7),0 0 0 1px rgba(34,197,94,0.08);animation:modalSlideIn .4s ease;overflow:hidden}
+    .hitl-modal-header{display:flex;align-items:center;gap:0.75rem;padding:0.85rem 1.25rem;border-bottom:1px solid var(--border);background:var(--surface2);border-radius:14px 14px 0 0;flex-shrink:0}
+    .hitl-modal-header-icon{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:800;flex-shrink:0;color:#fff}
+    .hitl-modal-header-icon.purple{background:var(--purple);box-shadow:0 0 20px rgba(167,139,250,0.5);animation:pulseGlowPurple 2s infinite}
+    .hitl-modal-header-icon.amber{background:var(--amber);color:#000;box-shadow:0 0 20px rgba(245,158,11,0.5);animation:pulseGlowAmber 2s infinite}
     .hitl-modal-header-text{flex:1}
-    .hitl-modal-header-title{font-size:1.25rem;font-weight:800;color:var(--text);letter-spacing:-0.02em}
-    .hitl-modal-header-sub{font-size:0.8125rem;color:var(--muted);margin-top:3px}
-    .hitl-modal-body{padding:1.5rem}
-    .hitl-modal .hitl-section{margin-bottom:1.5rem}
-    .hitl-modal .hitl-section-title{font-size:0.8125rem}
-    .hitl-modal .hitl-narrative{font-size:0.9375rem;line-height:1.75}
-    .hitl-modal .hitl-options{gap:0.75rem}
-    .hitl-modal .hitl-option{padding:1rem 1.2rem;border:2px solid var(--border);transition:border-color .2s,box-shadow .2s,background .2s}
+    .hitl-modal-header-title{font-size:1.0625rem;font-weight:800;color:var(--text);letter-spacing:-0.02em}
+    .hitl-modal-header-sub{font-size:0.75rem;color:var(--muted);margin-top:2px}
+    .hitl-modal-body{padding:1rem 1.25rem;overflow-y:auto;flex:1;min-height:0}
+    .hitl-modal-footer{padding:0.85rem 1.25rem;border-top:1px solid var(--border);background:var(--surface2);border-radius:0 0 14px 14px;flex-shrink:0}
+    .hitl-modal .hitl-section{margin-bottom:0.85rem}
+    .hitl-modal .hitl-section:last-child{margin-bottom:0}
+    .hitl-modal .hitl-section-title{font-size:0.6875rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:0.3rem}
+    .hitl-modal .hitl-narrative{font-size:0.8125rem;line-height:1.6}
+    .hitl-modal .hitl-options{gap:0.5rem}
+    .hitl-modal .hitl-option{padding:0.7rem 0.9rem;border-radius:8px;transition:border-color .2s,box-shadow .2s,background .2s}
     .hitl-modal .hitl-option:hover{border-color:var(--green);background:var(--surface2)}
-    .hitl-modal .hitl-option.primary{border-color:var(--green);background:linear-gradient(135deg,var(--green-dim),rgba(20,83,45,0.5));box-shadow:0 0 20px rgba(34,197,94,0.1)}
-    .hitl-modal .hitl-option.primary:hover{box-shadow:0 0 30px rgba(34,197,94,0.25);border-color:#4ade80}
-    .hitl-modal .hitl-option.primary .hitl-option-name{font-size:1rem;color:var(--green)}
+    .hitl-modal .hitl-option .hitl-option-name{font-size:0.8125rem;font-weight:700}
+    .hitl-modal .hitl-option .hitl-option-desc{font-size:0.75rem;margin-top:2px}
+    .hitl-modal .hitl-option.primary{border-color:var(--green);background:linear-gradient(135deg,var(--green-dim),rgba(20,83,45,0.5));box-shadow:0 0 16px rgba(34,197,94,0.1)}
+    .hitl-modal .hitl-option.primary:hover{box-shadow:0 0 24px rgba(34,197,94,0.25);border-color:#4ade80}
+    .hitl-modal .hitl-option.primary .hitl-option-name{font-size:0.875rem;color:var(--green)}
+    .hitl-modal .hitl-option.primary .hitl-option-desc{color:var(--text)}
     .hitl-modal .situation-card{margin-bottom:0}
+    .hitl-modal textarea{font-size:0.8125rem;padding:0.5rem 0.65rem;border:2px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);line-height:1.5;transition:border-color .2s}
+    .hitl-modal textarea:focus{border-color:var(--green);outline:none;box-shadow:0 0 0 3px rgba(34,197,94,0.15)}
     @keyframes modalFadeIn{from{opacity:0}to{opacity:1}}
     @keyframes modalSlideIn{from{opacity:0;transform:translateY(24px) scale(0.96)}to{opacity:1;transform:none}}
     @keyframes pulseGlowPurple{0%,100%{box-shadow:0 0 24px rgba(167,139,250,0.5)}50%{box-shadow:0 0 40px rgba(167,139,250,0.8)}}
     @keyframes pulseGlowAmber{0%,100%{box-shadow:0 0 24px rgba(245,158,11,0.5)}50%{box-shadow:0 0 40px rgba(245,158,11,0.8)}}
+
+    /* Responsive: tablet */
+    @media (max-width:1024px){
+      .main{grid-template-columns:180px 1fr 240px}
+    }
+    /* Responsive: small screens — stack panels */
+    @media (max-width:780px){
+      .main{grid-template-columns:1fr;grid-template-rows:auto 1fr auto}
+      .panel.left-panel{display:none}
+      .right-panel{max-height:35vh}
+    }
   </style>
 </head>
 <body class="intro-active">
@@ -1152,17 +1171,43 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
     </div>
   </div>
 
-  <!-- Center: Findings -->
+  <!-- Center: Knowledge -->
   <div class="panel center-panel">
     <div class="stage-header">
-      <span>Findings</span>
+      <span>Knowledge</span>
       <span class="stage-label" id="stageLabel"></span>
     </div>
-    <div class="stage" id="stage">
+    <div class="stage" id="knowledgeBody" style="padding:0.75rem">
       <div class="stage-initial"><p>Select a scenario and click Begin to start.</p></div>
+
+      <div class="r-section" id="situationSection">
+        <div id="situationPanel">
+          <details class="situation-group" id="situation-claims" open>
+            <summary>Facts <span class="situation-group-count" id="situation-claims-count">0</span></summary>
+            <div class="situation-cards" id="situation-claims-cards"></div>
+          </details>
+          <details class="situation-group" id="situation-goals" open>
+            <summary>Goals <span class="situation-group-count" id="situation-goals-count">0</span></summary>
+            <div class="situation-cards" id="situation-goals-cards"></div>
+          </details>
+          <details class="situation-group" id="situation-contradictions" open>
+            <summary>Contradictions <span class="situation-group-count" id="situation-contradictions-count">0</span></summary>
+            <div class="situation-cards" id="situation-contradictions-cards"></div>
+          </details>
+          <details class="situation-group" id="situation-risks" open>
+            <summary>Risks <span class="situation-group-count" id="situation-risks-count">0</span></summary>
+            <div class="situation-cards" id="situation-risks-cards"></div>
+          </details>
+        </div>
+      </div>
+
+      <div class="r-section" id="driftSection">
+        <div class="r-label">Information stability</div>
+        <div class="drift-badge none" id="driftBadge">Stable</div>
+      </div>
     </div>
 
-    <!-- Progress + dimensions: sticky bottom strip in center panel -->
+    <!-- Progress + dimensions: sticky bottom strip -->
     <div class="findings-status-bar" id="findingsStatusBar">
       <div class="fsb-progress">
         <div class="fsb-score" id="rScore">0%</div>
@@ -1188,38 +1233,12 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
     </div>
   </div>
 
-  <!-- Right: System -->
+  <!-- Right: Agent Activity -->
   <div class="panel right-panel">
-    <div class="panel-header">System</div>
+    <div class="panel-header">Agent Activity</div>
     <div class="right-body">
-
-      <div class="r-section" id="situationSection">
-        <div class="r-label">Knowledge</div>
-        <div id="situationPanel">
-          <details class="situation-group" id="situation-contradictions" open>
-            <summary>Contradictions <span class="situation-group-count" id="situation-contradictions-count">0</span></summary>
-            <div class="situation-cards" id="situation-contradictions-cards"></div>
-          </details>
-          <details class="situation-group" id="situation-risks" open>
-            <summary>Risks <span class="situation-group-count" id="situation-risks-count">0</span></summary>
-            <div class="situation-cards" id="situation-risks-cards"></div>
-          </details>
-          <details class="situation-group" id="situation-goals">
-            <summary>Goals <span class="situation-group-count" id="situation-goals-count">0</span></summary>
-            <div class="situation-cards" id="situation-goals-cards"></div>
-          </details>
-          <details class="situation-group" id="situation-claims">
-            <summary>Facts <span class="situation-group-count" id="situation-claims-count">0</span></summary>
-            <div class="situation-cards" id="situation-claims-cards"></div>
-          </details>
-        </div>
+      <div class="stage" id="stage" style="padding:0;border:none;background:transparent">
       </div>
-
-      <div class="r-section" id="driftSection">
-        <div class="r-label">Information stability</div>
-        <div class="drift-badge none" id="driftBadge">Stable</div>
-      </div>
-
     </div>
   </div>
 </div>
@@ -1235,6 +1254,7 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
       </div>
     </div>
     <div class="hitl-modal-body" id="hitlModalBody"></div>
+    <div class="hitl-modal-footer" id="hitlModalFooter" style="display:none"></div>
   </div>
 </div>
 
@@ -1350,6 +1370,14 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
     title.textContent = opts.title || 'Action Required';
     sub.textContent = opts.sub || 'The system is paused and waiting for your decision';
     document.getElementById('hitlModalBody').innerHTML = bodyHtml;
+    var footerEl = document.getElementById('hitlModalFooter');
+    if (opts.footer) {
+      footerEl.innerHTML = opts.footer;
+      footerEl.style.display = '';
+    } else {
+      footerEl.innerHTML = '';
+      footerEl.style.display = 'none';
+    }
     document.getElementById('hitlModalBackdrop').classList.remove('hidden');
   }
   function hideHitlModal() {
@@ -1447,6 +1475,8 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
     var stage = document.getElementById('stage');
     var initial = stage ? stage.querySelector('.stage-initial') : null;
     if (initial) initial.classList.add('hidden');
+    var ki = document.querySelector('#knowledgeBody > .stage-initial');
+    if (ki) ki.classList.add('hidden');
     var div = document.createElement('div');
     div.innerHTML = html;
     while (div.firstChild) stage.appendChild(div.firstChild);
@@ -1585,8 +1615,8 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
     setStatus('idle', 'Ready');
     setStageLabel('');
     clearStage();
-    document.getElementById('stage').innerHTML =
-      '<div class="stage-initial"><p>Select a scenario and click Begin to start.</p></div>';
+    var ki = document.querySelector('#knowledgeBody > .stage-initial');
+    if (ki) { ki.classList.remove('hidden'); }
     document.getElementById('timeline').innerHTML = '';
     if (STEPS.length > 0) buildTimeline();
     document.getElementById('tlProgress').textContent = 'Step 0 / ' + STEPS.length;
@@ -2537,30 +2567,28 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
     appendToStage(agentCardHtml('!', 'Watchdog', contras.length + ' contradiction(s) need your input', 'amber'));
 
     var html = '<div class="hitl-panel">';
-    html += '<div class="hitl-section">';
-    html += '<div class="hitl-section-title">Contradictions discovered</div>';
-    html += '<div class="hitl-narrative">';
-    html += 'While processing this document, the system found <strong>' + contras.length + ' contradiction(s)</strong> ';
-    html += 'in the information gathered so far. Contradictory data undermines the reliability of the analysis.';
+    html += '<div class="hitl-section" style="margin-bottom:0.5rem">';
+    html += '<div class="hitl-narrative" style="color:var(--muted)">';
+    html += '<strong style="color:var(--amber)">' + contras.length + ' contradiction(s)</strong> found. Provide a resolution below or address each one.';
     html += '</div></div>';
 
     for (var i = 0; i < contras.length; i++) {
       var c = contras[i];
-      html += '<div class="hitl-section" style="border-left:3px solid var(--amber);padding-left:1rem;margin-bottom:1rem">';
-      html += '<div class="hitl-section-title" style="color:var(--amber)">Contradiction ' + (i + 1) + '</div>';
-      html += '<div class="hitl-narrative" style="font-size:0.875rem">' + escHtml(c.content) + '</div>';
+      html += '<div style="border-left:3px solid var(--amber);padding-left:0.85rem;margin-bottom:0.85rem">';
+      html += '<div style="font-size:0.6875rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--amber);margin-bottom:0.2rem">Contradiction ' + (i + 1) + '</div>';
+      html += '<div style="font-size:0.8125rem;color:var(--text);line-height:1.55;margin-bottom:0.5rem">' + escHtml(c.content) + '</div>';
       if (c.side_a || c.side_b) {
-        html += '<div style="display:flex;gap:0.75rem;margin-top:0.5rem;flex-wrap:wrap">';
+        html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem">';
         if (c.side_a) {
-          html += '<div style="flex:1;min-width:200px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:0.5rem 0.75rem;font-size:0.8125rem">';
-          html += '<div style="font-size:0.6875rem;font-weight:700;color:var(--muted);margin-bottom:0.25rem">SIDE A</div>';
-          html += escHtml(c.side_a.length > 200 ? c.side_a.slice(0, 200) + '\u2026' : c.side_a);
+          html += '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:0.5rem 0.7rem;font-size:0.75rem;line-height:1.5">';
+          html += '<div style="font-size:0.625rem;font-weight:700;color:var(--amber);margin-bottom:0.2rem;text-transform:uppercase;letter-spacing:.04em">Side A</div>';
+          html += escHtml(c.side_a.length > 180 ? c.side_a.slice(0, 180) + '\u2026' : c.side_a);
           html += '</div>';
         }
         if (c.side_b) {
-          html += '<div style="flex:1;min-width:200px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:0.5rem 0.75rem;font-size:0.8125rem">';
-          html += '<div style="font-size:0.6875rem;font-weight:700;color:var(--muted);margin-bottom:0.25rem">SIDE B</div>';
-          html += escHtml(c.side_b.length > 200 ? c.side_b.slice(0, 200) + '\u2026' : c.side_b);
+          html += '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:0.5rem 0.7rem;font-size:0.75rem;line-height:1.5">';
+          html += '<div style="font-size:0.625rem;font-weight:700;color:var(--amber);margin-bottom:0.2rem;text-transform:uppercase;letter-spacing:.04em">Side B</div>';
+          html += escHtml(c.side_b.length > 180 ? c.side_b.slice(0, 180) + '\u2026' : c.side_b);
           html += '</div>';
         }
         html += '</div>';
@@ -2568,26 +2596,20 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
       html += '</div>';
     }
 
-    html += '<div class="hitl-section">';
-    html += '<div class="hitl-section-title">Your resolution</div>';
-    html += '<div class="hitl-narrative" style="margin-bottom:0.5rem">';
-    html += 'Provide context or clarification to resolve the contradiction(s). ';
-    html += 'A single response can address multiple contradictions. ';
-    html += 'The system will evaluate your input against each contradiction and mark the resolved ones automatically.';
-    html += '</div>';
-    html += '<textarea id="contraResolutionText" rows="4" placeholder="e.g. The ARR discrepancy is due to unaudited figures in the initial report; the correct revenue figure is EUR 38M after independent audit. The two patents are pending, not granted, and were recently disputed." style="width:100%;box-sizing:border-box;padding:0.6rem;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);color:var(--text);font-size:0.8125rem;resize:vertical;line-height:1.6"></textarea>';
-    html += '<div style="display:flex;gap:0.75rem;margin-top:0.75rem">';
-    html += '<button class="hitl-option primary" style="flex:1;padding:0.75rem 1rem" onclick="resolveContradictionHitl()"><div class="hitl-option-name">Submit resolution</div><div class="hitl-option-desc">The system will evaluate this against each contradiction and mark resolved ones.</div></button>';
-    html += '<button class="hitl-option" style="flex:0 0 auto;padding:0.6rem 1rem;min-width:auto" onclick="skipContradictionHitl()"><div class="hitl-option-name" style="font-size:0.75rem;color:var(--muted)">Skip for now</div></button>';
-    html += '</div>';
     html += '</div>';
 
-    html += '</div>';
+    var footerHtml = '<textarea id="contraResolutionText" rows="3" placeholder="e.g. The correct ARR is EUR 38M (audited). The 2 disputed patents are under opposition proceedings." style="width:100%;box-sizing:border-box;margin-bottom:0.6rem"></textarea>';
+    footerHtml += '<div style="display:flex;gap:0.5rem;align-items:center">';
+    footerHtml += '<button class="hitl-option primary" style="flex:1;padding:0.65rem 1rem" onclick="resolveContradictionHitl()"><div class="hitl-option-name">Submit resolution</div></button>';
+    footerHtml += '<button class="hitl-option" style="flex:0 0 auto;padding:0.65rem 0.85rem;min-width:auto" onclick="skipContradictionHitl()"><div class="hitl-option-name" style="font-size:0.75rem;color:var(--muted)">Skip</div></button>';
+    footerHtml += '</div>';
+
     showHitlModal(html, {
       title: 'Contradictions Detected',
-      sub: contras.length + ' contradiction(s) need resolution to proceed with confidence',
+      sub: contras.length + ' contradiction(s) need resolution',
       icon: '!',
-      iconColor: 'amber'
+      iconColor: 'amber',
+      footer: footerHtml
     });
   }
 

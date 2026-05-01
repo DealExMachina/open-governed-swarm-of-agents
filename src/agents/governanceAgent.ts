@@ -758,6 +758,40 @@ export async function runFinalityCheck(scopeId: string): Promise<void> {
   } else {
     logger.info("finality outcome", { scope_id: scopeId, outcome: "ACTIVE" });
   }
+
+  // ── Push V(t) + finality state to Studio read model ────────────────────────
+  // The Studio's ProgressCard reads GET /api/finality/:scopeId which the swarm
+  // owns — this is the canonical write of the Lyapunov score to the UI.
+  // Fire-and-forget: Studio unavailability must never block governance.
+  try {
+    const { syncFinalityToSgrs } = await import("../sgrsSync.js");
+    const { loadFinalitySnapshot, computeGoalScore, loadFinalityConfig } = await import("../finalityEvaluator.js");
+    const { getConvergenceState } = await import("../convergenceTracker.js");
+    const snap   = await loadFinalitySnapshot(scopeId);
+    const config = loadFinalityConfig();
+    const score  = computeGoalScore(snap, config.goal_gradient);
+    const conv   = await getConvergenceState(scopeId, config.convergence ?? {}, 0.92);
+    // SGRS API state convention: lowercase ("active" | "near-final" | "resolved" | "escalated")
+    // Evaluator produces ACTIVE / RESOLVED / ESCALATED — .toLowerCase() is the exact transform.
+    const swarmStatus = result?.kind === "status" ? result.status
+      : result?.kind === "review" ? "ESCALATED" : "ACTIVE";
+    const state = swarmStatus.toLowerCase() as "active" | "near-final" | "resolved" | "escalated";
+    const contraTotal = snap.contradictions_total_count || 0;
+    const perDimension = {
+      claim_confidence:         snap.claims_active_avg_confidence,
+      contradiction_resolution: contraTotal === 0 ? 1 : 1 - snap.contradictions_unresolved_count / contraTotal,
+      goal_completion:          snap.goals_completion_ratio,
+      risk_score_inverse:       1 - Math.min(snap.scope_risk_score, 1),
+    };
+    await syncFinalityToSgrs(
+      scopeId, score, state, perDimension,
+      conv.history.length, conv.plateau_rounds, conv.convergence_rate,
+      state === "escalated",
+    );
+    logger.info("sgrs finality sync", { scopeId, score: score.toFixed(3), state });
+  } catch (e) {
+    logger.warn("sgrs finality sync skipped", { scopeId, error: String(e) });
+  }
 }
 
 /** Dedicated consumer for swarm.finality.evaluate; acks only after runFinalityCheck succeeds (retry on failure). */

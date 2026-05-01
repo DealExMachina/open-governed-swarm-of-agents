@@ -1,8 +1,8 @@
 # Validation and Test Coverage
 
-> Back to [README](../README.md) | See also [experiments.md](experiments.md).
+> Back to [README](../README.md) | See also [experiments.md](experiments.md) | [Codebase hygiene](codebase-hygiene.md) (missing assets, dead paths).
 
-**Last updated:** 2026-03-28 (P0: WAL/DAG contract, model onboarding policy; plus 2026-03-27 theory sync).
+**Last updated:** 2026-04-30 (TS test tree absent in repo; hygiene doc; honest validation surface).
 
 This document provides an honest accounting of what is tested, what is validated
 mathematically, and what remains theoretical or unverified. The goal is
@@ -16,12 +16,12 @@ and where assumptions begin.
 ```mermaid
 flowchart TB
   subgraph tested["Tested / validated"]
-    U[Unit tests: 460 TS Vitest + 252 Rust]
-    BENCH[Convergence benchmark 11 scenarios]
-    SGRS[sgrs load benchmark unified governance]
-    PROP[Propagation experiments E1-E12]
-    LEAN[Lean 4 proofs: 138 items, 9 files]
-    TLAP[TLA+ model check: 10160 states, 0 violations]
+    U[Unit tests: Rust sgrs-core + benchmarks]
+    BENCH[Convergence benchmark ~11 scenarios]
+    SGRS[sgrs load benchmark]
+    PROP[Propagation experiments in sgrs-core]
+    LEAN[Lean 4 proofs — companion formal work]
+    TLAP[TLA+ — companion model checking]
     E2E[E2E pipeline run-e2e.sh manual]
   end
   subgraph theoretical["Theoretical / assumed"]
@@ -35,75 +35,56 @@ flowchart TB
   PROP --> E2E
 ```
 
+> **Note:** Vitest is configured at the repo root, but **`test/` is not shipped** — there is currently **no executable TypeScript unit suite** in-tree. Treat “TS unit coverage” below as historical / aspirational unless you restore `test/**/*.test.ts`. See [codebase-hygiene.md](codebase-hygiene.md).
+
 | Aspect | Tested / Validated | Theoretical / Assumed |
 |--------|-------------------|-----------------------|
-| State graph transitions (CAS, cycle) | Unit tests with mocked Postgres | Linearizability under concurrent writers (single-row CAS, no multi-node contention test) |
-| Governance rules (YAML evaluation) | Unit tests against `governance.yaml` | That rule set is complete for production drift taxonomies |
-| Governance modes (MASTER/MITL/YOLO) | Unit tests + E2E seed + verification script | That three modes cover all real operational needs |
-| Oversight agent (LLM-backed) | Unit test for no-LLM fallback path | LLM-backed oversight quality (accept/escalate decisions) |
-| Convergence tracker (Lyapunov V, pressure, monotonicity, plateau, Gate C oscillation/trajectory) | 32 unit tests + 7-scenario benchmark (pure math) | That synthetic snapshot trajectories represent real LLM-generated fact sequences |
-| sgrs kernel (governance + finality Rust addon) | Load benchmark: N instances, one config; throughput, latency, identical outputs (unified governance) | Whole-system horizontal scaling (Node/Postgres/NATS/S3 have established profiles; composition is engineering) |
-| Finality evaluator (RESOLVED, ESCALATED, review, Gate C/D, certificates) | 13 unit tests with mocked snapshots + convergence state | That finality thresholds generalize across domains |
-| Semantic graph (nodes, edges, CRDT upserts) | 7 unit tests for factsToSemanticGraph, 2 for semanticGraph | Graph integrity under concurrent writers from multiple agents |
-| Embedding pipeline (Ollama bge-m3) | 11 unit tests (mocked fetch, dimension checks) | Embedding quality and semantic similarity accuracy |
-| HITL finality request | 3 unit tests with mocked evaluateFinality | Human response quality and decision turnaround |
-| MITL server (approve/reject/resolve) | 9 unit tests with in-memory pool | Operational correctness under network partitions |
-| Facts agent (extract, write, Mastra) | 4 unit tests + 1 conditional OpenAI test | Extraction accuracy across document types |
+| State graph transitions (CAS, cycle) | Rust/kernel tests + E2E spot checks; TS unit tests unavailable until `test/` exists | Linearizability under concurrent writers (single-row CAS, no multi-node contention test) |
+| Governance rules (YAML evaluation) | Intended TS tests (missing); Rust governance tests; E2E verification | That rule set is complete for production drift taxonomies |
+| Governance modes (MASTER/MITL/YOLO) | Rust + E2E seed + verification script | That three modes cover all real operational needs |
+| Oversight agent (LLM-backed) | No TS suite; deterministic fallbacks exercised in E2E/manual | LLM-backed oversight quality (accept/escalate decisions) |
+| Convergence tracker (Lyapunov V, pressure, monotonicity, plateau, Gate C oscillation/trajectory) | `benchmark-convergence.ts` (~11 scenarios, pure math) + Rust/kernel alignment | That synthetic snapshot trajectories represent real LLM-generated fact sequences |
+| sgrs kernel (governance + finality Rust addon) | `cargo test` in `sgrs-core` + load benchmark | Whole-system horizontal scaling (Node/Postgres/NATS/S3 have established profiles; composition is engineering) |
+| Finality evaluator (RESOLVED, ESCALATED, review, Gate C/D, certificates) | Rust finality/gates tests; manual demo paths | That finality thresholds generalize across domains |
+| Semantic graph (nodes, edges, CRDT upserts) | Integration via E2E + manual; TS unit tests absent | Graph integrity under concurrent writers from multiple agents |
+| Embedding pipeline (Ollama bge-m3) | Dimension/config checks in Rust/kernel where applicable; TS tests absent | Embedding quality and semantic similarity accuracy |
+| HITL finality request | Manual / demo | Human response quality and decision turnaround |
+| MITL server (approve/reject/resolve) | E2E touches feed; TS pool tests absent | Operational correctness under network partitions |
+| Facts agent (extract, write, Mastra) | E2E + production use; TS tests absent | Extraction accuracy across document types |
 | E2E pipeline (Docker, all services) | `run-e2e.sh` script (manual, ~2 min) | Pipeline stability under sustained load |
-| Policy (OpenFGA) | 4 unit tests with mocked fetch | OpenFGA model completeness and correctness |
-| Event bus (NATS JetStream) | 7 unit tests with mocked NATS | Message ordering and exactly-once delivery under backpressure |
+| Policy (OpenFGA) | OpenFGA integration in compose; TS policy tests absent | OpenFGA model completeness and correctness |
+| Event bus (NATS JetStream) | `sgrs-core` / integration patterns; TS mocked tests absent | Message ordering and exactly-once delivery under backpressure |
 | Kernel evidence algebra (orderings, monotonicity) | proptest + deterministic Rust tests on [0,1]^4 x [0,1]^4 | Componentwise lifting to infinite rank spaces |
 | Sheaf diffusion (L_F, contraction, spectral gap) | 12 propagation experiments E1-E12 across 5 topologies | Identity restriction maps only (constant sheaf); non-trivial sheaf untested |
 | ISS cascade stability | E7: adversarial kappa ~ 0.19, parametric sweep confirms boundary kappa* = 0.5775 | LLM perturbation bound assumed, not enforced |
 | Gossip protocols (average, Tarski, push-sum) | E10-E12: 1024-node stress test; impossibility theorem confirmed (24/24 configs) | Bilateral exchange assumption (push-sum equivalence) |
 | Π_A projection closure (kernel-admissible set) | 6 proptests (monotonicity, fixed-point on A, non-extensive) + `Projected<T>` newtype | Box clamp sufficient for all admissible sets |
 | Product lattice **M = L × A** (kernel admissibility + meet/join) | Rust governance + types tests; `meet/join` on `GovernanceLevel`, `ConvergenceRank`, `LatticePoint`; norm/monotonicity properties via `gap_norm_squared`, `lyapunov_order_property`, `pressure_equals_gap_weights` | Distributive lattice; norm-monotone V on the rank factor |
-| Causal DAG (Rust) | 251 property-based + unit tests; SHA-256/CBOR content hashing | That DAG frontier determines concept lattice (Conj. 10.2) |
+| Causal DAG (Rust) | Property-based + unit tests in `sgrs-core` (`cargo test`) | That DAG frontier determines concept lattice (Conj. 10.2) |
 | Causal contributions (TS) | `emitContribution` from facts, drift, propagation, governance, resolver, status; `finalityEvaluator` on RESOLVED | Runtime Contribution → EvidenceState mapping intentionally not implemented **by architecture lock** (audit-only DAG) |
 | WAL vs causal DAG | Governance and other paths call `appendEvent` for semantic WAL; `createContribution` does not auto-append WAL | Feed/state consumers must not assume a contribution row implies a matching WAL event |
-| Model onboarding (P0) | `enforceModelOnboarding` in `modelConfig.ts`; policy JSON + unit tests | With `MODEL_ONBOARDING_ENFORCE` off or missing policy, any model is accepted (documented fallback) |
+| Model onboarding (P0) | `enforceModelOnboarding` in `modelConfig.ts`; no dedicated TS tests in repo | With `MODEL_ONBOARDING_ENFORCE` off or missing policy, any model is accepted (documented fallback) |
 | Lean 4 proofs | 138 items (46 theorems + 41 defs + 4 structures) across 9 files, type-checked | Proofs use Fin n -> Prop (not computable Finset); Rust must match structurally |
 | TLA+ model checking | KernelBilattice.tla: 4 safety invariants, 10,160 states, 0 violations | Covers two configurations; not exhaustive over all parameters |
 
 ---
 
-## 2. Unit tests (Vitest)
+## 2. TypeScript unit tests (Vitest)
 
-**460 tests across ~50 test files.** All run with `pnpm test` (no Docker, no network). Some integration suites are skipped unless Docker services are available. **Rust:** lib tests via `cargo test --manifest-path sgrs-core/Cargo.toml` (kernel evidence algebra, sheaf propagation, gossip protocols, causal DAG, governance, finality, convergence, topology). **Total:** 700+ tests across Rust + TypeScript.
+**Status:** `vitest.config.ts` expects files under `test/**/*.test.ts` and `test/setup.ts`. **This repository snapshot does not include a `test/` directory**, so `pnpm run test` exits with *no test files*. The table below is **retained as a checklist** of modules that were historically covered by Vitest-style tests; restore files if you reintroduce the suite.
 
-| Test file | Tests | Coverage area | Key assertions |
-|-----------|-------|--------------|----------------|
-| `contextWal.test.ts` | 5 | Context WAL append/tail/since | JSONB insert + RETURNING seq, DESC query reversed to ASC, eventsSince with seq > afterSeq |
-| `logger.test.ts` | 6 | Structured JSON logger | Valid JSON output, extra fields, persistent context, stderr for errors, log level filtering |
-| `agentRegistry.test.ts` | 6 | Agent specs and state graph alignment | No duplicate roles/jobTypes, requiresNode/advancesTo valid in transition map, getSpec lookup |
-| `s3.test.ts` | 3 | S3 put/get helpers | PutObjectCommand with JSON + content-type, HeadObject 404 returns null, body stream to text |
-| `events.test.ts` | 5 | SwarmEvent envelope | createSwarmEvent defaults (id, ts, source), opts override, isSwarmEvent true/false for valid/invalid shapes |
-| `eventBus.test.ts` | 7 | NATS JetStream event bus | publish returns seq id, consume processes + acks, publishEvent uses swarm.events prefix, close drains |
-| `policy.test.ts` | 4 | OpenFGA policy checks | Default allow when no store ID, allowed/denied via mock fetch, ECONNREFUSED denial |
-| `governance.test.ts` | 17 | Governance YAML rules + transition rules | loadPolicies parses YAML, evaluateRules matches drift level/type, canTransition blocks critical drift, scope overrides |
-| `stateGraph.test.ts` | 11 | State machine transitions + Postgres CAS | Pure transitions cycle through 3 nodes, epoch increment, CAS failure returns null, advanceState emits WAL event, initState with ON CONFLICT, governance-blocked advance |
-| `convergenceTracker.test.ts` | 32 | Lyapunov V, pressure, dimension scores, analyzeConvergence, Gate C | V=0 for perfect, pressure highest on worst dim, monotonicity/plateau, convergence rate, ETA, spike-and-drop, oscillation detection, trajectory quality, coordination_signal |
-| `finalityEvaluator.test.ts` | 13 | Finality evaluation pipeline | loadFinalitySnapshot, loadFinalityConfig, computeGoalScore, RESOLVED with Gate C/D, review, divergence, certificate payload, quiescence |
-| `finalityDecisions.test.ts` | 4 | Finality decision persistence | recordFinalityDecision INSERT with scope/option/days, getLatestFinalityDecision returns latest or null |
-| `factsToSemanticGraph.test.ts` | 7 | Facts-to-graph sync (CRDT) | Insert claims/goals/risks, NLI contradiction edge parsing, monotonic confidence (preserve higher), stale nodes marked irrelevant, resolved contradictions not re-created, reactivation of irrelevant nodes |
-| `semanticGraph.test.ts` | 2 | Semantic graph queries | loadFinalitySnapshot returns correct shape with computed ratios, appendResolutionGoal inserts goal with status resolved |
-| `embeddingPipeline.test.ts` | 11 | Embedding generation + persistence | Empty when no Ollama, empty for blank text, empty on fetch failure, empty on wrong dimension, valid 1024-dim vector, batch returns map, updateNodeEmbedding no-op for wrong length, embedAndPersistNode true/false |
-| `hitlFinalityRequest.test.ts` | 4 | HITL finality submission | Returns false when evaluateFinality returns null or status, adds to MITL pending when review with correct payload shape |
-| `policyEngine.test.ts` | 3 | Policy engine (YAML) | DecisionRecord shape, allow/deny from transition rules, policy_version passthrough |
-| `policyVersions.test.ts` | 3 | Policy version hashes | getGovernancePolicyVersion / getFinalityPolicyVersion return 64-char hex or no-file |
-| `combiningAlgorithms.test.ts` | 6 | Combining algorithms | denyOverrides (deny wins, no_policies), firstApplicable |
-| `finalityCertificates.test.ts` | 4 | Finality certificates (JWS) | buildCertificatePayload, signCertificate compact JWS, verifyCertificate round-trip, invalid JWS throws |
-| `mitlServer.test.ts` | 9 | MITL pending queue operations | addPending + getPending round-trip, approvePending publishes + removes, not_found for unknown, rejectPending publishes rejection, finality_review blocks regular approve (use_finality_response), resolveFinalityPending publishes to swarm.actions.finality, defer with days |
-| `modelConfig.test.ts` | 18 | Model configuration resolution | Ollama base URL (null/blank/trimmed), default models (qwen3:8b, phi4-mini, mistral-small:22b, bge-m3), finality thresholds (defaults, env, clamping), getChatModelConfig (null/Ollama/OpenAI/preference), getOversightModelConfig (null/same/override) |
-| `metrics.test.ts` | 6 | OpenTelemetry metrics | recordProposal/PolicyViolation/AgentLatency/GovernanceLoopMs/recordSgrsCall do not throw |
-| `telemetry.test.ts` | 5 | OpenTelemetry init/shutdown | initTelemetry idempotent, getTracer returns startSpan, getMeter returns createCounter/createHistogram, shutdownTelemetry resolves |
-| `agents/factsAgent.test.ts` | 4 | Facts agent pipeline | Reads WAL + S3, calls worker /extract, writes facts + drift + history to S3, handles no previous facts, runFactsPipelineDirect sequence, createFactsMastraAgent exposes tools |
-| `agents/factsAgent.mastra-openai.test.ts` | 1 | Mastra + OpenAI integration | Conditional: only runs when OPENAI_API_KEY set; verifies Agent.generate returns OK |
-| `agents/driftAgent.test.ts` | 2 | Drift agent | Reads drift from S3, writes history snapshot, handles missing drift |
-| `agents/plannerAgent.test.ts` | 3 | Planner agent | Returns evaluated actions from governance rules, empty actions for no drift, handles missing drift file |
-| `agents/statusAgent.test.ts` | 2 | Status agent | Reads facts + drift, appends status card to WAL, handles missing data (unknown level) |
-| `agents/governanceAgent.test.ts` | 18 | Governance agent (all paths) | YOLO approve (low drift), critical drift escalates to pending, high drift approves (only critical blocks), MITL adds to pending (no immediate action), evaluateProposalDeterministic: ignore/reject/approve/pending for each mode, commitDeterministicResult publishes correctly, runOversightAgent falls back to deterministic when no LLM, runFinalityCheck calls evaluateFinality and conditionally submitFinalityReviewForScope |
-| `seedFixture.test.ts` | 9 | Seed data and context_doc events | HITL scenario fixture shape (claims/goals/risks/edges), seed-docs directory listing, createSwarmEvent context_doc payload |
+| Module / concern | What to cover when adding tests |
+|-----------------|----------------------------------|
+| WAL, logger, S3 helpers, events, event bus | IO boundaries, ack/drain behaviour |
+| Governance YAML, state graph CAS, convergence tracker | Policy evaluation, epoch races, Lyapunov helpers |
+| Finality evaluator, certificates, MITL, policy versions | RESOLVED/ESCALATED/review paths, JWS round-trip |
+| Semantic graph + embeddings | CRDT monotonicity, embedding dimensions |
+| Agents (facts, drift, planner, status, governance) | Pipeline contracts with mocked storage |
+| Telemetry / metrics | No-throw instrumentation |
+
+**Rust:** Primary automated coverage for the kernel remains `cargo test --manifest-path sgrs-core/Cargo.toml` (library + integration crates under `sgrs-core/tests/`).
+
+See [codebase-hygiene.md](codebase-hygiene.md).
 
 ---
 
@@ -281,17 +262,10 @@ validation** and represent known gaps:
    and the semantic graph is scoped, but no E2E test exercises multiple scopes
    simultaneously.
 
-4. **Convergence validated with math only, not real LLM data.** The convergence
-   tracker is validated against synthetic snapshot trajectories (unit tests and
-   benchmark). The assumption that real LLM-extracted facts produce trajectories
-   resembling these synthetic patterns is unvalidated. Real fact extraction
-   may exhibit non-smooth, multi-modal, or adversarial drift patterns not
-   captured by the 7 benchmark scenarios.
+4. **Convergence validated with math first, not representative LLM traces.** The convergence
+   tracker is validated against synthetic snapshot trajectories (`benchmark-convergence.ts` and Rust tests). The assumption that real LLM-extracted facts produce trajectories resembling these patterns is unvalidated.
 
-5. **Demo not automated in CI.** The E2E script (`run-e2e.sh`) requires Docker
-   and either an OpenAI API key or a running Ollama instance. It is not wired
-   into any CI pipeline. Regressions between commits are caught only by the
-   unit test suite.
+5. **Demo and TypeScript tests not in CI.** The E2E script (`run-e2e.sh`) requires Docker plus an LLM backend and is not wired into CI. **`pnpm run test` finds no files** until `test/**/*.test.ts` exists. Primary automated coverage is **Rust** (`sgrs-core`).
 
 6. **LLM oversight quality unvalidated.** When an LLM is configured, the
    oversight agent chooses between accepting the deterministic result,
@@ -299,8 +273,8 @@ validation** and represent known gaps:
    of this triage decision has not been evaluated (no accuracy benchmarks, no
    confusion matrix, no A/B testing).
 
-7. **Embedding semantic accuracy untested.** The embedding pipeline is tested
-   for dimensional correctness (1024-d vectors, graceful failures) but not for
+7. **Embedding semantic accuracy largely unmeasured in this repo.** The embedding pipeline is tested
+   for dimensional correctness where covered in Rust/kernel work, but not for
    semantic quality. Whether bge-m3 embeddings produce meaningful similarity
    scores for the types of claims, goals, and risks in this system is assumed,
    not measured.
@@ -310,9 +284,8 @@ validation** and represent known gaps:
    but the quality of human decisions and their downstream effects on finality
    convergence are not tracked or measured.
 
-9. **No integration tests for NATS message ordering.** The event bus unit tests
-   mock NATS entirely. JetStream delivery guarantees (at-least-once, consumer
-   ack) are trusted but not verified in integration tests.
+9. **No integration tests for NATS message ordering.** There are no in-repo Vitest suites that mock or exercise JetStream ordering. JetStream delivery guarantees (at-least-once, consumer
+   ack) are trusted but not verified by a dedicated integration test in this snapshot.
 
 10. **Migration rollback untested.** Migrations are applied forward only. There
     are no down migrations and no tests for schema rollback.

@@ -138,6 +138,7 @@ services:
       S3_ACCESS_KEY: ${S3_ACCESS_KEY:-minioadmin}
       S3_SECRET_KEY: ${S3_SECRET_KEY:-minioadmin}
       S3_BUCKET: ${S3_BUCKET:-swarm}
+      ACCEPT_ANY_SCOPE: "1"
     depends_on:
       nats:
         condition: service_healthy

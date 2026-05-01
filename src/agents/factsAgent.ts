@@ -114,9 +114,10 @@ function createFactsTools(
       lastWriteResult.current = { wrote, facts_hash };
 
       const scopeId = process.env.SCOPE_ID ?? "default";
+      // Hoist factsPayload so it's accessible to both semantic graph sync and sgrsSync blocks
+      const factsPayload = JSON.parse(JSON.stringify(context.facts ?? {})) as Record<string, unknown>;
       let syncResult: { nodesCreated: number; edgesCreated: number; nodesUpdated: number; nodesStaled: number } | null = null;
       try {
-        const factsPayload = JSON.parse(JSON.stringify(context.facts ?? {})) as Record<string, unknown>;
         const { syncFactsToSemanticGraph } = await import("../factsToSemanticGraph.js");
         syncResult = await syncFactsToSemanticGraph(scopeId, factsPayload, {
           embedClaims: process.env.FACTS_SYNC_EMBED === "1",
@@ -135,6 +136,31 @@ function createFactsTools(
           ? ((context.facts as Record<string, unknown>).contradictions as unknown[]).length
           : 0,
       }, { scopeId });
+
+      // ── Sync governed facts to Studio read model ────────────────────────────
+      // Runs after semantic graph sync so the swarm's own state is always primary.
+      // Fire-and-forget: Studio unavailability must never block governance.
+      try {
+        const { syncFactsToSgrs } = await import("../sgrsSync.js");
+        // Recover doc title from the most recent context_doc WAL event
+        const recentEvents = await tailEvents(20);
+        const lastDoc = [...recentEvents].reverse()
+          .find(e => (e.data as Record<string, unknown>)?.type === "context_doc");
+        const lastDocData = lastDoc?.data as Record<string, unknown> | undefined;
+        // WAL structure: { type, payload: { title, ... } }
+        const docTitle = String(
+          (lastDocData?.payload as Record<string, unknown>)?.title
+          ?? lastDocData?.title
+          ?? "document"
+        );
+        const r = await syncFactsToSgrs(docTitle, factsPayload ?? {}, 0);
+        logger.info("sgrs sync", {
+          scopeId, doc: docTitle,
+          claims: r.claims_synced, contradictions: r.contradictions_synced, risks: r.risks_synced,
+        });
+      } catch (e) {
+        logger.warn("sgrs sync skipped", { scopeId, error: toErrorString(e) });
+      }
 
       return { wrote, facts_hash };
     },

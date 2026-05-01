@@ -2,7 +2,7 @@
 
 > Deep technical reference for the governed agent swarm.
 
-Back to [README.md](../README.md).
+Back to [README.md](../README.md). Repo maintenance notes (missing assets, E2E vs migrations): [codebase-hygiene.md](codebase-hygiene.md).
 
 ---
 
@@ -78,7 +78,7 @@ terminal state (RESOLVED, ESCALATED, BLOCKED, or EXPIRED).
 A single JetStream stream `SWARM_JOBS` (configurable via `NATS_STREAM` env)
 carries all coordination messages. The stream is created with:
 
-- **Subjects:** `swarm.jobs.>`, `swarm.proposals.>`, `swarm.actions.>`, `swarm.events.>`, `swarm.finality.>`
+- **Subjects:** `swarm.jobs.>`, `swarm.proposals.>`, `swarm.actions.>`, `swarm.rejections.>`, `swarm.events.>`, `swarm.finality.>`, `swarm.pending_approval.>` (exact set merged by `ensure-stream` / swarm startup may vary slightly by version; `src/swarm.ts` is authoritative)
 - **Retention:** `LimitsRetention` (messages retained until limits)
 - **Storage:** `FileStorage` (persisted to disk)
 - **Ack policy:** `AckPolicy.Explicit` -- consumers must explicitly acknowledge each message

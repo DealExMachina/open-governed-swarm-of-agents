@@ -107,7 +107,7 @@ CHECK_SERVICES_MAX_WAIT_SEC=300 pnpm run check:services
 Apply database migrations and initialize infrastructure (run from repo root):
 ```bash
 pnpm run ensure-bucket
-pnpm run ensure-schema   # runs all migrations in migrations/ (002–009)
+pnpm run ensure-schema   # applies all SQL migrations in migrations/ (ordered filename)
 pnpm run ensure-stream
 # Optional: pnpm run bootstrap-once
 ```
@@ -426,31 +426,17 @@ The governance mode is a one-line change. The agents, the semantic graph, and th
 
 ## Agent skills — behavioral guarantees
 
-Agents are equipped with **skills**: modular playbooks composed into each agent's system prompt at construction time. Skills enforce consistent behavior across the swarm without relying on ad-hoc prompt engineering per agent. Three skills are active:
+`src/skills/loader.ts` appends markdown snippets from a repository-root **`skills/`** directory (files like `00-swarm-protocol.md` referenced in the registry). **If `skills/` is missing, loading silently returns empty text** — agents still run without the extra playbooks. Add the directory and files to enable the documented behavior.
 
-**Swarm protocol** (`skills/00-swarm-protocol.md`) -- all agents
-- Coordination is stigmergic: agents read/write shared state (WAL, S3, semantic graph), never message each other.
-- Every output must be justified from tool output. "Insufficient evidence" is a valid answer.
+To compare runs with and without composed skills, set `SKILLS_DISABLED=1`. The `exp-skills` experiment in `scripts/run-experiment.sh` writes under `docs/experiments/exp-skills/results/` (gitignored); there is no bundled protocol README — see [docs/codebase-hygiene.md](../docs/codebase-hygiene.md).
 
-**Bitemporal semantics** (`skills/01-bitemporal.md`) -- facts, drift, resolver, propagation, status
-- Claims carry two time axes: valid time (when true in the world) and transaction time (when recorded).
-- Restatements produce a new node with `superseded_at` on the old one -- not a silent overwrite.
-
-**Contradictions and HITL** (`skills/02-contradictions-hitl.md`) -- facts, drift, resolver, planner, governance
-- Facts agent: extract both sides of a conflict as separate claims; never pick a winner.
-- Resolver: mark "confirmed" when evidence is ambiguous; output `requires_hitl: true` when business judgment is needed.
-- Planner/governance: unresolved contradiction with material impact maps to `escalateToHuman`.
-- Global rule: never fabricate emails, approvals, or numbers to close a contradiction.
-
-### Observable skill effects in the demo
+### Observable skill effects when `skills/` is present
 
 | Step | Without skills | With skills |
 |------|---------------|-------------|
 | Step 2 (ARR contradiction) | Drift agent may report high drift without explicit HITL recommendation | Drift agent explicitly recommends human resolution in notes; flags `contradiction` type |
 | Step 4 (patent dispute) | Resolver may mark contradictions "resolved" based on partial evidence | Resolver marks as `confirmed` with `requires_hitl: true` when resolution requires legal judgment |
 | Step 5 (near-finality) | HITL review focuses on score thresholds | HITL review includes bitemporal context about which claims are superseded vs current |
-
-Skills can be disabled for A/B comparison by setting `SKILLS_DISABLED=1`. See `docs/experiments/exp-skills/README.md` for the evaluation protocol.
 
 ---
 
@@ -560,6 +546,6 @@ The summary API and demo UI expose governance and finality context so reviewers 
 | `src/agents/governanceAgent.ts` | Governance agent -- the policy enforcement point |
 | `src/finalityEvaluator.ts` | Finality scoring and HITL routing |
 | `src/semanticGraph.ts` | Semantic graph operations |
-| `skills/` | Agent skill playbooks (swarm protocol, bitemporal, contradictions/HITL) |
+| `src/skills/loader.ts` | Skill markdown composition (**no-op when `skills/` absent**) |
 | `src/skills/loader.ts` | Skill composition into agent instructions |
 | `src/skills/registry.ts` | Skill-to-role mapping |

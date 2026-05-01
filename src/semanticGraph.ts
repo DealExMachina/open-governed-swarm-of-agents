@@ -809,7 +809,7 @@ export async function evaluateGoalsAgainstEvidence(
     `SELECT node_id, content FROM nodes
      WHERE scope_id = $1 AND type = 'goal' AND status = 'active'
      AND superseded_at IS NULL AND (valid_to IS NULL OR valid_to > now())
-     ORDER BY created_at ASC LIMIT 20`,
+     ORDER BY created_at ASC LIMIT 50`,
     [scopeId],
   );
   const goals = goalsRes.rows.map((r) => ({
@@ -822,11 +822,11 @@ export async function evaluateGoalsAgainstEvidence(
     `SELECT content FROM nodes
      WHERE scope_id = $1 AND type = 'claim' AND status = 'active'
      AND superseded_at IS NULL AND (valid_to IS NULL OR valid_to > now())
-     ORDER BY confidence DESC LIMIT 20`,
+     ORDER BY confidence DESC LIMIT 50`,
     [scopeId],
   );
   const claims = claimsRes.rows.map((r) => (r as { content: string }).content).filter(Boolean);
-  const evidenceText = claims.join(". ").slice(0, 4000);
+  const evidenceText = claims.join(". ").slice(0, 8000);
 
   let matches: GoalMatch[];
   try {
@@ -873,20 +873,20 @@ async function matchGoalsAgainstEvidenceWithLLM(
   const prompt = `Given these established facts (claims extracted from documents):
 
 """
-${evidenceText.slice(0, 4000)}
+${evidenceText.slice(0, 8000)}
 """
 
 Here are the active goals:
 ${goalsText}
 
-For each goal, decide if the evidence shows it is satisfied. A goal is satisfied when the facts clearly support its completion or the information needed is present.
+For each goal, decide if the available evidence addresses it. A goal is satisfied when the facts contain information relevant to its intent — it does not require an exact literal match.
 Reply with ONLY a JSON array: [{"id":"<node_id>","status":"fully_resolved"|"partially_resolved"|"not_addressed","confidence":0.0-1.0}]
 
-- "fully_resolved": the evidence clearly satisfies this goal
-- "partially_resolved": the evidence addresses it partially
-- "not_addressed": insufficient evidence
+- "fully_resolved": the evidence meaningfully addresses this goal's intent (e.g. financial data present for a financial goal, risk factors identified for a risk goal)
+- "partially_resolved": the evidence touches on the topic but key aspects are missing
+- "not_addressed": the evidence is genuinely unrelated to this goal
 
-Be conservative: only mark fully_resolved when the facts clearly support it. Reply with ONLY the JSON array, no other text.`;
+Be pragmatic: if relevant facts exist for a goal's domain, mark it resolved. Only use not_addressed when there is truly no overlap. Reply with ONLY the JSON array, no other text.`;
 
   const url = `${config.url.replace(/\/+$/, "")}/chat/completions`;
   const res = await fetch(url, {
@@ -1007,7 +1007,7 @@ function matchGoalsDeterministic(
   decision: string,
   goals: Array<{ node_id: string; content: string }>,
 ): GoalMatch[] {
-  const MATCH_THRESHOLD = 0.12;
+  const MATCH_THRESHOLD = 0.10;
   const sentences = splitIntoSentences(decision);
   const fullTokens = expandSynonyms(tokenize(decision));
   const sentenceTokenSets = sentences.map(s => expandSynonyms(tokenize(s)));
@@ -1019,7 +1019,7 @@ function matchGoalsDeterministic(
     if (score >= MATCH_THRESHOLD) {
       results.push({
         node_id: goal.node_id,
-        status: score >= 0.3 ? "fully_resolved" : "partially_resolved",
+        status: score >= 0.20 ? "fully_resolved" : "partially_resolved",
         confidence: score,
       });
     }
