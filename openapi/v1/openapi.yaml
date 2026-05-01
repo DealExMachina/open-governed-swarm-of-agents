@@ -1,0 +1,170 @@
+openapi: 3.1.0
+info:
+  title: Governed Swarm Control Plane
+  version: 1.0.0
+servers:
+  - url: http://localhost:3006
+paths:
+  /v1/health:
+    get:
+      summary: Health check
+      responses:
+        '200':
+          description: OK
+  /v1/tenants:
+    post:
+      summary: Create tenant (admin only)
+      security: [{ AdminBearer: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string }
+      responses:
+        '201': { description: Created }
+  /v1/scopes:
+    get:
+      summary: List scopes
+      security: [{ TenantBearer: [] }]
+      responses:
+        '200': { description: OK }
+    post:
+      summary: Create scope
+      security: [{ TenantBearer: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [slug]
+              properties:
+                slug: { type: string }
+                display_name: { type: string }
+      responses:
+        '201': { description: Created }
+  /v1/scopes/{scopeId}/documents:
+    post:
+      summary: Upload document body to S3 and register
+      security: [{ TenantBearer: [] }]
+      parameters:
+        - { name: scopeId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title: { type: string }
+                body: { type: string }
+                text: { type: string }
+      responses:
+        '201': { description: Created }
+  /v1/scopes/{scopeId}/ingest:
+    post:
+      summary: Ingest existing S3 keys as context_doc events
+      security: [{ TenantBearer: [] }]
+      parameters:
+        - { name: scopeId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [object_keys]
+              properties:
+                object_keys:
+                  type: array
+                  items: { type: string }
+      responses:
+        '200': { description: OK }
+  /v1/scopes/{scopeId}/summary:
+    get:
+      summary: Studio business/debug snapshot
+      security: [{ TenantBearer: [] }]
+      parameters:
+        - { name: scopeId, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: OK }
+  /v1/scopes/{scopeId}/metrics:
+    get:
+      summary: Tokens and convergence deltas
+      security: [{ TenantBearer: [] }]
+      parameters:
+        - { name: scopeId, in: path, required: true, schema: { type: string } }
+        - { name: from, in: query, schema: { type: string, format: date-time } }
+        - { name: to, in: query, schema: { type: string, format: date-time } }
+      responses:
+        '200': { description: OK }
+  /v1/scopes/{scopeId}/events:
+    get:
+      summary: SSE event stream (filtered)
+      security: [{ TenantBearer: [] }]
+      parameters:
+        - { name: scopeId, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: text/event-stream }
+  /v1/scopes/{scopeId}/reset:
+    post:
+      summary: Reset scope data (DB + S3 prefix)
+      security: [{ TenantBearer: [] }]
+      parameters:
+        - { name: scopeId, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: OK }
+  /v1/runtime/start:
+    post:
+      summary: Bind hatchery to scope (same process)
+      security: [{ TenantBearer: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [scope_id]
+              properties:
+                scope_id: { type: string }
+      responses:
+        '200': { description: OK }
+  /v1/runtime/pause:
+    post:
+      summary: Pause hatchery
+      security: [{ TenantBearer: [] }]
+      responses:
+        '200': { description: OK }
+  /v1/runtime/resume:
+    post:
+      summary: Resume hatchery
+      security: [{ TenantBearer: [] }]
+      responses:
+        '200': { description: OK }
+  /v1/runtime/stop:
+    post:
+      summary: Shutdown hatchery in process
+      security: [{ TenantBearer: [] }]
+      responses:
+        '200': { description: OK }
+  /v1/runtime/restart:
+    post:
+      summary: Rebind and resume
+      security: [{ TenantBearer: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [scope_id]
+              properties:
+                scope_id: { type: string }
+      responses:
+        '200': { description: OK }
+components:
+  securitySchemes:
+    AdminBearer:
+      type: http
+      scheme: bearer
+    TenantBearer:
+      type: http
+      scheme: bearer

@@ -706,7 +706,13 @@ async function runVectorFinalityDeterminismTest(): Promise<VectorFinalityDetermi
   }
 
   const globalGates = {
-    aMonotonic: true, bEvidence: true, cTrajectory: true, dQuiescent: true, eHasContent: true, allPassed: true,
+    aMonotonic: true,
+    bEvidence: true,
+    cTrajectory: true,
+    dQuiescent: true,
+    eHasContent: true,
+    fEliminationComplete: true,
+    allPassed: true,
   };
 
   // 5 diverse input sets covering different dimension profiles

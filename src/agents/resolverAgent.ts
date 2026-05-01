@@ -142,7 +142,7 @@ export async function runResolverAgent(
         maxSteps: 5,
         abortSignal: abortController.signal,
         modelSettings: REASONING_SETTINGS,
-        structuredOutput: { schema: ResolverOutputSchema, jsonPromptInjection: true },
+        structuredOutput: { schema: ResolverOutputSchema as any, jsonPromptInjection: true },
       });
       trackAgentTokens("resolver", genResult);
     } catch (e) {
@@ -170,6 +170,7 @@ export async function runResolverAgent(
           agent: "resolver-agent",
           proposed_action: "resolve_contradiction",
           target_node: contra.node_id,
+          mode: "MITL",
           payload: {
             scope_id: SCOPE_ID,
             node_id: contra.node_id,
@@ -177,7 +178,7 @@ export async function runResolverAgent(
             judgment: r.judgment,
             reason: r.reason,
           },
-        } as Record<string, unknown> & { proposal_id: string; agent: string; proposed_action: string; target_node: string; payload: Record<string, unknown> }, {
+        }, {
           scope_id: SCOPE_ID,
           node_id: contra.node_id,
           content: contra.content,
