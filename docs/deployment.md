@@ -17,7 +17,9 @@ This kernel repo runs the orchestration stack (feed API, agents, Postgres, NATS,
 When Studio and API are reachable over HTTPS:
 
 1. Configure your tenant / scope and API base URL (see the [sgrs](https://github.com/DealExMachina/sgrs) repo).
-2. Use the TypeScript client [`@sgrs/client-ts`](https://www.npmjs.com/package/@sgrs/client-ts) or Python [`sgrs-client`](https://pypi.org/project/sgrs-client/) (install from registries when published, or from the monorepo while developing).
+2. Use the TypeScript client [`@sgrs/sgrs-client`](https://www.npmjs.com/package/@sgrs/sgrs-client) or Python [`sgrs-client`](https://pypi.org/project/sgrs-client/) (install from registries when published, or from the monorepo while developing).
+
+Python releases use GitHub Actions [`.github/workflows/pypi-publish.yml`](../.github/workflows/pypi-publish.yml) (**filename must stay in sync with PyPI Trusted Publishing**).
 
 The **API contract** is defined in the product monorepo: [`packages/api-schema`](https://github.com/DealExMachina/sgrs/tree/main/packages/api-schema) (OpenAPI).
 
@@ -65,4 +67,4 @@ Compose already relies on upstream images (e.g. Postgres + pgvector, NATS, MinIO
 
 ## License reminder
 
-Orchestration code in this repo is **AGPL-3.0-only**; the Rust kernel under `sgrs-core/` is **Elastic License 2.0 (ELv2)**. See [README.md](../README.md#license).
+Orchestration code in this repo is **AGPL-3.0-only**; the Rust kernel under `sgrs-core/` is **Elastic License 2.0 (ELv2)**. The published HTTP clients (`packages/sgrs-client`, `packages/sgrs-client-py`) are **MIT**. See [README.md](../README.md#license).

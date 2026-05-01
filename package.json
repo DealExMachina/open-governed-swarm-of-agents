@@ -38,7 +38,7 @@
     "observability": "docker compose up -d otel-collector prometheus grafana",
     "feed": "node --loader ts-node/esm src/feed.ts",
     "control-plane": "node --loader ts-node/esm src/controlPlaneServer.ts",
-    "build:client": "pnpm --filter @swarm/client build",
+    "build:client": "pnpm --filter @sgrs/sgrs-client build",
     "ensure-bucket": "node --loader ts-node/esm scripts/ensure-bucket.ts",
     "ensure-schema": "node --loader ts-node/esm scripts/ensure-schema.ts",
     "ensure-stream": "node --loader ts-node/esm scripts/ensure-stream.ts",

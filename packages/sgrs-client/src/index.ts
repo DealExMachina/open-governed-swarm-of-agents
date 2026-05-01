@@ -1,9 +1,9 @@
 /**
- * Minimal HTTP client for the control plane API (/v1).
+ * Minimal HTTP client for the SGRS control plane API (/v1).
  * Mirrors routes in src/controlPlaneServer.ts and openapi/v1/openapi.yaml.
  */
 
-export interface SwarmClientOptions {
+export interface SgrsClientOptions {
   baseUrl: string;
   /** Tenant API key (Bearer) */
   apiKey: string;
@@ -12,7 +12,7 @@ export interface SwarmClientOptions {
 
 async function json<T>(
   url: string,
-  opts: SwarmClientOptions,
+  opts: SgrsClientOptions,
   init?: RequestInit,
 ): Promise<T> {
   const f = opts.fetchImpl ?? fetch;
@@ -38,7 +38,7 @@ async function json<T>(
   return body as T;
 }
 
-export function createSwarmClient(opts: SwarmClientOptions) {
+export function createSgrsClient(opts: SgrsClientOptions) {
   const base = opts.baseUrl.replace(/\/$/, "");
   const f = opts.fetchImpl ?? fetch;
   return {
@@ -157,4 +157,11 @@ export function createAdminClient(baseUrl: string, adminToken: string, fetchImpl
   };
 }
 
-export type SwarmClient = ReturnType<typeof createSwarmClient>;
+export type SgrsClient = ReturnType<typeof createSgrsClient>;
+
+/** @deprecated Use {@link SgrsClientOptions} */
+export type SwarmClientOptions = SgrsClientOptions;
+/** @deprecated Use {@link createSgrsClient} */
+export const createSwarmClient = createSgrsClient;
+/** @deprecated Use {@link SgrsClient} */
+export type SwarmClient = SgrsClient;
