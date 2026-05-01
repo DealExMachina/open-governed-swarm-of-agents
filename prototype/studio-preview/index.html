@@ -408,6 +408,10 @@
         background: rgba(122, 127, 139, 0.15);
         color: var(--fog-2);
       }
+      .tt .tag.resolution {
+        background: rgba(127, 185, 139, 0.15);
+        color: var(--ok);
+      }
 
       /* Subtle zoom hint — bottom right */
       .zoom-hint {
@@ -608,6 +612,107 @@
       .activity .ev .txt em {
         font-style: normal;
         color: var(--fog);
+      }
+
+      /* Sidebar — structured lists (detail lives here, not on canvas) */
+      .sb-section .h {
+        margin-bottom: 10px;
+      }
+      .sb-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .sb-row {
+        padding: 10px 11px;
+        border-radius: var(--r-sm);
+        border: 1px solid var(--graphite);
+        background: var(--ink);
+        cursor: default;
+        font-size: 12px;
+        color: var(--mist);
+        line-height: 1.45;
+      }
+      .sb-row.focusable {
+        cursor: pointer;
+        transition:
+          border-color var(--t-smooth),
+          background var(--t-smooth);
+      }
+      .sb-row.focusable:hover {
+        border-color: var(--graphite-2);
+        background: var(--ink-raised);
+      }
+      .sb-row .sb-title {
+        font-weight: 600;
+        margin-bottom: 2px;
+      }
+      .sb-row .sb-meta {
+        font-size: 11px;
+        color: var(--fog);
+      }
+      .sb-row.blocker {
+        border-color: rgba(217, 122, 108, 0.35);
+      }
+      .sb-row.blocker .pill {
+        display: inline-block;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 9px;
+        padding: 2px 6px;
+        border-radius: 3px;
+        margin-right: 6px;
+        vertical-align: middle;
+      }
+      .sb-row.blocker .pill.veto {
+        background: rgba(217, 122, 108, 0.18);
+        color: var(--risk);
+      }
+      .sb-row.resolution {
+        border-color: rgba(127, 185, 139, 0.28);
+      }
+      .sb-row.next .sb-meta {
+        color: var(--fog-2);
+      }
+      .sb-empty {
+        font-size: 11.5px;
+        color: var(--fog);
+        padding: 10px;
+        border: 1px dashed var(--graphite);
+        border-radius: var(--r-sm);
+        text-align: center;
+      }
+
+      /* Compact progress (no large ring) */
+      .prg-compact {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .prg-compact .top {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+      }
+      .prg-compact .score {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 15px;
+        color: var(--mist);
+      }
+      .prg-compact .state {
+        font-size: 12px;
+        color: var(--amber);
+      }
+      .prg-compact .rows {
+        font-size: 11.5px;
+        color: var(--fog);
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .prg-compact .rows span strong {
+        color: var(--mist);
+        font-family: "JetBrains Mono", monospace;
+        font-weight: 500;
       }
 
       /* ─── CONFIGURE MODE ─── */
@@ -980,6 +1085,9 @@
     </style>
   </head>
   <body data-mode="business">
+    <script>
+      window.STUDIO_CONTROL = window.STUDIO_CONTROL || {};
+    </script>
     <div class="app">
       <!-- ═════════════ Top bar ═════════════ -->
       <header class="topbar">
@@ -1051,7 +1159,7 @@
             <div class="tt" id="tt"></div>
             <div class="zoom-hint">
               <span class="cur" id="zoomLvl">100%</span>
-              <span class="hint" id="zoomHint">hover · scroll</span>
+              <span class="hint" id="zoomHint">hover for detail</span>
             </div>
           </div>
 
@@ -1074,50 +1182,37 @@
               </div>
             </section>
 
-            <!-- Progress -->
+            <!-- Progress (compact — detail in sidebar, not oversized chrome) -->
             <section class="card tight">
               <div class="h">Progress</div>
-              <div class="progress">
-                <div class="ring">
-                  <svg viewBox="0 0 80 80">
-                    <defs>
-                      <linearGradient
-                        id="ringGrad"
-                        x1="0%"
-                        y1="0%"
-                        x2="100%"
-                        y2="100%"
-                      >
-                        <stop offset="0%" stop-color="#3e6b93" />
-                        <stop offset="100%" stop-color="#6aa6d6" />
-                      </linearGradient>
-                    </defs>
-                    <circle class="track" cx="40" cy="40" r="33" />
-                    <circle
-                      class="fill"
-                      cx="40"
-                      cy="40"
-                      r="33"
-                      stroke-dasharray="207.3"
-                      stroke-dashoffset="45.6"
-                    />
-                  </svg>
-                  <div class="center">
-                    <div class="score">0.78</div>
-                  </div>
+              <div class="prg-compact">
+                <div class="top">
+                  <span class="score">0.78</span>
+                  <span class="state">near-finality</span>
                 </div>
-                <div class="prg-meta">
-                  <div class="state">near-finality</div>
-                  <div class="row">
-                    <span>trend</span><b style="color: var(--ok)"
-                      >↑ 3 cycles</b
-                    >
-                  </div>
-                  <div class="row">
-                    <span>ETA to 0.92</span><b>~3 cycles</b>
-                  </div>
+                <div class="rows">
+                  <span>Trend <strong style="color: var(--ok)">↑ 3 cycles</strong></span>
+                  <span>ETA to auto-finality threshold <strong>~3 cycles</strong></span>
                 </div>
               </div>
+            </section>
+
+            <!-- Blockers -->
+            <section class="card tight sb-section">
+              <div class="h">Blockers</div>
+              <div class="sb-list" id="sbBlockers"></div>
+            </section>
+
+            <!-- Resolutions -->
+            <section class="card tight sb-section">
+              <div class="h">Resolutions</div>
+              <div class="sb-list" id="sbResolutions"></div>
+            </section>
+
+            <!-- Next actions -->
+            <section class="card tight sb-section">
+              <div class="h">Next actions</div>
+              <div class="sb-list" id="sbNext"></div>
             </section>
 
             <!-- Activity -->
@@ -1167,6 +1262,31 @@
           </nav>
 
           <div class="cfg-body">
+            <div
+              id="studio-cp-banner"
+              class="card tight"
+              style="
+                margin-bottom: 20px;
+                background: #12141a;
+                border: 1px solid #363b47;
+              "
+            >
+              <div class="h">Control plane (live)</div>
+              <p id="studio-cp-msg" class="lead" style="font-size: 12px">
+                Set
+                <code>window.STUDIO_CONTROL = { baseUrl, apiKey, scopeId }</code>
+                then metrics/summary load here.
+              </p>
+              <pre
+                id="studio-cp-json"
+                style="
+                  font-size: 11px;
+                  overflow: auto;
+                  max-height: 140px;
+                  margin: 0;
+                "
+              ></pre>
+            </div>
             <h2>Governance</h2>
             <p class="lead">
               How the kernel handles proposed state transitions. The Rust
@@ -1481,15 +1601,17 @@
         { data: { id: "c-client", label: "Client evaluating alt.", type: "claim", conf: 0.74, info: { subtitle: "claim · current", desc: "From doc-4 · conf 0.74 · supports r-concent" } } },
         { data: { id: "c-ip-ok", label: "IP risks manageable", type: "claim", conf: 0.81, info: { subtitle: "claim · current", desc: "From doc-5 · conf 0.81 · supports g-signoff" } } },
 
-        { data: { id: "x-arr", label: "ARR conflict", type: "contradiction", veto: true, info: { subtitle: "contradiction · unresolved · VETO", desc: "€50M (doc-1) ↔ €38M (doc-2) · valid-time overlap" } } },
-        { data: { id: "x-risk", label: "'low risk' qualified", type: "contradiction", veto: false, info: { subtitle: "contradiction · soft · qualified", desc: "doc-1 low-risk claim ↔ evidence from docs 2–4" } } },
+        { data: { id: "x-arr", label: "ARR conflict", type: "contradiction", veto: true, resolved: false, info: { subtitle: "contradiction · unresolved · VETO", desc: "€50M (doc-1) ↔ €38M (doc-2) · valid-time overlap · blocks goal · Price band" } } },
+        { data: { id: "x-risk", label: "'low risk' qualified", type: "contradiction", veto: false, resolved: true, info: { subtitle: "contradiction · resolved · soft", desc: "doc-1 qualifier reconciled with docs 2–4 · resolved via MITL" } } },
+
+        { data: { id: "res-lowrisk", label: "Risk framing memo", type: "resolution", info: { subtitle: "resolution · MITL · policy v3.2.1", desc: "Reviewer aligned early \"low risk\" wording with subsequent diligence.", resolvedBy: "j.baptiste", resolvedAt: "2026-04-28 09:40 UTC", method: "MITL", targetsContradiction: "x-risk" } } },
 
         { data: { id: "r-overstate", label: "Overstatement", type: "risk", info: { subtitle: "risk · high", desc: "Financial overstatement · supported by c-arr-38" } } },
         { data: { id: "r-talent", label: "Talent flight", type: "risk", info: { subtitle: "risk · medium", desc: "Key talent departure · supported by c-cto" } } },
         { data: { id: "r-ip", label: "IP disputes", type: "risk", info: { subtitle: "risk · medium", desc: "Patent ownership · supported by c-patents-disp" } } },
         { data: { id: "r-concent", label: "Client concentration", type: "risk", info: { subtitle: "risk · medium", desc: "Top-client churn · supported by c-client" } } },
 
-        { data: { id: "g-price", label: "Price €270–290M", type: "goal", info: { subtitle: "goal · 79% complete", desc: "Acquisition price band · refs r-overstate, c-arr-38" } } },
+        { data: { id: "g-price", label: "Price €270–290M", type: "goal", info: { subtitle: "goal · blocked by ARR conflict", desc: "Acquisition price band · refs r-overstate, c-arr-38" } } },
         { data: { id: "g-complete", label: "DD complete", type: "goal", info: { subtitle: "goal · active", desc: "Full due-diligence closure" } } },
         { data: { id: "g-signoff", label: "Legal sign-off", type: "goal", info: { subtitle: "goal · 81% complete", desc: "Legal recommendation · refs c-ip-ok, r-ip" } } },
       ];
@@ -1509,6 +1631,8 @@
         { data: { source: "x-risk", target: "c-cto", type: "contradicts" } },
         { data: { source: "x-risk", target: "c-client", type: "contradicts" } },
 
+        { data: { source: "res-lowrisk", target: "x-risk", type: "resolves" } },
+
         { data: { source: "c-arr-38", target: "r-overstate", type: "supports" } },
         { data: { source: "c-cto", target: "r-talent", type: "supports" } },
         { data: { source: "c-patents-disp", target: "r-ip", type: "supports" } },
@@ -1520,6 +1644,56 @@
         { data: { source: "c-arr-38", target: "g-price", type: "supports" } },
       ];
 
+      /* ═══════════════ Deterministic layered positions (no overlap) ═══════════════ */
+      function layeredPositions(nodesArr) {
+        const byId = {};
+        const left = 52;
+        const docYs = 48;
+        const claimY = 158;
+        const contraY = 288;
+        const resY = 412;
+        const riskY = 532;
+        const goalY = 652;
+
+        const docs = nodesArr.filter((n) => n.data.type === "doc");
+        const spread = 148;
+        docs.forEach((n, i) => {
+          byId[n.data.id] = { x: left + i * spread, y: docYs };
+        });
+
+        const claims = nodesArr.filter((n) => n.data.type === "claim");
+        const cs = 94;
+        claims.forEach((n, i) => {
+          byId[n.data.id] = { x: left + 18 + i * cs, y: claimY };
+        });
+
+        byId["x-arr"] = { x: left + 210, y: contraY };
+        byId["x-risk"] = { x: left + 560, y: contraY };
+
+        nodesArr
+          .filter((n) => n.data.type === "resolution")
+          .forEach((n) => {
+            byId[n.data.id] = { x: left + 560, y: resY };
+          });
+
+        const risks = nodesArr.filter((n) => n.data.type === "risk");
+        risks.forEach((n, i) => {
+          byId[n.data.id] = { x: left + 28 + i * 142, y: riskY };
+        });
+
+        const goals = nodesArr.filter((n) => n.data.type === "goal");
+        goals.forEach((n, i) => {
+          byId[n.data.id] = { x: left + 120 + i * 168, y: goalY };
+        });
+
+        return byId;
+      }
+
+      const posMap = layeredPositions(nodes);
+      const nodesPositioned = nodes.map((n) => ({
+        data: { ...n.data, pos: posMap[n.data.id] },
+      }));
+
       /* ═══════════════ Cytoscape shared stylesheet ═══════════════ */
       const cyStyle = [
         {
@@ -1528,18 +1702,18 @@
             label: "data(label)",
             color: "#c9cdd6",
             "font-family": "Inter, sans-serif",
-            "font-size": 11,
+            "font-size": 10,
             "font-weight": 500,
             "text-valign": "bottom",
-            "text-margin-y": 8,
+            "text-margin-y": 6,
             "text-wrap": "wrap",
-            "text-max-width": 120,
+            "text-max-width": 88,
             "text-outline-color": "#0b0c0f",
             "text-outline-width": 2,
             "border-width": 1,
             "border-color": "#363b47",
             "text-opacity": 0,
-            "transition-property": "text-opacity, opacity, border-color, background-color",
+            "transition-property": "opacity, border-color, background-color",
             "transition-duration": "140ms",
             "transition-timing-function": "ease-out",
           },
@@ -1551,10 +1725,9 @@
             "background-color": "#12141a",
             "border-color": "#7a7f8b",
             "border-width": 1,
-            width: 30,
-            height: 30,
+            width: 28,
+            height: 28,
             color: "#9aa0ac",
-            "font-size": 10.5,
           },
         },
         {
@@ -1564,8 +1737,8 @@
             "background-color": "#3e6b93",
             "border-color": "#6aa6d6",
             "border-width": 1.5,
-            width: (n) => 28 + (n.data("conf") || 0.5) * 22,
-            height: (n) => 28 + (n.data("conf") || 0.5) * 22,
+            width: 26,
+            height: 26,
           },
         },
         {
@@ -1574,7 +1747,6 @@
             "background-color": "#1b1e25",
             "border-color": "#6aa6d6",
             "border-style": "dashed",
-            color: "#7a7f8b",
           },
         },
         {
@@ -1584,9 +1756,28 @@
             "background-color": "#12141a",
             "border-color": "#d97a6c",
             "border-width": 2,
-            width: 34,
-            height: 34,
-            color: "#d97a6c",
+            width: 32,
+            height: 32,
+          },
+        },
+        {
+          selector: 'node[type="contradiction"][?resolved]',
+          style: {
+            opacity: 0.52,
+            "border-color": "#5a9468",
+            "border-width": 1.5,
+            "border-style": "solid",
+          },
+        },
+        {
+          selector: 'node[type="resolution"]',
+          style: {
+            shape: "round-rectangle",
+            "background-color": "#141a17",
+            "border-color": "#7fb98b",
+            "border-width": 1.75,
+            width: 30,
+            height: 30,
           },
         },
         {
@@ -1596,9 +1787,8 @@
             "background-color": "#12141a",
             "border-color": "#e8b765",
             "border-width": 1.5,
-            width: 32,
-            height: 32,
-            color: "#e8b765",
+            width: 30,
+            height: 30,
           },
         },
         {
@@ -1608,9 +1798,8 @@
             "background-color": "#12141a",
             "border-color": "#7fb98b",
             "border-width": 1.5,
-            width: 36,
-            height: 36,
-            color: "#7fb98b",
+            width: 32,
+            height: 32,
           },
         },
         {
@@ -1619,10 +1808,10 @@
             width: 1,
             "curve-style": "bezier",
             "target-arrow-shape": "triangle",
-            "arrow-scale": 0.7,
+            "arrow-scale": 0.65,
             "line-color": "#262a33",
             "target-arrow-color": "#262a33",
-            opacity: 0.5,
+            opacity: 0.48,
             "transition-property": "opacity, line-color",
             "transition-duration": "140ms",
           },
@@ -1632,8 +1821,8 @@
           style: {
             "line-color": "#3e6b93",
             "target-arrow-color": "#3e6b93",
-            width: 1.1,
-            opacity: 0.75,
+            width: 1,
+            opacity: 0.72,
           },
         },
         {
@@ -1642,8 +1831,24 @@
             "line-color": "#d97a6c",
             "target-arrow-color": "#d97a6c",
             "line-style": "dashed",
-            width: 1.3,
-            opacity: 0.8,
+            width: 1.15,
+            opacity: 0.72,
+          },
+        },
+        {
+          selector: 'edge[type="refers"]',
+          style: {
+            opacity: 0.38,
+          },
+        },
+        {
+          selector: 'edge[type="resolves"]',
+          style: {
+            "line-color": "#5a9468",
+            "target-arrow-color": "#7fb98b",
+            "line-style": "solid",
+            width: 1.2,
+            opacity: 0.85,
           },
         },
         {
@@ -1653,16 +1858,15 @@
         {
           selector: ".dim",
           style: {
-            opacity: 0.14,
-            "text-opacity": 0,
+            opacity: 0.12,
           },
         },
         {
           selector: ".hi",
           style: {
+            opacity: 1,
             "border-color": "#ff7a1a",
             "border-width": 2,
-            "text-opacity": 1,
           },
         },
         {
@@ -1670,98 +1874,139 @@
           style: {
             "line-color": "#ff7a1a",
             "target-arrow-color": "#ff7a1a",
-            width: 1.6,
+            width: 1.5,
             opacity: 1,
           },
         },
       ];
 
-      const cyLayout = {
-        name: "cose",
-        animate: false,
-        randomize: true,
-        componentSpacing: 90,
-        nodeRepulsion: 32000,
-        idealEdgeLength: 130,
-        edgeElasticity: 110,
-        gravity: 0.22,
-        numIter: 2000,
-        padding: 60,
+      const presetLayout = {
+        name: "preset",
+        positions: (node) => node.data("pos") || { x: 0, y: 0 },
         fit: true,
-        nodeDimensionsIncludeLabels: true,
+        padding: 44,
+        animate: false,
+      };
+
+      const elementsPayload = {
+        nodes: JSON.parse(JSON.stringify(nodesPositioned)),
+        edges: JSON.parse(JSON.stringify(edges)),
       };
 
       /* ═══════════════ Init cy (Business) ═══════════════ */
       const cy = cytoscape({
         container: document.getElementById("cy"),
-        elements: { nodes: JSON.parse(JSON.stringify(nodes)), edges: JSON.parse(JSON.stringify(edges)) },
-        minZoom: 0.45,
+        elements: elementsPayload,
+        minZoom: 0.35,
         maxZoom: 2.4,
         wheelSensitivity: 0.22,
         style: cyStyle,
-        layout: cyLayout,
+        layout: presetLayout,
       });
 
-      /* ═══════════════ Init cy (Debug — same data) ═══════════════ */
+      /* ═══════════════ Init cy (Debug — same positions) ═══════════════ */
       const cyDbg = cytoscape({
         container: document.getElementById("cyDbg"),
-        elements: { nodes: JSON.parse(JSON.stringify(nodes)), edges: JSON.parse(JSON.stringify(edges)) },
-        minZoom: 0.45,
+        elements: JSON.parse(JSON.stringify(elementsPayload)),
+        minZoom: 0.35,
         maxZoom: 2.4,
         wheelSensitivity: 0.22,
         style: cyStyle,
-        layout: cyLayout,
+        layout: presetLayout,
       });
 
-      /* ═══════════════ Zoom-driven label reveal ═══════════════ */
-      function updateLabels(inst) {
+      /* ═══════════════ Debug only: zoom-tier labels (Business stays hover-only) ═══════════════ */
+      function updateLabelsDbg(inst) {
         const z = inst.zoom();
         inst.batch(() => {
           inst.nodes().removeClass("show-label");
-          if (z < 0.7) {
-            // far: show only contradictions + risks (landmarks)
-            inst.nodes('[type="contradiction"], [type="risk"]').addClass("show-label");
-          } else if (z < 1.1) {
-            // mid: + docs + goals
+          if (z < 0.65) {
+            inst.nodes('[type="contradiction"], [type="risk"], [type="resolution"]').addClass("show-label");
+          } else if (z < 1.05) {
             inst
-              .nodes('[type="contradiction"], [type="risk"], [type="doc"], [type="goal"]')
+              .nodes('[type="contradiction"], [type="risk"], [type="resolution"], [type="doc"], [type="goal"]')
               .addClass("show-label");
           } else {
-            // close: everything
             inst.nodes().addClass("show-label");
           }
         });
       }
-      function bindZoom(inst, lblEl) {
-        inst.on("zoom", () => {
-          updateLabels(inst);
-          if (lblEl) lblEl.textContent = Math.round(inst.zoom() * 100) + "%";
-        });
-        inst.ready(() => updateLabels(inst));
-      }
-      bindZoom(cy, document.getElementById("zoomLvl"));
-      bindZoom(cyDbg, null);
 
-      /* ═══════════════ Hover: dim + tooltip ═══════════════ */
+      function bindZoomDbg(inst) {
+        inst.on("zoom", () => updateLabelsDbg(inst));
+        inst.ready(() => updateLabelsDbg(inst));
+      }
+
+      cy.on("zoom", () => {
+        document.getElementById("zoomLvl").textContent =
+          Math.round(cy.zoom() * 100) + "%";
+      });
+      cy.ready(() => {
+        document.getElementById("zoomLvl").textContent =
+          Math.round(cy.zoom() * 100) + "%";
+      });
+
+      bindZoomDbg(cyDbg);
+
+      function esc(s) {
+        return String(s || "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      /* ═══════════════ Hover: dim + tooltip (detail lives here) ═══════════════ */
       function bindHover(inst, wrap, ttEl) {
         inst.on("mouseover", "node", (e) => {
           const n = e.target;
           const nbh = n.closedNeighborhood();
           inst.elements().difference(nbh).addClass("dim");
           nbh.addClass("hi");
-          // tooltip
           const info = n.data("info") || {};
           const type = n.data("type");
-          const tag = type === "contradiction"
-            ? (n.data("veto") ? '<span class="tag risk">VETO</span>' : '<span class="tag warn">soft</span>')
-            : type === "risk" ? '<span class="tag warn">risk</span>'
-            : type === "claim" && n.data("stale") ? '<span class="tag stale">stale</span>'
-            : type === "claim" ? '<span class="tag info">claim</span>'
-            : type === "goal" ? '<span class="tag info">goal</span>'
-            : type === "doc" ? '<span class="tag info">doc</span>' : "";
+          let tag = "";
+          if (type === "contradiction") {
+            if (n.data("resolved")) {
+              tag = '<span class="tag resolution">resolved</span>';
+            } else if (n.data("veto")) {
+              tag = '<span class="tag risk">VETO</span>';
+            } else {
+              tag = '<span class="tag warn">soft</span>';
+            }
+          } else if (type === "risk") {
+            tag = '<span class="tag warn">risk</span>';
+          } else if (type === "claim" && n.data("stale")) {
+            tag = '<span class="tag stale">stale</span>';
+          } else if (type === "claim") {
+            tag = '<span class="tag info">claim</span>';
+          } else if (type === "goal") {
+            tag = '<span class="tag info">goal</span>';
+          } else if (type === "doc") {
+            tag = '<span class="tag info">doc</span>';
+          } else if (type === "resolution") {
+            tag = '<span class="tag resolution">resolution</span>';
+          }
+          let meta =
+            '<div class="m">' +
+            esc(info.subtitle || "") +
+            "<br>" +
+            esc(info.desc || "") +
+            "</div>";
+          if (type === "resolution") {
+            meta +=
+              '<div class="m" style="margin-top:6px">' +
+              '<span class="k">By</span> <b>' +
+              esc(info.resolvedBy || "—") +
+              "</b><br>" +
+              '<span class="k">' +
+              esc(info.method || "") +
+              "</span> · <b>" +
+              esc(info.resolvedAt || "") +
+              "</b></div>";
+          }
           ttEl.innerHTML =
-            '<div class="t">' + tag + (n.data("label") || "") + '</div>' +
-            '<div class="m">' + (info.subtitle || "") + '<br>' + (info.desc || "") + '</div>';
+            '<div class="t">' + tag + esc(n.data("label") || "") + "</div>" + meta;
           const pos = n.renderedPosition();
           ttEl.style.left = pos.x + "px";
           ttEl.style.top = pos.y + "px";
@@ -1778,13 +2023,207 @@
       bindHover(cy, document.getElementById("graphWrap"), document.getElementById("tt"));
       bindHover(cyDbg, document.getElementById("graphWrapDbg"), document.getElementById("ttDbg"));
 
-      /* ═══════════════ Post-layout: relax slightly to reduce overlap ═══════════════ */
+      /* ═══════════════ Focus node from sidebar ═══════════════ */
+      function focusInGraph(inst, id) {
+        const n = inst.getElementById(id);
+        if (!n || n.empty()) return;
+        inst.elements().removeClass("dim hi");
+        const nbh = n.closedNeighborhood();
+        inst.elements().difference(nbh).addClass("dim");
+        nbh.addClass("hi");
+        const z = Math.max(inst.zoom(), 1);
+        inst.animate(
+          { center: { eles: n }, zoom: z },
+          { duration: 220, easing: "ease-out" },
+        );
+      }
+
+      function wireSidebarFocus(container, graphInst) {
+        container.addEventListener("click", (ev) => {
+          const row = ev.target.closest("[data-node-id]");
+          if (!row) return;
+          const id = row.getAttribute("data-node-id");
+          if (id) focusInGraph(graphInst, id);
+        });
+      }
+
+      /* ═══════════════ Populate sidebars from mock graph ═══════════════ */
+      function renderSidebars() {
+        const sbBlockers = document.getElementById("sbBlockers");
+        const sbResolutions = document.getElementById("sbResolutions");
+        const sbNext = document.getElementById("sbNext");
+
+        const blockers = nodes.filter(
+          (n) => n.data.type === "contradiction" && !n.data.resolved,
+        );
+        if (!blockers.length) {
+          sbBlockers.innerHTML =
+            '<div class="sb-empty">No active blockers</div>';
+        } else {
+          sbBlockers.innerHTML = "";
+          blockers.forEach((n) => {
+            const d = n.data;
+            const row = document.createElement("div");
+            row.className = "sb-row blocker focusable";
+            row.dataset.nodeId = d.id;
+            const pill = d.veto
+              ? '<span class="pill veto">VETO</span>'
+              : '<span class="pill" style="background:rgba(232,183,101,.15);color:var(--amber)">soft</span>';
+            row.innerHTML =
+              "<div class=\"sb-title\">" +
+              pill +
+              esc(d.label) +
+              '</div><div class="sb-meta">' +
+              esc((d.info && d.info.desc) || "") +
+              "</div>";
+            sbBlockers.appendChild(row);
+          });
+        }
+
+        const resolutions = nodes.filter((n) => n.data.type === "resolution");
+        if (!resolutions.length) {
+          sbResolutions.innerHTML =
+            '<div class="sb-empty">No resolutions recorded</div>';
+        } else {
+          sbResolutions.innerHTML = "";
+          resolutions.forEach((n) => {
+            const d = n.data;
+            const info = d.info || {};
+            const edge = edges.find(
+              (e) =>
+                e.data.source === d.id && e.data.type === "resolves",
+            );
+            const contraId = edge ? edge.data.target : "";
+            const contraNode = nodes.find((x) => x.data.id === contraId);
+            const contraLabel = contraNode
+              ? contraNode.data.label
+              : contraId;
+            const row = document.createElement("div");
+            row.className = "sb-row resolution focusable";
+            row.dataset.nodeId = d.id;
+            row.innerHTML =
+              '<div class="sb-title">' +
+              esc(d.label) +
+              '</div><div class="sb-meta">Contradiction · ' +
+              esc(contraLabel) +
+              "<br>" +
+              esc(info.method || "") +
+              " · " +
+              esc(info.resolvedBy || "") +
+              " · " +
+              esc(info.resolvedAt || "") +
+              "</div>";
+            sbResolutions.appendChild(row);
+          });
+        }
+
+        const nextLines = [
+          {
+            id: "x-arr",
+            title: "Reconcile ARR figures",
+            meta: "VETO blocks contradiction_resolution · goal Price €270–290M held",
+          },
+          {
+            id: "g-price",
+            title: "Complete MITL review queue",
+            meta: "Open review tied to near-finality gate",
+          },
+          {
+            id: "doc-2",
+            title: "Optional: attach Finance signed memo",
+            meta: "Counters ARR narrative for audit trail",
+          },
+        ];
+        sbNext.innerHTML = "";
+        nextLines.forEach((line) => {
+          const row = document.createElement("div");
+          row.className = "sb-row next focusable";
+          row.dataset.nodeId = line.id;
+          row.innerHTML =
+            '<div class="sb-title">' +
+            esc(line.title) +
+            '</div><div class="sb-meta">' +
+            esc(line.meta) +
+            "</div>";
+          sbNext.appendChild(row);
+        });
+      }
+
+      renderSidebars();
+      wireSidebarFocus(document.getElementById("sbBlockers"), cy);
+      wireSidebarFocus(document.getElementById("sbResolutions"), cy);
+      wireSidebarFocus(document.getElementById("sbNext"), cy);
+
       cy.ready(() => {
-        setTimeout(() => cy.fit(null, 60), 30);
+        setTimeout(() => cy.fit(null, 48), 40);
       });
       cyDbg.ready(() => {
-        setTimeout(() => cyDbg.fit(null, 60), 30);
+        setTimeout(() => cyDbg.fit(null, 48), 40);
       });
+
+      window.addEventListener("resize", () => {
+        cy.resize();
+        cyDbg.resize();
+      });
+
+      (function wireStudioControlPlane() {
+        const cfg = window.STUDIO_CONTROL || {};
+        const msg = document.getElementById("studio-cp-msg");
+        const pre = document.getElementById("studio-cp-json");
+        if (!msg || !pre) return;
+
+        function go() {
+          var base = (cfg.baseUrl || "http://127.0.0.1:3004").replace(/\/$/, "");
+          var key = cfg.apiKey || "";
+          var scope = cfg.scopeId || "";
+          if (!key || !scope) {
+            msg.textContent =
+              "Configure window.STUDIO_CONTROL.apiKey and .scopeId for live data.";
+            return;
+          }
+          var auth = { Authorization: "Bearer " + key };
+          fetch(
+            base + "/v1/scopes/" + encodeURIComponent(scope) + "/metrics",
+            { headers: auth },
+          )
+            .then(function (r) {
+              return r.json();
+            })
+            .then(function (m) {
+              pre.textContent = JSON.stringify(m, null, 2);
+              msg.textContent = "Metrics OK · tokens in period shown below.";
+              var fc = document.querySelector(".mode-pane.business .prg-compact .score");
+              if (fc && m.tokens)
+                fc.textContent = String(
+                  (m.tokens.input_tokens || 0) + (m.tokens.output_tokens || 0),
+                );
+            })
+            .catch(function () {
+              msg.textContent =
+                "Control plane unreachable or 401 — check baseUrl and apiKey.";
+            });
+
+          fetch(
+            base + "/v1/scopes/" + encodeURIComponent(scope) + "/summary",
+            { headers: auth },
+          )
+            .then(function (r) {
+              return r.json();
+            })
+            .then(function (s) {
+              var el = document.querySelector(".mode-pane.business .prg-compact .state");
+              if (el && s.finality && s.finality.status)
+                el.textContent = String(s.finality.status);
+              var sc = document.querySelector(".mode-pane.business .prg-compact .score");
+              if (sc && s.finality && typeof s.finality.goal_score === "number")
+                sc.textContent = String(s.finality.goal_score);
+            })
+            .catch(function () {});
+        }
+
+        go();
+        setInterval(go, 30000);
+      })();
     </script>
   </body>
 </html>
