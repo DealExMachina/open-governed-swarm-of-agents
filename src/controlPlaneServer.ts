@@ -10,7 +10,7 @@ import { getHatcheryInstance } from "./hatchery.js";
 import { makeS3, s3GetText, s3PutText } from "./s3.js";
 import { appendEvent } from "./contextWal.js";
 import { createSwarmEvent } from "./events.js";
-import { makeEventBus, type EventBus } from "./eventBus.js";
+import { makeEventBus, type EventBus, type EventBusMessage } from "./eventBus.js";
 import { resetScopeData } from "./scopeReset.js";
 import { buildScopeSummaryForScope } from "./feed.js";
 import { pathToFileURL } from "url";
@@ -250,7 +250,7 @@ async function handleScopeEventsSse(req: IncomingMessage, res: ServerResponse, s
 
   res.write(`data: ${JSON.stringify({ type: "control_plane_connected", scope_id: scopeId })}\n\n`);
 
-  const sub = await bus.subscribeEphemeral(NATS_STREAM, "swarm.events.>", async (msg) => {
+  const sub = await bus.subscribeEphemeral(NATS_STREAM, "swarm.events.>", async (msg: EventBusMessage) => {
     if (res.writableEnded) return;
     const d = msg.data as Record<string, unknown>;
     const evScope = String(d.scope_id ?? (d.payload as Record<string, unknown> | undefined)?.scope_id ?? "");
