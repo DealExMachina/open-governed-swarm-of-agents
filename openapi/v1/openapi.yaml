@@ -3,7 +3,7 @@ info:
   title: Governed Swarm Control Plane
   version: 1.0.0
 servers:
-  - url: http://localhost:3004
+  - url: http://localhost:3006
 paths:
   /v1/health:
     get:
