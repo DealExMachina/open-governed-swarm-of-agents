@@ -1,0 +1,34 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "sgrs-client"
+version = "0.1.0"
+description = "Python client for the SGRS Governed Swarm control plane /v1 API (on-prem or cloud swarms)."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.11"
+dependencies = ["httpx>=0.27"]
+keywords = ["sgrs", "governed-swarm", "multi-agent", "control-plane", "http-client"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Typing :: Typed",
+]
+
+[project.urls]
+Homepage = "https://github.com/DealExMachina/open-governed-swarm-of-agents/tree/main/packages/sgrs-client-py"
+Repository = "https://github.com/DealExMachina/open-governed-swarm-of-agents.git"
+Issues = "https://github.com/DealExMachina/open-governed-swarm-of-agents/issues"
+
+[project.optional-dependencies]
+nats = ["nats-py>=2.6.0"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/sgrs_client"]

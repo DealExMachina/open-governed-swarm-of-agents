@@ -1,4 +1,4 @@
-"""HTTP client for the control plane API (see openapi/v1/openapi.yaml)."""
+"""HTTP client for the SGRS control plane API (see openapi/v1/openapi.yaml)."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ import httpx
 Json = MutableMapping[str, Any]
 
 
-class SwarmControlPlaneClient:
+class SgrsClient:
     def __init__(
         self,
         base_url: str,
@@ -32,7 +32,7 @@ class SwarmControlPlaneClient:
         if self._own_client:
             self._http.close()
 
-    def __enter__(self) -> SwarmControlPlaneClient:
+    def __enter__(self) -> SgrsClient:
         return self
 
     def __exit__(self, *_: object) -> None:
@@ -117,4 +117,7 @@ class AdminClient:
         return r.json()
 
 
-# Optional NATS: pip install 'swarm-control-plane[nats]' then use nats-py JetStream in your service.
+# Deprecated: use SgrsClient
+SwarmControlPlaneClient = SgrsClient
+
+# Optional NATS: pip install 'sgrs-client[nats]' then use nats-py JetStream in your service.
