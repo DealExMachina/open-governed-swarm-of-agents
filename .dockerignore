@@ -1,0 +1,18 @@
+# Build context for standalone feed image (Dockerfile.feed.dist)
+.git
+.github
+node_modules
+**/node_modules
+**/target
+prototype
+publications
+seed-docs
+docs/demos
+demo
+test
+observability
+workers
+packages
+model_evals
+*.md
+openapi

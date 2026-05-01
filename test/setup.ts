@@ -2,7 +2,7 @@
  * Vitest setup: Database fixtures, utilities, and test configuration
  */
 
-import { beforeAll, afterEach } from "vitest";
+import { beforeAll, afterEach, vi } from "vitest";
 import { _resetPoolForTest } from "../src/db.js";
 import { _resetLogContext } from "../src/logger.js";
 import { _resetFilterTableEnsured } from "../src/activationFilters.js";
@@ -20,6 +20,8 @@ beforeAll(() => {
  * Per-test cleanup: Reset global state to prevent cross-test contamination
  */
 afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
   _resetPoolForTest();
   _resetLogContext();
   _resetFilterTableEnsured();
