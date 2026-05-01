@@ -89,7 +89,7 @@ fn hash_sensitivity_parents() {
     let parent_a = ContributionId([1u8; 32]);
     let parent_b = ContributionId([2u8; 32]);
 
-    let h1 = compute_content_hash(&[parent_a.clone()], &payload, &kind).unwrap();
+    let h1 = compute_content_hash(std::slice::from_ref(&parent_a), &payload, &kind).unwrap();
     let h2 = compute_content_hash(&[parent_b], &payload, &kind).unwrap();
     assert_ne!(h1, h2, "Different parents must produce different hashes");
 
@@ -105,8 +105,7 @@ fn hash_parent_order_invariant() {
     let parent_a = ContributionId([1u8; 32]);
     let parent_b = ContributionId([2u8; 32]);
 
-    let h1 =
-        compute_content_hash(&[parent_a.clone(), parent_b.clone()], &payload, &kind).unwrap();
+    let h1 = compute_content_hash(&[parent_a.clone(), parent_b.clone()], &payload, &kind).unwrap();
     let h2 = compute_content_hash(&[parent_b, parent_a], &payload, &kind).unwrap();
     assert_eq!(
         h1, h2,
@@ -173,9 +172,9 @@ fn hash_large_payload() {
 #[test]
 fn hex_roundtrip() {
     let original = ContributionId([
-        0xab, 0xcd, 0xef, 0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0x01, 0x23, 0x45,
-        0x67, 0x89, 0xab, 0xcd, 0xef, 0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0x01,
-        0x23, 0x45, 0x67, 0x89,
+        0xab, 0xcd, 0xef, 0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0x01, 0x23, 0x45, 0x67,
+        0x89, 0xab, 0xcd, 0xef, 0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0x01, 0x23, 0x45,
+        0x67, 0x89,
     ]);
     let hex = original.to_hex();
     let decoded = ContributionId::from_hex(&hex).unwrap();
@@ -326,7 +325,7 @@ fn insert_self_parent_rejected() {
     let kind = ContributionKind::Claim;
     // First compute what the hash would be with some arbitrary parent
     let fake_parent = ContributionId([0xffu8; 32]);
-    let rid = compute_content_hash(&[fake_parent.clone()], &payload, &kind).unwrap();
+    let rid = compute_content_hash(std::slice::from_ref(&fake_parent), &payload, &kind).unwrap();
 
     // Now try to insert it into an empty DAG (parent won't exist → MissingParent)
     let mut dag = CausalDag::new();
@@ -389,11 +388,7 @@ fn insert_chain() {
     let a_id = a.rid.clone();
     dag.insert(a).unwrap();
 
-    let b = make_contribution(
-        vec![a_id],
-        make_payload("B"),
-        ContributionKind::Evidence,
-    );
+    let b = make_contribution(vec![a_id], make_payload("B"), ContributionKind::Evidence);
     let b_id = b.rid.clone();
     dag.insert(b).unwrap();
 
@@ -405,11 +400,7 @@ fn insert_chain() {
     let c_id = c.rid.clone();
     dag.insert(c).unwrap();
 
-    let d = make_contribution(
-        vec![c_id],
-        make_payload("D"),
-        ContributionKind::Resolution,
-    );
+    let d = make_contribution(vec![c_id], make_payload("D"), ContributionKind::Resolution);
     dag.insert(d).unwrap();
 
     assert_eq!(dag.len(), 4);
@@ -419,8 +410,13 @@ fn insert_chain() {
 // DAG traversal tests
 // ===========================================================================
 
-fn build_diamond_dag() -> (CausalDag, ContributionId, ContributionId, ContributionId, ContributionId)
-{
+fn build_diamond_dag() -> (
+    CausalDag,
+    ContributionId,
+    ContributionId,
+    ContributionId,
+    ContributionId,
+) {
     let mut dag = CausalDag::new();
 
     let a = make_root("A", ContributionKind::Claim);
@@ -496,11 +492,8 @@ fn topological_order_respects_parents() {
     let order = dag.topological_order();
     assert_eq!(order.len(), 4);
 
-    let positions: std::collections::HashMap<&ContributionId, usize> = order
-        .iter()
-        .enumerate()
-        .map(|(i, c)| (&c.rid, i))
-        .collect();
+    let positions: std::collections::HashMap<&ContributionId, usize> =
+        order.iter().enumerate().map(|(i, c)| (&c.rid, i)).collect();
 
     // A must come before B and C
     assert!(positions[&a_id] < positions[&b_id]);
@@ -571,11 +564,8 @@ fn causal_cone_topological() {
     let cone = dag.causal_cone(&d_id).unwrap();
     assert_eq!(cone.len(), 4, "Full diamond cone should have 4 nodes");
 
-    let positions: std::collections::HashMap<&ContributionId, usize> = cone
-        .iter()
-        .enumerate()
-        .map(|(i, c)| (&c.rid, i))
-        .collect();
+    let positions: std::collections::HashMap<&ContributionId, usize> =
+        cone.iter().enumerate().map(|(i, c)| (&c.rid, i)).collect();
 
     assert!(positions[&a_id] < positions[&b_id]);
     assert!(positions[&a_id] < positions[&c_id]);

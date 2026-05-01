@@ -75,10 +75,26 @@ struct TopoFactory {
 
 fn topology_factories() -> Vec<TopoFactory> {
     vec![
-        TopoFactory { name: "chain", build: chain_edges, min_n: 2 },
-        TopoFactory { name: "ring", build: ring_edges, min_n: 3 },
-        TopoFactory { name: "star", build: star_edges, min_n: 2 },
-        TopoFactory { name: "complete", build: complete_edges, min_n: 2 },
+        TopoFactory {
+            name: "chain",
+            build: chain_edges,
+            min_n: 2,
+        },
+        TopoFactory {
+            name: "ring",
+            build: ring_edges,
+            min_n: 3,
+        },
+        TopoFactory {
+            name: "star",
+            build: star_edges,
+            min_n: 2,
+        },
+        TopoFactory {
+            name: "complete",
+            build: complete_edges,
+            min_n: 2,
+        },
     ]
 }
 
@@ -123,10 +139,15 @@ fn linear_vs_tarski_n_sweep() {
         println!("  --- {} ---", factory.name);
         println!(
             "  {:<4} | {:<5} | {:<8} | {:<10} | {:<10} | {:<10} | {:<10} | {:<10} | {:<10} | {:<8}",
-            "n", "|E|", "λ₁",
-            "τ_lin", "Ω_lin/Ω₀",
-            "τ_tar", "Ω_tar/Ω₀",
-            "cost_lin", "cost_tar",
+            "n",
+            "|E|",
+            "λ₁",
+            "τ_lin",
+            "Ω_lin/Ω₀",
+            "τ_tar",
+            "Ω_tar/Ω₀",
+            "cost_lin",
+            "cost_tar",
             "winner"
         );
         println!(
@@ -152,8 +173,12 @@ fn linear_vs_tarski_n_sweep() {
 
             // Linear: steps to Ω < 1%
             let (tau_lin, omega_lin) = linear_converge(
-                &sheaf, &initial, &proj, alpha,
-                max_steps_linear, convergence_threshold,
+                &sheaf,
+                &initial,
+                &proj,
+                alpha,
+                max_steps_linear,
+                convergence_threshold,
             );
             let ratio_lin = omega_lin / omega_0;
 
@@ -180,7 +205,11 @@ fn linear_vs_tarski_n_sweep() {
                 f64::INFINITY
             };
 
-            let winner = if norm_cost_tar < norm_cost_lin { "TARSKI" } else { "LINEAR" };
+            let winner = if norm_cost_tar < norm_cost_lin {
+                "TARSKI"
+            } else {
+                "LINEAR"
+            };
 
             println!(
                 "  {:<4} | {:<5} | {:<8.4} | {:<10} | {:<10.4e} | {:<10} | {:<10.4e} | {:<10.1} | {:<10.1} | {:<8}",
@@ -195,12 +224,14 @@ fn linear_vs_tarski_n_sweep() {
             assert!(
                 omega_lin <= omega_0 + 1e-10,
                 "{} n={}: linear should not increase Ω",
-                factory.name, n
+                factory.name,
+                n
             );
             assert!(
                 omega_tar <= omega_0 + 1e-10,
                 "{} n={}: tarski should not increase Ω",
-                factory.name, n
+                factory.name,
+                n
             );
         }
         println!();
@@ -250,12 +281,16 @@ fn tarski_crossover_analysis() {
             let omega_0 = compute_disagreement(&initial);
 
             let (tau_lin, omega_lin) = linear_converge(
-                &sheaf, &initial, &proj, alpha, max_steps, convergence_threshold,
+                &sheaf,
+                &initial,
+                &proj,
+                alpha,
+                max_steps,
+                convergence_threshold,
             );
             let ratio_lin = omega_lin / omega_0;
 
-            let (tau_tar, _fs, tarski_omegas) =
-                tarski_converge(&initial, &edges, max_steps, 1e-14);
+            let (tau_tar, _fs, tarski_omegas) = tarski_converge(&initial, &edges, max_steps, 1e-14);
             let omega_tar = *tarski_omegas.last().unwrap();
             let ratio_tar = omega_tar / omega_0;
 
@@ -298,8 +333,10 @@ fn tarski_crossover_analysis() {
         }
     }
 
-    println!("\n  Summary: Tarski wins {}/{} configs, Linear wins {}/{}",
-        tarski_wins, total, linear_wins, total);
+    println!(
+        "\n  Summary: Tarski wins {}/{} configs, Linear wins {}/{}",
+        tarski_wins, total, linear_wins, total
+    );
     println!("  (normalized cost = |E| × τ / (1 − Ω_final/Ω₀))");
 
     println!("\nResult: crossover analysis complete ✓");
@@ -337,12 +374,16 @@ fn scaling_exponents() {
             let omega_0 = compute_disagreement(&initial);
 
             let (tau_lin, omega_lin) = linear_converge(
-                &sheaf, &initial, &proj, alpha, max_steps, convergence_threshold,
+                &sheaf,
+                &initial,
+                &proj,
+                alpha,
+                max_steps,
+                convergence_threshold,
             );
             let ratio_lin = omega_lin / omega_0;
 
-            let (tau_tar, _fs, tarski_omegas) =
-                tarski_converge(&initial, &edges, max_steps, 1e-14);
+            let (tau_tar, _fs, tarski_omegas) = tarski_converge(&initial, &edges, max_steps, 1e-14);
             let omega_tar = *tarski_omegas.last().unwrap();
             let ratio_tar = omega_tar / omega_0;
 

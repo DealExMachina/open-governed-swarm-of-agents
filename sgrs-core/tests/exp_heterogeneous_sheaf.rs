@@ -32,7 +32,13 @@ fn role_observations() -> Vec<Vec<usize>> {
 }
 
 const ROLE_NAMES: [&str; 7] = [
-    "facts", "drift", "resolver", "planner", "status", "governance", "tuner",
+    "facts",
+    "drift",
+    "resolver",
+    "planner",
+    "status",
+    "governance",
+    "tuner",
 ];
 
 // ─── Topology builders ──────────────────────────────────────────────────────
@@ -125,8 +131,16 @@ fn e13a_spectral_gap_comparison() {
     println!(
         "{:<20} | {:>8} {:>8} {:>8} {:>8} {:>10} | {:>8} {:>8} {:>8} {:>8} {:>10}",
         "Topology",
-        "λ₁(c)", "λmax(c)", "α(c)", "ρ(c)", "mix(c)",
-        "λ₁(p)", "λmax(p)", "α(p)", "ρ(p)", "mix(p)"
+        "λ₁(c)",
+        "λmax(c)",
+        "α(c)",
+        "ρ(c)",
+        "mix(c)",
+        "λ₁(p)",
+        "λmax(p)",
+        "α(p)",
+        "ρ(p)",
+        "mix(p)"
     );
     println!("{}", "-".repeat(130));
 
@@ -137,7 +151,8 @@ fn e13a_spectral_gap_comparison() {
         let sheaf_const = CellularSheaf::constant(NUM_ROLES, stalk_dim, &tc.edges);
         let sa_const = spectral_analysis(&sheaf_const);
 
-        let sheaf_proj = CellularSheaf::from_role_observations(NUM_ROLES, NUM_DIMS, &obs, &tc.edges);
+        let sheaf_proj =
+            CellularSheaf::from_role_observations(NUM_ROLES, NUM_DIMS, &obs, &tc.edges);
         let sa_proj = spectral_analysis(&sheaf_proj);
 
         println!(
@@ -161,7 +176,8 @@ fn e13a_spectral_gap_comparison() {
             assert!(
                 sa_proj.contraction_rate < 1.0,
                 "{}: ρ = {} should be < 1",
-                tc.name, sa_proj.contraction_rate
+                tc.name,
+                sa_proj.contraction_rate
             );
         }
 
@@ -172,7 +188,11 @@ fn e13a_spectral_gap_comparison() {
         println!(
             "  ‖L_const - L_proj‖ = {:.6}  (sheaf is {})",
             diff_norm,
-            if diff_norm > 1e-10 { "non-trivial" } else { "degenerate" }
+            if diff_norm > 1e-10 {
+                "non-trivial"
+            } else {
+                "degenerate"
+            }
         );
         assert!(
             diff_norm > 1e-10,
@@ -210,12 +230,20 @@ fn e13b_fixed_point_quality() {
 
     for _ in 0..steps {
         let r = propagation_step(
-            &sheaf_const, &state_const, &perturbation, &projection, sa_const.optimal_alpha,
+            &sheaf_const,
+            &state_const,
+            &perturbation,
+            &projection,
+            sa_const.optimal_alpha,
         );
         state_const = r.new_state;
 
         let r = propagation_step(
-            &sheaf_proj, &state_proj, &perturbation, &projection, sa_proj.optimal_alpha,
+            &sheaf_proj,
+            &state_proj,
+            &perturbation,
+            &projection,
+            sa_proj.optimal_alpha,
         );
         state_proj = r.new_state;
     }
@@ -230,17 +258,23 @@ fn e13b_fixed_point_quality() {
     let dim_names = ["claim_conf", "contra_res", "goal_comp", "risk_inv"];
 
     for role_idx in 0..NUM_ROLES {
-        for dim_idx in 0..NUM_DIMS {
+        for (dim_idx, dim_name) in dim_names.iter().enumerate() {
             let cs = &state_const.role_states[role_idx];
             let ps = &state_proj.role_states[role_idx];
             let is_primary = obs[role_idx].contains(&dim_idx);
             println!(
                 "{:<12} | {:>6}{} | ({:>8.4}, {:>8.4})   | ({:>8.4}, {:>8.4})",
-                if dim_idx == 0 { ROLE_NAMES[role_idx] } else { "" },
-                dim_names[dim_idx],
+                if dim_idx == 0 {
+                    ROLE_NAMES[role_idx]
+                } else {
+                    ""
+                },
+                dim_name,
                 if is_primary { "*" } else { " " },
-                cs.support[dim_idx], cs.refutation[dim_idx],
-                ps.support[dim_idx], ps.refutation[dim_idx],
+                cs.support[dim_idx],
+                cs.refutation[dim_idx],
+                ps.support[dim_idx],
+                ps.refutation[dim_idx],
             );
         }
     }
@@ -253,10 +287,16 @@ fn e13b_fixed_point_quality() {
     let facts_nonpromary_dim = 3; // risk_score_inverse (not observed by facts)
 
     let facts_state = &state_proj.role_states[0];
-    let primary_disagree = (facts_state.support[facts_primary_dim] - mean_proj.support[facts_primary_dim]).powi(2)
-        + (facts_state.refutation[facts_primary_dim] - mean_proj.refutation[facts_primary_dim]).powi(2);
-    let nonpromary_disagree = (facts_state.support[facts_nonpromary_dim] - mean_proj.support[facts_nonpromary_dim]).powi(2)
-        + (facts_state.refutation[facts_nonpromary_dim] - mean_proj.refutation[facts_nonpromary_dim]).powi(2);
+    let primary_disagree =
+        (facts_state.support[facts_primary_dim] - mean_proj.support[facts_primary_dim]).powi(2)
+            + (facts_state.refutation[facts_primary_dim] - mean_proj.refutation[facts_primary_dim])
+                .powi(2);
+    let nonpromary_disagree = (facts_state.support[facts_nonpromary_dim]
+        - mean_proj.support[facts_nonpromary_dim])
+        .powi(2)
+        + (facts_state.refutation[facts_nonpromary_dim]
+            - mean_proj.refutation[facts_nonpromary_dim])
+            .powi(2);
 
     println!(
         "\nFacts-agent disagreement: primary(dim0) = {:.6}, non-primary(dim3) = {:.6}",
@@ -268,10 +308,17 @@ fn e13b_fixed_point_quality() {
     // so its dim 3 values may diverge more from the mean.
     let mean_const = state_const.mean();
     let facts_const = &state_const.role_states[0];
-    let const_primary = (facts_const.support[facts_primary_dim] - mean_const.support[facts_primary_dim]).powi(2)
-        + (facts_const.refutation[facts_primary_dim] - mean_const.refutation[facts_primary_dim]).powi(2);
-    let const_nonpromary = (facts_const.support[facts_nonpromary_dim] - mean_const.support[facts_nonpromary_dim]).powi(2)
-        + (facts_const.refutation[facts_nonpromary_dim] - mean_const.refutation[facts_nonpromary_dim]).powi(2);
+    let const_primary = (facts_const.support[facts_primary_dim]
+        - mean_const.support[facts_primary_dim])
+        .powi(2)
+        + (facts_const.refutation[facts_primary_dim] - mean_const.refutation[facts_primary_dim])
+            .powi(2);
+    let const_nonpromary = (facts_const.support[facts_nonpromary_dim]
+        - mean_const.support[facts_nonpromary_dim])
+        .powi(2)
+        + (facts_const.refutation[facts_nonpromary_dim]
+            - mean_const.refutation[facts_nonpromary_dim])
+            .powi(2);
 
     println!(
         "Constant sheaf: primary(dim0) = {:.6}, non-primary(dim3) = {:.6}",
@@ -289,7 +336,8 @@ fn e13b_fixed_point_quality() {
     assert!(
         omega_const < 0.01,
         "Constant sheaf should converge after {} steps, Ω = {}",
-        steps, omega_const
+        steps,
+        omega_const
     );
 
     // Projection sheaf: total Ω may stay high because non-shared dims are decoupled.
@@ -299,7 +347,8 @@ fn e13b_fixed_point_quality() {
         primary_disagree < nonpromary_disagree || primary_disagree < 0.05,
         "Facts-agent should have lower disagreement on primary dim ({})\n\
          than non-primary dim ({}) under projection sheaf",
-        primary_disagree, nonpromary_disagree
+        primary_disagree,
+        nonpromary_disagree
     );
 
     println!("\nResult: fixed-point analysis complete — role expertise preserved ✓");
@@ -317,9 +366,7 @@ fn e13c_iss_margin_comparison() {
 
     println!(
         "{:<20} | {:>8} {:>8} {:>10} {:>8} | {:>8} {:>8} {:>10} {:>8}",
-        "Topology",
-        "λ₁(c)", "ρ(c)", "margin(c)", "ISS(c)",
-        "λ₁(p)", "ρ(p)", "margin(p)", "ISS(p)"
+        "Topology", "λ₁(c)", "ρ(c)", "margin(c)", "ISS(c)", "λ₁(p)", "ρ(p)", "margin(p)", "ISS(p)"
     );
     println!("{}", "-".repeat(110));
 
@@ -327,13 +374,24 @@ fn e13c_iss_margin_comparison() {
         let sheaf_const = CellularSheaf::constant(NUM_ROLES, stalk_dim, &tc.edges);
         let sa_const = spectral_analysis(&sheaf_const);
         let iss_const = analyze_iss(
-            sa_const.spectral_gap, sa_const.optimal_alpha, 0.15, kappa, 1.0,
+            sa_const.spectral_gap,
+            sa_const.optimal_alpha,
+            0.15,
+            kappa,
+            1.0,
         );
 
-        let sheaf_proj = CellularSheaf::from_role_observations(NUM_ROLES, NUM_DIMS, &obs, &tc.edges);
+        let sheaf_proj =
+            CellularSheaf::from_role_observations(NUM_ROLES, NUM_DIMS, &obs, &tc.edges);
         let sa_proj = spectral_analysis(&sheaf_proj);
         let iss_proj = if sa_proj.is_connected {
-            analyze_iss(sa_proj.spectral_gap, sa_proj.optimal_alpha, 0.15, kappa, 1.0)
+            analyze_iss(
+                sa_proj.spectral_gap,
+                sa_proj.optimal_alpha,
+                0.15,
+                kappa,
+                1.0,
+            )
         } else {
             analyze_iss(0.0, 0.0, 0.15, kappa, 1.0)
         };
@@ -341,10 +399,22 @@ fn e13c_iss_margin_comparison() {
         println!(
             "{:<20} | {:>8.4} {:>8.4} {:>+10.4} {:>8} | {:>8.4} {:>8.4} {:>+10.4} {:>8}",
             tc.name,
-            sa_const.spectral_gap, iss_const.contraction_rate, iss_const.small_gain_margin,
-            if iss_const.small_gain_satisfied { "YES" } else { "NO" },
-            sa_proj.spectral_gap, iss_proj.contraction_rate, iss_proj.small_gain_margin,
-            if iss_proj.small_gain_satisfied { "YES" } else { "NO" },
+            sa_const.spectral_gap,
+            iss_const.contraction_rate,
+            iss_const.small_gain_margin,
+            if iss_const.small_gain_satisfied {
+                "YES"
+            } else {
+                "NO"
+            },
+            sa_proj.spectral_gap,
+            iss_proj.contraction_rate,
+            iss_proj.small_gain_margin,
+            if iss_proj.small_gain_satisfied {
+                "YES"
+            } else {
+                "NO"
+            },
         );
 
         // For complete topology, ISS should be satisfied for both

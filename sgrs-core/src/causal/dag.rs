@@ -233,11 +233,7 @@ impl CausalDag {
         let mut tips: Vec<&ContributionId> = self
             .nodes
             .keys()
-            .filter(|id| {
-                self.children
-                    .get(*id)
-                    .map_or(true, |kids| kids.is_empty())
-            })
+            .filter(|id| self.children.get(*id).is_none_or(|kids| kids.is_empty()))
             .collect();
         tips.sort_by_key(|id| &id.0);
         tips
@@ -245,10 +241,7 @@ impl CausalDag {
 
     /// Filter contributions by kind.
     pub fn by_kind(&self, kind: &ContributionKind) -> Vec<&Contribution> {
-        self.nodes
-            .values()
-            .filter(|c| &c.kind == kind)
-            .collect()
+        self.nodes.values().filter(|c| &c.kind == kind).collect()
     }
 }
 

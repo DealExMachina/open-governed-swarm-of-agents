@@ -78,6 +78,25 @@ export async function s3PutJson(s3: S3Client, bucket: string, key: string, data:
   );
 }
 
+export async function s3PutText(
+  s3: S3Client,
+  bucket: string,
+  key: string,
+  body: string,
+  contentType = "text/plain; charset=utf-8",
+): Promise<void> {
+  await withCircuitBreaker(() =>
+    s3.send(
+      new PutObjectCommand({
+        Bucket: bucket,
+        Key: key,
+        Body: body,
+        ContentType: contentType,
+      }),
+    ),
+  );
+}
+
 export async function s3ListKeys(s3: S3Client, bucket: string, prefix: string, maxKeys: number = 1000): Promise<string[]> {
   return withCircuitBreaker(async () => {
     const res = await s3.send(new ListObjectsV2Command({ Bucket: bucket, Prefix: prefix, MaxKeys: maxKeys }));

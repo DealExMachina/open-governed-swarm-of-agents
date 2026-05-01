@@ -33,10 +33,7 @@ pub struct TarskiStepResult {
 ///
 /// `edges` is the list of undirected edges (i, j) defining the communication graph.
 /// The operator is monotone in ≤_k and idempotent at fixed points.
-pub fn tarski_step(
-    state: &EvidenceState,
-    edges: &[(usize, usize)],
-) -> TarskiStepResult {
+pub fn tarski_step(state: &EvidenceState, edges: &[(usize, usize)]) -> TarskiStepResult {
     let omega_before = compute_disagreement(state);
     let n = state.num_roles;
 

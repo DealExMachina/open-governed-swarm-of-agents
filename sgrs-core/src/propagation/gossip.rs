@@ -119,11 +119,7 @@ pub fn gossip_converge(
 
 /// Single-edge gossip step: process exactly one edge (i,j).
 /// Useful for fine-grained analysis and event-driven architectures.
-pub fn gossip_single_edge(
-    state: &mut EvidenceState,
-    i: usize,
-    j: usize,
-) -> bool {
+pub fn gossip_single_edge(state: &mut EvidenceState, i: usize, j: usize) -> bool {
     let new_i = state.role_states[i].join_k(&state.role_states[j]);
     let new_j = state.role_states[j].join_k(&state.role_states[i]);
 
@@ -354,8 +350,16 @@ impl PushSumState {
     /// Initialize from an EvidenceState: mass = evidence values, weight = 1.
     pub fn from_evidence(state: &EvidenceState) -> Self {
         PushSumState {
-            support_mass: state.role_states.iter().map(|v| v.support.clone()).collect(),
-            refutation_mass: state.role_states.iter().map(|v| v.refutation.clone()).collect(),
+            support_mass: state
+                .role_states
+                .iter()
+                .map(|v| v.support.clone())
+                .collect(),
+            refutation_mass: state
+                .role_states
+                .iter()
+                .map(|v| v.refutation.clone())
+                .collect(),
             weights: vec![1.0; state.num_roles],
             num_roles: state.num_roles,
             num_dims: state.num_dims,
@@ -466,11 +470,19 @@ mod tests {
     fn make_simple_state(n: usize, d: usize) -> EvidenceState {
         let roles = (0..n)
             .map(|i| EvidenceVector {
-                support: (0..d).map(|dim| (i as f64 * 0.2 + dim as f64 * 0.1).min(1.0)).collect(),
-                refutation: (0..d).map(|dim| ((n - i) as f64 * 0.15 + dim as f64 * 0.05).min(1.0)).collect(),
+                support: (0..d)
+                    .map(|dim| (i as f64 * 0.2 + dim as f64 * 0.1).min(1.0))
+                    .collect(),
+                refutation: (0..d)
+                    .map(|dim| ((n - i) as f64 * 0.15 + dim as f64 * 0.05).min(1.0))
+                    .collect(),
             })
             .collect();
-        EvidenceState { role_states: roles, num_roles: n, num_dims: d }
+        EvidenceState {
+            role_states: roles,
+            num_roles: n,
+            num_dims: d,
+        }
     }
 
     #[test]
@@ -479,7 +491,10 @@ mod tests {
         let edges: Vec<(usize, usize)> = (0..4).map(|i| (i, i + 1)).collect();
         let (rounds, _final_state, omegas) = gossip_converge(&state, &edges, 100, 1e-10, 42);
         assert!(rounds <= 100, "should converge in ≤100 rounds");
-        assert!(*omegas.last().unwrap() < omegas[0], "disagreement should decrease");
+        assert!(
+            *omegas.last().unwrap() < omegas[0],
+            "disagreement should decrease"
+        );
     }
 
     #[test]
@@ -494,7 +509,8 @@ mod tests {
         for i in 0..3 {
             assert!(
                 state.role_states[i].leq_k(&result.new_state.role_states[i]),
-                "role {} knowledge should not decrease", i
+                "role {} knowledge should not decrease",
+                i
             );
         }
     }

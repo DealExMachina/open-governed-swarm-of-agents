@@ -6,6 +6,8 @@
 //!
 //! Run: cargo test --test exp_iss -- --nocapture
 
+#![allow(clippy::type_complexity)]
+
 use sgrs_core::propagation::{analyze_iss, spectral_analysis, CellularSheaf};
 
 fn complete_edges(n: usize) -> Vec<(usize, usize)> {
@@ -30,7 +32,10 @@ fn iss_sweep_noise_and_contradiction() {
     let spectral_gap = sa.spectral_gap;
     let alpha = sa.optimal_alpha;
 
-    println!("  Sheaf: complete(3), λ₁={:.4}, α={:.4}\n", spectral_gap, alpha);
+    println!(
+        "  Sheaf: complete(3), λ₁={:.4}, α={:.4}\n",
+        spectral_gap, alpha
+    );
 
     let noise_values = [0.001, 0.01, 0.05, 0.1, 0.5, 1.0];
     let kappa_values = [0.0, 0.1, 0.2, 0.5, 1.0];
@@ -52,7 +57,11 @@ fn iss_sweep_noise_and_contradiction() {
                 "{:<6.3} | {:<6.3} | {:<10} | {:<+8.4} | {:<10.6} | {:<10.2}",
                 kappa,
                 noise,
-                if iss.small_gain_satisfied { "YES" } else { "NO" },
+                if iss.small_gain_satisfied {
+                    "YES"
+                } else {
+                    "NO"
+                },
                 iss.small_gain_margin,
                 iss.steady_state_disagreement,
                 iss.convergence_time_estimate,
@@ -65,7 +74,8 @@ fn iss_sweep_noise_and_contradiction() {
         let iss = analyze_iss(spectral_gap, alpha, noise, 0.0, 1.0);
         assert!(
             iss.small_gain_satisfied,
-            "κ=0 should always satisfy small-gain, noise={}", noise
+            "κ=0 should always satisfy small-gain, noise={}",
+            noise
         );
     }
 
@@ -95,18 +105,41 @@ fn iss_boundary_precise() {
     let above = analyze_iss(spectral_gap, alpha, 0.1, kappa_star + delta, 1.0);
     let at = analyze_iss(spectral_gap, alpha, 0.1, kappa_star, 1.0);
 
-    println!("  κ* − δ = {:.4}: satisfied={}, margin={:+.6}", kappa_star - delta, below.small_gain_satisfied, below.small_gain_margin);
-    println!("  κ*     = {:.4}: satisfied={}, margin={:+.6}", kappa_star, at.small_gain_satisfied, at.small_gain_margin);
-    println!("  κ* + δ = {:.4}: satisfied={}, margin={:+.6}", kappa_star + delta, above.small_gain_satisfied, above.small_gain_margin);
-
-    assert!(below.small_gain_satisfied, "κ* − δ should satisfy small-gain");
-    assert!(!above.small_gain_satisfied, "κ* + δ should violate small-gain");
-    assert!(
-        at.small_gain_margin.abs() < 0.01,
-        "at κ*, margin should be ≈ 0, got {}", at.small_gain_margin
+    println!(
+        "  κ* − δ = {:.4}: satisfied={}, margin={:+.6}",
+        kappa_star - delta,
+        below.small_gain_satisfied,
+        below.small_gain_margin
+    );
+    println!(
+        "  κ*     = {:.4}: satisfied={}, margin={:+.6}",
+        kappa_star, at.small_gain_satisfied, at.small_gain_margin
+    );
+    println!(
+        "  κ* + δ = {:.4}: satisfied={}, margin={:+.6}",
+        kappa_star + delta,
+        above.small_gain_satisfied,
+        above.small_gain_margin
     );
 
-    println!("\nResult: transition boundary κ*={:.6} verified ✓", kappa_star);
+    assert!(
+        below.small_gain_satisfied,
+        "κ* − δ should satisfy small-gain"
+    );
+    assert!(
+        !above.small_gain_satisfied,
+        "κ* + δ should violate small-gain"
+    );
+    assert!(
+        at.small_gain_margin.abs() < 0.01,
+        "at κ*, margin should be ≈ 0, got {}",
+        at.small_gain_margin
+    );
+
+    println!(
+        "\nResult: transition boundary κ*={:.6} verified ✓",
+        kappa_star
+    );
 }
 
 #[test]
@@ -145,7 +178,10 @@ fn iss_steady_state_bound_formula() {
         let matches = (iss.steady_state_disagreement - expected_b_omega).abs() < 1e-10;
         println!(
             "{:<6.3} | {:<6.3} | {:<14.10} | {:<14.10} | {}",
-            noise, kappa, iss.steady_state_disagreement, expected_b_omega,
+            noise,
+            kappa,
+            iss.steady_state_disagreement,
+            expected_b_omega,
             if matches { "✓" } else { "✗" }
         );
 
@@ -195,37 +231,47 @@ fn iss_convergence_time_decreases_with_gap() {
         ("complete(10)", 10, complete_edges(10)),
     ];
 
-    let mut prev_time = f64::INFINITY;
-    let mut all_decreasing = true;
-
     for (name, n, edges) in &topologies {
         let sheaf = CellularSheaf::constant(*n, 1, edges);
         let sa = spectral_analysis(&sheaf);
-        let iss = analyze_iss(sa.spectral_gap, sa.optimal_alpha, noise, kappa, initial_omega);
+        let iss = analyze_iss(
+            sa.spectral_gap,
+            sa.optimal_alpha,
+            noise,
+            kappa,
+            initial_omega,
+        );
 
         println!(
             "{:<12} | {:<8.4} | {:<8.4} | {:<8.4} | {:<10.2}",
-            name, sa.spectral_gap, sa.optimal_alpha, iss.contraction_rate, iss.convergence_time_estimate
+            name,
+            sa.spectral_gap,
+            sa.optimal_alpha,
+            iss.contraction_rate,
+            iss.convergence_time_estimate
         );
-
-        // Convergence time should generally decrease with spectral gap
-        // (stronger connectivity → faster convergence)
-        if sa.spectral_gap > 0.5 && iss.convergence_time_estimate > prev_time + 0.1 {
-            all_decreasing = false;
-        }
-        if iss.convergence_time_estimate > 0.0 {
-            prev_time = iss.convergence_time_estimate;
-        }
     }
 
     // Specifically: complete(10) should converge faster than chain(5)
     let chain_sheaf = CellularSheaf::constant(5, 1, &topologies[0].2);
     let chain_sa = spectral_analysis(&chain_sheaf);
-    let chain_iss = analyze_iss(chain_sa.spectral_gap, chain_sa.optimal_alpha, noise, kappa, initial_omega);
+    let chain_iss = analyze_iss(
+        chain_sa.spectral_gap,
+        chain_sa.optimal_alpha,
+        noise,
+        kappa,
+        initial_omega,
+    );
 
     let comp10_sheaf = CellularSheaf::constant(10, 1, &topologies[4].2);
     let comp10_sa = spectral_analysis(&comp10_sheaf);
-    let comp10_iss = analyze_iss(comp10_sa.spectral_gap, comp10_sa.optimal_alpha, noise, kappa, initial_omega);
+    let comp10_iss = analyze_iss(
+        comp10_sa.spectral_gap,
+        comp10_sa.optimal_alpha,
+        noise,
+        kappa,
+        initial_omega,
+    );
 
     assert!(
         comp10_iss.convergence_time_estimate < chain_iss.convergence_time_estimate,
@@ -251,7 +297,9 @@ fn iss_zero_noise_zero_bound() {
             assert!(
                 iss.steady_state_disagreement.abs() < 1e-15,
                 "λ₁={}, κ={}: B_Ω should be 0 with zero noise, got {}",
-                gap, kappa, iss.steady_state_disagreement
+                gap,
+                kappa,
+                iss.steady_state_disagreement
             );
             assert!(
                 iss.steady_state_contradictions.abs() < 1e-15,

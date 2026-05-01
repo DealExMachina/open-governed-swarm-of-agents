@@ -54,10 +54,7 @@ impl AdmissibleProjection {
     }
 
     /// Create a projection with custom per-dimension bounds.
-    pub fn new(
-        support_range: Vec<(f64, f64)>,
-        refutation_range: Vec<(f64, f64)>,
-    ) -> Self {
+    pub fn new(support_range: Vec<(f64, f64)>, refutation_range: Vec<(f64, f64)>) -> Self {
         assert_eq!(support_range.len(), refutation_range.len());
         AdmissibleProjection {
             support_range,

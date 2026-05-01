@@ -92,7 +92,6 @@ pub struct ConvergenceAnalysis {
     pub autocorrelation_lag1: Option<f64>,
 
     // --- Per-dimension gates (Issue #18: non-scalar finality) ---
-
     /// GA_d: per-dimension monotonicity over last β rounds.
     /// Indexed by DimensionId: [claim, contra, goal, risk].
     pub per_dimension_monotonic: [bool; 4],
@@ -296,9 +295,7 @@ fn find_stalled_dimensions(history: &[ConvergencePointInput]) -> Vec<DimensionId
     for dim in DimensionId::ALL {
         let idx = dim.index();
         let vals: Vec<f64> = recent.iter().map(|p| p.dimension_scores[idx]).collect();
-        let improved = vals
-            .windows(2)
-            .any(|w| w[1] > w[0] + 0.001);
+        let improved = vals.windows(2).any(|w| w[1] > w[0] + 0.001);
         if !improved && vals.len() >= 2 {
             stalled.push(dim);
         }
@@ -359,10 +356,7 @@ fn compute_plateau_rounds(
 /// Returns [bool; 4] indexed by DimensionId.
 /// A dimension is monotonic if its score is non-decreasing (epsilon=0.001)
 /// for β consecutive rounds.
-fn check_per_dimension_monotonicity(
-    history: &[ConvergencePointInput],
-    beta: usize,
-) -> [bool; 4] {
+fn check_per_dimension_monotonicity(history: &[ConvergencePointInput], beta: usize) -> [bool; 4] {
     let mut result = [false; 4];
     if history.len() < beta {
         return result;

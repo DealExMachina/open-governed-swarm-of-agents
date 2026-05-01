@@ -555,11 +555,11 @@ fn propagation_step_records_perturbation_norm() {
 #[test]
 fn iss_small_gain_satisfied_when_kappa_small() {
     let result = analyze_iss(
-        0.5,  // spectral_gap
-        0.5,  // alpha
-        0.1,  // noise_bound
-        0.1,  // contradiction_rate (κ)
-        1.0,  // initial_disagreement
+        0.5, // spectral_gap
+        0.5, // alpha
+        0.1, // noise_bound
+        0.1, // contradiction_rate (κ)
+        1.0, // initial_disagreement
     );
     // ρ = 1 - 0.5*0.5 = 0.75, ρ² = 0.5625
     // 1-ρ² = 0.4375
@@ -571,10 +571,10 @@ fn iss_small_gain_satisfied_when_kappa_small() {
 #[test]
 fn iss_small_gain_violated_when_kappa_large() {
     let result = analyze_iss(
-        0.5,  // spectral_gap
-        0.5,  // alpha
-        0.1,  // noise_bound
-        0.5,  // contradiction_rate (κ) — too large
+        0.5, // spectral_gap
+        0.5, // alpha
+        0.1, // noise_bound
+        0.5, // contradiction_rate (κ) — too large
         1.0,
     );
     // κ/(1-ρ²) = 0.5/0.4375 ≈ 1.143 > 1
@@ -1246,8 +1246,8 @@ fn positive_and_negative_parts_are_non_overlapping_when_pure() {
     // The decomposition creates non-overlapping vectors only when original is orthogonal
     // (pure support on one channel means neg gives pure refutation on same dim).
     // For dim 1: pp2 modulus = 0, np2 modulus = 0 → non-overlapping on dim 1.
-    assert!(pp2.is_non_overlapping_k(&np2, 0.5) == false); // dim 0 overlap
-    // A purely ignorant vector: both channels zero
+    assert!(!pp2.is_non_overlapping_k(&np2, 0.5)); // dim 0 overlap
+                                                   // A purely ignorant vector: both channels zero
     let zeros = EvidenceVector::zeros(2);
     let pp_z = zeros.positive_part_k();
     let np_z = zeros.negative_part_k();
@@ -1266,7 +1266,10 @@ fn contradiction_resolved_by_decomposition() {
     let np = v.negative_part_k();
     // Both pp and np carry evidence on dim 0 (contradicted) — they're NOT non-overlapping
     let eps = 0.5;
-    assert!(!pp.is_non_overlapping_k(&np, eps), "contradicted dim makes parts overlapping");
+    assert!(
+        !pp.is_non_overlapping_k(&np, eps),
+        "contradicted dim makes parts overlapping"
+    );
     // Dim 1 clean case: support high, refutation low
     let clean = EvidenceVector {
         support: vec![0.0, 0.8],

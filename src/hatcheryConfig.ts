@@ -24,6 +24,8 @@ export interface HatcheryConfig {
   pressureDirectedScaling: boolean;
   natsStream: string;
   scopeId: string;
+  /** Optional: Postgres tenant UUID for billing / envelopes. */
+  tenantId?: string | null;
 }
 
 export const ROLE_TO_DIMENSIONS: Record<string, string[]> = {
@@ -144,5 +146,6 @@ export function loadHatcheryConfig(): HatcheryConfig {
     pressureDirectedScaling: envBool("HATCHERY_PRESSURE_SCALING", true),
     natsStream: process.env.NATS_STREAM ?? "SWARM_JOBS",
     scopeId: process.env.SCOPE_ID ?? "default",
+    tenantId: process.env.ACTIVE_TENANT_ID?.trim() || null,
   };
 }
