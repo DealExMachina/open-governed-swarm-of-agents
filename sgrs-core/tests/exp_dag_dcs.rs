@@ -8,8 +8,8 @@
 //! Run: cargo test --test exp_dag_dcs -- --nocapture
 
 use sgrs_core::causal::{
-    CausalDag, Contribution, ContributionId, ContributionKind, ContributionMetadata,
-    ContributionPayload, compute_content_hash,
+    compute_content_hash, CausalDag, Contribution, ContributionId, ContributionKind,
+    ContributionMetadata, ContributionPayload,
 };
 use std::collections::HashSet;
 
@@ -49,7 +49,9 @@ fn generate_dag(seed: u64, size: usize) -> Vec<Contribution> {
             "index": i,
             "data": format!("node-{}-{}", seed, i),
         });
-        let payload = ContributionPayload { content: payload_content };
+        let payload = ContributionPayload {
+            content: payload_content,
+        };
         let kind = kind_for_index(i);
 
         let parents: Vec<ContributionId> = if i < num_roots {
@@ -61,7 +63,7 @@ fn generate_dag(seed: u64, size: usize) -> Vec<Contribution> {
             let parent_idx = ((seed.wrapping_mul(31) + i as u64 * 7) % i as u64) as usize;
             parents.push(contributions[parent_idx].rid.clone());
             // Sometimes add a second parent
-            if i > 2 && (seed + i as u64) % 3 == 0 {
+            if i > 2 && (seed + i as u64).is_multiple_of(3) {
                 let p2 = ((seed.wrapping_mul(17) + i as u64 * 13) % i as u64) as usize;
                 if p2 != parent_idx {
                     parents.push(contributions[p2].rid.clone());
@@ -91,7 +93,8 @@ fn shuffle_topological(contributions: &[Contribution], seed: u64) -> Vec<Contrib
 
     // Build in-degree map
     let mut in_degree: Vec<usize> = vec![0; n];
-    let mut index_map: std::collections::HashMap<ContributionId, usize> = std::collections::HashMap::new();
+    let mut index_map: std::collections::HashMap<ContributionId, usize> =
+        std::collections::HashMap::new();
     for (i, c) in contributions.iter().enumerate() {
         index_map.insert(c.rid.clone(), i);
     }
@@ -113,8 +116,12 @@ fn shuffle_topological(contributions: &[Contribution], seed: u64) -> Vec<Contrib
     while !sources.is_empty() {
         // Deterministic shuffle based on seed and step
         sources.sort_by(|&a, &b| {
-            let ha = seed.wrapping_mul(a as u64 + 1).wrapping_add(step.wrapping_mul(37));
-            let hb = seed.wrapping_mul(b as u64 + 1).wrapping_add(step.wrapping_mul(37));
+            let ha = seed
+                .wrapping_mul(a as u64 + 1)
+                .wrapping_add(step.wrapping_mul(37));
+            let hb = seed
+                .wrapping_mul(b as u64 + 1)
+                .wrapping_add(step.wrapping_mul(37));
             ha.cmp(&hb)
         });
 
@@ -192,7 +199,11 @@ fn dcs_random_dag_order_independence() {
         if dag_idx < 5 || dag_idx == num_dags - 1 || !identical {
             println!(
                 "{:<6} | {:<6} | {:<6} | {:<8} | {:<8} | {}",
-                dag_idx, size, ref_edges.len(), ref_frontier.len(), num_orderings,
+                dag_idx,
+                size,
+                ref_edges.len(),
+                ref_frontier.len(),
+                num_orderings,
                 if identical { "YES" } else { "NO" }
             );
         }
@@ -229,7 +240,10 @@ fn dcs_content_hash_deterministic() {
     }
 
     assert_eq!(mismatches, 0, "found {} hash mismatches", mismatches);
-    println!("  Verified {} DAGs: all content hashes deterministic ✓", num_dags);
+    println!(
+        "  Verified {} DAGs: all content hashes deterministic ✓",
+        num_dags
+    );
     println!("\nResult: SHA-256/CBOR hashing is a pure function ✓");
 }
 
@@ -239,10 +253,7 @@ fn dcs_insertion_time_linear() {
 
     let sizes = [10, 20, 50, 100, 200, 500];
 
-    println!(
-        "{:<6} | {:<10} | {:<12}",
-        "n", "time (μs)", "time/n (μs)"
-    );
+    println!("{:<6} | {:<10} | {:<12}", "n", "time (μs)", "time/n (μs)");
     println!("{:-<6}-+-{:-<10}-+-{:-<12}", "", "", "");
 
     let mut time_per_n = Vec::new();
@@ -282,33 +293,44 @@ fn dcs_parent_order_in_hash() {
     println!("\n=== E5.4: Parent order invariance in hash ===\n");
 
     // Create two root contributions first
-    let payload_a = ContributionPayload { content: serde_json::json!({"data": "root-A"}) };
-    let payload_b = ContributionPayload { content: serde_json::json!({"data": "root-B"}) };
+    let payload_a = ContributionPayload {
+        content: serde_json::json!({"data": "root-A"}),
+    };
+    let payload_b = ContributionPayload {
+        content: serde_json::json!({"data": "root-B"}),
+    };
     let kind = ContributionKind::Claim;
 
     let rid_a = compute_content_hash(&[], &payload_a, &kind).unwrap();
     let rid_b = compute_content_hash(&[], &payload_b, &kind).unwrap();
 
     // Compute hash with parents in order [A, B]
-    let child_payload = ContributionPayload { content: serde_json::json!({"data": "child"}) };
+    let child_payload = ContributionPayload {
+        content: serde_json::json!({"data": "child"}),
+    };
     let hash_ab = compute_content_hash(
         &[rid_a.clone(), rid_b.clone()],
         &child_payload,
         &ContributionKind::Assessment,
-    ).unwrap();
+    )
+    .unwrap();
 
     // Compute hash with parents in order [B, A]
     let hash_ba = compute_content_hash(
         &[rid_b.clone(), rid_a.clone()],
         &child_payload,
         &ContributionKind::Assessment,
-    ).unwrap();
+    )
+    .unwrap();
 
     println!("  hash([A,B]) = {}", hash_ab.to_hex());
     println!("  hash([B,A]) = {}", hash_ba.to_hex());
     println!("  equal: {}", hash_ab == hash_ba);
 
-    assert_eq!(hash_ab, hash_ba, "parent order should not affect hash (parents are sorted)");
+    assert_eq!(
+        hash_ab, hash_ba,
+        "parent order should not affect hash (parents are sorted)"
+    );
 
     println!("\nResult: parent order invariance verified ✓");
 }
@@ -343,12 +365,18 @@ fn dcs_frontier_stability() {
 
             if frontier != ref_frontier {
                 all_pass = false;
-                println!("  FAIL: DAG {} ordering {} has different frontier", test_idx, order_seed);
+                println!(
+                    "  FAIL: DAG {} ordering {} has different frontier",
+                    test_idx, order_seed
+                );
             }
         }
     }
 
     assert!(all_pass, "frontier stability violated");
-    println!("  {} DAGs × {} orderings: all frontiers identical ✓", num_tests, num_orderings);
+    println!(
+        "  {} DAGs × {} orderings: all frontiers identical ✓",
+        num_tests, num_orderings
+    );
     println!("\nResult: frontier is insertion-order invariant ✓");
 }

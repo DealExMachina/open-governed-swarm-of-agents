@@ -28,8 +28,14 @@ fn arb_evidence() -> impl Strategy<Value = EvidenceVector> {
 
 fn ev_approx_eq(a: &EvidenceVector, b: &EvidenceVector) -> bool {
     let eps = 1e-10;
-    a.support.iter().zip(b.support.iter()).all(|(x, y)| (x - y).abs() < eps)
-        && a.refutation.iter().zip(b.refutation.iter()).all(|(x, y)| (x - y).abs() < eps)
+    a.support
+        .iter()
+        .zip(b.support.iter())
+        .all(|(x, y)| (x - y).abs() < eps)
+        && a.refutation
+            .iter()
+            .zip(b.refutation.iter())
+            .all(|(x, y)| (x - y).abs() < eps)
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

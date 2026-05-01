@@ -47,10 +47,7 @@ pub enum ContradictionChannel {
 /// contradiction (a single role's `(s, r)` having both components above
 /// threshold), which is the job of
 /// `EvidenceVector::belnap_contradiction_dimensions`.
-pub fn extract_contradictions(
-    state: &EvidenceState,
-    threshold: f64,
-) -> Vec<DetectedContradiction> {
+pub fn extract_contradictions(state: &EvidenceState, threshold: f64) -> Vec<DetectedContradiction> {
     let mut contradictions = Vec::new();
 
     for i in 0..state.num_roles {

@@ -12,6 +12,7 @@ import { runGovernanceAgentLoop } from "./agents/governanceAgent.js";
 import { runActionExecutor } from "./actionExecutor.js";
 import { runTunerAgentLoop } from "./agents/tunerAgent.js";
 import { createSwarmEvent } from "./events.js";
+import { setActiveBillingContext } from "./billingContext.js";
 import { getPool } from "./db.js";
 import { logger } from "./logger.js";
 import { toErrorString } from "./errors.js";
@@ -40,6 +41,9 @@ export interface HatcherySnapshot {
   roleCounts: Record<string, number>;
   totalAgents: number;
   estimators: Record<string, { lambda: number }>;
+  paused: boolean;
+  activeScopeId: string;
+  activeTenantId: string | null;
 }
 
 // ── Singleton accessor (for feed server) ─────────────────────────────────────
@@ -75,6 +79,8 @@ export class AgentHatchery {
   private bus: EventBus;
   private s3: S3Client;
   private bucket: string;
+  /** When true: no scale-up and spawnAgent returns early (after pause drains). */
+  private paused = false;
   private agents = new Map<string, AgentInstance>();
   private estimators = new Map<string, ArrivalRateEstimator>();
   private lastScaleDown = new Map<string, number>();
@@ -89,6 +95,7 @@ export class AgentHatchery {
     this.s3 = s3;
     this.bucket = bucket;
     _instance = this;
+    setActiveBillingContext(config.tenantId ?? null, config.scopeId);
 
     for (const role of Object.keys(config.roles)) {
       this.estimators.set(role, new ArrivalRateEstimator(config.arrivalRateWindowMs));
@@ -97,6 +104,7 @@ export class AgentHatchery {
   }
 
   async start(): Promise<void> {
+    this.paused = false;
     logger.info("hatchery starting", { roles: Object.keys(this.config.roles) });
 
     for (const [role, roleConfig] of Object.entries(this.config.roles)) {
@@ -135,7 +143,64 @@ export class AgentHatchery {
 
   // ── Spawn / Drain ──────────────────────────────────────────────────────────
 
-  private async spawnAgent(role: string): Promise<string> {
+  setPaused(p: boolean): void {
+    this.paused = p;
+    logger.info("hatchery pause flag", { paused: p });
+  }
+
+  isPaused(): boolean {
+    return this.paused;
+  }
+
+  getActiveScopeId(): string {
+    return this.config.scopeId;
+  }
+
+  /**
+   * Drain all agents, set new scope (+ optional tenant), respawn minimum instances.
+   */
+  async rebindActiveScope(scopeId: string, tenantId?: string | null): Promise<void> {
+    if (this.shuttingDown) return;
+    logger.info("hatchery rebind scope", { from: this.config.scopeId, to: scopeId });
+    for (const t of this.agents.values()) {
+      if (t.state === "alive") await this.drainAgent(t.id);
+    }
+    this.config.scopeId = scopeId;
+    if (tenantId !== undefined) this.config.tenantId = tenantId ?? null;
+    setActiveBillingContext(this.config.tenantId ?? null, scopeId);
+    if (this.paused) return;
+    for (const [role, roleConfig] of Object.entries(this.config.roles)) {
+      for (let i = 0; i < roleConfig.minInstances; i++) {
+        await this.spawnAgent(role);
+      }
+    }
+  }
+
+  /** Pause: drain all workers and block respawn until resume. */
+  async pauseAll(): Promise<void> {
+    this.setPaused(true);
+    for (const t of [...this.agents.values()]) {
+      if (t.state === "alive") await this.drainAgent(t.id);
+    }
+  }
+
+  /** Resume from pause: spawn minimum instances per role. */
+  async resume(): Promise<void> {
+    if (this.shuttingDown) return;
+    this.setPaused(false);
+    for (const [role, roleConfig] of Object.entries(this.config.roles)) {
+      const need = roleConfig.minInstances - this.countRole(role);
+      for (let i = 0; i < need; i++) {
+        await this.spawnAgent(role);
+      }
+    }
+  }
+
+  private async spawnAgent(role: string): Promise<string | null> {
+    if (this.paused) {
+      logger.debug("hatchery spawn skipped (paused)", { role });
+      return null;
+    }
     const seqNum = this.nextInstanceId.get(role) ?? 1;
     this.nextInstanceId.set(role, seqNum + 1);
     const agentId = `${role}-${seqNum}`;
@@ -268,6 +333,7 @@ export class AgentHatchery {
       error: err ? toErrorString(err) : "clean_exit",
     });
     void this.spawnAgent(inst.role).then((newId) => {
+      if (!newId) return;
       const newInst = this.agents.get(newId);
       if (newInst) newInst.restartTimestamps = recentRestarts;
       void logHatcheryEvent(inst.role, "restart", newId,
@@ -290,7 +356,7 @@ export class AgentHatchery {
   }
 
   private async scaleUpTick(): Promise<void> {
-    if (this.shuttingDown) return;
+    if (this.shuttingDown || this.paused) return;
     const decisions = await evaluateScalingDecisions(
       this.config, this.buildRoleStates(), this.mapToRecord(this.estimators), this.bus,
     );
@@ -305,7 +371,7 @@ export class AgentHatchery {
   }
 
   private async scaleDownTick(): Promise<void> {
-    if (this.shuttingDown) return;
+    if (this.shuttingDown || this.paused) return;
     const decisions = await evaluateScalingDecisions(
       this.config, this.buildRoleStates(), this.mapToRecord(this.estimators), this.bus,
     );
@@ -360,6 +426,9 @@ export class AgentHatchery {
       agents, roleCounts,
       totalAgents: this.agents.size,
       estimators: estimatorsOut,
+      paused: this.paused,
+      activeScopeId: this.config.scopeId,
+      activeTenantId: this.config.tenantId ?? null,
     };
   }
 

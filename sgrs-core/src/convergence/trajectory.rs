@@ -1,5 +1,5 @@
-/// Trajectory quality analysis: oscillation detection, autocorrelation, quality score.
-/// Implements Gate C from the finality predicate.
+//! Trajectory quality analysis: oscillation detection, autocorrelation, quality score.
+//! Implements Gate C from the finality predicate.
 
 /// Configuration for trajectory quality computation.
 #[derive(Debug, Clone)]
@@ -125,8 +125,8 @@ pub fn compute_trajectory_quality(scores: &[f64], config: &TrajectoryConfig) -> 
             .map(|a| a < config.autocorr_threshold)
             .unwrap_or(false);
 
-    let mut quality = 1.0
-        - config.direction_penalty * dir_changes.min(config.max_directions) as f64;
+    let mut quality =
+        1.0 - config.direction_penalty * dir_changes.min(config.max_directions) as f64;
 
     if oscillation_detected {
         if let Some(a) = autocorr {

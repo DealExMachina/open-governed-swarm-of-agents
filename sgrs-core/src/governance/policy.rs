@@ -49,12 +49,20 @@ impl DriftLevel {
 
     /// Conservative drift estimate: the higher severity.
     pub fn join(a: Self, b: Self) -> Self {
-        if a.severity() >= b.severity() { a } else { b }
+        if a.severity() >= b.severity() {
+            a
+        } else {
+            b
+        }
     }
 
     /// Optimistic drift estimate: the lower severity.
     pub fn meet(a: Self, b: Self) -> Self {
-        if a.severity() <= b.severity() { a } else { b }
+        if a.severity() <= b.severity() {
+            a
+        } else {
+            b
+        }
     }
 }
 
@@ -144,13 +152,11 @@ pub fn can_transition(
     transition_rules: &[TransitionRule],
 ) -> TransitionDecision {
     for rule in transition_rules {
-        if rule.from == from && rule.to == to {
-            if rule.block_when_drift.contains(drift_level) {
-                return TransitionDecision {
-                    allowed: false,
-                    reason: rule.reason.clone(),
-                };
-            }
+        if rule.from == from && rule.to == to && rule.block_when_drift.contains(drift_level) {
+            return TransitionDecision {
+                allowed: false,
+                reason: rule.reason.clone(),
+            };
         }
     }
     TransitionDecision {
@@ -173,16 +179,34 @@ mod tests {
 
     #[test]
     fn drift_level_meet_is_lower_severity() {
-        assert_eq!(DriftLevel::meet(DriftLevel::High, DriftLevel::Low), DriftLevel::Low);
-        assert_eq!(DriftLevel::meet(DriftLevel::Critical, DriftLevel::Medium), DriftLevel::Medium);
-        assert_eq!(DriftLevel::meet(DriftLevel::None, DriftLevel::None), DriftLevel::None);
+        assert_eq!(
+            DriftLevel::meet(DriftLevel::High, DriftLevel::Low),
+            DriftLevel::Low
+        );
+        assert_eq!(
+            DriftLevel::meet(DriftLevel::Critical, DriftLevel::Medium),
+            DriftLevel::Medium
+        );
+        assert_eq!(
+            DriftLevel::meet(DriftLevel::None, DriftLevel::None),
+            DriftLevel::None
+        );
     }
 
     #[test]
     fn drift_level_join_is_higher_severity() {
-        assert_eq!(DriftLevel::join(DriftLevel::Medium, DriftLevel::Critical), DriftLevel::Critical);
-        assert_eq!(DriftLevel::join(DriftLevel::Low, DriftLevel::High), DriftLevel::High);
-        assert_eq!(DriftLevel::join(DriftLevel::None, DriftLevel::None), DriftLevel::None);
+        assert_eq!(
+            DriftLevel::join(DriftLevel::Medium, DriftLevel::Critical),
+            DriftLevel::Critical
+        );
+        assert_eq!(
+            DriftLevel::join(DriftLevel::Low, DriftLevel::High),
+            DriftLevel::High
+        );
+        assert_eq!(
+            DriftLevel::join(DriftLevel::None, DriftLevel::None),
+            DriftLevel::None
+        );
     }
 
     #[test]
@@ -194,22 +218,38 @@ mod tests {
             (DriftLevel::Medium, DriftLevel::Critical),
         ];
         for (low, high) in pairs {
-            let gov_low  = required_governance_level(low);
+            let gov_low = required_governance_level(low);
             let gov_high = required_governance_level(high);
             assert!(
                 gov_high <= gov_low,
                 "required_governance_level({:?}) should be ≤ required_governance_level({:?})",
-                high, low
+                high,
+                low
             );
         }
     }
 
     #[test]
     fn required_governance_level_values() {
-        assert_eq!(required_governance_level(DriftLevel::None), GovernanceLevel::Yolo);
-        assert_eq!(required_governance_level(DriftLevel::Low), GovernanceLevel::Yolo);
-        assert_eq!(required_governance_level(DriftLevel::Medium), GovernanceLevel::Mitl);
-        assert_eq!(required_governance_level(DriftLevel::High), GovernanceLevel::Master);
-        assert_eq!(required_governance_level(DriftLevel::Critical), GovernanceLevel::Master);
+        assert_eq!(
+            required_governance_level(DriftLevel::None),
+            GovernanceLevel::Yolo
+        );
+        assert_eq!(
+            required_governance_level(DriftLevel::Low),
+            GovernanceLevel::Yolo
+        );
+        assert_eq!(
+            required_governance_level(DriftLevel::Medium),
+            GovernanceLevel::Mitl
+        );
+        assert_eq!(
+            required_governance_level(DriftLevel::High),
+            GovernanceLevel::Master
+        );
+        assert_eq!(
+            required_governance_level(DriftLevel::Critical),
+            GovernanceLevel::Master
+        );
     }
 }

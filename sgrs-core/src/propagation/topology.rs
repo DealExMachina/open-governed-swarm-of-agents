@@ -9,7 +9,6 @@
 ///   - Ring(n):     λ₁ = 2 − 2cos(2π/n), O(n) edges — balanced
 ///   - Chain(n):    λ₁ = 2 − 2cos(π/n), O(n) edges — slowest, linear diameter
 ///   - Expander(n,d): λ₁ ≈ d − 2√(d−1), O(nd) edges — near-optimal mixing/cost
-
 use rand::rngs::StdRng;
 use rand::seq::SliceRandom;
 use rand::SeedableRng;
@@ -61,7 +60,7 @@ pub fn chain(n: usize) -> Vec<(usize, usize)> {
 /// Returns `None` if construction fails after `max_retries` attempts
 /// (e.g. odd n with odd degree).
 pub fn random_regular(n: usize, degree: usize, seed: u64) -> Option<Vec<(usize, usize)>> {
-    if n * degree % 2 != 0 {
+    if !(n * degree).is_multiple_of(2) {
         return None; // n*d must be even
     }
     if degree >= n - 1 {
@@ -189,8 +188,8 @@ mod tests {
     /// Verify spectral properties: star has λ₁ = 1, complete has λ₁ = n.
     #[test]
     fn spectral_gap_star_vs_complete() {
-        use crate::propagation::sheaf::CellularSheaf;
         use crate::propagation::laplacian::spectral_analysis;
+        use crate::propagation::sheaf::CellularSheaf;
 
         let n = 5;
         let dim = 2;
@@ -202,12 +201,19 @@ mod tests {
         let complete_spec = spectral_analysis(&complete_sheaf);
 
         // Star: λ₁ = 1 (each stalk dim contributes 1)
-        assert!((star_spec.spectral_gap - 1.0).abs() < 0.01,
-            "star λ₁ should be 1.0, got {}", star_spec.spectral_gap);
+        assert!(
+            (star_spec.spectral_gap - 1.0).abs() < 0.01,
+            "star λ₁ should be 1.0, got {}",
+            star_spec.spectral_gap
+        );
 
         // Complete: λ₁ = n (each stalk dim contributes n)
-        assert!((complete_spec.spectral_gap - n as f64).abs() < 0.01,
-            "complete λ₁ should be {}, got {}", n, complete_spec.spectral_gap);
+        assert!(
+            (complete_spec.spectral_gap - n as f64).abs() < 0.01,
+            "complete λ₁ should be {}, got {}",
+            n,
+            complete_spec.spectral_gap
+        );
 
         // Star mixes slower: mixing_time(star) > mixing_time(complete)
         assert!(star_spec.mixing_time_estimate > complete_spec.mixing_time_estimate);
@@ -216,8 +222,8 @@ mod tests {
     /// Verify ring spectral gap matches known formula.
     #[test]
     fn spectral_gap_ring() {
-        use crate::propagation::sheaf::CellularSheaf;
         use crate::propagation::laplacian::spectral_analysis;
+        use crate::propagation::sheaf::CellularSheaf;
 
         let n = 8;
         let dim = 2;
@@ -225,7 +231,11 @@ mod tests {
         let spec = spectral_analysis(&sheaf);
 
         let expected = 2.0 - 2.0 * (2.0 * std::f64::consts::PI / n as f64).cos();
-        assert!((spec.spectral_gap - expected).abs() < 0.01,
-            "ring(8) λ₁ should be {:.4}, got {:.4}", expected, spec.spectral_gap);
+        assert!(
+            (spec.spectral_gap - expected).abs() < 0.01,
+            "ring(8) λ₁ should be {:.4}, got {:.4}",
+            expected,
+            spec.spectral_gap
+        );
     }
 }

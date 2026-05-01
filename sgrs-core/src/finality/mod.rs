@@ -13,7 +13,6 @@ pub use conditions::{
 pub use gates::{evaluate_conditions, evaluate_gates, ConditionMode, GateConfig, GateState};
 pub use goal_score::compute_goal_score;
 pub use vector::{
-    dimension_final, dimension_gap, evaluate_vector_finality,
-    finality_gap_vector, finality_filter_lower_bound,
-    DimensionFinalityResult, VectorFinalityConfig, VectorFinalityResult,
+    dimension_final, dimension_gap, evaluate_vector_finality, finality_filter_lower_bound,
+    finality_gap_vector, DimensionFinalityResult, VectorFinalityConfig, VectorFinalityResult,
 };

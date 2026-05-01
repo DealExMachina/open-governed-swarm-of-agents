@@ -62,7 +62,11 @@ pub fn propagation_step(
     let perturbation_norm: f64 = eps.iter().map(|e| e * e).sum::<f64>().sqrt();
 
     // Add perturbation: z = diffused + ε
-    let z: Vec<f64> = diffused.iter().zip(eps.iter()).map(|(d, e)| d + e).collect();
+    let z: Vec<f64> = diffused
+        .iter()
+        .zip(eps.iter())
+        .map(|(d, e)| d + e)
+        .collect();
 
     // Reconstruct state from flat vector
     let perturbed = EvidenceState::from_flat(&z, state.num_roles, state.num_dims);

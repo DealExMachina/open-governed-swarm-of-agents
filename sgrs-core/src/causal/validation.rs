@@ -20,7 +20,7 @@ fn canonicalize_json(value: &serde_json::Value) -> serde_json::Value {
     match value {
         serde_json::Value::Object(map) => {
             let mut entries: Vec<_> = map.iter().collect();
-            entries.sort_by(|(ka, _), (kb, _)| ka.cmp(kb));
+            entries.sort_by_key(|(ka, _)| *ka);
             let normalized = entries
                 .into_iter()
                 .map(|(k, v)| (k.clone(), canonicalize_json(v)))
@@ -61,8 +61,9 @@ pub fn compute_content_hash(
 
     // Serialize to CBOR (deterministic encoding per RFC 8949)
     let mut cbor_bytes = Vec::new();
-    ciborium::ser::into_writer(&input, &mut cbor_bytes)
-        .map_err(|e| KernelError::SerializationError(format!("CBOR serialization failed: {}", e)))?;
+    ciborium::ser::into_writer(&input, &mut cbor_bytes).map_err(|e| {
+        KernelError::SerializationError(format!("CBOR serialization failed: {}", e))
+    })?;
 
     // SHA-256 hash
     let mut hasher = Sha256::new();

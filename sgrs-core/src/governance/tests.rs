@@ -1,8 +1,6 @@
 use super::kernel::{evaluate_kernel, KernelInput, ReductionVerdict};
 use super::policy::{can_transition, evaluate_rules, DriftLevel, PolicyRule, TransitionRule};
-use crate::types::{
-    AdmissibilityResult, ConvergenceRank, GovernanceLevel, LatticePoint,
-};
+use crate::types::{AdmissibilityResult, ConvergenceRank, GovernanceLevel, LatticePoint};
 
 // ---------------------------------------------------------------------------
 // Helper factories
@@ -134,7 +132,12 @@ fn can_transition_allowed_no_rules() {
 #[test]
 fn can_transition_allowed_unmatched_transition() {
     let rules = sample_transition_rules();
-    let result = can_transition("ContextIngested", "FactsExtracted", &DriftLevel::Critical, &rules);
+    let result = can_transition(
+        "ContextIngested",
+        "FactsExtracted",
+        &DriftLevel::Critical,
+        &rules,
+    );
     assert!(result.allowed);
 }
 
@@ -148,8 +151,12 @@ fn can_transition_allowed_drift_not_blocked() {
 #[test]
 fn can_transition_blocked() {
     let rules = sample_transition_rules();
-    let result =
-        can_transition("DriftChecked", "ContextIngested", &DriftLevel::Critical, &rules);
+    let result = can_transition(
+        "DriftChecked",
+        "ContextIngested",
+        &DriftLevel::Critical,
+        &rules,
+    );
     assert!(!result.allowed);
     assert_eq!(result.reason, "Critical drift level detected");
 }
@@ -180,12 +187,7 @@ fn can_transition_multiple_rules() {
 // Kernel: policy-only (no lattice)
 // ---------------------------------------------------------------------------
 
-fn kernel_input(
-    from: &str,
-    to: &str,
-    drift: DriftLevel,
-    mode: GovernanceLevel,
-) -> KernelInput {
+fn kernel_input(from: &str, to: &str, drift: DriftLevel, mode: GovernanceLevel) -> KernelInput {
     KernelInput {
         from_state: from.to_string(),
         to_state: to.to_string(),
@@ -199,7 +201,12 @@ fn kernel_input(
 
 #[test]
 fn kernel_yolo_allowed() {
-    let input = kernel_input("ContextIngested", "FactsExtracted", DriftLevel::Low, GovernanceLevel::Yolo);
+    let input = kernel_input(
+        "ContextIngested",
+        "FactsExtracted",
+        DriftLevel::Low,
+        GovernanceLevel::Yolo,
+    );
     let output = evaluate_kernel(&input, &sample_rules(), &sample_transition_rules());
     assert_eq!(output.verdict, ReductionVerdict::Accept);
     assert_eq!(output.reason, "policy_passed");
@@ -209,17 +216,30 @@ fn kernel_yolo_allowed() {
 fn kernel_yolo_blocked_accepts_with_override() {
     // YOLO is the most permissive mode: accepts even when policy blocks,
     // but logs the override reason and adds blocked_transition to suggested_actions.
-    let input = kernel_input("DriftChecked", "ContextIngested", DriftLevel::Critical, GovernanceLevel::Yolo);
+    let input = kernel_input(
+        "DriftChecked",
+        "ContextIngested",
+        DriftLevel::Critical,
+        GovernanceLevel::Yolo,
+    );
     let output = evaluate_kernel(&input, &sample_rules(), &sample_transition_rules());
     assert_eq!(output.verdict, ReductionVerdict::Accept);
     assert!(output.reason.starts_with("yolo_override:"));
     assert!(output.reason.contains("Critical drift"));
-    assert!(output.suggested_actions.iter().any(|a| a.contains("blocked_transition_overridden")));
+    assert!(output
+        .suggested_actions
+        .iter()
+        .any(|a| a.contains("blocked_transition_overridden")));
 }
 
 #[test]
 fn kernel_mitl_allowed_escalates() {
-    let input = kernel_input("ContextIngested", "FactsExtracted", DriftLevel::Low, GovernanceLevel::Mitl);
+    let input = kernel_input(
+        "ContextIngested",
+        "FactsExtracted",
+        DriftLevel::Low,
+        GovernanceLevel::Mitl,
+    );
     let output = evaluate_kernel(&input, &sample_rules(), &sample_transition_rules());
     assert_eq!(output.verdict, ReductionVerdict::Escalate);
     assert_eq!(output.reason, "mitl_required");
@@ -227,7 +247,12 @@ fn kernel_mitl_allowed_escalates() {
 
 #[test]
 fn kernel_mitl_blocked_escalates() {
-    let input = kernel_input("DriftChecked", "ContextIngested", DriftLevel::Critical, GovernanceLevel::Mitl);
+    let input = kernel_input(
+        "DriftChecked",
+        "ContextIngested",
+        DriftLevel::Critical,
+        GovernanceLevel::Mitl,
+    );
     let output = evaluate_kernel(&input, &sample_rules(), &sample_transition_rules());
     assert_eq!(output.verdict, ReductionVerdict::Escalate);
     assert!(output.reason.contains("Critical drift"));
@@ -235,7 +260,12 @@ fn kernel_mitl_blocked_escalates() {
 
 #[test]
 fn kernel_master_allowed_accepts() {
-    let input = kernel_input("ContextIngested", "FactsExtracted", DriftLevel::Low, GovernanceLevel::Master);
+    let input = kernel_input(
+        "ContextIngested",
+        "FactsExtracted",
+        DriftLevel::Low,
+        GovernanceLevel::Master,
+    );
     let output = evaluate_kernel(&input, &sample_rules(), &sample_transition_rules());
     assert_eq!(output.verdict, ReductionVerdict::Accept);
     assert_eq!(output.reason, "policy_passed");
@@ -244,7 +274,12 @@ fn kernel_master_allowed_accepts() {
 #[test]
 fn kernel_master_blocked_rejects() {
     // This is the MASTER bug fix: MASTER + blocked → Reject, not auto-approve
-    let input = kernel_input("DriftChecked", "ContextIngested", DriftLevel::Critical, GovernanceLevel::Master);
+    let input = kernel_input(
+        "DriftChecked",
+        "ContextIngested",
+        DriftLevel::Critical,
+        GovernanceLevel::Master,
+    );
     let output = evaluate_kernel(&input, &sample_rules(), &sample_transition_rules());
     assert_eq!(output.verdict, ReductionVerdict::Reject);
     assert!(output.reason.contains("Critical drift"));
@@ -252,11 +287,18 @@ fn kernel_master_blocked_rejects() {
 
 #[test]
 fn kernel_suggested_actions_propagated() {
-    let mut input = kernel_input("ContextIngested", "FactsExtracted", DriftLevel::High, GovernanceLevel::Yolo);
+    let mut input = kernel_input(
+        "ContextIngested",
+        "FactsExtracted",
+        DriftLevel::High,
+        GovernanceLevel::Yolo,
+    );
     input.drift_types = vec!["semantic".to_string()];
     let output = evaluate_kernel(&input, &sample_rules(), &sample_transition_rules());
     assert_eq!(output.verdict, ReductionVerdict::Accept);
-    assert!(output.suggested_actions.contains(&"open_investigation".to_string()));
+    assert!(output
+        .suggested_actions
+        .contains(&"open_investigation".to_string()));
 }
 
 // ---------------------------------------------------------------------------
@@ -287,8 +329,16 @@ fn kernel_lattice_governance_violation_rejects() {
 #[test]
 fn kernel_lattice_convergence_violation_master_rejects() {
     let mut input = kernel_input("A", "B", DriftLevel::None, GovernanceLevel::Master);
-    input.current_lattice = Some(make_lattice(GovernanceLevel::Master, [0.8, 0.8, 0.8, 0.8], 1));
-    input.proposed_lattice = Some(make_lattice(GovernanceLevel::Master, [0.5, 0.5, 0.5, 0.5], 1));
+    input.current_lattice = Some(make_lattice(
+        GovernanceLevel::Master,
+        [0.8, 0.8, 0.8, 0.8],
+        1,
+    ));
+    input.proposed_lattice = Some(make_lattice(
+        GovernanceLevel::Master,
+        [0.5, 0.5, 0.5, 0.5],
+        1,
+    ));
     let output = evaluate_kernel(&input, &[], &[]);
     assert_eq!(output.verdict, ReductionVerdict::Reject);
     assert_eq!(output.reason, "convergence_violation");
@@ -310,8 +360,16 @@ fn kernel_lattice_convergence_violation_yolo_accepts_with_override() {
 #[test]
 fn kernel_lattice_incomparable_master_rejects() {
     let mut input = kernel_input("A", "B", DriftLevel::None, GovernanceLevel::Master);
-    input.current_lattice = Some(make_lattice(GovernanceLevel::Master, [0.8, 0.5, 0.6, 0.5], 1));
-    input.proposed_lattice = Some(make_lattice(GovernanceLevel::Master, [0.5, 0.8, 0.6, 0.5], 1));
+    input.current_lattice = Some(make_lattice(
+        GovernanceLevel::Master,
+        [0.8, 0.5, 0.6, 0.5],
+        1,
+    ));
+    input.proposed_lattice = Some(make_lattice(
+        GovernanceLevel::Master,
+        [0.5, 0.8, 0.6, 0.5],
+        1,
+    ));
     let output = evaluate_kernel(&input, &[], &[]);
     assert_eq!(output.verdict, ReductionVerdict::Reject);
     assert_eq!(output.reason, "lattice_incomparable");

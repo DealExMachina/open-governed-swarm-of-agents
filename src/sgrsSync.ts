@@ -11,13 +11,13 @@
  * Configuration (env vars):
  *   SGRS_API_URL    — Studio REST API base URL   (default: http://localhost:3003)
  *   SGRS_API_TOKEN  — Bearer token               (default: empty, dev unauthenticated)
- *   SGRS_TENANT_ID  — X-Tenant-ID header         (default: "default")
+ *   SGRS_TENANT_ID  — X-Tenant-ID header         (default: deal-ex-machina demo org)
  *   SGRS_SCOPE_ID   — Scope to write into        (default: SCOPE_ID env var or "default")
  */
 
 const SGRS_API_URL  = (process.env.SGRS_API_URL  ?? "http://localhost:3003").replace(/\/$/, "");
 const SGRS_API_TOKEN = process.env.SGRS_API_TOKEN ?? "";
-const SGRS_TENANT_ID = process.env.SGRS_TENANT_ID ?? "default";
+const SGRS_TENANT_ID = process.env.SGRS_TENANT_ID ?? "deal-ex-machina";
 const SGRS_SCOPE_ID  = process.env.SGRS_SCOPE_ID  ?? process.env.SCOPE_ID ?? "default";
 
 // ── HTTP helpers ──────────────────────────────────────────────────────────────

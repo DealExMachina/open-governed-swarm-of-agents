@@ -10,12 +10,13 @@
 //!
 //! Run: cargo test --test exp_gossip_tarski -- --nocapture
 
+#![allow(clippy::type_complexity)]
+
 mod scenarios;
 
 use sgrs_core::propagation::{
-    compute_disagreement, gossip_average_converge, gossip_converge,
-    gossip_spanning_tree_round, tarski_converge,
-    EvidenceState, EvidenceVector,
+    compute_disagreement, gossip_average_converge, gossip_converge, gossip_spanning_tree_round,
+    tarski_converge, EvidenceState, EvidenceVector,
 };
 
 // ─── Topology builders ──────────────────────────────────────────────────────
@@ -80,10 +81,26 @@ struct TopoFactory {
 
 fn topology_factories() -> Vec<TopoFactory> {
     vec![
-        TopoFactory { name: "chain", build: chain_edges, min_n: 2 },
-        TopoFactory { name: "ring", build: ring_edges, min_n: 3 },
-        TopoFactory { name: "star", build: star_edges, min_n: 2 },
-        TopoFactory { name: "complete", build: complete_edges, min_n: 2 },
+        TopoFactory {
+            name: "chain",
+            build: chain_edges,
+            min_n: 2,
+        },
+        TopoFactory {
+            name: "ring",
+            build: ring_edges,
+            min_n: 3,
+        },
+        TopoFactory {
+            name: "star",
+            build: star_edges,
+            min_n: 2,
+        },
+        TopoFactory {
+            name: "complete",
+            build: complete_edges,
+            min_n: 2,
+        },
     ]
 }
 
@@ -104,7 +121,9 @@ fn e10_1_gossip_vs_synchronous_convergence() {
 
     for factory in &topology_factories() {
         for &n in &[5, 10, 15] {
-            if n < factory.min_n { continue; }
+            if n < factory.min_n {
+                continue;
+            }
 
             let edges = (factory.build)(n);
             let state = make_contested_state(n, num_dims);
@@ -118,14 +137,24 @@ fn e10_1_gossip_vs_synchronous_convergence() {
                 gossip_converge(&state, &edges, max_steps, tolerance, 42);
             let gossip_r = gossip_omegas.last().unwrap() / omega_0 * 100.0;
 
-            let winner = if gossip_r < sync_r - 1.0 { "gossip" }
-                else if sync_r < gossip_r - 1.0 { "sync" }
-                else { "tie" };
+            let winner = if gossip_r < sync_r - 1.0 {
+                "gossip"
+            } else if sync_r < gossip_r - 1.0 {
+                "sync"
+            } else {
+                "tie"
+            };
 
             println!(
                 "{:<10} {:>5} {:>8} {:>8} {:>9.1}% {:>10} {:>9.1}% {:>10}",
-                factory.name, n, edges.len(), sync_steps, sync_r,
-                gossip_rounds, gossip_r, winner
+                factory.name,
+                n,
+                edges.len(),
+                sync_steps,
+                sync_r,
+                gossip_rounds,
+                gossip_r,
+                winner
             );
         }
     }
@@ -149,8 +178,7 @@ fn e10_2_realistic_mna_phases() {
     println!("  Real evidence distributions from Project Horizon demo\n");
     println!(
         "  {:<18} {:>6} {:>8} {:>8}  {:>8} {:>8} {:>8}  {:>8}",
-        "Phase", "Ω₀", "Sync τ", "Sync%",
-        "GAvg τ", "GAvg%", "GMax τ", "GMax%"
+        "Phase", "Ω₀", "Sync τ", "Sync%", "GAvg τ", "GAvg%", "GMax τ", "GMax%"
     );
     println!("  {}", "─".repeat(88));
 
@@ -162,28 +190,48 @@ fn e10_2_realistic_mna_phases() {
         let omega_0 = compute_disagreement(&state);
 
         let (sync_t, sync_final, sync_om) = tarski_converge(&state, &swarm, max_steps, tolerance);
-        let sync_pct = if omega_0 > 1e-15 { sync_om.last().unwrap() / omega_0 * 100.0 } else { 0.0 };
+        let sync_pct = if omega_0 > 1e-15 {
+            sync_om.last().unwrap() / omega_0 * 100.0
+        } else {
+            0.0
+        };
 
         let (gavg_t, gavg_final, gavg_om) =
             gossip_average_converge(&state, &swarm, max_steps, tolerance, 42);
-        let gavg_pct = if omega_0 > 1e-15 { gavg_om.last().unwrap() / omega_0 * 100.0 } else { 0.0 };
+        let gavg_pct = if omega_0 > 1e-15 {
+            gavg_om.last().unwrap() / omega_0 * 100.0
+        } else {
+            0.0
+        };
 
         let (gmax_t, gmax_final, gmax_om) =
             gossip_converge(&state, &swarm, max_steps, tolerance, 42);
-        let gmax_pct = if omega_0 > 1e-15 { gmax_om.last().unwrap() / omega_0 * 100.0 } else { 0.0 };
+        let gmax_pct = if omega_0 > 1e-15 {
+            gmax_om.last().unwrap() / omega_0 * 100.0
+        } else {
+            0.0
+        };
 
         println!(
             "  {:<18} {:>6.3} {:>8} {:>7.2}%  {:>8} {:>7.2}% {:>8} {:>7.2}%",
-            name, omega_0, sync_t, sync_pct,
-            gavg_t, gavg_pct, gmax_t, gmax_pct
+            name, omega_0, sync_t, sync_pct, gavg_t, gavg_pct, gmax_t, gmax_pct
         );
 
         // Report fixed-point quality: distance from true mean
         let true_mean = state.mean();
         let n = state.num_roles;
-        let sync_dist: f64 = (0..n).map(|i| sync_final.role_states[i].distance_squared(&true_mean)).sum::<f64>().sqrt();
-        let gavg_dist: f64 = (0..n).map(|i| gavg_final.role_states[i].distance_squared(&true_mean)).sum::<f64>().sqrt();
-        let gmax_dist: f64 = (0..n).map(|i| gmax_final.role_states[i].distance_squared(&true_mean)).sum::<f64>().sqrt();
+        let sync_dist: f64 = (0..n)
+            .map(|i| sync_final.role_states[i].distance_squared(&true_mean))
+            .sum::<f64>()
+            .sqrt();
+        let gavg_dist: f64 = (0..n)
+            .map(|i| gavg_final.role_states[i].distance_squared(&true_mean))
+            .sum::<f64>()
+            .sqrt();
+        let gmax_dist: f64 = (0..n)
+            .map(|i| gmax_final.role_states[i].distance_squared(&true_mean))
+            .sum::<f64>()
+            .sqrt();
 
         println!(
             "  {:<18} dist-to-mean: Sync={:.4}  GAvg={:.4}  GMax={:.4}",
@@ -216,7 +264,9 @@ fn e10_3_spanning_tree_gossip() {
 
     for factory in &topology_factories() {
         for &n in &[5, 10] {
-            if n < factory.min_n { continue; }
+            if n < factory.min_n {
+                continue;
+            }
 
             let edges = (factory.build)(n);
             let state = make_contested_state(n, num_dims);
@@ -250,33 +300,74 @@ fn e10_4_knowledge_monotonicity() {
 
     // Test on both synthetic and realistic states
     let test_cases: Vec<(&str, EvidenceState, Vec<(usize, usize)>)> = vec![
-        ("synthetic-chain-8", make_contested_state(8, 3), chain_edges(8)),
-        ("synthetic-ring-8", make_contested_state(8, 3), ring_edges(8)),
-        ("synthetic-star-8", make_contested_state(8, 3), star_edges(8)),
-        ("synthetic-complete-8", make_contested_state(8, 3), complete_edges(8)),
-        ("P1-briefing", scenarios::phase1_initial_briefing(), scenarios::swarm_edges()),
-        ("P2-financial-dd", scenarios::phase2_financial_dd(), scenarios::swarm_edges()),
-        ("P3-contested", scenarios::phase3_contested_mixed(), scenarios::swarm_edges()),
-        ("P4-near-finality", scenarios::phase4_near_finality(), scenarios::swarm_edges()),
+        (
+            "synthetic-chain-8",
+            make_contested_state(8, 3),
+            chain_edges(8),
+        ),
+        (
+            "synthetic-ring-8",
+            make_contested_state(8, 3),
+            ring_edges(8),
+        ),
+        (
+            "synthetic-star-8",
+            make_contested_state(8, 3),
+            star_edges(8),
+        ),
+        (
+            "synthetic-complete-8",
+            make_contested_state(8, 3),
+            complete_edges(8),
+        ),
+        (
+            "P1-briefing",
+            scenarios::phase1_initial_briefing(),
+            scenarios::swarm_edges(),
+        ),
+        (
+            "P2-financial-dd",
+            scenarios::phase2_financial_dd(),
+            scenarios::swarm_edges(),
+        ),
+        (
+            "P3-contested",
+            scenarios::phase3_contested_mixed(),
+            scenarios::swarm_edges(),
+        ),
+        (
+            "P4-near-finality",
+            scenarios::phase4_near_finality(),
+            scenarios::swarm_edges(),
+        ),
     ];
 
     for (name, state, edges) in &test_cases {
         let n = state.num_roles;
-        let (rounds, final_state, omegas) =
-            gossip_converge(state, edges, 50, 1e-15, 42);
+        let (rounds, final_state, omegas) = gossip_converge(state, edges, 50, 1e-15, 42);
 
         for i in 0..n {
             assert!(
                 state.role_states[i].leq_k(&final_state.role_states[i]),
                 "{}: role {} knowledge decreased after {} rounds",
-                name, i, rounds
+                name,
+                i,
+                rounds
             );
         }
 
-        let ratio = if omegas[0] > 1e-15 { omegas.last().unwrap() / omegas[0] } else { 0.0 };
+        let ratio = if omegas[0] > 1e-15 {
+            omegas.last().unwrap() / omegas[0]
+        } else {
+            0.0
+        };
         println!(
             "  {:<25}: {} rounds, Ω {:.4} → {:.6} (ratio {:.6}) — monotone ✓",
-            name, rounds, omegas[0], omegas.last().unwrap(), ratio
+            name,
+            rounds,
+            omegas[0],
+            omegas.last().unwrap(),
+            ratio
         );
     }
 }
@@ -300,8 +391,7 @@ fn e10_5_dense_graph_focus() {
         let state = make_contested_state(n, num_dims);
         let omega_0 = compute_disagreement(&state);
 
-        let (sync_steps, _, sync_omegas) =
-            tarski_converge(&state, &edges, max_steps, 1e-10);
+        let (sync_steps, _, sync_omegas) = tarski_converge(&state, &edges, max_steps, 1e-10);
         let sync_r = sync_omegas.last().unwrap() / omega_0 * 100.0;
 
         let (gossip_rounds, _, gossip_omegas) =
@@ -310,7 +400,12 @@ fn e10_5_dense_graph_focus() {
 
         println!(
             "{:>5} {:>8} {:>9.1}% {:>9.1}% {:>12} {:>12}",
-            n, edges.len(), sync_r, gossip_r, sync_steps, gossip_rounds
+            n,
+            edges.len(),
+            sync_r,
+            gossip_r,
+            sync_steps,
+            gossip_rounds
         );
     }
 

@@ -19,6 +19,8 @@ SGRS provides all five. No existing framework does.
 
 > **Want the full picture?** This repo is the open-access companion to a publication. It contains the working system, demo scenarios, and formal validation. For production deployment, advisory, or the extended kernel: [jeanbapt@dealexmachina.com](mailto:jeanbapt@dealexmachina.com)
 
+**Related repository:** the browser Studio, multi-tenant REST API, and npm/PyPI clients live in [DealExMachina/sgrs](https://github.com/DealExMachina/sgrs). Use this repo for the orchestration kernel and `docker compose` stack; use that repo to connect from Studio or SDKs.
+
 ---
 
 ## What SGRS is
@@ -42,6 +44,7 @@ Agents --> shared bitemporal state --> governance kernel --> finality certificat
 
 | What you want | Where to go |
 |---|---|
+| Deploy, connect to cloud, or self-host | [Deployment guide](docs/deployment.md) |
 | Understand the terminology | [Beginner Tutorial: Lattice-State Graph](docs/tutorials/lattice-state-graph-beginner.md) |
 | Missing files, E2E caveats, prototypes | [Codebase hygiene](docs/codebase-hygiene.md) |
 | Run the M&A demo (5 docs, contradictions, HITL) | [Demo Guide](demo/DEMO.md) |
@@ -93,6 +96,8 @@ pnpm run demo                    # Demo UI on http://localhost:3003
 ```
 
 **Ports (default compose):** 3002 feed API, 3003 demo UI, 3004 Grafana, 3000/8080 OpenFGA (HTTP/gRPC), 5433 Postgres, 4222 NATS, 8222 NATS metrics, 9000/9001 MinIO, 8010 facts-worker, 9090 Prometheus, 4317/4318 OTLP.
+
+To run **SGRS Studio** or the product **API** against an environment, see the companion monorepo [DealExMachina/sgrs](https://github.com/DealExMachina/sgrs) (Quickstart, `ROUTING_ARCHITECTURE.md`, and client packages).
 
 ---
 
@@ -292,6 +297,8 @@ See [docs/validation.md](docs/validation.md) for methodology and known gaps.
 - [Experiments](docs/experiments.md) -- protocols and results
 - [Validation](docs/validation.md) -- test methodology, known gaps
 - [Codebase hygiene](docs/codebase-hygiene.md) -- missing assets, E2E caveats, dead paths
+- [Deployment](docs/deployment.md) -- hosted vs self-host, GHCR feed image, enterprise contact
+- [Experimental terms (disclaimer)](docs/experimental-terms.md)
 - [Publications index](publications/README.md)
 
 ---
@@ -325,6 +332,10 @@ See [docs/validation.md](docs/validation.md) for methodology and known gaps.
 ```
 
 ---
+
+## Terms (experimental)
+
+Use is at your own risk. See [docs/experimental-terms.md](docs/experimental-terms.md).
 
 ## License
 

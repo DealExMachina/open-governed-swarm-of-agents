@@ -105,7 +105,9 @@ pub fn dimension_final(score: f64, threshold: f64, epsilon: f64) -> bool {
 /// Equivalent to applying `dimension_gap` to each element.
 pub fn finality_gap_vector(scores: &[f64; 4], thresholds: &[f64; 4]) -> [f64; 4] {
     let mut gap = [0.0f64; 4];
-    for i in 0..4 { gap[i] = dimension_gap(scores[i], thresholds[i]); }
+    for i in 0..4 {
+        gap[i] = dimension_gap(scores[i], thresholds[i]);
+    }
     gap
 }
 
@@ -116,11 +118,13 @@ pub fn finality_gap_vector(scores: &[f64; 4], thresholds: &[f64; 4]) -> [f64; 4]
 /// lattice. The threshold vector τ is its greatest lower bound.
 /// Non-required dimensions contribute 0 (no constraint from this filter level).
 pub fn finality_filter_lower_bound(config: &VectorFinalityConfig) -> [f64; 4] {
-    let mut lb = [0.0f64; 4];
-    for i in 0..4 {
-        if config.required[i] { lb[i] = config.thresholds[i]; }
-    }
-    lb
+    std::array::from_fn(|i| {
+        if config.required[i] {
+            config.thresholds[i]
+        } else {
+            0.0
+        }
+    })
 }
 
 /// Evaluate vector finality predicate.
@@ -187,15 +191,13 @@ pub fn evaluate_vector_finality(
 
     // Global gates: we only need GB (evidence), GD (quiescent), GE (content)
     // GA and GC are now per-dimension, so we don't require the scalar versions.
-    let global_gates_passed = global_gates.b_evidence
-        && global_gates.d_quiescent
-        && global_gates.e_has_content;
+    let global_gates_passed =
+        global_gates.b_evidence && global_gates.d_quiescent && global_gates.e_has_content;
 
     let finality_reached = all_required_passed && !veto_triggered && global_gates_passed;
 
     // Compensation detection: scalar would pass but vector blocks
-    let compensation_detected =
-        scalar_score >= scalar_threshold && !finality_reached;
+    let compensation_detected = scalar_score >= scalar_threshold && !finality_reached;
 
     VectorFinalityResult {
         dimension_results,

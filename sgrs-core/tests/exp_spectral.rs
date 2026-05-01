@@ -8,8 +8,8 @@
 //! Run: cargo test --test exp_spectral -- --nocapture
 
 use sgrs_core::propagation::{
-    spectral_analysis, AdmissibleProjection, CellularSheaf, EvidenceState, EvidenceVector,
-    compute_disagreement, propagation_step,
+    compute_disagreement, propagation_step, spectral_analysis, AdmissibleProjection, CellularSheaf,
+    EvidenceState, EvidenceVector,
 };
 
 // ─── Topology builders ──────────────────────────────────────────────────────
@@ -45,8 +45,12 @@ fn make_initial_state(n: usize, num_dims: usize) -> EvidenceState {
         .map(|i| {
             let base = (i as f64 + 1.0) / n as f64;
             EvidenceVector {
-                support: (0..num_dims).map(|d| (base + d as f64 * 0.1).min(1.0)).collect(),
-                refutation: (0..num_dims).map(|d| (1.0 - base + d as f64 * 0.05).min(1.0)).collect(),
+                support: (0..num_dims)
+                    .map(|d| (base + d as f64 * 0.1).min(1.0))
+                    .collect(),
+                refutation: (0..num_dims)
+                    .map(|d| (1.0 - base + d as f64 * 0.05).min(1.0))
+                    .collect(),
             }
         })
         .collect();
@@ -65,11 +69,31 @@ struct TopologyCase {
 
 fn all_topologies() -> Vec<TopologyCase> {
     vec![
-        TopologyCase { name: "chain(5)", n: 5, edges: chain_edges(5) },
-        TopologyCase { name: "ring(5)", n: 5, edges: ring_edges(5) },
-        TopologyCase { name: "star(5)", n: 5, edges: star_edges(5) },
-        TopologyCase { name: "complete(5)", n: 5, edges: complete_edges(5) },
-        TopologyCase { name: "complete(10)", n: 10, edges: complete_edges(10) },
+        TopologyCase {
+            name: "chain(5)",
+            n: 5,
+            edges: chain_edges(5),
+        },
+        TopologyCase {
+            name: "ring(5)",
+            n: 5,
+            edges: ring_edges(5),
+        },
+        TopologyCase {
+            name: "star(5)",
+            n: 5,
+            edges: star_edges(5),
+        },
+        TopologyCase {
+            name: "complete(5)",
+            n: 5,
+            edges: complete_edges(5),
+        },
+        TopologyCase {
+            name: "complete(10)",
+            n: 10,
+            edges: complete_edges(10),
+        },
     ]
 }
 
@@ -94,7 +118,12 @@ fn spectral_laplacian_psd() {
             min_eigenvalue
         );
 
-        let display: Vec<String> = sa.eigenvalues.iter().take(5).map(|e| format!("{:.4}", e)).collect();
+        let display: Vec<String> = sa
+            .eigenvalues
+            .iter()
+            .take(5)
+            .map(|e| format!("{:.4}", e))
+            .collect();
         println!("{:<15} | {}", tc.name, display.join(", "));
     }
 
@@ -114,7 +143,10 @@ fn spectral_gap_connected() {
         assert!(sa.is_connected, "{}: should be connected", tc.name);
         assert!(sa.spectral_gap > 0.0, "{}: λ₁ should be > 0", tc.name);
 
-        println!("{:<15} | {:<8.4} | {}", tc.name, sa.spectral_gap, sa.is_connected);
+        println!(
+            "{:<15} | {:<8.4} | {}",
+            tc.name, sa.spectral_gap, sa.is_connected
+        );
     }
 
     // Disconnected graph: two isolated components
@@ -124,7 +156,11 @@ fn spectral_gap_connected() {
     // The correct connectivity test is: dim(ker L_F) == stalk_dim.
     let sheaf_dc = CellularSheaf::constant(4, 1, &[(0, 1), (2, 3)]);
     let sa_dc = spectral_analysis(&sheaf_dc);
-    let zero_eigenvalues_dc = sa_dc.eigenvalues.iter().filter(|&&e| e.abs() < 1e-10).count();
+    let zero_eigenvalues_dc = sa_dc
+        .eigenvalues
+        .iter()
+        .filter(|&&e| e.abs() < 1e-10)
+        .count();
     assert_eq!(
         zero_eigenvalues_dc, 2,
         "disconnected 2-component graph should have 2 zero eigenvalues, got {}",
@@ -138,13 +174,18 @@ fn spectral_gap_connected() {
     // Isolated node (no edges at all)
     let sheaf_isolated = CellularSheaf::constant(3, 1, &[]);
     let sa_isolated = spectral_analysis(&sheaf_isolated);
-    assert!(!sa_isolated.is_connected, "isolated nodes should have is_connected=false");
+    assert!(
+        !sa_isolated.is_connected,
+        "isolated nodes should have is_connected=false"
+    );
     println!(
         "{:<15} | {:<8.4} | is_connected={} (no edges)",
         "isolated(3)", sa_isolated.spectral_gap, sa_isolated.is_connected
     );
 
-    println!("\nResult: spectral gap positive for connected, kernel dimension reveals components ✓");
+    println!(
+        "\nResult: spectral gap positive for connected, kernel dimension reveals components ✓"
+    );
 }
 
 #[test]
@@ -169,10 +210,23 @@ fn spectral_gap_ordering() {
     let ring5 = gaps[1].1;
     let complete5 = gaps[3].1;
 
-    assert!(chain5 < ring5, "chain(5) λ₁={:.4} should < ring(5) λ₁={:.4}", chain5, ring5);
-    assert!(ring5 < complete5, "ring(5) λ₁={:.4} should < complete(5) λ₁={:.4}", ring5, complete5);
+    assert!(
+        chain5 < ring5,
+        "chain(5) λ₁={:.4} should < ring(5) λ₁={:.4}",
+        chain5,
+        ring5
+    );
+    assert!(
+        ring5 < complete5,
+        "ring(5) λ₁={:.4} should < complete(5) λ₁={:.4}",
+        ring5,
+        complete5
+    );
 
-    println!("\nOrdering: chain({:.4}) < ring({:.4}) < complete({:.4}) ✓", chain5, ring5, complete5);
+    println!(
+        "\nOrdering: chain({:.4}) < ring({:.4}) < complete({:.4}) ✓",
+        chain5, ring5, complete5
+    );
 }
 
 #[test]
@@ -182,7 +236,10 @@ fn diffusion_contraction_exponential() {
         "{:<15} | λ₁      | α_opt   | ρ_theory | ρ_empirical | Ω(0)     | Ω(100)      | PO-6",
         "Topology"
     );
-    println!("{:-<15}-+-{:-<8}-+-{:-<8}-+-{:-<9}-+-{:-<12}-+-{:-<9}-+-{:-<12}-+-{:-<6}", "", "", "", "", "", "", "", "");
+    println!(
+        "{:-<15}-+-{:-<8}-+-{:-<8}-+-{:-<9}-+-{:-<12}-+-{:-<9}-+-{:-<12}-+-{:-<6}",
+        "", "", "", "", "", "", "", ""
+    );
 
     let steps = 100;
     let num_dims = 1;
@@ -206,7 +263,7 @@ fn diffusion_contraction_exponential() {
 
         for t in 1..=steps {
             let result = propagation_step(&sheaf, &state, &zero_perturbation, &projection, alpha);
-            let theoretical_bound = omega_0 * rho_sq.powi(t as i32) * 1.05; // 5% tolerance
+            let theoretical_bound = omega_0 * rho_sq.powi(t) * 1.05; // 5% tolerance
             if result.disagreement_after > theoretical_bound && result.disagreement_after > 1e-14 {
                 po6_holds = false;
             }
@@ -260,8 +317,15 @@ fn spectral_kernel_is_consensus() {
     let sheaf3 = CellularSheaf::constant(4, 3, &complete_edges(4));
     let sa3 = spectral_analysis(&sheaf3);
     let zero3 = sa3.eigenvalues.iter().filter(|&&e| e.abs() < 1e-10).count();
-    assert_eq!(zero3, 3, "constant sheaf stalk_dim=3 should have dim(ker)=3, got {}", zero3);
-    println!("  {:<15}: dim(ker L_F) = {} (stalk_dim=3) ✓", "complete(4)", zero3);
+    assert_eq!(
+        zero3, 3,
+        "constant sheaf stalk_dim=3 should have dim(ker)=3, got {}",
+        zero3
+    );
+    println!(
+        "  {:<15}: dim(ker L_F) = {} (stalk_dim=3) ✓",
+        "complete(4)", zero3
+    );
 
     println!("\nResult: kernel dimension = stalk_dim for all connected topologies ✓");
 }

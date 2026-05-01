@@ -15,6 +15,9 @@
 //!   0 = facts, 1 = drift, 2 = resolver, 3 = planner,
 //!   4 = status, 5 = governance, 6 = tuner
 
+#![allow(dead_code)]
+// Public scenario constants and loaders are selectively imported by experiments.
+
 use sgrs_core::propagation::{EvidenceState, EvidenceVector};
 
 pub const NUM_DIMS: usize = 4;
@@ -195,8 +198,8 @@ pub fn swarm_edges() -> Vec<(usize, usize)> {
 //   - Topology is built to match the scaling: ring, 3-regular, or modular
 
 use rand::rngs::StdRng;
-use rand::SeedableRng;
 use rand::Rng;
+use rand::SeedableRng;
 
 /// Scale a 7-role M&A phase to n nodes with realistic jitter.
 ///
@@ -300,10 +303,22 @@ pub fn modular_edges(n: usize, num_clusters: usize) -> Vec<(usize, usize)> {
 /// Scaled M&A phases at a given node count.
 pub fn scaled_phases(n: usize) -> Vec<(&'static str, EvidenceState)> {
     vec![
-        ("P1-scaled", scale_phase(&phase1_initial_briefing(), n, 0.08, 100)),
-        ("P2-scaled", scale_phase(&phase2_financial_dd(), n, 0.12, 200)),
-        ("P3-scaled", scale_phase(&phase3_contested_mixed(), n, 0.15, 300)),
-        ("P4-scaled", scale_phase(&phase4_near_finality(), n, 0.06, 400)),
+        (
+            "P1-scaled",
+            scale_phase(&phase1_initial_briefing(), n, 0.08, 100),
+        ),
+        (
+            "P2-scaled",
+            scale_phase(&phase2_financial_dd(), n, 0.12, 200),
+        ),
+        (
+            "P3-scaled",
+            scale_phase(&phase3_contested_mixed(), n, 0.15, 300),
+        ),
+        (
+            "P4-scaled",
+            scale_phase(&phase4_near_finality(), n, 0.06, 400),
+        ),
     ]
 }
 

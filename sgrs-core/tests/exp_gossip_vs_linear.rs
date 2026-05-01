@@ -12,14 +12,15 @@
 //! Run: `cargo test --test exp_gossip_vs_linear -- --nocapture`
 //! Slow stress (E11.5 n≤1024): `cargo test -p sgrs-core --test exp_gossip_vs_linear e11_5_large_scale -- --ignored --nocapture`
 
+#![allow(clippy::type_complexity)]
+
 mod scenarios;
 
-use sgrs_core::propagation::{
-    compute_disagreement, gossip_average_converge, gossip_converge,
-    EvidenceState, EvidenceVector,
-};
 use sgrs_core::propagation::laplacian::spectral_analysis;
 use sgrs_core::propagation::sheaf::CellularSheaf;
+use sgrs_core::propagation::{
+    compute_disagreement, gossip_average_converge, gossip_converge, EvidenceState, EvidenceVector,
+};
 
 // ─── Topology builders ──────────────────────────────────────────────────────
 
@@ -67,7 +68,11 @@ fn make_contested_state(n: usize, num_dims: usize) -> EvidenceState {
             }
         })
         .collect();
-    EvidenceState { role_states, num_roles: n, num_dims }
+    EvidenceState {
+        role_states,
+        num_roles: n,
+        num_dims,
+    }
 }
 
 fn linear_diffusion_run(
@@ -83,15 +88,25 @@ fn linear_diffusion_run(
     let l_f = sheaf.laplacian();
     let dim = l_f.nrows();
     let spec = spectral_analysis(&sheaf);
-    let alpha = if spec.lambda_max > 0.0 { 2.0 / (spec.spectral_gap + spec.lambda_max) } else { 0.0 };
+    let alpha = if spec.lambda_max > 0.0 {
+        2.0 / (spec.spectral_gap + spec.lambda_max)
+    } else {
+        0.0
+    };
     let identity = DMatrix::identity(dim, dim);
     let diffusion_op = &identity - alpha * &l_f;
     let mut x = nalgebra::DVector::from_vec(state.to_flat());
     let mut omegas = vec![compute_disagreement(state)];
     for _ in 0..max_steps {
         x = &diffusion_op * &x;
-        for val in x.iter_mut() { *val = val.clamp(0.0, 1.0); }
-        omegas.push(compute_disagreement(&EvidenceState::from_flat(x.as_slice(), n, d)));
+        for val in x.iter_mut() {
+            *val = val.clamp(0.0, 1.0);
+        }
+        omegas.push(compute_disagreement(&EvidenceState::from_flat(
+            x.as_slice(),
+            n,
+            d,
+        )));
     }
     let final_state = EvidenceState::from_flat(x.as_slice(), n, d);
     (final_state, omegas)
@@ -114,13 +129,17 @@ fn e11_1_synthetic_regression() {
     println!("{}", "─".repeat(72));
 
     let topologies: Vec<(&str, fn(usize) -> Vec<(usize, usize)>)> = vec![
-        ("chain", chain_edges), ("ring", ring_edges),
-        ("star", star_edges), ("complete", complete_edges),
+        ("chain", chain_edges),
+        ("ring", ring_edges),
+        ("star", star_edges),
+        ("complete", complete_edges),
     ];
 
     for &(name, build) in &topologies {
         for &n in &[5, 10, 15] {
-            if name == "ring" && n < 3 { continue; }
+            if name == "ring" && n < 3 {
+                continue;
+            }
             let edges = build(n);
             let state = make_contested_state(n, 3);
             let omega_0 = compute_disagreement(&state);
@@ -130,9 +149,23 @@ fn e11_1_synthetic_regression() {
                 let (_, _, gavg_om) = gossip_average_converge(&state, &edges, steps, 1e-15, 42);
                 let (_, _, gmax_om) = gossip_converge(&state, &edges, steps, 1e-15, 42);
 
-                let pct = |om: &[f64]| if omega_0 > 1e-15 { om.last().unwrap() / omega_0 * 100.0 } else { 0.0 };
-                println!("{:<10} {:>4} {:>5} {:>6}  {:>9.2}% {:>10.2}% {:>10.2}%",
-                    name, n, edges.len(), steps, pct(&lin_om), pct(&gavg_om), pct(&gmax_om));
+                let pct = |om: &[f64]| {
+                    if omega_0 > 1e-15 {
+                        om.last().unwrap() / omega_0 * 100.0
+                    } else {
+                        0.0
+                    }
+                };
+                println!(
+                    "{:<10} {:>4} {:>5} {:>6}  {:>9.2}% {:>10.2}% {:>10.2}%",
+                    name,
+                    n,
+                    edges.len(),
+                    steps,
+                    pct(&lin_om),
+                    pct(&gavg_om),
+                    pct(&gmax_om)
+                );
             }
         }
     }
@@ -168,23 +201,36 @@ fn e11_2_scaled_mna_phases() {
                 let (_, lin_om) = linear_diffusion_run(&state, edges, max_steps);
                 let (_, gavg_final, gavg_om) =
                     gossip_average_converge(&state, edges, max_steps, 1e-15, 42);
-                let (_, gmax_final, gmax_om) =
-                    gossip_converge(&state, edges, max_steps, 1e-15, 42);
+                let (_, gmax_final, gmax_om) = gossip_converge(&state, edges, max_steps, 1e-15, 42);
 
-                let pct = |om: &[f64]| if omega_0 > 1e-15 { om.last().unwrap() / omega_0 * 100.0 } else { 0.0 };
+                let pct = |om: &[f64]| {
+                    if omega_0 > 1e-15 {
+                        om.last().unwrap() / omega_0 * 100.0
+                    } else {
+                        0.0
+                    }
+                };
 
                 let gavg_dist: f64 = (0..n)
                     .map(|i| gavg_final.role_states[i].distance_squared(&true_mean))
-                    .sum::<f64>().sqrt();
+                    .sum::<f64>()
+                    .sqrt();
                 let gmax_dist: f64 = (0..n)
                     .map(|i| gmax_final.role_states[i].distance_squared(&true_mean))
-                    .sum::<f64>().sqrt();
+                    .sum::<f64>()
+                    .sqrt();
 
                 println!(
                     "  {:<14} {:>4} {:>6} {:>5}  {:>7.2}% {:>7.2}% {:>7.2}%  {:>10.4} {:>10.4}",
-                    phase_name, n, topo_name, edges.len(),
-                    pct(&lin_om), pct(&gavg_om), pct(&gmax_om),
-                    gavg_dist, gmax_dist
+                    phase_name,
+                    n,
+                    topo_name,
+                    edges.len(),
+                    pct(&lin_om),
+                    pct(&gavg_om),
+                    pct(&gmax_om),
+                    gavg_dist,
+                    gmax_dist
                 );
             }
         }
@@ -234,20 +280,30 @@ fn e11_3_attribution_at_scale() {
                 let joink_delta = gavg_pct - gmax_pct;
 
                 let winner = if gossip_delta > 1.0 && joink_delta > 1.0 {
-                    both_wins += 1; "BOTH"
+                    both_wins += 1;
+                    "BOTH"
                 } else if gossip_delta > 1.0 {
-                    gossip_wins += 1; "GOSSIP"
+                    gossip_wins += 1;
+                    "GOSSIP"
                 } else if joink_delta > 1.0 {
-                    joink_wins += 1; "JOIN_K"
+                    joink_wins += 1;
+                    "JOIN_K"
                 } else {
-                    ties += 1; "TIE"
+                    ties += 1;
+                    "TIE"
                 };
 
                 println!(
                     "  {:<14} {:>4} {:>6}  {:>7.2}% {:>7.2}% {:>7.2}%  {:>+9.2}% {:>+9.2}% {:>10}",
-                    phase_name, n, topo_name,
-                    lin_pct, gavg_pct, gmax_pct,
-                    gossip_delta, joink_delta, winner
+                    phase_name,
+                    n,
+                    topo_name,
+                    lin_pct,
+                    gavg_pct,
+                    gmax_pct,
+                    gossip_delta,
+                    joink_delta,
+                    winner
                 );
             }
         }
@@ -295,10 +351,18 @@ fn e11_4_knowledge_monotonicity_scaled() {
             let tag = |b: bool| if b { "MONO" } else { "NOT MONO" };
             println!(
                 "  {:<14} {:>6}  {:>10} {:>10} {:>10}",
-                phase_name, topo_name, tag(lin_mono), tag(gavg_mono), tag(gmax_mono)
+                phase_name,
+                topo_name,
+                tag(lin_mono),
+                tag(gavg_mono),
+                tag(gmax_mono)
             );
 
-            assert!(gmax_mono, "{}/{}: gossip-Tarski must be knowledge-monotone", phase_name, topo_name);
+            assert!(
+                gmax_mono,
+                "{}/{}: gossip-Tarski must be knowledge-monotone",
+                phase_name, topo_name
+            );
         }
     }
 }
@@ -338,9 +402,17 @@ fn e11_5_large_scale() {
     println!("\n═══ E11.5: Large-Scale Stress Test (n=256..1024, 100 epochs) ═══\n");
     println!(
         "  {:<14} {:>5} {:>8} {:>5}  {:>8} {:>8} {:>8}  {:>8} {:>8}  {:>10} {:>10}",
-        "Phase", "n", "Topo", "|E|",
-        "GAvg τ", "GAvg%", "GMax τ", "GMax%", "Lin%",
-        "GAvg dist", "GMax dist"
+        "Phase",
+        "n",
+        "Topo",
+        "|E|",
+        "GAvg τ",
+        "GAvg%",
+        "GMax τ",
+        "GMax%",
+        "Lin%",
+        "GAvg dist",
+        "GMax dist"
     );
     println!("  {}", "─".repeat(115));
 
@@ -355,8 +427,14 @@ fn e11_5_large_scale() {
 
         // Use P3-contested (most interesting) and P2-financial (high disagreement)
         let phases = vec![
-            ("P2-scaled", scenarios::scale_phase(&scenarios::phase2_financial_dd(), n, 0.12, 200)),
-            ("P3-scaled", scenarios::scale_phase(&scenarios::phase3_contested_mixed(), n, 0.15, 300)),
+            (
+                "P2-scaled",
+                scenarios::scale_phase(&scenarios::phase2_financial_dd(), n, 0.12, 200),
+            ),
+            (
+                "P3-scaled",
+                scenarios::scale_phase(&scenarios::phase3_contested_mixed(), n, 0.15, 300),
+            ),
         ];
 
         for (phase_name, state) in &phases {
@@ -376,16 +454,34 @@ fn e11_5_large_scale() {
                     gossip_converge(state, edges, max_steps, 1e-10, 42);
                 let gmax_ms = t0.elapsed().as_millis();
 
-                let gavg_pct = if omega_0 > 1e-15 { gavg_om.last().unwrap() / omega_0 * 100.0 } else { 0.0 };
-                let gmax_pct = if omega_0 > 1e-15 { gmax_om.last().unwrap() / omega_0 * 100.0 } else { 0.0 };
+                let gavg_pct = if omega_0 > 1e-15 {
+                    gavg_om.last().unwrap() / omega_0 * 100.0
+                } else {
+                    0.0
+                };
+                let gmax_pct = if omega_0 > 1e-15 {
+                    gmax_om.last().unwrap() / omega_0 * 100.0
+                } else {
+                    0.0
+                };
 
-                let gavg_dist: f64 = (0..n).map(|i| gavg_final.role_states[i].distance_squared(&true_mean)).sum::<f64>().sqrt();
-                let gmax_dist: f64 = (0..n).map(|i| gmax_final.role_states[i].distance_squared(&true_mean)).sum::<f64>().sqrt();
+                let gavg_dist: f64 = (0..n)
+                    .map(|i| gavg_final.role_states[i].distance_squared(&true_mean))
+                    .sum::<f64>()
+                    .sqrt();
+                let gmax_dist: f64 = (0..n)
+                    .map(|i| gmax_final.role_states[i].distance_squared(&true_mean))
+                    .sum::<f64>()
+                    .sqrt();
 
                 // Linear only for ring at n=256 (feasible)
                 let lin_str = if n <= 256 && *topo_name == "ring" {
                     let (_, lin_om) = linear_diffusion_run(state, edges, max_steps);
-                    let lin_pct = if omega_0 > 1e-15 { lin_om.last().unwrap() / omega_0 * 100.0 } else { 0.0 };
+                    let lin_pct = if omega_0 > 1e-15 {
+                        lin_om.last().unwrap() / omega_0 * 100.0
+                    } else {
+                        0.0
+                    };
                     format!("{:>7.2}%", lin_pct)
                 } else {
                     "    —   ".to_string()
@@ -441,30 +537,46 @@ fn e11_6_fixed_point_quality_scaled() {
         println!("  True mean R={}", fmt_vec(&true_mean.refutation));
         println!(
             "  {:>10} {:>5}  {:>8} {:>8} {:>8}  {:>10} {:>10}  {:>6} {:>6}",
-            "Topo", "|E|", "Lin%", "GAvg%", "GMax%",
-            "GAvg dist", "GMax dist", "GAvg C", "GMax C"
+            "Topo", "|E|", "Lin%", "GAvg%", "GMax%", "GAvg dist", "GMax dist", "GAvg C", "GMax C"
         );
         println!("  {}", "─".repeat(85));
 
         for (topo_name, edges) in &topologies {
             let (_lin_final, lin_om) = linear_diffusion_run(&state, edges, max_steps);
-            let (_, gavg_final, gavg_om) = gossip_average_converge(&state, edges, max_steps, 1e-15, 42);
+            let (_, gavg_final, gavg_om) =
+                gossip_average_converge(&state, edges, max_steps, 1e-15, 42);
             let (_, gmax_final, gmax_om) = gossip_converge(&state, edges, max_steps, 1e-15, 42);
 
-            let pct = |om: &[f64]| if omega_0 > 1e-15 { om.last().unwrap() / omega_0 * 100.0 } else { 0.0 };
+            let pct = |om: &[f64]| {
+                if omega_0 > 1e-15 {
+                    om.last().unwrap() / omega_0 * 100.0
+                } else {
+                    0.0
+                }
+            };
             let dist = |final_st: &EvidenceState| -> f64 {
-                (0..n).map(|i| final_st.role_states[i].distance_squared(&true_mean)).sum::<f64>().sqrt()
+                (0..n)
+                    .map(|i| final_st.role_states[i].distance_squared(&true_mean))
+                    .sum::<f64>()
+                    .sqrt()
             };
             let contradictions = |final_st: &EvidenceState| -> usize {
-                (0..n).map(|i| final_st.role_states[i].contradiction_dimensions(0.4).len()).sum()
+                (0..n)
+                    .map(|i| final_st.role_states[i].contradiction_dimensions(0.4).len())
+                    .sum()
             };
 
             println!(
                 "  {:>10} {:>5}  {:>7.2}% {:>7.2}% {:>7.2}%  {:>10.4} {:>10.4}  {:>6} {:>6}",
-                topo_name, edges.len(),
-                pct(&lin_om), pct(&gavg_om), pct(&gmax_om),
-                dist(&gavg_final), dist(&gmax_final),
-                contradictions(&gavg_final), contradictions(&gmax_final)
+                topo_name,
+                edges.len(),
+                pct(&lin_om),
+                pct(&gavg_om),
+                pct(&gmax_om),
+                dist(&gavg_final),
+                dist(&gmax_final),
+                contradictions(&gavg_final),
+                contradictions(&gmax_final)
             );
         }
         println!();

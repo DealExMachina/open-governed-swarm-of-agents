@@ -100,7 +100,11 @@ pub fn parse_condition(condition: &str) -> Condition {
     let rest = rest
         .strip_prefix('"')
         .or_else(|| rest.strip_prefix('\''))
-        .map(|s| s.strip_suffix('"').or_else(|| s.strip_suffix('\'')).unwrap_or(s))
+        .map(|s| {
+            s.strip_suffix('"')
+                .or_else(|| s.strip_suffix('\''))
+                .unwrap_or(s)
+        })
         .unwrap_or(rest)
         .trim();
 
@@ -149,10 +153,7 @@ fn try_parse_op_value(s: &str) -> Option<(ComparisonOp, &str)> {
 /// Returns `Some(true/false)` if the key is known, `None` if unknown.
 ///
 /// Port of `evaluateOne` from finalityEvaluator.ts lines 166-214.
-pub fn evaluate_condition(
-    condition: &Condition,
-    snapshot: &FinalitySnapshotFull,
-) -> Option<bool> {
+pub fn evaluate_condition(condition: &Condition, snapshot: &FinalitySnapshotFull) -> Option<bool> {
     let actual = resolve_key(&condition.key, snapshot)?;
     Some(compare(actual, condition.op, condition.value))
 }
@@ -163,22 +164,17 @@ fn resolve_key(key: &str, snapshot: &FinalitySnapshotFull) -> Option<f64> {
         "claims.active.avg_confidence" => Some(snapshot.claims_active_avg_confidence),
         "claims.active.min_confidence" => Some(snapshot.claims_active_min_confidence),
         "claims.active.count" => Some(snapshot.claims_active_count as f64),
-        "contradictions.unresolved_count" => {
-            Some(snapshot.contradictions_unresolved_count as f64)
-        }
+        "contradictions.unresolved_count" => Some(snapshot.contradictions_unresolved_count as f64),
         "contradictions.total_count" | "contradictions.total.count" => {
             Some(snapshot.contradictions_total_count as f64)
         }
         "risks.critical.active_count" => Some(snapshot.risks_critical_active_count as f64),
-        "goals.completion_ratio" | "goals.completion" => {
-            Some(snapshot.goals_completion_ratio)
-        }
+        "goals.completion_ratio" | "goals.completion" => Some(snapshot.goals_completion_ratio),
         "scope.risk_score" => Some(snapshot.scope_risk_score),
         "scope.idle_cycles" => Some(snapshot.scope_idle_cycles as f64),
         "scope.last_delta_age_ms" => Some(snapshot.scope_last_delta_age_ms as f64),
         "scope.last_active_age_ms" => Some(snapshot.scope_last_active_age_ms as f64),
-        "assessments.critical_unaddressed_count"
-        | "assessments.critical_unaddressed.count" => {
+        "assessments.critical_unaddressed_count" | "assessments.critical_unaddressed.count" => {
             Some(snapshot.assessments_critical_unaddressed_count as f64)
         }
         _ => None,
@@ -202,5 +198,10 @@ fn compare(actual: f64, op: ComparisonOp, target: f64) -> bool {
 
 /// Format a condition as `"key op value"`.
 pub fn condition_to_string(condition: &Condition) -> String {
-    format!("{} {} {}", condition.key, condition.op.as_str(), condition.value)
+    format!(
+        "{} {} {}",
+        condition.key,
+        condition.op.as_str(),
+        condition.value
+    )
 }

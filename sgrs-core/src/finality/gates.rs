@@ -97,13 +97,13 @@ impl ConditionMode {
 ///
 /// - Gate A: `is_monotonic` — passthrough from convergence analysis
 /// - Gate B: `contradiction_mass == 0 && evidence_coverage >= 0.99`
-///           (only enforced when `gate_b_enforced` is true)
+///   (only enforced when `gate_b_enforced` is true)
 /// - Gate C: `trajectory_quality >= threshold` (default 0.7)
 /// - Gate D: quiescence — disabled when both params are 0
 /// - Gate E: has content (`claims_active_count > 0 || goals_completion_ratio < 1`)
-/// - Gate F: elimination completeness — all dimensions with mean refutation > θ
-///           must have support ≈ 0 (formally eliminated). Disabled when `gate_f_enforced` is false.
-///           `eliminated_dimensions`: set of dimension indices that have been formally eliminated.
+/// - Gate F: elimination completeness — all dimensions with mean refutation > θ must have support ≈ 0
+///   (formally eliminated). Disabled when `gate_f_enforced` is false. `eliminated_dimensions`: indices
+///   that have been formally eliminated.
 pub fn evaluate_gates(
     snapshot: &FinalitySnapshotFull,
     is_monotonic: bool,
@@ -138,8 +138,7 @@ pub fn evaluate_gates(
         b_evidence: gate_b,
         c_trajectory: trajectory_quality >= config.trajectory_quality_threshold,
         d_quiescent: gate_d,
-        e_has_content: snapshot.claims_active_count > 0
-            || snapshot.goals_completion_ratio < 1.0,
+        e_has_content: snapshot.claims_active_count > 0 || snapshot.goals_completion_ratio < 1.0,
         f_elimination_complete: gate_f,
     }
 }
@@ -159,13 +158,16 @@ pub fn evaluate_conditions(
     mode: ConditionMode,
     snapshot: &FinalitySnapshotFull,
 ) -> bool {
-    let results = conditions.iter().map(|c| {
-        let parsed = parse_condition(c);
-        evaluate_condition(&parsed, snapshot).unwrap_or(false)
-    });
+    let evaluated: Vec<bool> = conditions
+        .iter()
+        .map(|c| {
+            let parsed = parse_condition(c);
+            evaluate_condition(&parsed, snapshot).unwrap_or(false)
+        })
+        .collect();
 
     match mode {
-        ConditionMode::All => results.fold(true, |acc, r| acc && r),
-        ConditionMode::Any => results.fold(false, |acc, r| acc || r),
+        ConditionMode::All => evaluated.iter().all(|&r| r),
+        ConditionMode::Any => evaluated.iter().any(|&r| r),
     }
 }
