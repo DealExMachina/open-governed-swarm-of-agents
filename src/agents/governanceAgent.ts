@@ -493,7 +493,7 @@ export async function processProposalWithAgent(
       maxSteps: 8,
       abortSignal: abortController.signal,
       modelSettings: DETERMINISTIC_SETTINGS,
-      structuredOutput: { schema: GovernanceOutputSchema, jsonPromptInjection: true },
+      structuredOutput: { schema: GovernanceOutputSchema as any, jsonPromptInjection: true },
     }));
     trackAgentTokens("governance", genResult);
   } catch (e) {

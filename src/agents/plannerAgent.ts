@@ -46,7 +46,7 @@ export async function runPlannerAgent(
         maxSteps: 4,
         abortSignal: abortController.signal,
         modelSettings: REASONING_SETTINGS,
-        structuredOutput: { schema: PlannerOutputSchema, jsonPromptInjection: true },
+        structuredOutput: { schema: PlannerOutputSchema as any, jsonPromptInjection: true },
       });
       trackAgentTokens("planner", result);
       clearTimeout(timeoutId);
