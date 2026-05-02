@@ -67,9 +67,20 @@ async function logHatcheryEvent(
        extra?.lambda ?? null, extra?.mu ?? null, extra?.consumer_lag ?? null,
        extra?.pressure ?? null, extra?.reason ?? null],
     );
-  } catch {
-    // non-fatal: table may not exist yet on first run
+  } catch (error) {
+    if (isTableNotFoundError(error)) {
+      logger.debug("hatchery_events table not yet created", { error: toErrorString(error) });
+    } else {
+      logger.warn("failed to log hatchery event", { role, action, error: toErrorString(error) });
+    }
   }
+}
+
+function isTableNotFoundError(error: unknown): boolean {
+  if (error instanceof Error) {
+    return error.message.includes("relation") && error.message.includes("does not exist");
+  }
+  return false;
 }
 
 // ── AgentHatchery ────────────────────────────────────────────────────────────
