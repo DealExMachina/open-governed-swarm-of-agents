@@ -346,7 +346,10 @@ export async function checkFilter(
           try {
             const { recordPressureDirectedActivation } = await import("./metrics.js");
             recordPressureDirectedActivation(config.agentRole, true, "unknown");
-          } catch { /* no-op */ }
+          } catch (error) {
+            // metrics recording non-fatal, but log for debugging
+            console.debug("failed to record pressure activation (metrics module unavailable)");
+          }
           return { shouldActivate: true, reason: "no_convergence_history_yet", context: {} };
         }
         const latest = history[history.length - 1];
@@ -371,16 +374,18 @@ export async function checkFilter(
         try {
           const { recordPressureDirectedActivation } = await import("./metrics.js");
           recordPressureDirectedActivation(config.agentRole, isHighPressure, highestDim);
-        } catch {
-          /* no-op */
+        } catch (error) {
+          console.debug("failed to record pressure activation metric", { role: config.agentRole });
         }
         return { shouldActivate: isHighPressure, reason, context: { agentPressure, maxPressure, dims } };
-      } catch {
-        // convergence_history table may not exist; fall back to allow activation
+      } catch (error) {
+        console.debug("convergence_history evaluation failed, falling back to allow activation", { role: config.agentRole });
         try {
           const { recordPressureDirectedActivation } = await import("./metrics.js");
           recordPressureDirectedActivation(config.agentRole, true, "unknown");
-        } catch { /* no-op */ }
+        } catch (metricError) {
+          console.debug("failed to record fallback activation metric");
+        }
         return { shouldActivate: true, reason: "convergence_unavailable_fallback", context: {} };
       }
     }

@@ -16,6 +16,14 @@ export function setLogContext(ctx: Record<string, unknown>): void {
   _context = { ..._context, ...ctx };
 }
 
+/**
+ * Reset log context. Used in tests to prevent context leakage between test runs.
+ * Note: In production, context persists for the process lifetime (by design).
+ */
+export function _resetLogContext(): void {
+  _context = {};
+}
+
 export function setLogLevel(level: LogLevel): void {
   _minLevel = level;
 }

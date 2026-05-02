@@ -33,8 +33,15 @@ export function getPool(): pg.Pool {
  */
 export async function drainPool(): Promise<void> {
   if (_pool) {
-    await _pool.end();
-    _pool = null;
+    try {
+      await _pool.end();
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      console.error("[db] error closing pool:", msg);
+      throw error;
+    } finally {
+      _pool = null;
+    }
   }
 }
 

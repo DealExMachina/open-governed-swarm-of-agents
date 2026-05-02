@@ -189,7 +189,8 @@ export async function runAgentLoop(opts: AgentLoopOptions): Promise<void> {
       let payload: Record<string, unknown>;
       try {
         payload = JSON.parse(JSON.stringify(result ?? {})) as Record<string, unknown>;
-      } catch {
+      } catch (error) {
+        logger.warn("failed to serialize agent result, using fallback", { error: toErrorString(error) });
         payload = { wrote: [], facts_hash: undefined };
       }
       await bus.publishEvent(
