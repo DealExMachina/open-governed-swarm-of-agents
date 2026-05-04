@@ -2,7 +2,7 @@
 
 ## The problem
 
-Deploying agent swarms in regulated environments (finance, pharma, insurance) hits a wall that current frameworks do not address.
+Deploying agent swarms in regulated environments hits a wall that current frameworks do not address. Agent coordination is often addressed through pre cooked topologies and ad hoc graph states. 
 
 **DAG-based orchestration** (LangGraph, CrewAI, Mastra, Autogen) hardcodes coordination into topology. Every new rule, exception, or agent requires rewiring the graph. Sequencing and governance are fused; you cannot change one without breaking the other. When an agent stalls, the entire downstream pipeline stalls with it.
 
