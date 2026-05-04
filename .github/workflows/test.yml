@@ -1,0 +1,75 @@
+name: Tests
+
+on:
+  push:
+    branches: ["main", "claude/**"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: swarm_test
+          POSTGRES_USER: swarm
+          POSTGRES_PASSWORD: swarm_pass
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      nats:
+        image: nats:latest
+        ports:
+          - 4222:4222
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v2
+        with:
+          version: "10.30.1"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build TypeScript
+        run: pnpm build
+        env:
+          DATABASE_URL: postgres://swarm:swarm_pass@localhost:5432/swarm_test
+          NATS_SERVERS: localhost:4222
+
+      - name: Build Rust kernel
+        run: pnpm build:rust
+
+      - name: Run unit tests
+        run: pnpm test
+        env:
+          DATABASE_URL: postgres://swarm:swarm_pass@localhost:5432/swarm_test
+          NATS_SERVERS: localhost:4222
+
+      - name: Generate coverage
+        run: pnpm test:coverage
+        env:
+          DATABASE_URL: postgres://swarm:swarm_pass@localhost:5432/swarm_test
+          NATS_SERVERS: localhost:4222
+        continue-on-error: true
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./coverage/coverage-final.json
+          fail_ci_if_error: false
