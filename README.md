@@ -2,7 +2,7 @@
 
 ## The problem
 
-Deploying agent swarms in regulated environments (finance, pharma, insurance) hits a wall that current frameworks do not address.
+Deploying agent swarms in regulated environments hits a wall that current frameworks do not address. Agent coordination is often addressed through pre cooked topologies and ad hoc graph states. Yet when targeting very long "for ever" contexts, agents need a common representation, and a set of governance rules to update this context. This context is not static and need to progress to a goal(s) finality shared by all the swarm. Drifts, contradictions, risks, are part of the context and should not be filtered out. Bi-Temporality mus be a first class citizen and, of course, in enterprise context we need to feed in Hierarchy and Functional contexts to elevate decision planes. 
 
 **DAG-based orchestration** (LangGraph, CrewAI, Mastra, Autogen) hardcodes coordination into topology. Every new rule, exception, or agent requires rewiring the graph. Sequencing and governance are fused; you cannot change one without breaking the other. When an agent stalls, the entire downstream pipeline stalls with it.
 
