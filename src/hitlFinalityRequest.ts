@@ -6,6 +6,7 @@ import {
 } from "./finalityEvaluator.js";
 import { getOllamaBaseUrl, getHitlModel } from "./modelConfig.js";
 import { addPending } from "./mitlServer.js";
+import type { Proposal } from "./events.js";
 import { logger } from "./logger.js";
 
 const HITL_PROMPT = `You are a governance analyst reviewing a case for finality.
@@ -145,13 +146,13 @@ export async function submitFinalityReviewForScope(
     request.suggested_actions?.length ? request.suggested_actions : suggestedActionsFromBlockers(request);
 
   const reviewId = `finality-${scopeId}-${randomUUID().slice(0, 8)}`;
-  const proposal = {
+  const proposal: Proposal = {
     proposal_id: reviewId,
     agent: "finality-evaluator",
     proposed_action: "finality_review",
     target_node: "RESOLVED",
     payload: request as unknown as Record<string, unknown>,
-    mode: "MITL" as const,
+    mode: "MITL",
   };
   try {
     await addPending(reviewId, proposal, request as unknown as Record<string, unknown>);

@@ -125,6 +125,16 @@ export interface AdvanceOptions {
   governance?: GovernanceConfig;
 }
 
+function isPgPool(v: pg.Pool | AdvanceOptions | undefined): v is pg.Pool {
+  return (
+    v !== undefined &&
+    typeof v === "object" &&
+    v !== null &&
+    "query" in v &&
+    typeof (v as pg.Pool).query === "function"
+  );
+}
+
 /**
  * Atomically advance the state machine to the next node.
  * Uses CAS on epoch: only succeeds if the current epoch matches expectedEpoch.
@@ -138,10 +148,10 @@ export async function advanceState(
 ): Promise<GraphState | null> {
   let p: pg.Pool;
   let opts: AdvanceOptions = {};
-  if (poolOrOpts && "query" in (poolOrOpts as any)) {
-    p = poolOrOpts as pg.Pool;
-  } else if (poolOrOpts) {
-    opts = poolOrOpts as AdvanceOptions;
+  if (poolOrOpts !== undefined && isPgPool(poolOrOpts)) {
+    p = poolOrOpts;
+  } else if (poolOrOpts !== undefined) {
+    opts = poolOrOpts;
     p = maybePool ?? getPool();
   } else {
     p = maybePool ?? getPool();
