@@ -42,13 +42,11 @@ import type {
   ConvergenceConfigDto,
   ConvergenceOutputDto,
   GateConfigDto,
-  GateStateDto,
-  ConditionResultDto,
   GovernanceRulesConfigDto,
   KernelInputDto,
-  KernelOutputDto,
-  TransitionDecisionDto,
   LatticePointDto,
+  VectorFinalityResultDto,
+  DetectedContradictionDto,
 } from "../sgrs-core/index.js";
 import type {
   FinalitySnapshot,
@@ -464,7 +462,7 @@ export function evaluateVectorFinality(
   const required = DIM_NAMES.map((n) => perDimConfig.required_dimensions.includes(n));
   const veto = DIM_NAMES.map((n) => perDimConfig.veto_dimensions.includes(n));
 
-  const dto = timedSgrs("vector_finality", () =>
+  const dto = timedSgrs("vector_finality", (): VectorFinalityResultDto =>
     rustEvaluateVectorFinality(
       scores,
       {
@@ -491,7 +489,7 @@ export function evaluateVectorFinality(
   );
 
   return {
-    dimension_results: dto.dimensionResults.map((dr: any) => ({
+    dimension_results: dto.dimensionResults.map((dr) => ({
       dimension: dr.dimension,
       score: dr.score,
       threshold: dr.threshold,
@@ -716,10 +714,10 @@ export function extractContradictions(
   numDims: number,
   threshold: number,
 ): DetectedContradiction[] {
-  const dtos = timedSgrs("extract_contradictions", () =>
+  const dtos = timedSgrs("extract_contradictions", (): DetectedContradictionDto[] =>
     rustExtractContradictions(flatState, numRoles, numDims, threshold),
   );
-  return dtos.map((d: any) => ({
+  return dtos.map((d) => ({
     role_i: d.roleI,
     role_j: d.roleJ,
     dimension: d.dimension,

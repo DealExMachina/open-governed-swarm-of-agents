@@ -1,5 +1,12 @@
-import { S3Client, GetObjectCommand, PutObjectCommand, HeadObjectCommand, ListObjectsV2Command } from "@aws-sdk/client-s3";
-import { Readable } from "stream";
+import {
+  S3Client,
+  GetObjectCommand,
+  type GetObjectCommandOutput,
+  PutObjectCommand,
+  HeadObjectCommand,
+  ListObjectsV2Command,
+} from "@aws-sdk/client-s3";
+import type { Readable } from "stream";
 
 const CIRCUIT_FAILURE_THRESHOLD = 5;
 const CIRCUIT_COOLDOWN_MS = 30000;
@@ -28,12 +35,12 @@ async function withCircuitBreaker<T>(fn: () => Promise<T>): Promise<T> {
   }
 }
 
-function streamToString(stream: any): Promise<string> {
+function streamToString(stream: Readable): Promise<string> {
   return new Promise((resolve, reject) => {
-    const chunks: any[] = [];
-    (stream as Readable).on("data", (chunk) => chunks.push(chunk));
-    (stream as Readable).on("error", reject);
-    (stream as Readable).on("end", () => resolve(Buffer.concat(chunks).toString("utf-8")));
+    const chunks: Buffer[] = [];
+    stream.on("data", (chunk: Buffer) => chunks.push(chunk));
+    stream.on("error", reject);
+    stream.on("end", () => resolve(Buffer.concat(chunks).toString("utf-8")));
   });
 }
 
@@ -59,13 +66,14 @@ export async function s3GetText(s3: S3Client, bucket: string, key: string): Prom
     } catch {
       return null;
     }
-    const res = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
-    const body = (res as any).Body;
-    return streamToString(body);
+    const res: GetObjectCommandOutput = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
+    const { Body } = res;
+    if (!Body) return null;
+    return streamToString(Body as Readable);
   });
 }
 
-export async function s3PutJson(s3: S3Client, bucket: string, key: string, data: any) {
+export async function s3PutJson(s3: S3Client, bucket: string, key: string, data: unknown) {
   return withCircuitBreaker(() =>
     s3.send(
       new PutObjectCommand({

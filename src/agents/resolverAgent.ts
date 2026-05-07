@@ -12,10 +12,11 @@ import { addPending } from "../mitlServer.js";
 import { emitContribution } from "../causalEmit.js";
 import { composeInstructions } from "../skills/loader.js";
 import { trackAgentTokens } from "../skills/tokenTracker.js";
+import { getActiveScopeId } from "../billingContext.js";
+import type { Proposal } from "../events.js";
 
 const RESOLVER_LLM_TIMEOUT_MS = 60_000;
 const RESOLVER_BATCH_SIZE = 15;
-const SCOPE_ID = process.env.SCOPE_ID ?? "default";
 
 const RESOLVER_INSTRUCTIONS = `You are a contradiction resolver agent. Your job is to examine active contradictions in a semantic graph and determine which are genuinely unresolved vs which have been addressed by available evidence.
 
@@ -34,8 +35,8 @@ interface ContradictionInfo {
   related_claims: string[];
 }
 
-async function loadActiveContradictions(): Promise<ContradictionInfo[]> {
-  const details = await loadUnresolvedContradictionDetails(SCOPE_ID);
+async function loadActiveContradictions(scopeId: string): Promise<ContradictionInfo[]> {
+  const details = await loadUnresolvedContradictionDetails(scopeId);
   return details.map((d) => ({
     node_id: d.node_id,
     content: d.content,
@@ -48,13 +49,14 @@ export async function runResolverAgent(
   bucket: string,
   _payload: Record<string, unknown>,
 ): Promise<Record<string, unknown>> {
+  const scopeId = getActiveScopeId();
   const modelConfig = getChatModelConfig();
   if (!modelConfig) {
     logger.info("resolver: no LLM configured, skipping");
     return { resolved: 0, confirmed: 0, noise: 0 };
   }
 
-  const contradictions = await loadActiveContradictions();
+  const contradictions = await loadActiveContradictions(scopeId);
   if (contradictions.length === 0) {
     logger.info("resolver: no active contradictions");
     return { resolved: 0, confirmed: 0, noise: 0 };
@@ -165,21 +167,22 @@ export async function runResolverAgent(
       hitlRequested++;
       const proposalId = `hitl-resolver-${contra.node_id}-${Date.now()}`;
       try {
-        await addPending(proposalId, {
+        const proposal: Proposal = {
           proposal_id: proposalId,
           agent: "resolver-agent",
           proposed_action: "resolve_contradiction",
           target_node: contra.node_id,
           mode: "MITL",
           payload: {
-            scope_id: SCOPE_ID,
+            scope_id: scopeId,
             node_id: contra.node_id,
             content: contra.content,
             judgment: r.judgment,
             reason: r.reason,
           },
-        }, {
-          scope_id: SCOPE_ID,
+        };
+        await addPending(proposalId, proposal, {
+          scope_id: scopeId,
           node_id: contra.node_id,
           content: contra.content,
           reason: r.reason,
@@ -201,7 +204,7 @@ export async function runResolverAgent(
     if (r.judgment === "resolved" || r.judgment === "noise") {
       try {
         await markResolved({
-          scope_id: SCOPE_ID,
+          scope_id: scopeId,
           node_id: contra.node_id,
           judgment: r.judgment,
           reason: r.reason,
