@@ -30,6 +30,16 @@ export interface FilterConfig {
   updatedAt: string;
 }
 
+interface FilterConfigRow {
+  agent_role: string;
+  type: string;
+  params: unknown;
+  stats: unknown;
+  version: string | number;
+  updated_by: string;
+  updated_at: Date | string;
+}
+
 export interface AgentMemory {
   lastProcessedSeq: number;
   lastHash: string | null;
@@ -443,12 +453,16 @@ export async function loadAllFilterConfigs(pool?: pg.Pool): Promise<FilterConfig
   const res = await p.query(
     "SELECT agent_role, type, params, stats, version, updated_by, updated_at FROM filter_configs",
   );
-  return res.rows.map((r: any) => ({
+  return (res.rows as FilterConfigRow[]).map((r) => ({
     agentRole: r.agent_role,
     type: r.type as FilterType,
-    params: typeof r.params === "string" ? JSON.parse(r.params) : r.params,
-    stats: typeof r.stats === "string" ? JSON.parse(r.stats) : r.stats,
-    version: parseInt(r.version, 10),
+    params:
+      typeof r.params === "string"
+        ? (JSON.parse(r.params) as FilterConfig["params"])
+        : (r.params as FilterConfig["params"]),
+    stats:
+      typeof r.stats === "string" ? (JSON.parse(r.stats) as FilterStats) : (r.stats as FilterStats),
+    version: parseInt(String(r.version), 10),
     updatedBy: r.updated_by,
     updatedAt: r.updated_at instanceof Date ? r.updated_at.toISOString() : String(r.updated_at),
   }));

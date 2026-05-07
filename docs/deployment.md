@@ -19,7 +19,7 @@ When Studio and API are reachable over HTTPS:
 1. Configure your tenant / scope and API base URL (see the [sgrs](https://github.com/DealExMachina/sgrs) repo).
 2. Use the TypeScript client [`@sgrs/sgrs-client`](https://www.npmjs.com/package/@sgrs/sgrs-client) or Python [`sgrs-client`](https://pypi.org/project/sgrs-client/) (install from registries when published, or from the monorepo while developing).
 
-Python releases use GitHub Actions [`.github/workflows/pypi-publish.yml`](../.github/workflows/pypi-publish.yml) (**filename must stay in sync with PyPI Trusted Publishing**).
+Python releases use GitHub Actions [`.github/workflows/pypi-publish.yml`](../.github/workflows/pypi-publish.yml) (**filename must stay in sync with PyPI Trusted Publishing**). Stable semver policy: [release-versioning.md](./release-versioning.md).
 
 The **API contract** is defined in the product monorepo: [`packages/api-schema`](https://github.com/DealExMachina/sgrs/tree/main/packages/api-schema) (OpenAPI).
 
