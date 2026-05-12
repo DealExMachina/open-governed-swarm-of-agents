@@ -1,6 +1,6 @@
 # Release and versioning policy
 
-HTTP client libraries in this repo are published as **`@sgrs/sgrs-client`** (npm) and **`sgrs-client`** (PyPI). Their versions stay **aligned** on the same `MAJOR.MINOR.PATCH` unless a release note explicitly documents a divergence.
+Kernel HTTP client libraries in this repo are published as **`@sgrs/kernel-client`** (npm) and **`sgrs-kernel-client`** (PyPI). Their versions stay **aligned** on the same `MAJOR.MINOR.PATCH` unless a release note explicitly documents a divergence.
 
 ## SemVer
 
@@ -18,4 +18,4 @@ Publishing is manual via workflows (see [.github/workflows/publish-sgrs-client.y
 
 ## Relation to orchestration AGPL stack
 
-Version numbers of the **client libraries are independent** of the monorepo app root `package.json`. Only `packages/sgrs-client*` carry the semver that registries expose.
+Version numbers of these **kernel internal client libraries are independent** of the monorepo app root `package.json`. Only `packages/sgrs-client*` carry the semver that registries expose.

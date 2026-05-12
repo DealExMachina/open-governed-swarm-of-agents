@@ -1,4 +1,4 @@
-"""HTTP client for the SGRS control plane API (see openapi/v1/openapi.yaml)."""
+"""Internal HTTP client for the SGRS kernel control-plane API."""
 
 from __future__ import annotations
 
@@ -120,4 +120,15 @@ class AdminClient:
 # Deprecated: use SgrsClient
 SwarmControlPlaneClient = SgrsClient
 
-# Optional NATS: pip install 'sgrs-client[nats]' then use nats-py JetStream in your service.
+class KernelClient(SgrsClient):
+    """Preferred internal name for SgrsClient."""
+
+
+class KernelAdminClient(AdminClient):
+    """Preferred internal name for AdminClient."""
+
+
+# Backward compatibility alias.
+SgrsKernelClient = KernelClient
+
+# Optional NATS: pip install 'sgrs-kernel-client[nats]' then use nats-py JetStream in your service.

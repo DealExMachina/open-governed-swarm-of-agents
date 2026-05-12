@@ -3,9 +3,9 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "sgrs-client"
+name = "sgrs-kernel-client"
 version = "0.1.0"
-description = "Python client for the SGRS Governed Swarm control plane /v1 API (on-prem or cloud swarms)."
+description = "Internal Python client for the SGRS kernel control-plane /v1 API. External integrations should use product clients from the sgrs repository."
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.11"

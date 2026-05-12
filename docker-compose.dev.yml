@@ -1,0 +1,9 @@
+# Development-only host port exposure.
+# Use when local scripts/tools need direct host access to feed.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+#
+services:
+  feed:
+    ports:
+      - "3002:3002"

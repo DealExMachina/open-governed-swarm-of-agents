@@ -12,3 +12,6 @@ services:
     build: !reset null
     working_dir: /app
     volumes: !reset []
+    ports: !reset []
+    environment:
+      FEED_HOST: "0.0.0.0"

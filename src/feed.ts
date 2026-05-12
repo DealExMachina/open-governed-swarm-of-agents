@@ -639,6 +639,11 @@ async function main(): Promise<void> {
         await handleSummary(req, res);
         return;
       }
+      if (pathname.startsWith("/v1/")) {
+        const { handleControlRequest } = await import("./controlPlaneServer.js");
+        await handleControlRequest(req, res);
+        return;
+      }
       if (req.method === "POST" && pathname === "/context/docs") {
         if (!requireBearer(req, res)) return;
         await handleAddDoc(req, res);
@@ -701,13 +706,15 @@ async function main(): Promise<void> {
     }
   });
 
-  server.listen(FEED_PORT, "0.0.0.0", () => {
+  const FEED_HOST = process.env.FEED_HOST ?? "127.0.0.1";
+  server.listen(FEED_PORT, FEED_HOST, () => {
     process.stdout.write(
       JSON.stringify({
         ts: new Date().toISOString(),
         level: "info",
         msg: "feed SSE server listening",
         port: FEED_PORT,
+        host: FEED_HOST,
         path: "/events",
       }) + "\n",
     );

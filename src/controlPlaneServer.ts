@@ -1,9 +1,9 @@
 /**
- * HTTP control plane (default port 3006): tenants, scopes, runtime, metrics, SSE.
+ * Control-plane HTTP handlers for /v1 routes (mounted by feed server).
  */
 import "dotenv/config";
 import { createHash, randomBytes, randomUUID } from "crypto";
-import { createServer, type IncomingMessage, type ServerResponse } from "http";
+import type { IncomingMessage, ServerResponse } from "http";
 import { getPool } from "./db.js";
 import { toErrorString } from "./errors.js";
 import { getHatcheryInstance } from "./hatchery.js";
@@ -13,11 +13,9 @@ import { createSwarmEvent } from "./events.js";
 import { makeEventBus, type EventBus, type EventBusMessage } from "./eventBus.js";
 import { resetScopeData } from "./scopeReset.js";
 import { buildScopeSummaryForScope } from "./feed.js";
-import { pathToFileURL } from "url";
 import { setActiveBillingContext } from "./billingContext.js";
+import { requestRuntimeControl } from "./runtimeControlRpc.js";
 
-/** Default avoids Grafana host port 3004 in docker-compose.yml. */
-const PORT = parseInt(process.env.CONTROL_PLANE_PORT ?? "3006", 10);
 const NATS_STREAM = process.env.NATS_STREAM ?? "SWARM_JOBS";
 const ADMIN_TOKEN = process.env.SWARM_ADMIN_TOKEN ?? "";
 const S3_BUCKET = process.env.S3_BUCKET ?? "";
@@ -265,22 +263,7 @@ async function handleScopeEventsSse(req: IncomingMessage, res: ServerResponse, s
   });
 }
 
-/** Start listening; idempotent if server already started. */
-let _server: ReturnType<typeof createServer> | null = null;
-
-export function startControlPlaneServer(): void {
-  if (_server) return;
-  _server = createServer((req, res) => {
-    void handleControlRequest(req, res);
-  });
-  _server.listen(PORT, "0.0.0.0", () => {
-    process.stdout.write(
-      JSON.stringify({ ts: new Date().toISOString(), level: "info", msg: "control_plane_listening", port: PORT }) + "\n",
-    );
-  });
-}
-
-async function handleControlRequest(req: IncomingMessage, res: ServerResponse): Promise<void> {
+export async function handleControlRequest(req: IncomingMessage, res: ServerResponse): Promise<void> {
   const url = req.url ?? "/";
   const pathname = getPathname(url);
   const parts = pathname.split("/").filter(Boolean);
@@ -514,20 +497,24 @@ async function handleControlRequest(req: IncomingMessage, res: ServerResponse): 
         return;
       }
       const hatchery = getHatcheryInstance();
-      if (!hatchery) {
-        sendJson(res, 503, { error: "hatchery_not_in_process", hint: "Run swarm with ROLE=hatchery in the same process or wire RPC." });
-        return;
-      }
       const lease = await loadRuntimeLease();
       if (lease?.active_tenant_id && lease.active_tenant_id !== tenantId) {
         sendJson(res, 403, { error: "another_tenant_holds_cluster", active_tenant_id: lease.active_tenant_id });
         return;
       }
       setActiveBillingContext(tenantId, scopeId);
-      await hatchery.rebindActiveScope(scopeId, tenantId);
+      if (hatchery) {
+        await hatchery.rebindActiveScope(scopeId, tenantId);
+      } else {
+        const rpc = await requestRuntimeControl({ action: "start", scope_id: scopeId, tenant_id: tenantId });
+        if (!rpc.ok) {
+          sendJson(res, 503, { error: "runtime_rpc_unavailable", detail: rpc.error ?? "unknown_error" });
+          return;
+        }
+      }
       await updateRuntimeLease(scopeId, tenantId, false);
       await getPool().query(`UPDATE scopes SET status = 'active_processing', updated_at = now() WHERE id = $1`, [scopeId]);
-      sendJson(res, 200, { ok: true, scope_id: scopeId, hatchery: hatchery.getSnapshot() });
+      sendJson(res, 200, { ok: true, scope_id: scopeId, hatchery: hatchery?.getSnapshot() ?? null });
       return;
     }
 
@@ -535,18 +522,22 @@ async function handleControlRequest(req: IncomingMessage, res: ServerResponse): 
       const tenantId = await requireTenant(req, res);
       if (!tenantId) return;
       const hatchery = getHatcheryInstance();
-      if (!hatchery) {
-        sendJson(res, 503, { error: "hatchery_not_in_process" });
-        return;
-      }
       const lease = await loadRuntimeLease();
       if (lease?.active_tenant_id && lease.active_tenant_id !== tenantId) {
         sendJson(res, 403, { error: "not_lease_holder" });
         return;
       }
-      await hatchery.pauseAll();
+      if (hatchery) {
+        await hatchery.pauseAll();
+      } else {
+        const rpc = await requestRuntimeControl({ action: "pause" });
+        if (!rpc.ok) {
+          sendJson(res, 503, { error: "runtime_rpc_unavailable", detail: rpc.error ?? "unknown_error" });
+          return;
+        }
+      }
       await updateRuntimeLease(lease?.active_scope_id ?? null, lease?.active_tenant_id ?? null, true);
-      sendJson(res, 200, { ok: true, hatchery: hatchery.getSnapshot() });
+      sendJson(res, 200, { ok: true, hatchery: hatchery?.getSnapshot() ?? null });
       return;
     }
 
@@ -554,18 +545,22 @@ async function handleControlRequest(req: IncomingMessage, res: ServerResponse): 
       const tenantId = await requireTenant(req, res);
       if (!tenantId) return;
       const hatchery = getHatcheryInstance();
-      if (!hatchery) {
-        sendJson(res, 503, { error: "hatchery_not_in_process" });
-        return;
-      }
       const lease = await loadRuntimeLease();
       if (lease?.active_tenant_id && lease.active_tenant_id !== tenantId) {
         sendJson(res, 403, { error: "not_lease_holder" });
         return;
       }
-      await hatchery.resume();
+      if (hatchery) {
+        await hatchery.resume();
+      } else {
+        const rpc = await requestRuntimeControl({ action: "resume" });
+        if (!rpc.ok) {
+          sendJson(res, 503, { error: "runtime_rpc_unavailable", detail: rpc.error ?? "unknown_error" });
+          return;
+        }
+      }
       await updateRuntimeLease(lease?.active_scope_id ?? null, lease?.active_tenant_id ?? null, false);
-      sendJson(res, 200, { ok: true, hatchery: hatchery.getSnapshot() });
+      sendJson(res, 200, { ok: true, hatchery: hatchery?.getSnapshot() ?? null });
       return;
     }
 
@@ -573,16 +568,20 @@ async function handleControlRequest(req: IncomingMessage, res: ServerResponse): 
       const tenantId = await requireTenant(req, res);
       if (!tenantId) return;
       const hatchery = getHatcheryInstance();
-      if (!hatchery) {
-        sendJson(res, 503, { error: "hatchery_not_in_process" });
-        return;
-      }
       const lease = await loadRuntimeLease();
       if (lease?.active_tenant_id && lease.active_tenant_id !== tenantId) {
         sendJson(res, 403, { error: "not_lease_holder" });
         return;
       }
-      await hatchery.shutdown();
+      if (hatchery) {
+        await hatchery.shutdown();
+      } else {
+        const rpc = await requestRuntimeControl({ action: "stop" });
+        if (!rpc.ok) {
+          sendJson(res, 503, { error: "runtime_rpc_unavailable", detail: rpc.error ?? "unknown_error" });
+          return;
+        }
+      }
       await updateRuntimeLease(null, null, false);
       sendJson(res, 200, { ok: true, message: "hatchery_shutdown" });
       return;
@@ -603,15 +602,19 @@ async function handleControlRequest(req: IncomingMessage, res: ServerResponse): 
         return;
       }
       const hatchery = getHatcheryInstance();
-      if (!hatchery) {
-        sendJson(res, 503, { error: "hatchery_not_in_process" });
-        return;
-      }
       setActiveBillingContext(tenantId, scopeId);
-      await hatchery.rebindActiveScope(scopeId, tenantId);
-      await hatchery.resume();
+      if (hatchery) {
+        await hatchery.rebindActiveScope(scopeId, tenantId);
+        await hatchery.resume();
+      } else {
+        const rpc = await requestRuntimeControl({ action: "restart", scope_id: scopeId, tenant_id: tenantId });
+        if (!rpc.ok) {
+          sendJson(res, 503, { error: "runtime_rpc_unavailable", detail: rpc.error ?? "unknown_error" });
+          return;
+        }
+      }
       await updateRuntimeLease(scopeId, tenantId, false);
-      sendJson(res, 200, { ok: true, scope_id: scopeId, hatchery: hatchery.getSnapshot() });
+      sendJson(res, 200, { ok: true, scope_id: scopeId, hatchery: hatchery?.getSnapshot() ?? null });
       return;
     }
 
@@ -619,18 +622,4 @@ async function handleControlRequest(req: IncomingMessage, res: ServerResponse): 
   } catch (e) {
     sendJson(res, 500, { error: toErrorString(e) });
   }
-}
-
-const isDirectRun = (() => {
-  const argv1 = process.argv[1];
-  if (!argv1) return false;
-  try {
-    return pathToFileURL(argv1).href === import.meta.url;
-  } catch {
-    return false;
-  }
-})();
-
-if (isDirectRun) {
-  startControlPlaneServer();
 }
