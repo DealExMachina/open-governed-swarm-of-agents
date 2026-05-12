@@ -343,7 +343,7 @@ Use is at your own risk. See [docs/experimental-terms.md](docs/experimental-term
 
 **sgrs-core** (Rust kernel): [Elastic License 2.0](./sgrs-core/LICENSE) (ELv2).
 
-**Published clients** (`@sgrs/sgrs-client` / `packages/sgrs-client`, Python `packages/sgrs-client-py`): [MIT](./packages/sgrs-client/LICENSE) (same text in [`packages/sgrs-client-py/LICENSE`](./packages/sgrs-client-py/LICENSE)).
+**Kernel internal clients** (`@sgrs/kernel-client` / `packages/sgrs-client`, Python `packages/sgrs-client-py`): [MIT](./packages/sgrs-client/LICENSE) (same text in [`packages/sgrs-client-py/LICENSE`](./packages/sgrs-client-py/LICENSE)).
 
 **Client releases (semver, `main`):** [docs/release-versioning.md](./docs/release-versioning.md).
 

@@ -1,6 +1,6 @@
 /**
- * Minimal HTTP client for the SGRS control plane API (/v1).
- * Mirrors routes in src/controlPlaneServer.ts and openapi/v1/openapi.yaml.
+ * Internal HTTP client for the SGRS kernel control plane API (/v1).
+ * Mirrors routes in src/controlPlaneServer.ts.
  */
 
 export interface SgrsClientOptions {
@@ -158,10 +158,18 @@ export function createAdminClient(baseUrl: string, adminToken: string, fetchImpl
 }
 
 export type SgrsClient = ReturnType<typeof createSgrsClient>;
+export type KernelClient = SgrsClient;
+export type KernelClientOptions = SgrsClientOptions;
+export const createKernelClient = createSgrsClient;
+export const createKernelAdminClient = createAdminClient;
 
 /** @deprecated Use {@link SgrsClientOptions} */
 export type SwarmClientOptions = SgrsClientOptions;
+/** @deprecated Use {@link KernelClientOptions} */
+export type SgrsClientConfig = KernelClientOptions;
 /** @deprecated Use {@link createSgrsClient} */
 export const createSwarmClient = createSgrsClient;
+/** @deprecated Use {@link createKernelClient} */
+export const createSgrsControlPlaneClient = createKernelClient;
 /** @deprecated Use {@link SgrsClient} */
 export type SwarmClient = SgrsClient;
