@@ -43,7 +43,8 @@ import {
 
 /** OpenAI-style usage on `response_metadata` (some providers). */
 function tokensFromResponseMetadata(message: BaseMessage): number {
-  const rm = (message as { response_metadata?: Record<string, unknown> }).response_metadata;
+  const rm = (message as { response_metadata?: Record<string, unknown> })
+    .response_metadata;
   const tu = rm?.token_usage as { total_tokens?: number } | undefined;
   if (tu && typeof tu.total_tokens === "number") return tu.total_tokens;
   return 0;
@@ -53,11 +54,15 @@ function tokensFromResponseMetadata(message: BaseMessage): number {
  * Best-effort token count for benchmark M6 (aligned with Mastra/Agentica when possible).
  * Prefers LangChain `usage_metadata` from ChatOpenAI / ChatOllama; falls back to char/4 estimate.
  */
-function tokensFromLlmInvoke(messages: BaseMessage[], response: BaseMessage): number {
+function tokensFromLlmInvoke(
+  messages: BaseMessage[],
+  response: BaseMessage,
+): number {
   if (isAIMessage(response)) {
     const um = response.usage_metadata;
     if (um) {
-      if (typeof um.total_tokens === "number" && um.total_tokens > 0) return um.total_tokens;
+      if (typeof um.total_tokens === "number" && um.total_tokens > 0)
+        return um.total_tokens;
       const inT = typeof um.input_tokens === "number" ? um.input_tokens : 0;
       const outT = typeof um.output_tokens === "number" ? um.output_tokens : 0;
       if (inT + outT > 0) return inT + outT;
@@ -152,8 +157,8 @@ function makeAgentNode(
 
     if (skipLlm) {
       // Deterministic mode
-      const relevant = doc.expectedClaims.filter(
-        (c) => (roleMap[role.id] || []).includes(c.dimension),
+      const relevant = doc.expectedClaims.filter((c) =>
+        (roleMap[role.id] || []).includes(c.dimension),
       );
 
       for (const c of relevant) {
@@ -306,7 +311,10 @@ export async function runLangGraphTopology(
 
   const startWall = Date.now();
   const epochResults: EpochResult[] = [];
-  const stateSnapshots: Record<number, Array<{ dimension: string; content: string }>> = {};
+  const stateSnapshots: Record<
+    number,
+    Array<{ dimension: string; content: string }>
+  > = {};
   let totalTokens = 0;
 
   // Accumulate state across epochs (LangGraph processes one document at a time)
@@ -385,7 +393,8 @@ export async function runLangGraphTopology(
     // Count contradictions from full history
     const dimContents = new Map<string, Set<string>>();
     for (const c of runningHistory.filter((c) => c.epoch <= doc.epoch)) {
-      if (!dimContents.has(c.dimension)) dimContents.set(c.dimension, new Set());
+      if (!dimContents.has(c.dimension))
+        dimContents.set(c.dimension, new Set());
       dimContents.get(c.dimension)!.add(c.content);
     }
     const contradictions = Array.from(dimContents.values()).filter(

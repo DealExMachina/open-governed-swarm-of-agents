@@ -30,14 +30,20 @@ export function createSwarmEvent(
   },
 ): SwarmEvent {
   const tenantId = opts?.tenant_id ?? getActiveTenantId() ?? undefined;
-  const scopeId = opts?.scope_id ?? (payload.scope_id as string | undefined) ?? getActiveScopeId();
+  const scopeId =
+    opts?.scope_id ??
+    (payload.scope_id as string | undefined) ??
+    getActiveScopeId();
   const out: SwarmEvent = {
     id: opts?.id ?? randomUUID(),
     type,
     ts: opts?.ts ?? new Date().toISOString(),
     source: opts?.source ?? "system",
     correlation_id: opts?.correlation_id ?? "",
-    payload: { ...payload, ...(payload.scope_id == null && scopeId ? { scope_id: scopeId } : {}) },
+    payload: {
+      ...payload,
+      ...(payload.scope_id == null && scopeId ? { scope_id: scopeId } : {}),
+    },
   };
   if (tenantId) out.tenant_id = tenantId;
   if (scopeId) out.scope_id = scopeId;
@@ -47,7 +53,9 @@ export function createSwarmEvent(
 /**
  * Type guard: true if the value has the shape of a SwarmEvent (id, type, ts, source, correlation_id, payload).
  */
-export function isSwarmEvent(data: Record<string, unknown>): data is SwarmEvent {
+export function isSwarmEvent(
+  data: Record<string, unknown>,
+): data is SwarmEvent {
   return (
     typeof data.id === "string" &&
     typeof data.type === "string" &&

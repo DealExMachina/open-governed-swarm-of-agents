@@ -7,14 +7,19 @@
  */
 
 import { logger } from "./logger.js";
-import { evaluateFinality, computeGoalScoreForScope, loadFinalitySnapshot } from "./finalityEvaluator.js";
+import {
+  evaluateFinality,
+  computeGoalScoreForScope,
+  loadFinalitySnapshot,
+} from "./finalityEvaluator.js";
 import { submitFinalityReviewForScope } from "./hitlFinalityRequest.js";
 import { getPool } from "./db.js";
 import type { EventBus } from "./eventBus.js";
 
 const SCOPE_ID = process.env.SCOPE_ID ?? "default";
 const WATCHDOG_INTERVAL_MS = Number(process.env.WATCHDOG_INTERVAL_MS) || 15000;
-const QUIESCENCE_THRESHOLD_MS = Number(process.env.WATCHDOG_QUIESCENCE_MS) || 30000;
+const QUIESCENCE_THRESHOLD_MS =
+  Number(process.env.WATCHDOG_QUIESCENCE_MS) || 30000;
 
 export interface WatchdogState {
   lastProposalAt: number;
@@ -40,21 +45,26 @@ export interface WatchdogQuestion {
  * Build specific, ranked questions based on what would most improve the finality score.
  * Greedy: sort by (weight * gap) descending -- the dimension where improvement yields the most.
  */
-export async function buildRankedQuestions(scopeId: string): Promise<WatchdogQuestion[]> {
+export async function buildRankedQuestions(
+  scopeId: string,
+): Promise<WatchdogQuestion[]> {
   const snapshot = await loadFinalitySnapshot(scopeId);
   const pool = getPool();
 
   const weights = {
-    claim_confidence: 0.30,
-    contradiction_resolution: 0.30,
+    claim_confidence: 0.3,
+    contradiction_resolution: 0.3,
     goal_completion: 0.25,
     risk_score_inverse: 0.15,
   };
 
   const claimScore = Math.min(snapshot.claims_active_avg_confidence / 0.85, 1);
-  const contraScore = snapshot.contradictions_total_count === 0
-    ? 1
-    : 1 - snapshot.contradictions_unresolved_count / snapshot.contradictions_total_count;
+  const contraScore =
+    snapshot.contradictions_total_count === 0
+      ? 1
+      : 1 -
+        snapshot.contradictions_unresolved_count /
+          snapshot.contradictions_total_count;
   const goalScore = snapshot.goals_completion_ratio;
 
   const questions: WatchdogQuestion[] = [];
@@ -134,7 +144,9 @@ export async function buildRankedQuestions(scopeId: string): Promise<WatchdogQue
   }
 
   // --- Phase 1: Low-confidence claims (only genuinely shaky; 80%+ is acceptable) ---
-  const CLAIM_CONFIDENCE_HITL_THRESHOLD = Number(process.env.HITL_CLAIM_CONFIDENCE_THRESHOLD ?? "0.65");
+  const CLAIM_CONFIDENCE_HITL_THRESHOLD = Number(
+    process.env.HITL_CLAIM_CONFIDENCE_THRESHOLD ?? "0.65",
+  );
   const claimGap = 1 - claimScore;
   if (claimGap > 0.05) {
     const lowClaims = await pool.query(
@@ -170,10 +182,13 @@ export async function buildRankedQuestions(scopeId: string): Promise<WatchdogQue
        ORDER BY created_at ASC LIMIT 5`,
       [scopeId],
     );
-    const goalTexts = openGoals.rows.map((r: { content: string }) => r.content.slice(0, 120));
-    const goalList = goalTexts.length > 0
-      ? goalTexts.map((g: string) => `"${g}"`).join("; ")
-      : "unspecified objectives";
+    const goalTexts = openGoals.rows.map((r: { content: string }) =>
+      r.content.slice(0, 120),
+    );
+    const goalList =
+      goalTexts.length > 0
+        ? goalTexts.map((g: string) => `"${g}"`).join("; ")
+        : "unspecified objectives";
     questions.push({
       dimension: "goal_completion",
       current_score: goalScore,
@@ -208,18 +223,23 @@ export async function buildSituationSummary(scopeId: string): Promise<{
   const score = await computeGoalScoreForScope(scopeId);
   const questions = await buildRankedQuestions(scopeId);
 
-  const topBlocker = questions.length > 0
-    ? questions[0].dimension.replace(/_/g, " ")
-    : "none";
+  const topBlocker =
+    questions.length > 0 ? questions[0].dimension.replace(/_/g, " ") : "none";
 
-  const summary = `The swarm has processed all available documents and reached a stable state. ` +
+  const summary =
+    `The swarm has processed all available documents and reached a stable state. ` +
     `Finality score: ${Math.round(score * 100)}%. ` +
     `The system is waiting because ${topBlocker === "none" ? "all dimensions are healthy" : `the "${topBlocker}" dimension is the primary blocker`}. ` +
     `${questions.length} question(s) need human input to make progress.`;
 
   return {
     goal_score: score,
-    status: score >= 0.92 ? "auto_resolvable" : score >= 0.40 ? "needs_human" : "early",
+    status:
+      score >= 0.92
+        ? "auto_resolvable"
+        : score >= 0.4
+          ? "needs_human"
+          : "early",
     summary,
     questions,
   };
@@ -247,13 +267,18 @@ export function startWatchdog(
 
     if (state.hitlTriggered) {
       try {
-        const { hasPendingFinalityReviewForScope } = await import("./mitlServer.js");
+        const { hasPendingFinalityReviewForScope } =
+          await import("./mitlServer.js");
         const stillPending = await hasPendingFinalityReviewForScope(SCOPE_ID);
         if (!stillPending) {
           state.hitlTriggered = false;
-          logger.info("watchdog: previous HITL resolved, re-armed", { scope_id: SCOPE_ID });
+          logger.info("watchdog: previous HITL resolved, re-armed", {
+            scope_id: SCOPE_ID,
+          });
         }
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
       if (state.hitlTriggered) return;
     }
 

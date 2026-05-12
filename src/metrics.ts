@@ -67,10 +67,13 @@ function ensureInstruments() {
     });
   }
   if (governanceLoopHistogram == null) {
-    governanceLoopHistogram = meter.createHistogram("swarm.governance.loop_ms", {
-      description: "Governance proposal handling latency",
-      unit: "ms",
-    });
+    governanceLoopHistogram = meter.createHistogram(
+      "swarm.governance.loop_ms",
+      {
+        description: "Governance proposal handling latency",
+        unit: "ms",
+      },
+    );
   }
   if (llmTokensCounter == null) {
     llmTokensCounter = meter.createCounter("swarm.llm.tokens", {
@@ -86,7 +89,8 @@ function ensureInstruments() {
   }
   if (governanceModeGauge == null) {
     governanceModeGauge = meter.createGauge("swarm.governance.mode_active", {
-      description: "Active governance mode per scope (1 = active); labels: scope_id, mode",
+      description:
+        "Active governance mode per scope (1 = active); labels: scope_id, mode",
       unit: "1",
     });
   }
@@ -103,20 +107,28 @@ function ensureInstruments() {
     });
   }
   if (semanticGraphQueryHistogram == null) {
-    semanticGraphQueryHistogram = meter.createHistogram("swarm.semantic_graph.query_ms", {
-      description: "Semantic graph query latency in milliseconds",
-      unit: "ms",
-    });
+    semanticGraphQueryHistogram = meter.createHistogram(
+      "swarm.semantic_graph.query_ms",
+      {
+        description: "Semantic graph query latency in milliseconds",
+        unit: "ms",
+      },
+    );
   }
   if (pressureDirectedCounter == null) {
-    pressureDirectedCounter = meter.createCounter("swarm.pressure_directed.activation", {
-      description: "Pressure-directed activation filter evaluations by role, hit, and highest dimension",
-      unit: "1",
-    });
+    pressureDirectedCounter = meter.createCounter(
+      "swarm.pressure_directed.activation",
+      {
+        description:
+          "Pressure-directed activation filter evaluations by role, hit, and highest dimension",
+        unit: "1",
+      },
+    );
   }
   if (sgrsCallHistogram == null) {
     sgrsCallHistogram = meter.createHistogram("swarm.sgrs.call_ms", {
-      description: "sgrs-core (Rust native) call latency in milliseconds, by operation",
+      description:
+        "sgrs-core (Rust native) call latency in milliseconds, by operation",
       unit: "ms",
     });
   }
@@ -139,10 +151,13 @@ function ensureInstruments() {
     });
   }
   if (convergenceTrajectoryQuality == null) {
-    convergenceTrajectoryQuality = meter.createGauge("swarm.convergence.trajectory_quality", {
-      description: "Trajectory quality 0-1 (1 = monotonic improvement)",
-      unit: "1",
-    });
+    convergenceTrajectoryQuality = meter.createGauge(
+      "swarm.convergence.trajectory_quality",
+      {
+        description: "Trajectory quality 0-1 (1 = monotonic improvement)",
+        unit: "1",
+      },
+    );
   }
   if (convergenceEpoch == null) {
     convergenceEpoch = meter.createGauge("swarm.convergence.epoch", {
@@ -151,34 +166,50 @@ function ensureInstruments() {
     });
   }
   if (convergenceEstimatedRounds == null) {
-    convergenceEstimatedRounds = meter.createGauge("swarm.convergence.estimated_rounds", {
-      description: "Estimated rounds to reach auto-finality threshold",
-      unit: "1",
-    });
+    convergenceEstimatedRounds = meter.createGauge(
+      "swarm.convergence.estimated_rounds",
+      {
+        description: "Estimated rounds to reach auto-finality threshold",
+        unit: "1",
+      },
+    );
   }
   if (propagationContractionRatio == null) {
-    propagationContractionRatio = meter.createGauge("swarm.propagation.contraction_ratio", {
-      description: "Evidence propagation contraction ratio (after/before disagreement)",
-      unit: "1",
-    });
+    propagationContractionRatio = meter.createGauge(
+      "swarm.propagation.contraction_ratio",
+      {
+        description:
+          "Evidence propagation contraction ratio (after/before disagreement)",
+        unit: "1",
+      },
+    );
   }
   if (propagationDisagreementAfter == null) {
-    propagationDisagreementAfter = meter.createGauge("swarm.propagation.disagreement_after", {
-      description: "Disagreement after propagation step",
-      unit: "1",
-    });
+    propagationDisagreementAfter = meter.createGauge(
+      "swarm.propagation.disagreement_after",
+      {
+        description: "Disagreement after propagation step",
+        unit: "1",
+      },
+    );
   }
   if (propagationPerturbationNorm == null) {
-    propagationPerturbationNorm = meter.createGauge("swarm.propagation.perturbation_norm", {
-      description: "ISS perturbation norm for sheaf propagation stability",
-      unit: "1",
-    });
+    propagationPerturbationNorm = meter.createGauge(
+      "swarm.propagation.perturbation_norm",
+      {
+        description: "ISS perturbation norm for sheaf propagation stability",
+        unit: "1",
+      },
+    );
   }
   if (propagationStepsTotal == null) {
-    propagationStepsTotal = meter.createCounter("swarm.propagation.steps_total", {
-      description: "Total evidence propagation steps",
-      unit: "1",
-    });
+    propagationStepsTotal = meter.createCounter(
+      "swarm.propagation.steps_total",
+      {
+        description: "Total evidence propagation steps",
+        unit: "1",
+      },
+    );
   }
   if (e17EpsilonL2 == null) {
     e17EpsilonL2 = meter.createGauge("swarm.e17.epsilon_l2", {
@@ -193,10 +224,13 @@ function ensureInstruments() {
     });
   }
   if (progressActivationsTotal == null) {
-    progressActivationsTotal = meter.createCounter("swarm.progress.activations_total", {
-      description: "Agent activations by role and productive/wasted",
-      unit: "1",
-    });
+    progressActivationsTotal = meter.createCounter(
+      "swarm.progress.activations_total",
+      {
+        description: "Agent activations by role and productive/wasted",
+        unit: "1",
+      },
+    );
   }
 }
 
@@ -219,7 +253,10 @@ export function recordPressureDirectedActivation(
 }
 
 /** Record semantic graph query latency for Exp 2. */
-export function recordSemanticGraphQueryMs(queryType: string, ms: number): void {
+export function recordSemanticGraphQueryMs(
+  queryType: string,
+  ms: number,
+): void {
   try {
     ensureInstruments();
     semanticGraphQueryHistogram?.record(ms, { query_type: queryType });
@@ -229,10 +266,19 @@ export function recordSemanticGraphQueryMs(queryType: string, ms: number): void 
 }
 
 /** Record LLM token usage by role, direction (input/output), and model. */
-export function recordLLMTokens(role: string, direction: "input" | "output", count: number, model?: string): void {
+export function recordLLMTokens(
+  role: string,
+  direction: "input" | "output",
+  count: number,
+  model?: string,
+): void {
   try {
     ensureInstruments();
-    llmTokensCounter?.add(count, { role, direction, model: model ?? "default" });
+    llmTokensCounter?.add(count, {
+      role,
+      direction,
+      model: model ?? "default",
+    });
   } catch {
     // no-op
   }
@@ -253,11 +299,17 @@ export function recordLLMCall(role: string, model?: string): void {
  * Emits 1 for the active mode, 0 for inactive modes, so Grafana can show
  * the current mode via label filtering.
  */
-export function recordGovernanceMode(scopeId: string, mode: "YOLO" | "MITL" | "MASTER"): void {
+export function recordGovernanceMode(
+  scopeId: string,
+  mode: "YOLO" | "MITL" | "MASTER",
+): void {
   try {
     ensureInstruments();
     for (const m of ["YOLO", "MITL", "MASTER"] as const) {
-      governanceModeGauge?.record(m === mode ? 1 : 0, { scope_id: scopeId, mode: m });
+      governanceModeGauge?.record(m === mode ? 1 : 0, {
+        scope_id: scopeId,
+        mode: m,
+      });
     }
   } catch {
     // no-op
@@ -284,7 +336,10 @@ export function recordStateTransition(from: string, to: string): void {
   }
 }
 
-export function recordProposal(type: string, result: "approved" | "rejected" | "pending"): void {
+export function recordProposal(
+  type: string,
+  result: "approved" | "rejected" | "pending",
+): void {
   try {
     ensureInstruments();
     proposalCount?.add(1, { type, result });
@@ -340,7 +395,10 @@ export function recordSgrsCall(operation: string, durationMs: number): void {
 }
 
 /** Record convergence state for demo telemetry (goal score, Lyapunov V, rate, trajectory quality). */
-export function recordConvergenceStateMetrics(scopeId: string, state: ConvergenceState): void {
+export function recordConvergenceStateMetrics(
+  scopeId: string,
+  state: ConvergenceState,
+): void {
   try {
     ensureInstruments();
     const attrs = { scope_id: scopeId };
@@ -360,7 +418,10 @@ export function recordConvergenceStateMetrics(scopeId: string, state: Convergenc
 }
 
 /** Record propagation step metrics for evidence propagation telemetry. */
-export function recordPropagationMetrics(scopeId: string, metrics: PropagationMetrics): void {
+export function recordPropagationMetrics(
+  scopeId: string,
+  metrics: PropagationMetrics,
+): void {
   try {
     ensureInstruments();
     const attrs = { scope_id: scopeId };

@@ -3,7 +3,11 @@ import { createTool } from "@mastra/core/tools";
 import { Agent } from "@mastra/core/agent";
 import { z } from "zod";
 import { setMaxListeners } from "events";
-import { getChatModelConfig, REASONING_SETTINGS, ResolverOutputSchema } from "../modelConfig.js";
+import {
+  getChatModelConfig,
+  REASONING_SETTINGS,
+  ResolverOutputSchema,
+} from "../modelConfig.js";
 import { logger } from "../logger.js";
 import { s3GetText } from "../s3.js";
 import { loadUnresolvedContradictionDetails } from "../semanticGraph.js";
@@ -36,7 +40,9 @@ interface ContradictionInfo {
   related_claims: string[];
 }
 
-async function loadActiveContradictions(scopeId: string): Promise<ContradictionInfo[]> {
+async function loadActiveContradictions(
+  scopeId: string,
+): Promise<ContradictionInfo[]> {
   const details = await loadUnresolvedContradictionDetails(scopeId);
   return details.map((d) => ({
     node_id: d.node_id,
@@ -68,21 +74,29 @@ export async function runResolverAgent(
   const driftRaw = await s3GetText(s3, bucket, "drift/latest.json");
   const drift = driftRaw ? JSON.parse(driftRaw) : {};
 
-  const resolutionResults: Array<{ id: string; judgment: string; reason: string; requires_hitl?: boolean }> = [];
+  const resolutionResults: Array<{
+    id: string;
+    judgment: string;
+    reason: string;
+    requires_hitl?: boolean;
+  }> = [];
 
   // Mutable ref so the readContradictions tool returns the current batch
   let currentBatch: ContradictionInfo[] = [];
 
   const readContradictionsTool = createTool({
     id: "readContradictions",
-    description: "Read active contradictions, related claims, and current evidence.",
+    description:
+      "Read active contradictions, related claims, and current evidence.",
     inputSchema: z.object({}),
     outputSchema: z.object({
-      contradictions: z.array(z.object({
-        id: z.string(),
-        content: z.string(),
-        related_claims: z.array(z.string()),
-      })),
+      contradictions: z.array(
+        z.object({
+          id: z.string(),
+          content: z.string(),
+          related_claims: z.array(z.string()),
+        }),
+      ),
       drift_level: z.string(),
       facts_summary: z.string(),
     }),
@@ -102,19 +116,36 @@ export async function runResolverAgent(
 
   const writeResolutionsTool = createTool({
     id: "writeResolutions",
-    description: "Write resolution judgments for each contradiction. Each must have id, judgment (confirmed|resolved|noise), reason, and optionally requires_hitl.",
+    description:
+      "Write resolution judgments for each contradiction. Each must have id, judgment (confirmed|resolved|noise), reason, and optionally requires_hitl.",
     inputSchema: z.object({
-      resolutions: z.array(z.object({
-        id: z.string(),
-        judgment: z.enum(["confirmed", "resolved", "noise"]),
-        reason: z.string(),
-        requires_hitl: z.boolean().optional().default(false)
-          .describe("True when resolution requires business/legal human judgment"),
-      })),
+      resolutions: z.array(
+        z.object({
+          id: z.string(),
+          judgment: z.enum(["confirmed", "resolved", "noise"]),
+          reason: z.string(),
+          requires_hitl: z
+            .boolean()
+            .optional()
+            .default(false)
+            .describe(
+              "True when resolution requires business/legal human judgment",
+            ),
+        }),
+      ),
     }),
     outputSchema: z.object({ ok: z.boolean(), count: z.number() }),
     execute: async ({ context }) => {
-      const resolutions = (context as { resolutions: Array<{ id: string; judgment: string; reason: string; requires_hitl?: boolean }> }).resolutions;
+      const resolutions = (
+        context as {
+          resolutions: Array<{
+            id: string;
+            judgment: string;
+            reason: string;
+            requires_hitl?: boolean;
+          }>;
+        }
+      ).resolutions;
       for (const r of resolutions) {
         resolutionResults.push(r);
       }
@@ -127,28 +158,49 @@ export async function runResolverAgent(
     name: "Contradiction Resolver",
     instructions: composeInstructions(RESOLVER_INSTRUCTIONS, "resolver"),
     model: modelConfig,
-    tools: { readContradictions: readContradictionsTool, writeResolutions: writeResolutionsTool },
+    tools: {
+      readContradictions: readContradictionsTool,
+      writeResolutions: writeResolutionsTool,
+    },
   });
 
   // Process contradictions in batches to stay within LLM token/timeout budget
   const totalBatches = Math.ceil(contradictions.length / RESOLVER_BATCH_SIZE);
-  for (let batchStart = 0; batchStart < contradictions.length; batchStart += RESOLVER_BATCH_SIZE) {
-    currentBatch = contradictions.slice(batchStart, batchStart + RESOLVER_BATCH_SIZE);
+  for (
+    let batchStart = 0;
+    batchStart < contradictions.length;
+    batchStart += RESOLVER_BATCH_SIZE
+  ) {
+    currentBatch = contradictions.slice(
+      batchStart,
+      batchStart + RESOLVER_BATCH_SIZE,
+    );
     const batchLabel = `batch ${batchStart / RESOLVER_BATCH_SIZE + 1}/${totalBatches}`;
     const prompt = `${currentBatch.length} contradictions (${batchLabel}). Analyze and resolve.`;
 
     const abortController = new AbortController();
-    const timeoutId = setTimeout(() => abortController.abort(), RESOLVER_LLM_TIMEOUT_MS);
+    const timeoutId = setTimeout(
+      () => abortController.abort(),
+      RESOLVER_LLM_TIMEOUT_MS,
+    );
     setMaxListeners(64, abortController.signal);
     try {
-      const genResult = await generateWithStructuredOutput(agent, prompt, ResolverOutputSchema, {
-        maxSteps: 5,
-        abortSignal: abortController.signal,
-        modelSettings: REASONING_SETTINGS,
-      });
+      const genResult = await generateWithStructuredOutput(
+        agent,
+        prompt,
+        ResolverOutputSchema,
+        {
+          maxSteps: 5,
+          abortSignal: abortController.signal,
+          modelSettings: REASONING_SETTINGS,
+        },
+      );
       trackAgentTokens("resolver", genResult);
     } catch (e) {
-      logger.warn("resolver LLM failed", { error: String(e), batch: batchLabel });
+      logger.warn("resolver LLM failed", {
+        error: String(e),
+        batch: batchLabel,
+      });
     } finally {
       clearTimeout(timeoutId);
     }
@@ -187,16 +239,27 @@ export async function runResolverAgent(
           content: contra.content,
           reason: r.reason,
         });
-        await emitContribution("resolver-agent", "resolution", {
-          type: "resolver_hitl_requested",
-          proposal_id: proposalId,
-          node_id: contra.node_id,
-          reason: r.reason,
-        }, { authorityTier: 1 });
+        await emitContribution(
+          "resolver-agent",
+          "resolution",
+          {
+            type: "resolver_hitl_requested",
+            proposal_id: proposalId,
+            node_id: contra.node_id,
+            reason: r.reason,
+          },
+          { authorityTier: 1 },
+        );
       } catch (err) {
-        logger.warn("resolver: HITL pending creation failed", { error: String(err), node_id: contra.node_id });
+        logger.warn("resolver: HITL pending creation failed", {
+          error: String(err),
+          node_id: contra.node_id,
+        });
       }
-      logger.info("resolver: HITL requested", { node_id: contra.node_id, reason: r.reason });
+      logger.info("resolver: HITL requested", {
+        node_id: contra.node_id,
+        reason: r.reason,
+      });
       confirmed++;
       continue;
     }
@@ -212,22 +275,40 @@ export async function runResolverAgent(
           bucket,
         });
       } catch (err) {
-        logger.warn("resolver: markResolved failed", { error: String(err), node_id: contra.node_id });
+        logger.warn("resolver: markResolved failed", {
+          error: String(err),
+          node_id: contra.node_id,
+        });
       }
-      await emitContribution("resolver-agent", "resolution", {
-        type: "contradiction_resolved",
+      await emitContribution(
+        "resolver-agent",
+        "resolution",
+        {
+          type: "contradiction_resolved",
+          node_id: contra.node_id,
+          judgment: r.judgment,
+          reason: r.reason,
+        },
+        { authorityTier: 1 },
+      );
+      if (r.judgment === "resolved") resolved++;
+      else noise++;
+      logger.info("resolver: contradiction resolved", {
         node_id: contra.node_id,
         judgment: r.judgment,
         reason: r.reason,
-      }, { authorityTier: 1 });
-      if (r.judgment === "resolved") resolved++;
-      else noise++;
-      logger.info("resolver: contradiction resolved", { node_id: contra.node_id, judgment: r.judgment, reason: r.reason });
+      });
     } else {
       confirmed++;
     }
   }
 
-  logger.info("resolver: completed", { resolved, noise, confirmed, hitlRequested, total: contradictions.length });
+  logger.info("resolver: completed", {
+    resolved,
+    noise,
+    confirmed,
+    hitlRequested,
+    total: contradictions.length,
+  });
   return { resolved, noise, confirmed, hitlRequested };
 }

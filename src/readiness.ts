@@ -49,14 +49,16 @@ export async function connectNats(options?: {
     }
   }
   throw new Error(
-    `NATS unreachable at ${url} after ${retries} attempt(s): ${lastErr?.message ?? "unknown"}`
+    `NATS unreachable at ${url} after ${retries} attempt(s): ${lastErr?.message ?? "unknown"}`,
   );
 }
 
 /**
  * Verify JetStream is enabled on the server. Throws if not available.
  */
-export async function ensureJetStreamReady(nc: NatsConnection): Promise<JetStreamManager> {
+export async function ensureJetStreamReady(
+  nc: NatsConnection,
+): Promise<JetStreamManager> {
   try {
     const jsm = await nc.jetstreamManager();
     await jsm.getAccountInfo();
@@ -74,7 +76,7 @@ export async function ensureJetStreamReady(nc: NatsConnection): Promise<JetStrea
 export async function ensureStreamIdempotent(
   jsm: JetStreamManager,
   streamName: string,
-  subjects: string[]
+  subjects: string[],
 ): Promise<void> {
   try {
     const info = await jsm.streams.info(streamName);
@@ -91,8 +93,8 @@ export async function ensureStreamIdempotent(
     await jsm.streams.add({
       name: streamName,
       subjects,
-      max_age: 7 * 24 * 60 * 60 * 1e9,   // 7 days in nanoseconds
-      max_bytes: 500 * 1024 * 1024,         // 500 MB
+      max_age: 7 * 24 * 60 * 60 * 1e9, // 7 days in nanoseconds
+      max_bytes: 500 * 1024 * 1024, // 500 MB
     });
     return;
   } catch (addErr) {
@@ -101,7 +103,7 @@ export async function ensureStreamIdempotent(
       return;
     } catch {
       throw new Error(
-        `Stream creation failed for ${streamName}: ${addErr instanceof Error ? addErr.message : String(addErr)}`
+        `Stream creation failed for ${streamName}: ${addErr instanceof Error ? addErr.message : String(addErr)}`,
       );
     }
   }
@@ -116,7 +118,7 @@ function sleep(ms: number): Promise<void> {
  * Closes the connection before returning; callers should use makeEventBus() afterward.
  */
 export async function waitForNatsAndStream(
-  options: WaitForNatsAndStreamOptions
+  options: WaitForNatsAndStreamOptions,
 ): Promise<void> {
   const {
     natsUrl = process.env.NATS_URL ?? "nats://localhost:4222",

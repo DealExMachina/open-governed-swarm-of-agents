@@ -14,7 +14,11 @@
  * All analysis functions are pure (no side effects). DB persistence is separated.
  */
 
-import type { FinalitySnapshot, GoalGradientConfig, CoordinationSignal } from "./finalityEvaluator.js";
+import type {
+  FinalitySnapshot,
+  GoalGradientConfig,
+  CoordinationSignal,
+} from "./finalityEvaluator.js";
 import { getPool } from "./db.js";
 import { logger } from "./logger.js";
 import pg from "pg";
@@ -127,10 +131,10 @@ export const DEFAULT_CONVERGENCE_CONFIG: ConvergenceConfig = {
 };
 
 export const DEFAULT_FINALITY_TARGETS: FinalityTargets = {
-  claim_confidence: 1.0,   // avg_confidence / 0.85 clamped to 1 → target ratio = 1
-  contradiction_resolution: 1.0,  // 0 unresolved / total → ratio = 1
-  goal_completion: 1.0,    // 100% goals resolved
-  risk_inverse: 1.0,       // 0 risk → 1 - 0 = 1
+  claim_confidence: 1.0, // avg_confidence / 0.85 clamped to 1 → target ratio = 1
+  contradiction_resolution: 1.0, // 0 unresolved / total → ratio = 1
+  goal_completion: 1.0, // 100% goals resolved
+  risk_inverse: 1.0, // 0 risk → 1 - 0 = 1
 };
 
 // ---------------------------------------------------------------------------
@@ -223,7 +227,15 @@ export async function recordConvergencePoint(
   await p.query(
     `INSERT INTO convergence_history (scope_id, epoch, goal_score, lyapunov_v, dimension_scores, pressure, context_seq)
      VALUES ($1, $2, $3, $4, $5::jsonb, $6::jsonb, $7)`,
-    [scopeId, epoch, goalScore, lyapunovV, JSON.stringify(dimensionScores), JSON.stringify(pressure), contextSeq ?? null],
+    [
+      scopeId,
+      epoch,
+      goalScore,
+      lyapunovV,
+      JSON.stringify(dimensionScores),
+      JSON.stringify(pressure),
+      contextSeq ?? null,
+    ],
   );
 
   // ── Dimension step instrumentation (Assumption #1: discretization) ──
@@ -237,7 +249,10 @@ export async function recordConvergencePoint(
         [scopeId],
       );
       if (prev.rows.length > 0) {
-        const prevScores = prev.rows[0].dimension_scores as Record<string, number>;
+        const prevScores = prev.rows[0].dimension_scores as Record<
+          string,
+          number
+        >;
         const prevV = Number(prev.rows[0].lyapunov_v);
         const deltas: Record<string, number> = {};
         const absDelta: Record<string, number> = {};
@@ -355,7 +370,14 @@ export async function getConvergenceState(
   autoThreshold?: number,
   pool?: pg.Pool,
 ): Promise<ConvergenceState> {
-  const fullConfig: ConvergenceConfig = { ...DEFAULT_CONVERGENCE_CONFIG, ...config };
-  const history = await loadConvergenceHistory(scopeId, fullConfig.history_depth, pool);
+  const fullConfig: ConvergenceConfig = {
+    ...DEFAULT_CONVERGENCE_CONFIG,
+    ...config,
+  };
+  const history = await loadConvergenceHistory(
+    scopeId,
+    fullConfig.history_depth,
+    pool,
+  );
   return analyzeConvergence(history, fullConfig, autoThreshold ?? 0.92);
 }

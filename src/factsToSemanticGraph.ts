@@ -67,13 +67,18 @@ function parseNliContradiction(s: string): [string, string] | null {
   const contradicts = /^(.*?)\s+contradicts?\s+(.*)$/i.exec(trimmed);
   if (contradicts) return [contradicts[1].trim(), contradicts[2].trim()];
 
-  const whichContradicts = /(.+?),?\s+which\s+contradicts?\s+(.+)/i.exec(trimmed);
-  if (whichContradicts) return [whichContradicts[1].trim(), whichContradicts[2].trim()];
+  const whichContradicts = /(.+?),?\s+which\s+contradicts?\s+(.+)/i.exec(
+    trimmed,
+  );
+  if (whichContradicts)
+    return [whichContradicts[1].trim(), whichContradicts[2].trim()];
 
   const versus = /(.+?)\s+(?:versus|vs\.?)\s+(.+)/i.exec(trimmed);
   if (versus) return [versus[1].trim(), versus[2].trim()];
 
-  const butWhile = /(.+?),?\s+(?:but|while|whereas|however)\s+(.+)/i.exec(trimmed);
+  const butWhile = /(.+?),?\s+(?:but|while|whereas|however)\s+(.+)/i.exec(
+    trimmed,
+  );
   if (butWhile) return [butWhile[1].trim(), butWhile[2].trim()];
 
   return null;
@@ -91,15 +96,29 @@ export function findClaimNodeId(
   const exact = contentToId.get(fragment);
   if (exact) return exact;
   for (const [content, id] of contentToId) {
-    if (content === fragment || content.startsWith(fragment) || fragment.startsWith(content))
+    if (
+      content === fragment ||
+      content.startsWith(fragment) ||
+      fragment.startsWith(content)
+    )
       return id;
   }
-  const fragWords = new Set(fragment.toLowerCase().split(/\s+/).filter(w => w.length > 3));
+  const fragWords = new Set(
+    fragment
+      .toLowerCase()
+      .split(/\s+/)
+      .filter((w) => w.length > 3),
+  );
   if (fragWords.size === 0) return null;
   let bestId: string | null = null;
   let bestScore = 0;
   for (const [content, id] of contentToId) {
-    const contentWords = new Set(content.toLowerCase().split(/\s+/).filter(w => w.length > 3));
+    const contentWords = new Set(
+      content
+        .toLowerCase()
+        .split(/\s+/)
+        .filter((w) => w.length > 3),
+    );
     let overlap = 0;
     for (const w of fragWords) if (contentWords.has(w)) overlap++;
     const score = overlap / Math.max(fragWords.size, 1);
@@ -117,14 +136,45 @@ export function findClaimNodeId(
  * short but important domain terms like "ARR", "IP"), minus stop words.
  */
 const SYNC_STOP = new Set([
-  "the","and","for","are","was","were","has","have","had","not","but","its",
-  "that","this","from","with","they","been","which","into","also","than",
-  "will","can","may","who","how","all","any","each","some","such","very",
+  "the",
+  "and",
+  "for",
+  "are",
+  "was",
+  "were",
+  "has",
+  "have",
+  "had",
+  "not",
+  "but",
+  "its",
+  "that",
+  "this",
+  "from",
+  "with",
+  "they",
+  "been",
+  "which",
+  "into",
+  "also",
+  "than",
+  "will",
+  "can",
+  "may",
+  "who",
+  "how",
+  "all",
+  "any",
+  "each",
+  "some",
+  "such",
+  "very",
 ]);
 
 function sigWords(s: string): Set<string> {
   return new Set(
-    s.toLowerCase()
+    s
+      .toLowerCase()
       .replace(/[^a-z0-9\s]/g, "")
       .split(/\s+/)
       .filter((w) => w.length > 2 && !SYNC_STOP.has(w))
@@ -192,14 +242,26 @@ export async function syncFactsToSemanticGraph(
   scopeId: string,
   facts: FactsPayload,
   opts?: { embedClaims?: boolean },
-): Promise<{ nodesCreated: number; edgesCreated: number; nodesUpdated: number; nodesStaled: number }> {
-  const claims = (Array.isArray(facts.claims) ? facts.claims : []).filter((c): c is string => typeof c === "string");
-  const goals = (Array.isArray(facts.goals) ? facts.goals : []).filter((g): g is string => typeof g === "string");
-  const risks = (Array.isArray(facts.risks) ? facts.risks : []).filter((r): r is string => typeof r === "string");
-  const contradictions = (Array.isArray(facts.contradictions) ? facts.contradictions : []).filter(
+): Promise<{
+  nodesCreated: number;
+  edgesCreated: number;
+  nodesUpdated: number;
+  nodesStaled: number;
+}> {
+  const claims = (Array.isArray(facts.claims) ? facts.claims : []).filter(
     (c): c is string => typeof c === "string",
   );
-  const confidence = typeof facts.confidence === "number" ? facts.confidence : 1;
+  const goals = (Array.isArray(facts.goals) ? facts.goals : []).filter(
+    (g): g is string => typeof g === "string",
+  );
+  const risks = (Array.isArray(facts.risks) ? facts.risks : []).filter(
+    (r): r is string => typeof r === "string",
+  );
+  const contradictions = (
+    Array.isArray(facts.contradictions) ? facts.contradictions : []
+  ).filter((c): c is string => typeof c === "string");
+  const confidence =
+    typeof facts.confidence === "number" ? facts.confidence : 1;
   const minClaimConfidence = Number(process.env.MIN_CLAIM_CONFIDENCE ?? "0.65");
   const validFrom = facts.valid_from ?? undefined;
   const validTo = facts.valid_to ?? undefined;
@@ -213,9 +275,24 @@ export async function syncFactsToSemanticGraph(
 
   await runInTransaction(async (client) => {
     // Load existing fact-synced nodes
-    const existingClaims = await queryNodesByCreator(scopeId, FACTS_SYNC_SOURCE, "claim", client);
-    const existingGoals = await queryNodesByCreator(scopeId, FACTS_SYNC_SOURCE, "goal", client);
-    const existingRisks = await queryNodesByCreator(scopeId, FACTS_SYNC_SOURCE, "risk", client);
+    const existingClaims = await queryNodesByCreator(
+      scopeId,
+      FACTS_SYNC_SOURCE,
+      "claim",
+      client,
+    );
+    const existingGoals = await queryNodesByCreator(
+      scopeId,
+      FACTS_SYNC_SOURCE,
+      "goal",
+      client,
+    );
+    const existingRisks = await queryNodesByCreator(
+      scopeId,
+      FACTS_SYNC_SOURCE,
+      "risk",
+      client,
+    );
 
     // Track which existing nodes were matched (for stale detection)
     const matchedClaimIds = new Set<string>();
@@ -225,58 +302,65 @@ export async function syncFactsToSemanticGraph(
     // --- Claims: upsert-if-better (skip low-confidence batches to reduce noise) ---
     if (confidence < minClaimConfidence) {
       /* skip claims from low-confidence extraction */
-    } else for (const content of claims) {
-      if (typeof content !== "string" || !content.trim()) continue;
-      const trimmed = content.trim();
-      const existing = matchExistingNode(existingClaims, trimmed);
+    } else
+      for (const content of claims) {
+        if (typeof content !== "string" || !content.trim()) continue;
+        const trimmed = content.trim();
+        const existing = matchExistingNode(existingClaims, trimmed);
 
-      if (existing) {
-        matchedClaimIds.add(existing.node_id);
-        // Monotonic: only update if new confidence >= existing
-        if (confidence >= existing.confidence) {
-          await updateNodeConfidence(existing.node_id, confidence, client);
-          nodesUpdated++;
-        }
-        // Ensure active status (may have been previously marked irrelevant)
-        if (existing.status !== "active") {
-          await updateNodeStatus(existing.node_id, "active", client);
-        }
-        claimContentToNodeId.set(trimmed, existing.node_id);
-      } else {
-        // Check if resolution or other source already added this claim (avoid duplicate)
-        const dupRes = await client.query(
-          `SELECT node_id, confidence FROM nodes WHERE scope_id = $1 AND type = 'claim' AND status = 'active'
-           AND content = $2 AND superseded_at IS NULL LIMIT 1`,
-          [scopeId, trimmed],
-        );
-        if (dupRes.rowCount && dupRes.rows[0]) {
-          const dup = dupRes.rows[0] as { node_id: string; confidence: number };
-          matchedClaimIds.add(dup.node_id);
-          if (confidence >= dup.confidence) {
-            await updateNodeConfidence(dup.node_id, confidence, client);
+        if (existing) {
+          matchedClaimIds.add(existing.node_id);
+          // Monotonic: only update if new confidence >= existing
+          if (confidence >= existing.confidence) {
+            await updateNodeConfidence(existing.node_id, confidence, client);
             nodesUpdated++;
           }
-          claimContentToNodeId.set(trimmed, dup.node_id);
-          continue;
+          // Ensure active status (may have been previously marked irrelevant)
+          if (existing.status !== "active") {
+            await updateNodeStatus(existing.node_id, "active", client);
+          }
+          claimContentToNodeId.set(trimmed, existing.node_id);
+        } else {
+          // Check if resolution or other source already added this claim (avoid duplicate)
+          const dupRes = await client.query(
+            `SELECT node_id, confidence FROM nodes WHERE scope_id = $1 AND type = 'claim' AND status = 'active'
+           AND content = $2 AND superseded_at IS NULL LIMIT 1`,
+            [scopeId, trimmed],
+          );
+          if (dupRes.rowCount && dupRes.rows[0]) {
+            const dup = dupRes.rows[0] as {
+              node_id: string;
+              confidence: number;
+            };
+            matchedClaimIds.add(dup.node_id);
+            if (confidence >= dup.confidence) {
+              await updateNodeConfidence(dup.node_id, confidence, client);
+              nodesUpdated++;
+            }
+            claimContentToNodeId.set(trimmed, dup.node_id);
+            continue;
+          }
+          // New claim — insert
+          const nodeId = await appendNode(
+            {
+              scope_id: scopeId,
+              type: "claim",
+              content: trimmed,
+              confidence,
+              status: "active",
+              source_ref: { source: "facts" },
+              created_by: FACTS_SYNC_SOURCE,
+              ...(hasValidTime && {
+                valid_from: validFrom ?? null,
+                valid_to: validTo ?? null,
+              }),
+            },
+            client,
+          );
+          claimContentToNodeId.set(trimmed, nodeId);
+          nodesCreated++;
         }
-        // New claim — insert
-        const nodeId = await appendNode(
-          {
-            scope_id: scopeId,
-            type: "claim",
-            content: trimmed,
-            confidence,
-            status: "active",
-            source_ref: { source: "facts" },
-            created_by: FACTS_SYNC_SOURCE,
-            ...(hasValidTime && { valid_from: validFrom ?? null, valid_to: validTo ?? null }),
-          },
-          client,
-        );
-        claimContentToNodeId.set(trimmed, nodeId);
-        nodesCreated++;
       }
-    }
 
     // --- Goals: upsert by content match ---
     for (const content of goals) {
@@ -298,7 +382,10 @@ export async function syncFactsToSemanticGraph(
             status: "active",
             source_ref: { source: "facts" },
             created_by: FACTS_SYNC_SOURCE,
-            ...(hasValidTime && { valid_from: validFrom ?? null, valid_to: validTo ?? null }),
+            ...(hasValidTime && {
+              valid_from: validFrom ?? null,
+              valid_to: validTo ?? null,
+            }),
           },
           client,
         );
@@ -323,7 +410,10 @@ export async function syncFactsToSemanticGraph(
             scope_id: scopeId,
             type: "risk",
             content: trimmed,
-            ...(hasValidTime && { valid_from: validFrom ?? null, valid_to: validTo ?? null }),
+            ...(hasValidTime && {
+              valid_from: validFrom ?? null,
+              valid_to: validTo ?? null,
+            }),
             status: "active",
             metadata: { severity: "high" },
             source_ref: { source: "facts" },
@@ -346,7 +436,11 @@ export async function syncFactsToSemanticGraph(
     const STALEABLE_STATUSES = new Set(["active"]);
     const PROTECTED_CREATORS = new Set(["resolution"]);
     for (const node of existingClaims) {
-      if (!matchedClaimIds.has(node.node_id) && STALEABLE_STATUSES.has(node.status) && !PROTECTED_CREATORS.has(node.created_by ?? "")) {
+      if (
+        !matchedClaimIds.has(node.node_id) &&
+        STALEABLE_STATUSES.has(node.status) &&
+        !PROTECTED_CREATORS.has(node.created_by ?? "")
+      ) {
         await updateNodeStatus(node.node_id, "irrelevant", client);
         nodesStaled++;
       }
@@ -356,7 +450,12 @@ export async function syncFactsToSemanticGraph(
 
     // --- Contradictions: create nodes AND edges ---
     // Load existing contradiction nodes to avoid duplicates
-    const existingContras = await queryNodesByCreator(scopeId, FACTS_SYNC_SOURCE, "contradiction", client);
+    const existingContras = await queryNodesByCreator(
+      scopeId,
+      FACTS_SYNC_SOURCE,
+      "contradiction",
+      client,
+    );
     const matchedContraIds = new Set<string>();
 
     // Load resolved contradictions to skip re-creating them
@@ -368,7 +467,9 @@ export async function syncFactsToSemanticGraph(
         [scopeId],
       );
       resolvedContents = new Set(
-        resolvedContras.rows.map((r: { content: string }) => r.content.toLowerCase().trim()),
+        resolvedContras.rows.map((r: { content: string }) =>
+          r.content.toLowerCase().trim(),
+        ),
       );
     } catch {
       // resolved query may fail in tests or if schema differs
@@ -387,9 +488,13 @@ export async function syncFactsToSemanticGraph(
         const lowerStr = str.trim().toLowerCase();
         matchesResolved = resolvedContents.has(lowerStr);
         if (!matchesResolved) {
-          const newWords = new Set(lowerStr.split(/\s+/).filter((w) => w.length > 3));
+          const newWords = new Set(
+            lowerStr.split(/\s+/).filter((w) => w.length > 3),
+          );
           for (const resolved of resolvedContents) {
-            const resWords = new Set(resolved.split(/\s+/).filter((w: string) => w.length > 3));
+            const resWords = new Set(
+              resolved.split(/\s+/).filter((w: string) => w.length > 3),
+            );
             let overlap = 0;
             for (const w of newWords) if (resWords.has(w)) overlap++;
             if (newWords.size > 0 && overlap / newWords.size >= 0.5) {
@@ -419,7 +524,10 @@ export async function syncFactsToSemanticGraph(
             status: "active",
             source_ref: { source: "facts" },
             created_by: FACTS_SYNC_SOURCE,
-            ...(hasValidTime && { valid_from: validFrom ?? null, valid_to: validTo ?? null }),
+            ...(hasValidTime && {
+              valid_from: validFrom ?? null,
+              valid_to: validTo ?? null,
+            }),
           },
           client,
         );
@@ -433,7 +541,12 @@ export async function syncFactsToSemanticGraph(
       const sourceId = findClaimNodeId(claimContentToNodeId, a);
       const targetId = findClaimNodeId(claimContentToNodeId, b);
       if (sourceId && targetId && sourceId !== targetId) {
-        const resolved = await hasResolvingEdge(scopeId, sourceId, targetId, client);
+        const resolved = await hasResolvingEdge(
+          scopeId,
+          sourceId,
+          targetId,
+          client,
+        );
         if (!resolved) {
           await appendEdge(
             {
@@ -444,7 +557,10 @@ export async function syncFactsToSemanticGraph(
               weight: 1,
               metadata: { raw: str },
               created_by: FACTS_SYNC_SOURCE,
-              ...(hasValidTime && { valid_from: validFrom ?? null, valid_to: validTo ?? null }),
+              ...(hasValidTime && {
+                valid_from: validFrom ?? null,
+                valid_to: validTo ?? null,
+              }),
             },
             client,
           );
@@ -455,7 +571,13 @@ export async function syncFactsToSemanticGraph(
             await client.query(
               `UPDATE nodes SET metadata = metadata || $2::jsonb, updated_at = now()
                WHERE node_id = $1`,
-              [contraNodeId, JSON.stringify({ claim_source_id: sourceId, claim_target_id: targetId })],
+              [
+                contraNodeId,
+                JSON.stringify({
+                  claim_source_id: sourceId,
+                  claim_target_id: targetId,
+                }),
+              ],
             );
           }
         }
@@ -474,7 +596,10 @@ export async function syncFactsToSemanticGraph(
       try {
         await embedAndPersistNode(nodeId, scopeId, content);
       } catch (e) {
-        logger.warn("facts-sync: embed claim failed", { nodeId, error: String(e) });
+        logger.warn("facts-sync: embed claim failed", {
+          nodeId,
+          error: String(e),
+        });
       }
     }
   }

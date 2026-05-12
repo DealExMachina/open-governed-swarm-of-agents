@@ -12,7 +12,10 @@ const registry = new Map<string, ObligationHandler>();
 /**
  * Register a handler for an obligation type. Overwrites existing handler for that type.
  */
-export function registerObligationHandler(type: string, handler: ObligationHandler): void {
+export function registerObligationHandler(
+  type: string,
+  handler: ObligationHandler,
+): void {
   registry.set(type, handler);
 }
 
@@ -30,7 +33,9 @@ export async function executeObligation(obligation: Obligation): Promise<void> {
 /**
  * Execute all obligations from a decision. Runs in sequence; failures are logged and do not stop the rest.
  */
-export async function executeObligations(obligations: Obligation[]): Promise<void> {
+export async function executeObligations(
+  obligations: Obligation[],
+): Promise<void> {
   for (const ob of obligations) {
     try {
       await executeObligation(ob);

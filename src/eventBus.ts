@@ -185,7 +185,10 @@ export async function makeEventBus(natsUrl?: string): Promise<EventBus> {
       let processed = 0;
 
       try {
-        const messages = await c.fetch({ max_messages: maxMessages, expires: timeoutMs });
+        const messages = await c.fetch({
+          max_messages: maxMessages,
+          expires: timeoutMs,
+        });
         for await (const m of messages) {
           const raw = sc.decode(m.data);
           const data = JSON.parse(raw) as Record<string, unknown>;
@@ -195,7 +198,8 @@ export async function makeEventBus(natsUrl?: string): Promise<EventBus> {
             m.ack();
             processed++;
           } catch (err) {
-            const nakDelayMs = (err as Error & { nakDelayMs?: number }).nakDelayMs;
+            const nakDelayMs = (err as Error & { nakDelayMs?: number })
+              .nakDelayMs;
             if (typeof nakDelayMs === "number" && nakDelayMs > 0) {
               (m as { nak: (ms?: number) => void }).nak(nakDelayMs);
             } else {
@@ -241,7 +245,10 @@ export async function makeEventBus(natsUrl?: string): Promise<EventBus> {
       const result: DrainedMessage[] = [];
 
       try {
-        const messages = await c.fetch({ max_messages: maxMessages, expires: timeoutMs });
+        const messages = await c.fetch({
+          max_messages: maxMessages,
+          expires: timeoutMs,
+        });
         for await (const m of messages) {
           const raw = sc.decode(m.data);
           const data = JSON.parse(raw) as Record<string, unknown>;
@@ -305,9 +312,18 @@ export async function makeEventBus(natsUrl?: string): Promise<EventBus> {
           } catch (err) {
             if (closed) break;
             const msg = toErrorString(err);
-            process.stderr.write(JSON.stringify({ ts: new Date().toISOString(), level: "error", msg: "subscribe loop error, reconnecting", error: msg }) + "\n");
+            process.stderr.write(
+              JSON.stringify({
+                ts: new Date().toISOString(),
+                level: "error",
+                msg: "subscribe loop error, reconnecting",
+                error: msg,
+              }) + "\n",
+            );
             if (currentSub) {
-              try { await currentSub.destroy(); } catch {}
+              try {
+                await currentSub.destroy();
+              } catch {}
               currentSub = null;
             }
             await new Promise((r) => setTimeout(r, delayMs));
@@ -320,7 +336,9 @@ export async function makeEventBus(natsUrl?: string): Promise<EventBus> {
         async unsubscribe() {
           closed = true;
           if (currentSub) {
-            try { await currentSub.destroy(); } catch {}
+            try {
+              await currentSub.destroy();
+            } catch {}
           }
         },
       };
@@ -366,9 +384,18 @@ export async function makeEventBus(natsUrl?: string): Promise<EventBus> {
           } catch (err) {
             if (closed) break;
             const msg = toErrorString(err);
-            process.stderr.write(JSON.stringify({ ts: new Date().toISOString(), level: "error", msg: "ephemeral subscribe error, reconnecting", error: msg }) + "\n");
+            process.stderr.write(
+              JSON.stringify({
+                ts: new Date().toISOString(),
+                level: "error",
+                msg: "ephemeral subscribe error, reconnecting",
+                error: msg,
+              }) + "\n",
+            );
             if (currentSub) {
-              try { await currentSub.destroy(); } catch {}
+              try {
+                await currentSub.destroy();
+              } catch {}
               currentSub = null;
             }
             await new Promise((r) => setTimeout(r, delayMs));
@@ -381,7 +408,9 @@ export async function makeEventBus(natsUrl?: string): Promise<EventBus> {
         async unsubscribe() {
           closed = true;
           if (currentSub) {
-            try { await currentSub.destroy(); } catch {}
+            try {
+              await currentSub.destroy();
+            } catch {}
           }
         },
       };

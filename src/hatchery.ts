@@ -35,8 +35,11 @@ interface AgentInstance {
 
 export interface HatcherySnapshot {
   agents: Array<{
-    id: string; role: string; state: AgentState;
-    uptime: number; messagesProcessed: number;
+    id: string;
+    role: string;
+    state: AgentState;
+    uptime: number;
+    messagesProcessed: number;
   }>;
   roleCounts: Record<string, number>;
   totalAgents: number;
@@ -49,36 +52,65 @@ export interface HatcherySnapshot {
 // ── Singleton accessor (for feed server) ─────────────────────────────────────
 
 let _instance: AgentHatchery | null = null;
-export function getHatcheryInstance(): AgentHatchery | null { return _instance; }
+export function getHatcheryInstance(): AgentHatchery | null {
+  return _instance;
+}
 
 // ── Hatchery event logger ────────────────────────────────────────────────────
 
 async function logHatcheryEvent(
-  role: string, action: string, agentId: string,
-  before: number, after: number,
-  extra?: { lambda?: number; mu?: number; consumer_lag?: number; pressure?: number; reason?: string },
+  role: string,
+  action: string,
+  agentId: string,
+  before: number,
+  after: number,
+  extra?: {
+    lambda?: number;
+    mu?: number;
+    consumer_lag?: number;
+    pressure?: number;
+    reason?: string;
+  },
 ): Promise<void> {
   try {
     const pool = getPool();
     await pool.query(
       `INSERT INTO hatchery_events (role, action, agent_id, instance_count_before, instance_count_after, lambda, mu, consumer_lag, pressure, reason)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
-      [role, action, agentId, before, after,
-       extra?.lambda ?? null, extra?.mu ?? null, extra?.consumer_lag ?? null,
-       extra?.pressure ?? null, extra?.reason ?? null],
+      [
+        role,
+        action,
+        agentId,
+        before,
+        after,
+        extra?.lambda ?? null,
+        extra?.mu ?? null,
+        extra?.consumer_lag ?? null,
+        extra?.pressure ?? null,
+        extra?.reason ?? null,
+      ],
     );
   } catch (error) {
     if (isTableNotFoundError(error)) {
-      logger.debug("hatchery_events table not yet created", { error: toErrorString(error) });
+      logger.debug("hatchery_events table not yet created", {
+        error: toErrorString(error),
+      });
     } else {
-      logger.warn("failed to log hatchery event", { role, action, error: toErrorString(error) });
+      logger.warn("failed to log hatchery event", {
+        role,
+        action,
+        error: toErrorString(error),
+      });
     }
   }
 }
 
 function isTableNotFoundError(error: unknown): boolean {
   if (error instanceof Error) {
-    return error.message.includes("relation") && error.message.includes("does not exist");
+    return (
+      error.message.includes("relation") &&
+      error.message.includes("does not exist")
+    );
   }
   return false;
 }
@@ -100,7 +132,12 @@ export class AgentHatchery {
   private nextInstanceId = new Map<string, number>();
   private governanceCount = 0;
 
-  constructor(config: HatcheryConfig, bus: EventBus, s3: S3Client, bucket: string) {
+  constructor(
+    config: HatcheryConfig,
+    bus: EventBus,
+    s3: S3Client,
+    bucket: string,
+  ) {
     this.config = config;
     this.bus = bus;
     this.s3 = s3;
@@ -109,7 +146,10 @@ export class AgentHatchery {
     setActiveBillingContext(config.tenantId ?? null, config.scopeId);
 
     for (const role of Object.keys(config.roles)) {
-      this.estimators.set(role, new ArrivalRateEstimator(config.arrivalRateWindowMs));
+      this.estimators.set(
+        role,
+        new ArrivalRateEstimator(config.arrivalRateWindowMs),
+      );
       this.nextInstanceId.set(role, 1);
     }
   }
@@ -125,9 +165,15 @@ export class AgentHatchery {
     }
 
     this.timers.push(setInterval(() => this.lagSamplerTick(), 2000));
-    this.timers.push(setInterval(() => this.scaleUpTick(), this.config.scaleUpIntervalMs));
-    this.timers.push(setInterval(() => this.scaleDownTick(), this.config.scaleDownIntervalMs));
-    this.timers.push(setInterval(() => this.heartbeatTick(), this.config.heartbeatIntervalMs));
+    this.timers.push(
+      setInterval(() => this.scaleUpTick(), this.config.scaleUpIntervalMs),
+    );
+    this.timers.push(
+      setInterval(() => this.scaleDownTick(), this.config.scaleDownIntervalMs),
+    );
+    this.timers.push(
+      setInterval(() => this.heartbeatTick(), this.config.heartbeatIntervalMs),
+    );
 
     logger.info("hatchery started", { totalAgents: this.agents.size });
   }
@@ -147,7 +193,9 @@ export class AgentHatchery {
     }
     await Promise.allSettled(drainPromises);
 
-    try { await this.bus.close(); } catch {}
+    try {
+      await this.bus.close();
+    } catch {}
     _instance = null;
     logger.info("hatchery shutdown complete");
   }
@@ -170,9 +218,15 @@ export class AgentHatchery {
   /**
    * Drain all agents, set new scope (+ optional tenant), respawn minimum instances.
    */
-  async rebindActiveScope(scopeId: string, tenantId?: string | null): Promise<void> {
+  async rebindActiveScope(
+    scopeId: string,
+    tenantId?: string | null,
+  ): Promise<void> {
     if (this.shuttingDown) return;
-    logger.info("hatchery rebind scope", { from: this.config.scopeId, to: scopeId });
+    logger.info("hatchery rebind scope", {
+      from: this.config.scopeId,
+      to: scopeId,
+    });
     for (const t of this.agents.values()) {
       if (t.state === "alive") await this.drainAgent(t.id);
     }
@@ -248,10 +302,20 @@ export class AgentHatchery {
         onHeartbeat,
       });
     } else if (roleConfig.category === "tuner") {
-      const publishEvent = async (type: string, payload: Record<string, unknown>) => {
-        await this.bus.publishEvent(createSwarmEvent(type, payload, { source: "tuner" }));
+      const publishEvent = async (
+        type: string,
+        payload: Record<string, unknown>,
+      ) => {
+        await this.bus.publishEvent(
+          createSwarmEvent(type, payload, { source: "tuner" }),
+        );
       };
-      task = runTunerAgentLoop(this.s3, this.bucket, publishEvent, abort.signal);
+      task = runTunerAgentLoop(
+        this.s3,
+        this.bucket,
+        publishEvent,
+        abort.signal,
+      );
     } else {
       task = runAgentLoop({
         s3: this.s3,
@@ -268,21 +332,35 @@ export class AgentHatchery {
     }
 
     const instance: AgentInstance = {
-      id: agentId, role, state: "alive",
-      startedAt: Date.now(), lastHeartbeat: Date.now(),
-      messagesProcessed: 0, abort, task, restartTimestamps: [],
+      id: agentId,
+      role,
+      state: "alive",
+      startedAt: Date.now(),
+      lastHeartbeat: Date.now(),
+      messagesProcessed: 0,
+      abort,
+      task,
+      restartTimestamps: [],
     };
     this.agents.set(agentId, instance);
 
-    task.then(() => {
-      this.onAgentExit(agentId, null);
-    }).catch((err) => {
-      this.onAgentExit(agentId, err);
-    });
+    task
+      .then(() => {
+        this.onAgentExit(agentId, null);
+      })
+      .catch((err) => {
+        this.onAgentExit(agentId, err);
+      });
 
     const countAfter = this.countRole(role);
-    await logHatcheryEvent(role, "spawn", agentId, countBefore, countAfter, { reason: "initial_or_scale_up" });
-    logger.info("hatchery: spawned agent", { agentId, role, count: countAfter });
+    await logHatcheryEvent(role, "spawn", agentId, countBefore, countAfter, {
+      reason: "initial_or_scale_up",
+    });
+    logger.info("hatchery: spawned agent", {
+      agentId,
+      role,
+      count: countAfter,
+    });
     return agentId;
   }
 
@@ -300,13 +378,27 @@ export class AgentHatchery {
     await Promise.race([inst.task.catch(() => {}), timeout]);
 
     inst.state = "dead";
-    if (inst.role === "governance" || this.config.roles[inst.role]?.category === "governance") {
+    if (
+      inst.role === "governance" ||
+      this.config.roles[inst.role]?.category === "governance"
+    ) {
       this.governanceCount = Math.max(0, this.governanceCount - 1);
     }
     this.agents.delete(agentId);
     const countAfter = this.countRole(inst.role);
-    await logHatcheryEvent(inst.role, "drain", agentId, countBefore, countAfter, { reason: "scale_down_or_shutdown" });
-    logger.info("hatchery: drained agent", { agentId, role: inst.role, count: countAfter });
+    await logHatcheryEvent(
+      inst.role,
+      "drain",
+      agentId,
+      countBefore,
+      countAfter,
+      { reason: "scale_down_or_shutdown" },
+    );
+    logger.info("hatchery: drained agent", {
+      agentId,
+      role: inst.role,
+      count: countAfter,
+    });
   }
 
   // ── Supervisor ─────────────────────────────────────────────────────────────
@@ -314,7 +406,11 @@ export class AgentHatchery {
   private onAgentExit(agentId: string, err: unknown): void {
     const inst = this.agents.get(agentId);
     if (!inst) return;
-    if (inst.state === "draining" || inst.state === "dead" || this.shuttingDown) {
+    if (
+      inst.state === "draining" ||
+      inst.state === "dead" ||
+      this.shuttingDown
+    ) {
       inst.state = "dead";
       this.agents.delete(agentId);
       return;
@@ -326,30 +422,47 @@ export class AgentHatchery {
     const now = Date.now();
     inst.restartTimestamps.push(now);
     const windowStart = now - this.config.restartWindowMs;
-    const recentRestarts = inst.restartTimestamps.filter((t) => t >= windowStart);
+    const recentRestarts = inst.restartTimestamps.filter(
+      (t) => t >= windowStart,
+    );
 
     if (recentRestarts.length > this.config.maxRestarts) {
       logger.error("hatchery: restart intensity exceeded, not restarting", {
-        agentId, role: inst.role, restarts: recentRestarts.length,
+        agentId,
+        role: inst.role,
+        restarts: recentRestarts.length,
         error: err ? toErrorString(err) : "clean_exit",
       });
-      void logHatcheryEvent(inst.role, "restart_exhausted", agentId,
-        this.countRole(inst.role), this.countRole(inst.role),
-        { reason: `exceeded ${this.config.maxRestarts} restarts in ${this.config.restartWindowMs}ms` });
+      void logHatcheryEvent(
+        inst.role,
+        "restart_exhausted",
+        agentId,
+        this.countRole(inst.role),
+        this.countRole(inst.role),
+        {
+          reason: `exceeded ${this.config.maxRestarts} restarts in ${this.config.restartWindowMs}ms`,
+        },
+      );
       return;
     }
 
     logger.warn("hatchery: agent exited unexpectedly, restarting", {
-      agentId, role: inst.role,
+      agentId,
+      role: inst.role,
       error: err ? toErrorString(err) : "clean_exit",
     });
     void this.spawnAgent(inst.role).then((newId) => {
       if (!newId) return;
       const newInst = this.agents.get(newId);
       if (newInst) newInst.restartTimestamps = recentRestarts;
-      void logHatcheryEvent(inst.role, "restart", newId,
-        this.countRole(inst.role) - 1, this.countRole(inst.role),
-        { reason: err ? toErrorString(err) : "clean_exit" });
+      void logHatcheryEvent(
+        inst.role,
+        "restart",
+        newId,
+        this.countRole(inst.role) - 1,
+        this.countRole(inst.role),
+        { reason: err ? toErrorString(err) : "clean_exit" },
+      );
     });
   }
 
@@ -360,7 +473,11 @@ export class AgentHatchery {
       if (roleConfig.category === "tuner") continue;
       try {
         const consumerName = `${role}-shared-events`;
-        const lag = await getConsumerLag(this.bus, this.config.natsStream, consumerName);
+        const lag = await getConsumerLag(
+          this.bus,
+          this.config.natsStream,
+          consumerName,
+        );
         this.estimators.get(role)?.addSample(lag);
       } catch {}
     }
@@ -369,7 +486,10 @@ export class AgentHatchery {
   private async scaleUpTick(): Promise<void> {
     if (this.shuttingDown || this.paused) return;
     const decisions = await evaluateScalingDecisions(
-      this.config, this.buildRoleStates(), this.mapToRecord(this.estimators), this.bus,
+      this.config,
+      this.buildRoleStates(),
+      this.mapToRecord(this.estimators),
+      this.bus,
     );
     for (const d of decisions) {
       if (d.action === "scale_up" && d.targetCount > d.currentCount) {
@@ -384,7 +504,10 @@ export class AgentHatchery {
   private async scaleDownTick(): Promise<void> {
     if (this.shuttingDown || this.paused) return;
     const decisions = await evaluateScalingDecisions(
-      this.config, this.buildRoleStates(), this.mapToRecord(this.estimators), this.bus,
+      this.config,
+      this.buildRoleStates(),
+      this.mapToRecord(this.estimators),
+      this.bus,
     );
     for (const d of decisions) {
       if (d.action === "scale_down" && d.targetCount < d.currentCount) {
@@ -408,10 +531,19 @@ export class AgentHatchery {
       const roleConfig = this.config.roles[inst.role];
       const timeout = roleConfig?.heartbeatTimeoutMs ?? 60_000;
       if (now - inst.lastHeartbeat > timeout) {
-        logger.warn("hatchery: heartbeat timeout, draining", { agentId, role: inst.role, silenceMs: now - inst.lastHeartbeat });
+        logger.warn("hatchery: heartbeat timeout, draining", {
+          agentId,
+          role: inst.role,
+          silenceMs: now - inst.lastHeartbeat,
+        });
         void this.drainAgent(agentId).then(() => {
-          void logHatcheryEvent(inst.role, "heartbeat_timeout", agentId,
-            this.countRole(inst.role) + 1, this.countRole(inst.role));
+          void logHatcheryEvent(
+            inst.role,
+            "heartbeat_timeout",
+            agentId,
+            this.countRole(inst.role) + 1,
+            this.countRole(inst.role),
+          );
         });
       }
     }
@@ -421,7 +553,9 @@ export class AgentHatchery {
 
   getSnapshot(): HatcherySnapshot {
     const agents = [...this.agents.values()].map((a) => ({
-      id: a.id, role: a.role, state: a.state,
+      id: a.id,
+      role: a.role,
+      state: a.state,
       uptime: Date.now() - a.startedAt,
       messagesProcessed: a.messagesProcessed,
     }));
@@ -434,7 +568,8 @@ export class AgentHatchery {
       estimatorsOut[role] = { lambda: est.estimateLambda() };
     }
     return {
-      agents, roleCounts,
+      agents,
+      roleCounts,
       totalAgents: this.agents.size,
       estimators: estimatorsOut,
       paused: this.paused,
@@ -474,7 +609,9 @@ export class AgentHatchery {
     return states;
   }
 
-  private mapToRecord(m: Map<string, ArrivalRateEstimator>): Record<string, ArrivalRateEstimator> {
+  private mapToRecord(
+    m: Map<string, ArrivalRateEstimator>,
+  ): Record<string, ArrivalRateEstimator> {
     const r: Record<string, ArrivalRateEstimator> = {};
     for (const [k, v] of m.entries()) r[k] = v;
     return r;

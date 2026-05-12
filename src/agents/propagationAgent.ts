@@ -17,7 +17,10 @@ import {
   loadPropagationHistory,
   saveE17PerturbationProfile,
 } from "../evidenceStateManager.js";
-import { loadPropagationConfig, type PropagationRoleConfig } from "../config/propagation.js";
+import {
+  loadPropagationConfig,
+  type PropagationRoleConfig,
+} from "../config/propagation.js";
 import { getPool } from "../db.js";
 import {
   allowedEvidenceEdges,
@@ -46,7 +49,9 @@ export function buildPerturbationFromPayload(
   numDims: number,
 ): number[] {
   const flat = new Array(roleIds.length * 2 * numDims).fill(0);
-  const deltas = payload.evidence_deltas as Record<string, { support?: number[]; refutation?: number[] }> | undefined;
+  const deltas = payload.evidence_deltas as
+    | Record<string, { support?: number[]; refutation?: number[] }>
+    | undefined;
   if (!deltas) return flat;
 
   for (const [roleId, delta] of Object.entries(deltas)) {
@@ -88,12 +93,14 @@ async function buildEvidenceDeltas(
   if (res.rows.length === 0) return {};
 
   const scores = res.rows[0].dimension_scores;
-  const deltas: Record<string, { support: number[]; refutation: number[] }> = {};
+  const deltas: Record<string, { support: number[]; refutation: number[] }> =
+    {};
 
   for (const role of roles) {
     const support = new Array(dimensions.length).fill(0);
     const refutation = new Array(dimensions.length).fill(0);
-    const primaryDims = role.primary_dims === "all" ? dimensions : role.primary_dims;
+    const primaryDims =
+      role.primary_dims === "all" ? dimensions : role.primary_dims;
 
     for (const dim of primaryDims) {
       const idx = dimensions.indexOf(dim);
@@ -115,7 +122,8 @@ export async function runPropagationAgent(
 ): Promise<Record<string, unknown>> {
   const config = loadPropagationConfig();
   const engine = new PropagationEngine({ config });
-  const scopeId = (payload.scope_id as string) ?? process.env.SCOPE_ID ?? "default";
+  const scopeId =
+    (payload.scope_id as string) ?? process.env.SCOPE_ID ?? "default";
   const numDims = config.propagation.dimensions.length;
   const roleIds = config.propagation.roles.map((r) => r.name);
   const numRoles = roleIds.length;
@@ -141,20 +149,31 @@ export async function runPropagationAgent(
 
   // 2. Build perturbation from convergence dimension scores
   const evidenceDeltas = await buildEvidenceDeltas(
-    scopeId, config.propagation.roles, config.propagation.dimensions,
+    scopeId,
+    config.propagation.roles,
+    config.propagation.dimensions,
   );
   const enrichedPayload = { ...payload, evidence_deltas: evidenceDeltas };
-  const perturbation = buildPerturbationFromPayload(enrichedPayload, roleIds, numDims);
+  const perturbation = buildPerturbationFromPayload(
+    enrichedPayload,
+    roleIds,
+    numDims,
+  );
   const epsilonL2 = l2Norm(perturbation);
   const epsilonLinf = linfNorm(perturbation);
   const stride = 2 * numDims;
   const perRoleL2 = roleIds.map((_, i) =>
-    l2Norm(perturbation.slice(i * stride, (i + 1) * stride)));
+    l2Norm(perturbation.slice(i * stride, (i + 1) * stride)),
+  );
   const supportL2 = l2Norm(
-    roleIds.flatMap((_, i) => perturbation.slice(i * stride, i * stride + numDims)),
+    roleIds.flatMap((_, i) =>
+      perturbation.slice(i * stride, i * stride + numDims),
+    ),
   );
   const refutationL2 = l2Norm(
-    roleIds.flatMap((_, i) => perturbation.slice(i * stride + numDims, (i + 1) * stride)),
+    roleIds.flatMap((_, i) =>
+      perturbation.slice(i * stride + numDims, (i + 1) * stride),
+    ),
   );
 
   // 3. Run propagation step
@@ -207,14 +226,19 @@ export async function runPropagationAgent(
   // 6. ISS analysis from history — use mode-aware disagreement so that
   //    non-shared dimensions in projection mode don't inflate Ω.
   const modeAwareBefore = engine.getModeAwareDisagreement(prevFlat);
-  const modeAwareAfter = engine.getModeAwareDisagreement(stepResult.flat_new_state);
+  const modeAwareAfter = engine.getModeAwareDisagreement(
+    stepResult.flat_new_state,
+  );
   const history = await loadPropagationHistory(scopeId, 20);
   const noiseHistory = history.map((h) => h.perturbation_norm);
   const contradictionHistory = history.map((h) => h.kappa);
-  const initialDisagreement = history.length > 0
-    ? history[0].disagreement_after
-    : modeAwareBefore;
-  const issAnalysis = engine.analyzeISS(noiseHistory, contradictionHistory, initialDisagreement);
+  const initialDisagreement =
+    history.length > 0 ? history[0].disagreement_after : modeAwareBefore;
+  const issAnalysis = engine.analyzeISS(
+    noiseHistory,
+    contradictionHistory,
+    initialDisagreement,
+  );
 
   // 7. Build ISS cascade result
   const cascadeResult = computeISSCascadeResult({
@@ -239,19 +263,28 @@ export async function runPropagationAgent(
   await savePropagationHistory(scopeId, epoch, propagationMetrics);
 
   // 9. E17 profiling sample (append-only; non-fatal on DB/schema issues)
-  const e17Meta = (payload.e17_profile as Record<string, unknown> | undefined) ?? {};
+  const e17Meta =
+    (payload.e17_profile as Record<string, unknown> | undefined) ?? {};
   try {
     await saveE17PerturbationProfile({
       scope_id: scopeId,
       epoch,
-      scenario_tag: (e17Meta.scenario_tag as string | undefined) ?? (payload.scenario_tag as string | undefined),
-      seed: Number.isFinite(Number(e17Meta.seed)) ? Number(e17Meta.seed) : undefined,
+      scenario_tag:
+        (e17Meta.scenario_tag as string | undefined) ??
+        (payload.scenario_tag as string | undefined),
+      seed: Number.isFinite(Number(e17Meta.seed))
+        ? Number(e17Meta.seed)
+        : undefined,
       model: {
         provider: (e17Meta.model_provider as string | undefined) ?? undefined,
         model_id: (e17Meta.model_id as string | undefined) ?? undefined,
         model_family: (e17Meta.model_family as string | undefined) ?? undefined,
-        temperature: Number.isFinite(Number(e17Meta.temperature)) ? Number(e17Meta.temperature) : undefined,
-        top_p: Number.isFinite(Number(e17Meta.top_p)) ? Number(e17Meta.top_p) : undefined,
+        temperature: Number.isFinite(Number(e17Meta.temperature))
+          ? Number(e17Meta.temperature)
+          : undefined,
+        top_p: Number.isFinite(Number(e17Meta.top_p))
+          ? Number(e17Meta.top_p)
+          : undefined,
       },
       epsilon_l2: epsilonL2,
       epsilon_linf: epsilonLinf,
@@ -272,12 +305,14 @@ export async function runPropagationAgent(
   }
 
   try {
-    const { recordPropagationMetrics, recordE17ProfileMetrics } = await import("../metrics.js");
+    const { recordPropagationMetrics, recordE17ProfileMetrics } =
+      await import("../metrics.js");
     recordPropagationMetrics(scopeId, propagationMetrics);
     recordE17ProfileMetrics(scopeId, {
       epsilon_l2: epsilonL2,
       epsilon_linf: epsilonLinf,
-      model_provider: (e17Meta.model_provider as string | undefined) ?? "unknown",
+      model_provider:
+        (e17Meta.model_provider as string | undefined) ?? "unknown",
       model_family: (e17Meta.model_family as string | undefined) ?? "unknown",
     });
   } catch {
@@ -298,13 +333,18 @@ export async function runPropagationAgent(
   });
 
   // Wire into causal DAG: each propagation step is an evidence contribution
-  await emitContribution("propagation-agent", "evidence", {
-    epoch,
-    depth,
-    disagreement_after: modeAwareAfter,
-    contraction_ratio: stepResult.contraction_ratio,
-    cascade_stable: cascadeResult.cascade_stable,
-  }, { scopeId });
+  await emitContribution(
+    "propagation-agent",
+    "evidence",
+    {
+      epoch,
+      depth,
+      disagreement_after: modeAwareAfter,
+      contraction_ratio: stepResult.contraction_ratio,
+      cascade_stable: cascadeResult.cascade_stable,
+    },
+    { scopeId },
+  );
 
   return {
     epoch,

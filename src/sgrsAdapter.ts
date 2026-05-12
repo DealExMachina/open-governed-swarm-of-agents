@@ -55,11 +55,23 @@ import type {
   PerDimensionFinalityConfig,
   VectorFinalityResult,
 } from "./finalityEvaluator.js";
-import type { ConvergencePoint, ConvergenceConfig, ConvergenceState } from "./convergenceTracker.js";
-import type { GovernanceConfig, DriftInput, TransitionDecision, PolicyRule, TransitionRule } from "./governance.js";
+import type {
+  ConvergencePoint,
+  ConvergenceConfig,
+  ConvergenceState,
+} from "./convergenceTracker.js";
+import type {
+  GovernanceConfig,
+  DriftInput,
+  TransitionDecision,
+  PolicyRule,
+  TransitionRule,
+} from "./governance.js";
 import { recordSgrsCall } from "./metrics.js";
 
-type VectorDimensionResultDto = NonNullable<VectorFinalityResultDto["dimensionResults"]>[number];
+type VectorDimensionResultDto = NonNullable<
+  VectorFinalityResultDto["dimensionResults"]
+>[number];
 
 function timedSgrs<T>(operation: string, fn: () => T): T {
   const start = performance.now();
@@ -118,7 +130,9 @@ function toConvergencePointDto(point: ConvergencePoint): ConvergencePointDto {
   };
 }
 
-function toConvergenceConfigDto(config: ConvergenceConfig): ConvergenceConfigDto {
+function toConvergenceConfigDto(
+  config: ConvergenceConfig,
+): ConvergenceConfigDto {
   return {
     beta: config.beta,
     tau: config.tau,
@@ -134,7 +148,9 @@ function toConvergenceConfigDto(config: ConvergenceConfig): ConvergenceConfigDto
   };
 }
 
-function toFinalitySnapshotFullDto(snapshot: FinalitySnapshot): FinalitySnapshotFullDto {
+function toFinalitySnapshotFullDto(
+  snapshot: FinalitySnapshot,
+): FinalitySnapshotFullDto {
   return {
     claimsActiveAvgConfidence: snapshot.claims_active_avg_confidence,
     claimsActiveMinConfidence: snapshot.claims_active_min_confidence,
@@ -147,7 +163,8 @@ function toFinalitySnapshotFullDto(snapshot: FinalitySnapshot): FinalitySnapshot
     scopeIdleCycles: snapshot.scope_idle_cycles,
     scopeLastDeltaAgeMs: snapshot.scope_last_delta_age_ms,
     scopeLastActiveAgeMs: snapshot.scope_last_active_age_ms,
-    assessmentsCriticalUnaddressedCount: snapshot.assessments_critical_unaddressed_count,
+    assessmentsCriticalUnaddressedCount:
+      snapshot.assessments_critical_unaddressed_count,
     contradictionMass: snapshot.contradiction_mass,
     evidenceCoverage: snapshot.evidence_coverage,
   };
@@ -161,7 +178,8 @@ function toGateConfigDto(config?: {
   return {
     gateBEnforced: config?.gate_b_enforced ?? false,
     trajectoryQualityThreshold: config?.trajectory_quality_threshold ?? 0.7,
-    quiescenceMaxUnresolved: config?.quiescence?.idle_cycles_min != null ? 999 : 0,
+    quiescenceMaxUnresolved:
+      config?.quiescence?.idle_cycles_min != null ? 999 : 0,
     quiescenceMaxRisks: config?.quiescence?.window_ms != null ? 999 : 0,
   };
 }
@@ -170,9 +188,12 @@ function toGateConfigDto(config?: {
 // Output conversion: Rust DTOs → v1 TS
 // ---------------------------------------------------------------------------
 
-function fromDimensionScoresDto(
-  dto: { claimConfidence: number; contradictionResolution: number; goalCompletion: number; riskScoreInverse: number },
-): Record<string, number> {
+function fromDimensionScoresDto(dto: {
+  claimConfidence: number;
+  contradictionResolution: number;
+  goalCompletion: number;
+  riskScoreInverse: number;
+}): Record<string, number> {
   return {
     claim_confidence: dto.claimConfidence,
     contradiction_resolution: dto.contradictionResolution,
@@ -213,8 +234,15 @@ function fromConvergenceOutputDto(
         }
       : null,
     // Per-dimension gates (Issue #18: non-scalar finality)
-    per_dimension_monotonic: dto.perDimensionMonotonic ?? [false, false, false, false],
-    per_dimension_trajectory_quality: dto.perDimensionTrajectoryQuality ?? [1.0, 1.0, 1.0, 1.0],
+    per_dimension_monotonic: dto.perDimensionMonotonic ?? [
+      false,
+      false,
+      false,
+      false,
+    ],
+    per_dimension_trajectory_quality: dto.perDimensionTrajectoryQuality ?? [
+      1.0, 1.0, 1.0, 1.0,
+    ],
   };
 }
 
@@ -226,7 +254,9 @@ export function computeDimensionScores(
   snapshot: FinalitySnapshot,
   _config?: GoalGradientConfig,
 ): Record<string, number> {
-  const dto = timedSgrs("dimension_scores", () => rustComputeDimensionScores(toSnapshotDto(snapshot)));
+  const dto = timedSgrs("dimension_scores", () =>
+    rustComputeDimensionScores(toSnapshotDto(snapshot)),
+  );
   return fromDimensionScoresDto(dto);
 }
 
@@ -235,14 +265,18 @@ export function computeLyapunovV(
   _targets?: unknown,
   weights?: GoalGradientConfig["weights"],
 ): number {
-  return timedSgrs("scalar_v", () => rustComputeScalarV(toSnapshotDto(snapshot), toWeightsDto(weights)));
+  return timedSgrs("scalar_v", () =>
+    rustComputeScalarV(toSnapshotDto(snapshot), toWeightsDto(weights)),
+  );
 }
 
 export function computePressure(
   snapshot: FinalitySnapshot,
   weights?: GoalGradientConfig["weights"],
 ): Record<string, number> {
-  const dto = timedSgrs("pressure", () => rustComputePressure(toSnapshotDto(snapshot), toWeightsDto(weights)));
+  const dto = timedSgrs("pressure", () =>
+    rustComputePressure(toSnapshotDto(snapshot), toWeightsDto(weights)),
+  );
   return fromDimensionScoresDto(dto);
 }
 
@@ -254,7 +288,11 @@ export function analyzeConvergence(
   return timedSgrs("analyze_convergence", () => {
     if (history.length === 0) {
       return fromConvergenceOutputDto(
-        analyzeConvergenceBridge([], toConvergenceConfigDto(config), autoThreshold),
+        analyzeConvergenceBridge(
+          [],
+          toConvergenceConfigDto(config),
+          autoThreshold,
+        ),
         history,
       );
     }
@@ -276,7 +314,12 @@ export function computeGoalScore(
   snapshot: FinalitySnapshot,
   config?: GoalGradientConfig,
 ): number {
-  return timedSgrs("goal_score", () => rustComputeGoalScore(toSnapshotDto(snapshot), toWeightsDto(config?.weights)));
+  return timedSgrs("goal_score", () =>
+    rustComputeGoalScore(
+      toSnapshotDto(snapshot),
+      toWeightsDto(config?.weights),
+    ),
+  );
 }
 
 export interface GateState {
@@ -324,7 +367,11 @@ export function evaluateConditions(
   snapshot: FinalitySnapshot,
 ): boolean {
   return timedSgrs("conditions", () =>
-    rustEvaluateConditions(conditions, mode, toFinalitySnapshotFullDto(snapshot)),
+    rustEvaluateConditions(
+      conditions,
+      mode,
+      toFinalitySnapshotFullDto(snapshot),
+    ),
   );
 }
 
@@ -342,23 +389,30 @@ export function evaluateOne(
 // Phase 2: Governance — drop-in replacements
 // ---------------------------------------------------------------------------
 
-function toGovernanceRulesConfigDto(config: GovernanceConfig): GovernanceRulesConfigDto {
+function toGovernanceRulesConfigDto(
+  config: GovernanceConfig,
+): GovernanceRulesConfigDto {
   return {
     rules: (config.rules ?? []).map((r: PolicyRule) => ({
       whenDriftLevels: r.when.drift_level,
       whenDriftType: r.when.drift_type,
       action: r.action,
     })),
-    transitionRules: (config.transition_rules ?? []).map((r: TransitionRule) => ({
-      from: r.from,
-      to: r.to,
-      blockWhenDriftLevels: r.block_when.drift_level,
-      reason: r.reason,
-    })),
+    transitionRules: (config.transition_rules ?? []).map(
+      (r: TransitionRule) => ({
+        from: r.from,
+        to: r.to,
+        blockWhenDriftLevels: r.block_when.drift_level,
+        reason: r.reason,
+      }),
+    ),
   };
 }
 
-export function evaluateRules(drift: DriftInput, config: GovernanceConfig): string[] {
+export function evaluateRules(
+  drift: DriftInput,
+  config: GovernanceConfig,
+): string[] {
   return timedSgrs("governance_rules", () =>
     rustEvaluateGovernanceRules(
       drift.level,
@@ -391,8 +445,16 @@ export interface KernelInput {
   drift_level: string;
   drift_types: string[];
   mode: string;
-  current_lattice?: { governance_level: string; dimensions: number[]; epoch: number };
-  proposed_lattice?: { governance_level: string; dimensions: number[]; epoch: number };
+  current_lattice?: {
+    governance_level: string;
+    dimensions: number[];
+    epoch: number;
+  };
+  proposed_lattice?: {
+    governance_level: string;
+    dimensions: number[];
+    epoch: number;
+  };
 }
 
 export interface KernelOutput {
@@ -403,9 +465,11 @@ export interface KernelOutput {
   regressed_dimensions?: string[];
 }
 
-function toLatticePointDto(
-  lp: { governance_level: string; dimensions: number[]; epoch: number },
-): LatticePointDto {
+function toLatticePointDto(lp: {
+  governance_level: string;
+  dimensions: number[];
+  epoch: number;
+}): LatticePointDto {
   return {
     governanceLevel: lp.governance_level,
     dimensions: lp.dimensions,
@@ -423,8 +487,12 @@ export function evaluateKernel(
     driftLevel: input.drift_level,
     driftTypes: input.drift_types,
     mode: input.mode,
-    currentLattice: input.current_lattice ? toLatticePointDto(input.current_lattice) : undefined,
-    proposedLattice: input.proposed_lattice ? toLatticePointDto(input.proposed_lattice) : undefined,
+    currentLattice: input.current_lattice
+      ? toLatticePointDto(input.current_lattice)
+      : undefined,
+    proposedLattice: input.proposed_lattice
+      ? toLatticePointDto(input.proposed_lattice)
+      : undefined,
   };
   const output = timedSgrs("kernel", () =>
     rustEvaluateKernel(inputDto, toGovernanceRulesConfigDto(config)),
@@ -442,7 +510,12 @@ export function evaluateKernel(
 // Issue #18: Vector finality
 // ---------------------------------------------------------------------------
 
-const DIM_NAMES = ["claim_confidence", "contradiction_resolution", "goal_completion", "risk_score_inverse"];
+const DIM_NAMES = [
+  "claim_confidence",
+  "contradiction_resolution",
+  "goal_completion",
+  "risk_score_inverse",
+];
 
 /**
  * Evaluate vector (per-dimension) finality predicate via Rust core.
@@ -459,50 +532,58 @@ export function evaluateVectorFinality(
   scalarThreshold: number,
 ): VectorFinalityResult {
   const scores = DIM_NAMES.map((n) => dimensionScores[n] ?? 0);
-  const thresholds = DIM_NAMES.map((n) => perDimConfig.dimension_thresholds[n] ?? 0.85);
+  const thresholds = DIM_NAMES.map(
+    (n) => perDimConfig.dimension_thresholds[n] ?? 0.85,
+  );
   const epsilon = DIM_NAMES.map((n) => perDimConfig.epsilon[n] ?? 0.02);
-  const required = DIM_NAMES.map((n) => perDimConfig.required_dimensions.includes(n));
+  const required = DIM_NAMES.map((n) =>
+    perDimConfig.required_dimensions.includes(n),
+  );
   const veto = DIM_NAMES.map((n) => perDimConfig.veto_dimensions.includes(n));
 
-  const dto = timedSgrs("vector_finality", (): VectorFinalityResultDto =>
-    rustEvaluateVectorFinality(
-      scores,
-      {
-        thresholds,
-        epsilon,
-        required,
-        veto,
-        trajectoryQualityThreshold: 0.7,
-      },
-      perDimMonotonic,
-      perDimTrajectory,
-      {
-        aMonotonic: globalGates.a_monotonic,
-        bEvidence: globalGates.b_evidence,
-        cTrajectory: globalGates.c_trajectory,
-        dQuiescent: globalGates.d_quiescent,
-        eHasContent: globalGates.e_has_content,
-        fEliminationComplete: globalGates.f_elimination_complete,
-        allPassed: globalGates.all_passed,
-      },
-      scalarScore,
-      scalarThreshold,
-    ),
+  const dto = timedSgrs(
+    "vector_finality",
+    (): VectorFinalityResultDto =>
+      rustEvaluateVectorFinality(
+        scores,
+        {
+          thresholds,
+          epsilon,
+          required,
+          veto,
+          trajectoryQualityThreshold: 0.7,
+        },
+        perDimMonotonic,
+        perDimTrajectory,
+        {
+          aMonotonic: globalGates.a_monotonic,
+          bEvidence: globalGates.b_evidence,
+          cTrajectory: globalGates.c_trajectory,
+          dQuiescent: globalGates.d_quiescent,
+          eHasContent: globalGates.e_has_content,
+          fEliminationComplete: globalGates.f_elimination_complete,
+          allPassed: globalGates.all_passed,
+        },
+        scalarScore,
+        scalarThreshold,
+      ),
   );
 
   return {
-    dimension_results: dto.dimensionResults.map((dr: VectorDimensionResultDto) => ({
-      dimension: dr.dimension,
-      score: dr.score,
-      threshold: dr.threshold,
-      gap: dr.gap,
-      epsilon: dr.epsilon,
-      passed: dr.passed,
-      is_veto: dr.isVeto,
-      is_required: dr.isRequired,
-      gate_a_monotonic: dr.gateAMonotonic,
-      gate_c_trajectory_ok: dr.gateCTrajectoryOk,
-    })),
+    dimension_results: dto.dimensionResults.map(
+      (dr: VectorDimensionResultDto) => ({
+        dimension: dr.dimension,
+        score: dr.score,
+        threshold: dr.threshold,
+        gap: dr.gap,
+        epsilon: dr.epsilon,
+        passed: dr.passed,
+        is_veto: dr.isVeto,
+        is_required: dr.isRequired,
+        gate_a_monotonic: dr.gateAMonotonic,
+        gate_c_trajectory_ok: dr.gateCTrajectoryOk,
+      }),
+    ),
     all_required_passed: dto.allRequiredPassed,
     veto_triggered: dto.vetoTriggered,
     veto_causes: dto.vetoCauses,
@@ -574,7 +655,10 @@ export interface SpectralAnalysis {
   is_connected: boolean;
 }
 
-export function analyzeSpectrum(numRoles: number, stalkDim: number): SpectralAnalysis {
+export function analyzeSpectrum(
+  numRoles: number,
+  stalkDim: number,
+): SpectralAnalysis {
   const dto = timedSgrs("analyze_spectrum", () =>
     rustAnalyzeSpectrum(numRoles, stalkDim),
   );
@@ -716,8 +800,10 @@ export function extractContradictions(
   numDims: number,
   threshold: number,
 ): DetectedContradiction[] {
-  const dtos = timedSgrs("extract_contradictions", (): DetectedContradictionDto[] =>
-    rustExtractContradictions(flatState, numRoles, numDims, threshold),
+  const dtos = timedSgrs(
+    "extract_contradictions",
+    (): DetectedContradictionDto[] =>
+      rustExtractContradictions(flatState, numRoles, numDims, threshold),
   );
   return dtos.map((d) => ({
     role_i: d.roleI,
@@ -771,7 +857,13 @@ export function analyzeSpectrumTopology(
   seed?: number,
 ): SpectralAnalysis {
   const dto = timedSgrs("analyze_spectrum_topology", () =>
-    rustAnalyzeSpectrumTopology(topology, numRoles, stalkDim, degree ?? null, seed ?? null),
+    rustAnalyzeSpectrumTopology(
+      topology,
+      numRoles,
+      stalkDim,
+      degree ?? null,
+      seed ?? null,
+    ),
   );
   return {
     eigenvalues: dto.eigenvalues ?? [],

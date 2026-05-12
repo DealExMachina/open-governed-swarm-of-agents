@@ -106,7 +106,8 @@ function createMastraAgent(role: AgentRole, config: MastraAgentConfig): Agent {
   return new Agent({
     id: `mastra-${role.id}`,
     name: role.name,
-    instructions: role.systemPrompt +
+    instructions:
+      role.systemPrompt +
       "\n\nIMPORTANT: Respond in JSON format with an array of claims:" +
       '\n[{"dimension": "...", "content": "...", "confidence": 0.0-1.0}]' +
       "\nEach claim should be a factual finding from the document.",
@@ -184,7 +185,11 @@ Extract all relevant claims for your role. Return JSON array of claims.`;
     const text = result.text || "";
 
     // Parse claims from LLM response
-    let claims: Array<{ dimension: string; content: string; confidence: number }> = [];
+    let claims: Array<{
+      dimension: string;
+      content: string;
+      confidence: number;
+    }> = [];
     try {
       const jsonMatch = text.match(/\[[\s\S]*\]/);
       if (jsonMatch) {
@@ -192,7 +197,9 @@ Extract all relevant claims for your role. Return JSON array of claims.`;
       }
     } catch {
       // Fallback: extract as unstructured claims
-      claims = [{ dimension: "raw", content: text.slice(0, 200), confidence: 0.5 }];
+      claims = [
+        { dimension: "raw", content: text.slice(0, 200), confidence: 0.5 },
+      ];
     }
 
     // Update shared state
@@ -211,7 +218,8 @@ Extract all relevant claims for your role. Return JSON array of claims.`;
     }
 
     // Estimate tokens from response length
-    const tokensUsed = Math.ceil(text.length / 4) + Math.ceil(prompt.length / 4);
+    const tokensUsed =
+      Math.ceil(text.length / 4) + Math.ceil(prompt.length / 4);
 
     return {
       claims,
@@ -259,7 +267,10 @@ export async function runMastraTopology(
   }));
 
   const state = createSharedState();
-  const stateSnapshots: Record<number, Array<{ dimension: string; content: string }>> = {};
+  const stateSnapshots: Record<
+    number,
+    Array<{ dimension: string; content: string }>
+  > = {};
   const epochResults: EpochResult[] = [];
   const startWall = Date.now();
   let totalTokens = 0;
@@ -306,17 +317,24 @@ export async function runMastraTopology(
     // Count contradictions: multiple different contents for same dimension
     const dimContents = new Map<string, Set<string>>();
     for (const claim of state.allClaims.filter((c) => c.epoch <= doc.epoch)) {
-      if (!dimContents.has(claim.dimension)) dimContents.set(claim.dimension, new Set());
+      if (!dimContents.has(claim.dimension))
+        dimContents.set(claim.dimension, new Set());
       dimContents.get(claim.dimension)!.add(claim.content);
     }
-    const contradictions = Array.from(dimContents.values()).filter((s) => s.size > 1).length;
+    const contradictions = Array.from(dimContents.values()).filter(
+      (s) => s.size > 1,
+    ).length;
 
     // Semantic reversions: count overwrites in the last-write-wins map
     // (When a new claim overwrites an old one on the same dimension)
     let reversions = 0;
     for (const claim of epochClaims) {
       const existing = state.claims.get(claim.dimension);
-      if (existing && existing.content !== claim.content && existing.epoch < doc.epoch) {
+      if (
+        existing &&
+        existing.content !== claim.content &&
+        existing.epoch < doc.epoch
+      ) {
         reversions++;
       }
     }

@@ -39,7 +39,11 @@ export interface LogEntry {
   [key: string]: unknown;
 }
 
-function emit(level: LogLevel, msg: string, extra?: Record<string, unknown>): void {
+function emit(
+  level: LogLevel,
+  msg: string,
+  extra?: Record<string, unknown>,
+): void {
   if (!shouldLog(level)) return;
   const ctx = trace.getActiveSpan()?.spanContext();
   const entry: LogEntry = {
@@ -60,8 +64,12 @@ function emit(level: LogLevel, msg: string, extra?: Record<string, unknown>): vo
 }
 
 export const logger = {
-  debug: (msg: string, extra?: Record<string, unknown>) => emit("debug", msg, extra),
-  info: (msg: string, extra?: Record<string, unknown>) => emit("info", msg, extra),
-  warn: (msg: string, extra?: Record<string, unknown>) => emit("warn", msg, extra),
-  error: (msg: string, extra?: Record<string, unknown>) => emit("error", msg, extra),
+  debug: (msg: string, extra?: Record<string, unknown>) =>
+    emit("debug", msg, extra),
+  info: (msg: string, extra?: Record<string, unknown>) =>
+    emit("info", msg, extra),
+  warn: (msg: string, extra?: Record<string, unknown>) =>
+    emit("warn", msg, extra),
+  error: (msg: string, extra?: Record<string, unknown>) =>
+    emit("error", msg, extra),
 };

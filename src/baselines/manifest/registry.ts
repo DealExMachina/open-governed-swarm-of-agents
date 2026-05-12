@@ -12,7 +12,10 @@ export const SCENARIO_MANIFEST_PATHS: Record<string, string> = {
 /**
  * Resolve a scenario key (s1…s5) or a repo-relative / absolute path to an absolute manifest path.
  */
-export function resolveManifestAbsolutePath(repoRoot: string, scenarioOrPath: string): string {
+export function resolveManifestAbsolutePath(
+  repoRoot: string,
+  scenarioOrPath: string,
+): string {
   const lower = scenarioOrPath.toLowerCase();
   if (
     scenarioOrPath.includes("/") ||

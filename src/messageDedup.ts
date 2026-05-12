@@ -3,7 +3,9 @@ import { getPool } from "./db.js";
 
 let _tableEnsured = false;
 
-export async function ensureProcessedMessagesTable(pool?: pg.Pool): Promise<void> {
+export async function ensureProcessedMessagesTable(
+  pool?: pg.Pool,
+): Promise<void> {
   if (_tableEnsured) return;
   const p = pool ?? getPool();
   await p.query(`
@@ -20,7 +22,11 @@ export async function ensureProcessedMessagesTable(pool?: pg.Pool): Promise<void
   _tableEnsured = true;
 }
 
-export async function isProcessed(consumerName: string, messageId: string, pool?: pg.Pool): Promise<boolean> {
+export async function isProcessed(
+  consumerName: string,
+  messageId: string,
+  pool?: pg.Pool,
+): Promise<boolean> {
   const p = pool ?? getPool();
   await ensureProcessedMessagesTable(p);
   const res = await p.query(
@@ -30,7 +36,11 @@ export async function isProcessed(consumerName: string, messageId: string, pool?
   return (res.rowCount ?? 0) > 0;
 }
 
-export async function markProcessed(consumerName: string, messageId: string, pool?: pg.Pool): Promise<void> {
+export async function markProcessed(
+  consumerName: string,
+  messageId: string,
+  pool?: pg.Pool,
+): Promise<void> {
   const p = pool ?? getPool();
   await ensureProcessedMessagesTable(p);
   await p.query(
@@ -45,7 +55,11 @@ export async function markProcessed(consumerName: string, messageId: string, poo
  * Returns false if already processed (idempotent, no-op).
  * Eliminates the TOCTOU race between isProcessed() and markProcessed().
  */
-export async function tryMarkProcessed(consumerName: string, messageId: string, pool?: pg.Pool): Promise<boolean> {
+export async function tryMarkProcessed(
+  consumerName: string,
+  messageId: string,
+  pool?: pg.Pool,
+): Promise<boolean> {
   const p = pool ?? getPool();
   await ensureProcessedMessagesTable(p);
   const res = await p.query(

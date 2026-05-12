@@ -25,7 +25,11 @@ const DELETE_SQL: string[] = [
   `DELETE FROM mitl_pending WHERE proposal->>'scope_id' = $1 OR action_payload->>'scope_id' = $1`,
 ];
 
-async function tryExec(c: PoolClient, sql: string, scopeId: string): Promise<void> {
+async function tryExec(
+  c: PoolClient,
+  sql: string,
+  scopeId: string,
+): Promise<void> {
   try {
     await c.query(sql, [scopeId]);
   } catch {
@@ -44,7 +48,11 @@ export async function resetScopeData(
     for (const sql of DELETE_SQL) {
       await tryExec(client, sql, scopeId);
     }
-    await tryExec(client, "DELETE FROM scope_documents WHERE scope_id = $1", scopeId);
+    await tryExec(
+      client,
+      "DELETE FROM scope_documents WHERE scope_id = $1",
+      scopeId,
+    );
     await client.query("COMMIT");
   } catch (e) {
     await client.query("ROLLBACK");
@@ -63,7 +71,9 @@ export async function resetScopeData(
           ContinuationToken: token,
         }),
       );
-      const keys = (list.Contents ?? []).map((o) => o.Key).filter(Boolean) as string[];
+      const keys = (list.Contents ?? [])
+        .map((o) => o.Key)
+        .filter(Boolean) as string[];
       if (keys.length) {
         await opts.s3.send(
           new DeleteObjectsCommand({

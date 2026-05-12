@@ -22,7 +22,10 @@ export const GOALS = [
   { content: "Pass SOC 2 audit", status: "resolved" as const },
   { content: "Hire 15+ engineers by Dec 31", status: "resolved" as const },
   { content: "Close two enterprise logos", status: "resolved" as const },
-  { content: "Achieve 50 Nexus deployments by end of 2025", status: "active" as const },
+  {
+    content: "Achieve 50 Nexus deployments by end of 2025",
+    status: "active" as const,
+  },
 ] as const;
 
 export const RISKS = [
@@ -32,14 +35,23 @@ export const RISKS = [
 
 /** Contradiction edges: (source claim index, target claim index, metadata.raw). */
 export const CONTRADICTION_EDGES = [
-  { sourceIndex: 0, targetIndex: 2, raw: "Budget approved vs hire 15 (stretch)" },
+  {
+    sourceIndex: 0,
+    targetIndex: 2,
+    raw: "Budget approved vs hire 15 (stretch)",
+  },
   { sourceIndex: 1, targetIndex: 4, raw: "Launch Nov 15 vs APAC delayed" },
 ] as const;
 
 /** Resolution edge: (source claim index, target claim index, note). */
 export const RESOLUTION_EDGES = [
-  { sourceIndex: 0, targetIndex: 2, note: "Resolution: budget supports 15 stretch target" },
+  {
+    sourceIndex: 0,
+    targetIndex: 2,
+    note: "Resolution: budget supports 15 stretch target",
+  },
 ] as const;
 
 export const EXPECTED_NODE_COUNT = CLAIMS.length + GOALS.length + RISKS.length;
-export const EXPECTED_EDGE_COUNT = CONTRADICTION_EDGES.length + RESOLUTION_EDGES.length;
+export const EXPECTED_EDGE_COUNT =
+  CONTRADICTION_EDGES.length + RESOLUTION_EDGES.length;

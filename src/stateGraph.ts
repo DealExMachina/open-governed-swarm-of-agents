@@ -3,7 +3,11 @@ import pg from "pg";
 import { getPool, runInTransaction } from "./db.js";
 import { ensureContextTable } from "./contextWal.js";
 import { createSwarmEvent } from "./events.js";
-import { canTransition, type DriftInput, type GovernanceConfig } from "./governance.js";
+import {
+  canTransition,
+  type DriftInput,
+  type GovernanceConfig,
+} from "./governance.js";
 
 export type Node =
   | "ContextIngested"
@@ -29,7 +33,12 @@ export const transitions: Record<Node, Node> = {
 
 export function nextState(s: GraphState): GraphState {
   const next = transitions[s.lastNode];
-  return { ...s, lastNode: next, updatedAt: new Date().toISOString(), epoch: s.epoch + 1 };
+  return {
+    ...s,
+    lastNode: next,
+    updatedAt: new Date().toISOString(),
+    epoch: s.epoch + 1,
+  };
 }
 
 /* ---- Postgres-backed persistence ---- */
@@ -55,7 +64,10 @@ export async function ensureStateTable(pool?: pg.Pool): Promise<void> {
   _tableEnsured = true;
 }
 
-export async function loadState(scopeId: string, pool?: pg.Pool): Promise<GraphState | null> {
+export async function loadState(
+  scopeId: string,
+  pool?: pg.Pool,
+): Promise<GraphState | null> {
   const p = pool ?? getPool();
   await ensureStateTable(p);
   const res = await p.query(
@@ -68,7 +80,10 @@ export async function loadState(scopeId: string, pool?: pg.Pool): Promise<GraphS
     runId: row.run_id,
     lastNode: row.last_node as Node,
     epoch: parseInt(row.epoch, 10),
-    updatedAt: row.updated_at instanceof Date ? row.updated_at.toISOString() : String(row.updated_at),
+    updatedAt:
+      row.updated_at instanceof Date
+        ? row.updated_at.toISOString()
+        : String(row.updated_at),
   };
 }
 
@@ -95,7 +110,10 @@ export async function initState(
     runId: row.run_id,
     lastNode: row.last_node as Node,
     epoch: parseInt(row.epoch, 10),
-    updatedAt: row.updated_at instanceof Date ? row.updated_at.toISOString() : String(row.updated_at),
+    updatedAt:
+      row.updated_at instanceof Date
+        ? row.updated_at.toISOString()
+        : String(row.updated_at),
   };
 }
 
@@ -167,7 +185,12 @@ export async function advanceState(
   const next = transitions[current.lastNode];
 
   if (opts.drift && opts.governance) {
-    const decision = canTransition(current.lastNode, next, opts.drift, opts.governance);
+    const decision = canTransition(
+      current.lastNode,
+      next,
+      opts.drift,
+      opts.governance,
+    );
     if (!decision.allowed) {
       return null;
     }
@@ -195,20 +218,26 @@ export async function advanceState(
       runId: row.run_id,
       lastNode: row.last_node as Node,
       epoch: parseInt(row.epoch, 10),
-      updatedAt: row.updated_at instanceof Date ? row.updated_at.toISOString() : String(row.updated_at),
+      updatedAt:
+        row.updated_at instanceof Date
+          ? row.updated_at.toISOString()
+          : String(row.updated_at),
     };
 
     // Audit event in the same transaction — if this fails, state rolls back
-    const event = createSwarmEvent("state_transition", {
-      from: current.lastNode,
-      to: newState.lastNode,
-      epoch: newState.epoch,
-      run_id: newState.runId,
-    }, { source: "state_graph" });
-    await client.query(
-      "INSERT INTO context_events (data) VALUES ($1::jsonb)",
-      [JSON.stringify(event)],
+    const event = createSwarmEvent(
+      "state_transition",
+      {
+        from: current.lastNode,
+        to: newState.lastNode,
+        epoch: newState.epoch,
+        run_id: newState.runId,
+      },
+      { source: "state_graph" },
     );
+    await client.query("INSERT INTO context_events (data) VALUES ($1::jsonb)", [
+      JSON.stringify(event),
+    ]);
 
     return newState;
   }, p);

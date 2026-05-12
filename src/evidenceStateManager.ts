@@ -16,7 +16,10 @@ export interface PerRoleEvidence {
  * Layout: for each role in order, support[0..numDims-1] then refutation[0..numDims-1].
  * Total length = perRole.length * 2 * numDims.
  */
-export function buildFlatState(perRole: PerRoleEvidence[], numDims: number): number[] {
+export function buildFlatState(
+  perRole: PerRoleEvidence[],
+  numDims: number,
+): number[] {
   const flat: number[] = [];
   for (const role of perRole) {
     for (let d = 0; d < numDims; d++) {
@@ -82,9 +85,14 @@ export async function loadLatestEvidenceStates(
   );
   const rawEpoch = epochRes.rows[0]?.epoch;
   if (rawEpoch == null) return null;
-  const epoch = typeof rawEpoch === "string" ? parseInt(rawEpoch, 10) : Number(rawEpoch);
+  const epoch =
+    typeof rawEpoch === "string" ? parseInt(rawEpoch, 10) : Number(rawEpoch);
 
-  const res = await p.query<{ role_id: string; support: number[]; refutation: number[] }>(
+  const res = await p.query<{
+    role_id: string;
+    support: number[];
+    refutation: number[];
+  }>(
     `SELECT role_id, support, refutation FROM evidence_states
      WHERE scope_id = $1 AND epoch = $2 ORDER BY role_id ASC`,
     [scopeId, epoch],

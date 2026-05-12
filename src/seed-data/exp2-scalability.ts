@@ -8,12 +8,22 @@
 export const EXP2_CREATED_BY = "seed-exp2";
 
 export function makeExp2Claims(n: number): string[] {
-  return Array.from({ length: n }, (_, i) => `Exp2 claim ${i + 1}/${n}: scalability baseline`);
+  return Array.from(
+    { length: n },
+    (_, i) => `Exp2 claim ${i + 1}/${n}: scalability baseline`,
+  );
 }
 
-export function makeExp2ContradictionEdges(n: number, rho: number): Array<{ sourceIndex: number; targetIndex: number; raw: string }> {
+export function makeExp2ContradictionEdges(
+  n: number,
+  rho: number,
+): Array<{ sourceIndex: number; targetIndex: number; raw: string }> {
   const c = Math.floor(rho * n);
-  const edges: Array<{ sourceIndex: number; targetIndex: number; raw: string }> = [];
+  const edges: Array<{
+    sourceIndex: number;
+    targetIndex: number;
+    raw: string;
+  }> = [];
   for (let i = 0; i < c && 2 * i + 1 < n; i++) {
     edges.push({
       sourceIndex: 2 * i,

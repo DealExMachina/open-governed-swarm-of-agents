@@ -10,7 +10,11 @@ import { getHatcheryInstance } from "./hatchery.js";
 import { makeS3, s3GetText, s3PutText } from "./s3.js";
 import { appendEvent } from "./contextWal.js";
 import { createSwarmEvent } from "./events.js";
-import { makeEventBus, type EventBus, type EventBusMessage } from "./eventBus.js";
+import {
+  makeEventBus,
+  type EventBus,
+  type EventBusMessage,
+} from "./eventBus.js";
 import { resetScopeData } from "./scopeReset.js";
 import { buildScopeSummaryForScope } from "./feed.js";
 import { setActiveBillingContext } from "./billingContext.js";
@@ -44,7 +48,11 @@ function newScopeId(): string {
   return `scp_${randomUUID().replace(/-/g, "").slice(0, 16)}`;
 }
 
-function sendJson(res: ServerResponse, status: number, data: Record<string, unknown>): void {
+function sendJson(
+  res: ServerResponse,
+  status: number,
+  data: Record<string, unknown>,
+): void {
   res.writeHead(status, { "Content-Type": "application/json" });
   res.end(JSON.stringify(data));
 }
@@ -118,7 +126,10 @@ function requireAdmin(req: IncomingMessage, res: ServerResponse): boolean {
   return true;
 }
 
-async function requireTenant(req: IncomingMessage, res: ServerResponse): Promise<string | null> {
+async function requireTenant(
+  req: IncomingMessage,
+  res: ServerResponse,
+): Promise<string | null> {
   const t = bearerToken(req);
   if (!t) {
     sendJson(res, 401, { error: "missing_bearer" });
@@ -135,15 +146,31 @@ async function requireTenant(req: IncomingMessage, res: ServerResponse): Promise
 async function loadScopeForTenant(
   scopeId: string,
   tenantId: string,
-): Promise<{ id: string; tenant_id: string; storage_prefix: string; slug: string } | null> {
+): Promise<{
+  id: string;
+  tenant_id: string;
+  storage_prefix: string;
+  slug: string;
+} | null> {
   const r = await getPool().query(
     `SELECT id, tenant_id::text AS tenant_id, storage_prefix, slug FROM scopes WHERE id = $1 AND tenant_id = $2::uuid`,
     [scopeId, tenantId],
   );
-  return (r.rows[0] as { id: string; tenant_id: string; storage_prefix: string; slug: string }) ?? null;
+  return (
+    (r.rows[0] as {
+      id: string;
+      tenant_id: string;
+      storage_prefix: string;
+      slug: string;
+    }) ?? null
+  );
 }
 
-async function updateRuntimeLease(scopeId: string | null, tenantId: string | null, paused: boolean): Promise<void> {
+async function updateRuntimeLease(
+  scopeId: string | null,
+  tenantId: string | null,
+  paused: boolean,
+): Promise<void> {
   try {
     await getPool().query(
       `UPDATE cluster_runtime_lease SET
@@ -208,16 +235,32 @@ async function scopeMetrics(
       [scopeId],
     );
     if (h.rows.length >= 2) {
-      const a = h.rows[0] as { goal_score: number; lyapunov_v: number; epoch: number };
-      const b = h.rows[1] as { goal_score: number; lyapunov_v: number; epoch: number };
+      const a = h.rows[0] as {
+        goal_score: number;
+        lyapunov_v: number;
+        epoch: number;
+      };
+      const b = h.rows[1] as {
+        goal_score: number;
+        lyapunov_v: number;
+        epoch: number;
+      };
       convergence_delta = {
         latest_epoch: a.epoch,
         goal_score_delta: Number(a.goal_score) - Number(b.goal_score),
         lyapunov_delta: Number(a.lyapunov_v) - Number(b.lyapunov_v),
       };
     } else if (h.rows.length === 1) {
-      const a = h.rows[0] as { goal_score: number; lyapunov_v: number; epoch: number };
-      convergence_delta = { latest_epoch: a.epoch, goal_score_delta: null, lyapunov_delta: null };
+      const a = h.rows[0] as {
+        goal_score: number;
+        lyapunov_v: number;
+        epoch: number;
+      };
+      convergence_delta = {
+        latest_epoch: a.epoch,
+        goal_score_delta: null,
+        lyapunov_delta: null,
+      };
     }
   } catch {
     //
@@ -234,7 +277,12 @@ async function scopeMetrics(
   };
 }
 
-async function handleScopeEventsSse(req: IncomingMessage, res: ServerResponse, scopeId: string, tenantId: string): Promise<void> {
+async function handleScopeEventsSse(
+  req: IncomingMessage,
+  res: ServerResponse,
+  scopeId: string,
+  tenantId: string,
+): Promise<void> {
   const bus = await getCpBus();
   res.writeHead(200, {
     "Content-Type": "text/event-stream",
@@ -246,24 +294,37 @@ async function handleScopeEventsSse(req: IncomingMessage, res: ServerResponse, s
   const socket = res.socket;
   if (socket) socket.setNoDelay(true);
 
-  res.write(`data: ${JSON.stringify({ type: "control_plane_connected", scope_id: scopeId })}\n\n`);
+  res.write(
+    `data: ${JSON.stringify({ type: "control_plane_connected", scope_id: scopeId })}\n\n`,
+  );
 
-  const sub = await bus.subscribeEphemeral(NATS_STREAM, "swarm.events.>", async (msg: EventBusMessage) => {
-    if (res.writableEnded) return;
-    const d = msg.data as Record<string, unknown>;
-    const evScope = String(d.scope_id ?? (d.payload as Record<string, unknown> | undefined)?.scope_id ?? "");
-    const evTenant = String(d.tenant_id ?? "");
-    if (evScope && evScope !== scopeId) return;
-    if (evTenant && evTenant !== tenantId) return;
-    res.write(`id: ${msg.id}\ndata: ${JSON.stringify(d)}\n\n`);
-  });
+  const sub = await bus.subscribeEphemeral(
+    NATS_STREAM,
+    "swarm.events.>",
+    async (msg: EventBusMessage) => {
+      if (res.writableEnded) return;
+      const d = msg.data as Record<string, unknown>;
+      const evScope = String(
+        d.scope_id ??
+          (d.payload as Record<string, unknown> | undefined)?.scope_id ??
+          "",
+      );
+      const evTenant = String(d.tenant_id ?? "");
+      if (evScope && evScope !== scopeId) return;
+      if (evTenant && evTenant !== tenantId) return;
+      res.write(`id: ${msg.id}\ndata: ${JSON.stringify(d)}\n\n`);
+    },
+  );
 
   req.on("close", () => {
     void sub.unsubscribe();
   });
 }
 
-export async function handleControlRequest(req: IncomingMessage, res: ServerResponse): Promise<void> {
+export async function handleControlRequest(
+  req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
   const url = req.url ?? "/";
   const pathname = getPathname(url);
   const parts = pathname.split("/").filter(Boolean);
@@ -285,7 +346,10 @@ export async function handleControlRequest(req: IncomingMessage, res: ServerResp
       }
       const { raw, prefix, hash } = generateApiKey();
       const pool = getPool();
-      const t = await pool.query(`INSERT INTO tenants (name) VALUES ($1) RETURNING id::text`, [name]);
+      const t = await pool.query(
+        `INSERT INTO tenants (name) VALUES ($1) RETURNING id::text`,
+        [name],
+      );
       const tenantId = t.rows[0].id as string;
       await pool.query(
         `INSERT INTO tenant_api_keys (tenant_id, key_hash, key_prefix) VALUES ($1::uuid, $2, $3)`,
@@ -315,12 +379,16 @@ export async function handleControlRequest(req: IncomingMessage, res: ServerResp
       const tenantId = await requireTenant(req, res);
       if (!tenantId) return;
       const body = await readJsonBody(req);
-      const slug = typeof body.slug === "string" ? body.slug.trim().replace(/\s+/g, "-") : "";
+      const slug =
+        typeof body.slug === "string"
+          ? body.slug.trim().replace(/\s+/g, "-")
+          : "";
       if (!slug) {
         sendJson(res, 400, { error: "slug_required" });
         return;
       }
-      const displayName = typeof body.display_name === "string" ? body.display_name : slug;
+      const displayName =
+        typeof body.display_name === "string" ? body.display_name : slug;
       const id = newScopeId();
       const storagePrefix = `tenants/${tenantId}/scopes/${id}`;
       await getPool().query(
@@ -328,7 +396,13 @@ export async function handleControlRequest(req: IncomingMessage, res: ServerResp
         [id, tenantId, slug, displayName, storagePrefix],
       );
       sendJson(res, 201, {
-        scope: { id, slug, display_name: displayName, storage_prefix: storagePrefix, tenant_id: tenantId },
+        scope: {
+          id,
+          slug,
+          display_name: displayName,
+          storage_prefix: storagePrefix,
+          tenant_id: tenantId,
+        },
       });
       return;
     }
@@ -350,7 +424,12 @@ export async function handleControlRequest(req: IncomingMessage, res: ServerResp
       }
       const body = await readJsonBody(req);
       const title = typeof body.title === "string" ? body.title : "doc";
-      const text = typeof body.body === "string" ? body.body : typeof body.text === "string" ? body.text : "";
+      const text =
+        typeof body.body === "string"
+          ? body.body
+          : typeof body.text === "string"
+            ? body.text
+            : "";
       if (!text) {
         sendJson(res, 400, { error: "body_or_text_required" });
         return;
@@ -367,13 +446,24 @@ export async function handleControlRequest(req: IncomingMessage, res: ServerResp
         `INSERT INTO scope_documents (scope_id, object_key, title, meta)
          VALUES ($1, $2, $3, $4::jsonb)
          ON CONFLICT (scope_id, object_key) DO UPDATE SET title = EXCLUDED.title`,
-        [scopeId, objectKey, title, JSON.stringify({ uploaded_at: new Date().toISOString() })],
+        [
+          scopeId,
+          objectKey,
+          title,
+          JSON.stringify({ uploaded_at: new Date().toISOString() }),
+        ],
       );
       sendJson(res, 201, { ok: true, object_key: objectKey, title });
       return;
     }
 
-    if (parts.length === 4 && parts[0] === "v1" && parts[1] === "scopes" && parts[3] === "ingest" && req.method === "POST") {
+    if (
+      parts.length === 4 &&
+      parts[0] === "v1" &&
+      parts[1] === "scopes" &&
+      parts[3] === "ingest" &&
+      req.method === "POST"
+    ) {
       const scopeId = parts[2]!;
       const tenantId = await requireTenant(req, res);
       if (!tenantId) return;
@@ -387,7 +477,9 @@ export async function handleControlRequest(req: IncomingMessage, res: ServerResp
         return;
       }
       const body = await readJsonBody(req);
-      const keys = Array.isArray(body.object_keys) ? body.object_keys.map(String) : [];
+      const keys = Array.isArray(body.object_keys)
+        ? body.object_keys.map(String)
+        : [];
       if (keys.length === 0) {
         sendJson(res, 400, { error: "object_keys_required" });
         return;
@@ -413,11 +505,21 @@ export async function handleControlRequest(req: IncomingMessage, res: ServerResp
         );
         published.push(objectKey);
       }
-      sendJson(res, 200, { ok: true, ingested: published.length, object_keys: published });
+      sendJson(res, 200, {
+        ok: true,
+        ingested: published.length,
+        object_keys: published,
+      });
       return;
     }
 
-    if (parts.length === 4 && parts[0] === "v1" && parts[1] === "scopes" && parts[3] === "summary" && req.method === "GET") {
+    if (
+      parts.length === 4 &&
+      parts[0] === "v1" &&
+      parts[1] === "scopes" &&
+      parts[3] === "summary" &&
+      req.method === "GET"
+    ) {
       const scopeId = parts[2]!;
       const tenantId = await requireTenant(req, res);
       if (!tenantId) return;
@@ -431,7 +533,13 @@ export async function handleControlRequest(req: IncomingMessage, res: ServerResp
       return;
     }
 
-    if (parts.length === 4 && parts[0] === "v1" && parts[1] === "scopes" && parts[3] === "metrics" && req.method === "GET") {
+    if (
+      parts.length === 4 &&
+      parts[0] === "v1" &&
+      parts[1] === "scopes" &&
+      parts[3] === "metrics" &&
+      req.method === "GET"
+    ) {
       const scopeId = parts[2]!;
       const tenantId = await requireTenant(req, res);
       if (!tenantId) return;
@@ -445,7 +553,13 @@ export async function handleControlRequest(req: IncomingMessage, res: ServerResp
       return;
     }
 
-    if (parts.length === 4 && parts[0] === "v1" && parts[1] === "scopes" && parts[3] === "events" && req.method === "GET") {
+    if (
+      parts.length === 4 &&
+      parts[0] === "v1" &&
+      parts[1] === "scopes" &&
+      parts[3] === "events" &&
+      req.method === "GET"
+    ) {
       const scopeId = parts[2]!;
       const tenantId = await requireTenant(req, res);
       if (!tenantId) return;
@@ -458,7 +572,13 @@ export async function handleControlRequest(req: IncomingMessage, res: ServerResp
       return;
     }
 
-    if (parts.length === 4 && parts[0] === "v1" && parts[1] === "scopes" && parts[3] === "reset" && req.method === "POST") {
+    if (
+      parts.length === 4 &&
+      parts[0] === "v1" &&
+      parts[1] === "scopes" &&
+      parts[3] === "reset" &&
+      req.method === "POST"
+    ) {
       const scopeId = parts[2]!;
       const tenantId = await requireTenant(req, res);
       if (!tenantId) return;
@@ -499,22 +619,39 @@ export async function handleControlRequest(req: IncomingMessage, res: ServerResp
       const hatchery = getHatcheryInstance();
       const lease = await loadRuntimeLease();
       if (lease?.active_tenant_id && lease.active_tenant_id !== tenantId) {
-        sendJson(res, 403, { error: "another_tenant_holds_cluster", active_tenant_id: lease.active_tenant_id });
+        sendJson(res, 403, {
+          error: "another_tenant_holds_cluster",
+          active_tenant_id: lease.active_tenant_id,
+        });
         return;
       }
       setActiveBillingContext(tenantId, scopeId);
       if (hatchery) {
         await hatchery.rebindActiveScope(scopeId, tenantId);
       } else {
-        const rpc = await requestRuntimeControl({ action: "start", scope_id: scopeId, tenant_id: tenantId });
+        const rpc = await requestRuntimeControl({
+          action: "start",
+          scope_id: scopeId,
+          tenant_id: tenantId,
+        });
         if (!rpc.ok) {
-          sendJson(res, 503, { error: "runtime_rpc_unavailable", detail: rpc.error ?? "unknown_error" });
+          sendJson(res, 503, {
+            error: "runtime_rpc_unavailable",
+            detail: rpc.error ?? "unknown_error",
+          });
           return;
         }
       }
       await updateRuntimeLease(scopeId, tenantId, false);
-      await getPool().query(`UPDATE scopes SET status = 'active_processing', updated_at = now() WHERE id = $1`, [scopeId]);
-      sendJson(res, 200, { ok: true, scope_id: scopeId, hatchery: hatchery?.getSnapshot() ?? null });
+      await getPool().query(
+        `UPDATE scopes SET status = 'active_processing', updated_at = now() WHERE id = $1`,
+        [scopeId],
+      );
+      sendJson(res, 200, {
+        ok: true,
+        scope_id: scopeId,
+        hatchery: hatchery?.getSnapshot() ?? null,
+      });
       return;
     }
 
@@ -532,12 +669,22 @@ export async function handleControlRequest(req: IncomingMessage, res: ServerResp
       } else {
         const rpc = await requestRuntimeControl({ action: "pause" });
         if (!rpc.ok) {
-          sendJson(res, 503, { error: "runtime_rpc_unavailable", detail: rpc.error ?? "unknown_error" });
+          sendJson(res, 503, {
+            error: "runtime_rpc_unavailable",
+            detail: rpc.error ?? "unknown_error",
+          });
           return;
         }
       }
-      await updateRuntimeLease(lease?.active_scope_id ?? null, lease?.active_tenant_id ?? null, true);
-      sendJson(res, 200, { ok: true, hatchery: hatchery?.getSnapshot() ?? null });
+      await updateRuntimeLease(
+        lease?.active_scope_id ?? null,
+        lease?.active_tenant_id ?? null,
+        true,
+      );
+      sendJson(res, 200, {
+        ok: true,
+        hatchery: hatchery?.getSnapshot() ?? null,
+      });
       return;
     }
 
@@ -555,12 +702,22 @@ export async function handleControlRequest(req: IncomingMessage, res: ServerResp
       } else {
         const rpc = await requestRuntimeControl({ action: "resume" });
         if (!rpc.ok) {
-          sendJson(res, 503, { error: "runtime_rpc_unavailable", detail: rpc.error ?? "unknown_error" });
+          sendJson(res, 503, {
+            error: "runtime_rpc_unavailable",
+            detail: rpc.error ?? "unknown_error",
+          });
           return;
         }
       }
-      await updateRuntimeLease(lease?.active_scope_id ?? null, lease?.active_tenant_id ?? null, false);
-      sendJson(res, 200, { ok: true, hatchery: hatchery?.getSnapshot() ?? null });
+      await updateRuntimeLease(
+        lease?.active_scope_id ?? null,
+        lease?.active_tenant_id ?? null,
+        false,
+      );
+      sendJson(res, 200, {
+        ok: true,
+        hatchery: hatchery?.getSnapshot() ?? null,
+      });
       return;
     }
 
@@ -578,7 +735,10 @@ export async function handleControlRequest(req: IncomingMessage, res: ServerResp
       } else {
         const rpc = await requestRuntimeControl({ action: "stop" });
         if (!rpc.ok) {
-          sendJson(res, 503, { error: "runtime_rpc_unavailable", detail: rpc.error ?? "unknown_error" });
+          sendJson(res, 503, {
+            error: "runtime_rpc_unavailable",
+            detail: rpc.error ?? "unknown_error",
+          });
           return;
         }
       }
@@ -607,14 +767,25 @@ export async function handleControlRequest(req: IncomingMessage, res: ServerResp
         await hatchery.rebindActiveScope(scopeId, tenantId);
         await hatchery.resume();
       } else {
-        const rpc = await requestRuntimeControl({ action: "restart", scope_id: scopeId, tenant_id: tenantId });
+        const rpc = await requestRuntimeControl({
+          action: "restart",
+          scope_id: scopeId,
+          tenant_id: tenantId,
+        });
         if (!rpc.ok) {
-          sendJson(res, 503, { error: "runtime_rpc_unavailable", detail: rpc.error ?? "unknown_error" });
+          sendJson(res, 503, {
+            error: "runtime_rpc_unavailable",
+            detail: rpc.error ?? "unknown_error",
+          });
           return;
         }
       }
       await updateRuntimeLease(scopeId, tenantId, false);
-      sendJson(res, 200, { ok: true, scope_id: scopeId, hatchery: hatchery?.getSnapshot() ?? null });
+      sendJson(res, 200, {
+        ok: true,
+        scope_id: scopeId,
+        hatchery: hatchery?.getSnapshot() ?? null,
+      });
       return;
     }
 

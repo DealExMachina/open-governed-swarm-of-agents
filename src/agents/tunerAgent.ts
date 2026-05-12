@@ -23,7 +23,8 @@ Explain your reasoning.`;
 function makeReadFilterStatsTool() {
   return createTool({
     id: "readFilterStats",
-    description: "Load all filter configs and their activation statistics from the database.",
+    description:
+      "Load all filter configs and their activation statistics from the database.",
     inputSchema: z.object({}),
     outputSchema: z.object({
       configs: z.array(z.record(z.unknown())),
@@ -38,7 +39,8 @@ function makeReadFilterStatsTool() {
 function makeWriteFilterConfigTool(s3: S3Client, bucket: string) {
   return createTool({
     id: "writeFilterConfig",
-    description: "Update a filter's parameters, bump version, and snapshot to S3. Pass agentRole and the new params.",
+    description:
+      "Update a filter's parameters, bump version, and snapshot to S3. Pass agentRole and the new params.",
     inputSchema: z.object({
       agentRole: z.string(),
       params: z.record(z.union([z.number(), z.string(), z.boolean()])),
@@ -49,9 +51,17 @@ function makeWriteFilterConfigTool(s3: S3Client, bucket: string) {
       snapshotKey: z.string().optional(),
     }),
     execute: async (ctx) => {
-      const input = (ctx as unknown) as { context?: { agentRole?: string; params?: Record<string, number | string | boolean> } };
+      const input = ctx as unknown as {
+        context?: {
+          agentRole?: string;
+          params?: Record<string, number | string | boolean>;
+        };
+      };
       const agentRole = input?.context?.agentRole ?? "";
-      const params = (input?.context?.params ?? {}) as Record<string, number | string | boolean>;
+      const params = (input?.context?.params ?? {}) as Record<
+        string,
+        number | string | boolean
+      >;
       if (!agentRole) return { updated: false, version: 0 };
       const configs = await loadAllFilterConfigs();
       const current = configs.find((c) => c.agentRole === agentRole);
@@ -94,10 +104,13 @@ export async function runTunerCycle(
       model: modelConfig,
       tools: { readFilterStats, writeFilterConfig },
     });
-    const genResult = await agent.generate("Review filter stats and tune parameters.", {
-      maxSteps: 5,
-      modelSettings: DETERMINISTIC_SETTINGS,
-    });
+    const genResult = await agent.generate(
+      "Review filter stats and tune parameters.",
+      {
+        maxSteps: 5,
+        modelSettings: DETERMINISTIC_SETTINGS,
+      },
+    );
     trackAgentTokens("tuner", genResult);
     return { cycle: "ok", ts: new Date().toISOString() };
   } catch (err) {
@@ -114,7 +127,10 @@ export async function runTunerCycle(
 export async function runTunerAgentLoop(
   s3: S3Client,
   bucket: string,
-  publishEvent: (type: string, payload: Record<string, unknown>) => Promise<void>,
+  publishEvent: (
+    type: string,
+    payload: Record<string, unknown>,
+  ) => Promise<void>,
   signal?: AbortSignal,
 ): Promise<void> {
   logger.info("tuner agent started", { intervalMs: TUNER_INTERVAL_MS });
@@ -125,11 +141,22 @@ export async function runTunerAgentLoop(
   await run();
   return new Promise<void>((resolve) => {
     const intervalId = setInterval(() => {
-      if (signal?.aborted) { clearInterval(intervalId); resolve(); return; }
+      if (signal?.aborted) {
+        clearInterval(intervalId);
+        resolve();
+        return;
+      }
       run().catch(() => {});
     }, TUNER_INTERVAL_MS);
     if (signal) {
-      signal.addEventListener("abort", () => { clearInterval(intervalId); resolve(); }, { once: true });
+      signal.addEventListener(
+        "abort",
+        () => {
+          clearInterval(intervalId);
+          resolve();
+        },
+        { once: true },
+      );
     }
   });
 }

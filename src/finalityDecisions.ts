@@ -6,7 +6,11 @@
 
 import { getPool } from "./db.js";
 
-export type FinalityOption = "approve_finality" | "provide_resolution" | "escalate" | "defer";
+export type FinalityOption =
+  | "approve_finality"
+  | "provide_resolution"
+  | "escalate"
+  | "defer";
 
 export interface FinalityDecisionRow {
   scope_id: string;

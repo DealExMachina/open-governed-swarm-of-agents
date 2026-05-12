@@ -1,6 +1,14 @@
 import type { Node } from "./stateGraph.js";
 
-export type AgentRole = "facts" | "drift" | "resolver" | "planner" | "propagation" | "deltas" | "status" | "tuner";
+export type AgentRole =
+  | "facts"
+  | "drift"
+  | "resolver"
+  | "planner"
+  | "propagation"
+  | "deltas"
+  | "status"
+  | "tuner";
 
 /** Legacy job type for executor and backward compatibility. */
 export type JobType =
@@ -41,7 +49,12 @@ export const AGENT_SPECS: AgentSpec[] = [
     // Facts can run from any "completed" pipeline state — new docs should always
     // trigger re-extraction regardless of where the pipeline left off.
     // The sequence_delta filter prevents re-running on unchanged WAL data.
-    requiresNodeList: ["ContextIngested", "DeltasExtracted", "DriftChecked", "EvidencePropagated"],
+    requiresNodeList: [
+      "ContextIngested",
+      "DeltasExtracted",
+      "DriftChecked",
+      "EvidencePropagated",
+    ],
     targetNode: "FactsExtracted",
     proposesAdvance: true,
     advancesTo: "FactsExtracted",
