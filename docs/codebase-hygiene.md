@@ -41,7 +41,7 @@ This page lists **documentation vs. reality** mismatches, **optional or missing 
 ## Docker / compose
 
 - **`opa` service** in `docker-compose.yml` is **commented out** (optional Phase-1 policy bundle server). Do not document it as running by default.
-- **Port 3000** on the host maps to **OpenFGA** when compose is up; the **demo UI** uses **3003**, **Grafana** **3004**, **feed** **3002**.
+- **Port 3000** on the host maps to **OpenFGA** when compose is up; the **demo UI** uses **3005** (default `DEMO_PORT`), **resolution MCP** **3006** (default `RESOLUTION_MCP_PORT`), **Grafana** **3004**, **feed** **3002**.
 
 ---
 

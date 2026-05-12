@@ -125,12 +125,12 @@ export GOVERNANCE_PATH="$(pwd)/demo/scenario/governance-demo.yaml"
 2. Schema and stream: `pnpm run ensure-bucket && pnpm run ensure-schema && pnpm run ensure-stream`
 3. Swarm (agents + governance + executor): `pnpm run swarm` or `pnpm run swarm:start` (hatchery)
 4. Feed server (required for demo): `pnpm run feed` — serves port 3002
-5. Demo UI (optional): `pnpm run demo` — serves port 3003
+5. Demo UI (optional): `pnpm run demo` — serves port 3005
 
 The feed server is separate from the swarm: it serves the summary API and context ingestion. Start it before opening the demo or running `./demo/run-demo.sh`.
 
 - Live feed dashboard: [http://localhost:3002](http://localhost:3002)
-- Demo UI: [http://localhost:3003](http://localhost:3003)
+- Demo UI: [http://localhost:3005](http://localhost:3005)
 
 ---
 
@@ -138,12 +138,12 @@ The feed server is separate from the swarm: it serves the summary API and contex
 
 ### Option A — Automated demo UI (recommended)
 
-Start the demo server on port 3003:
+Start the demo server on port 3005:
 ```bash
 pnpm run demo
 ```
 
-Then open [http://localhost:3003](http://localhost:3003) in a browser.
+Then open [http://localhost:3005](http://localhost:3005) in a browser.
 
 The demo UI provides:
 - A narrative walkthrough of each step with per-step explanations
@@ -535,7 +535,7 @@ The summary API and demo UI expose governance and finality context so reviewers 
 
 | Path | Purpose |
 |---|---|
-| `demo/demo-server.ts` | Demo UI server — `pnpm run demo` — opens at http://localhost:3003 |
+| `demo/demo-server.ts` | Demo UI server — `pnpm run demo` — opens at http://localhost:3005 |
 | `demo/scenario/docs/` | The five Project Horizon documents |
 | `demo/scenario/governance-demo.yaml` | M&A-specific governance rules for this demo |
 | `demo/run-demo.sh` | Shell walkthrough (alternative to the UI) |

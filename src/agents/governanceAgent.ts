@@ -847,7 +847,7 @@ export async function runGovernanceAgentLoop(bus: EventBus, s3: S3Client, bucket
       (subj, data) => bus.publish(subj, data as Record<string, string>).then(() => {}),
     );
     startMitlServer(mitlPort);
-    const mcpPort = parseInt(process.env.RESOLUTION_MCP_PORT ?? "3005", 10);
+    const mcpPort = parseInt(process.env.RESOLUTION_MCP_PORT ?? "3006", 10);
     startResolutionMcpServer(mcpPort, s3, bucket);
   }
 

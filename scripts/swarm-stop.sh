@@ -36,7 +36,7 @@ else
 fi
 
 # Free ports in case child servers (MITL, resolution-mcp) linger
-for port in 3001 3005; do
+for port in 3001 3006; do
   lsof -ti :$port 2>/dev/null | xargs kill -9 2>/dev/null || true
 done
 echo "Done."

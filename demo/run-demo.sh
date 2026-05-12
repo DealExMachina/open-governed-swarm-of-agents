@@ -541,9 +541,9 @@ else:
     echo "    -d '{\"scope_id\": \"${DEMO_SCOPE_ID}\", \"proposal_id\": \"PROPOSAL_ID\", \"option\": \"approve_finality\"}'"
   fi
   echo ""
-  echo "  Or use the web UI at: http://localhost:3003"
+  echo "  Or use the web UI at: http://localhost:3005"
   echo ""
-  print_highlight "For the demo: open http://localhost:3003 in a browser → 'Pending reviews' section → click 'Approve finality'"
+  print_highlight "For the demo: open http://localhost:3005 in a browser → 'Pending reviews' section → click 'Approve finality'"
 
   pause
 fi
