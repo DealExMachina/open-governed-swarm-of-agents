@@ -7,7 +7,7 @@
  */
 
 import { logger } from "./logger.js";
-import { evaluateFinality, type FinalityReviewRequest, computeGoalScoreForScope, loadFinalitySnapshot } from "./finalityEvaluator.js";
+import { evaluateFinality, computeGoalScoreForScope, loadFinalitySnapshot } from "./finalityEvaluator.js";
 import { submitFinalityReviewForScope } from "./hitlFinalityRequest.js";
 import { getPool } from "./db.js";
 import type { EventBus } from "./eventBus.js";
@@ -56,14 +56,6 @@ export async function buildRankedQuestions(scopeId: string): Promise<WatchdogQue
     ? 1
     : 1 - snapshot.contradictions_unresolved_count / snapshot.contradictions_total_count;
   const goalScore = snapshot.goals_completion_ratio;
-  const riskScore = 1 - Math.min(snapshot.scope_risk_score, 1);
-
-  const dims = [
-    { name: "goal_completion", score: goalScore, weight: weights.goal_completion },
-    { name: "claim_confidence", score: claimScore, weight: weights.claim_confidence },
-    { name: "contradiction_resolution", score: contraScore, weight: weights.contradiction_resolution },
-    { name: "risk_score_inverse", score: riskScore, weight: weights.risk_score_inverse },
-  ];
 
   const questions: WatchdogQuestion[] = [];
 

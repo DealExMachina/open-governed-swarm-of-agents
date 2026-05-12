@@ -59,6 +59,8 @@ import type { ConvergencePoint, ConvergenceConfig, ConvergenceState } from "./co
 import type { GovernanceConfig, DriftInput, TransitionDecision, PolicyRule, TransitionRule } from "./governance.js";
 import { recordSgrsCall } from "./metrics.js";
 
+type VectorDimensionResultDto = NonNullable<VectorFinalityResultDto["dimensionResults"]>[number];
+
 function timedSgrs<T>(operation: string, fn: () => T): T {
   const start = performance.now();
   try {
@@ -489,7 +491,7 @@ export function evaluateVectorFinality(
   );
 
   return {
-    dimension_results: dto.dimensionResults.map((dr) => ({
+    dimension_results: dto.dimensionResults.map((dr: VectorDimensionResultDto) => ({
       dimension: dr.dimension,
       score: dr.score,
       threshold: dr.threshold,
