@@ -236,21 +236,25 @@ See [docs/demos/README.md](docs/demos/README.md) for detailed protocols.
 
 ---
 
+**From source (TypeScript + Rust addon):** after `pnpm install`, run `pnpm build:rust` then `pnpm build` so napi generates `sgrs-core/index.js` before `tsc`. CI uses the same order with Rust stable and Node 20.
+
+---
+
 ## Validation
 
 ```bash
-pnpm run test                                     # Vitest (requires test/ — see hygiene doc)
+pnpm run test                                     # Vitest (test/ — runs in CI after native + TS build)
 cargo test --manifest-path sgrs-core/Cargo.toml  # Rust kernel, propagation, governance, …
 npx tsx scripts/benchmark-convergence.ts         # Synthetic convergence scenarios (no Docker)
 pnpm run benchmark:sgrs                          # sgrs load benchmark
 ./scripts/run-e2e.sh                             # Docker E2E (applies a subset of migrations — prefer ensure-schema for full DB)
 ```
 
-The repository ships **Vitest config** but **no `test/` tree**: `pnpm run test` will report *no test files* until tests are added. **Rust** carries the primary automated coverage (`sgrs-core`). See [docs/codebase-hygiene.md](docs/codebase-hygiene.md) for missing assets, E2E vs. `ensure-schema`, and prototype code.
+The repository includes a **Vitest** suite under `test/` (architecture boundaries, logger, errors, DB helpers). **CI** runs `pnpm test` after installing dependencies, building `sgrs-core`, and compiling TypeScript. **Rust** still carries the deepest automated coverage for the kernel (`sgrs-core`). See [docs/codebase-hygiene.md](docs/codebase-hygiene.md) for E2E vs. `ensure-schema` and prototype code.
 
-**What's proven (high level):** Convergence math (benchmark + Rust), kernel load benchmark, propagation experiments in `sgrs-core`, governance path audit script after E2E seed.
+**What's proven (high level):** Convergence math (benchmark + Rust), kernel load benchmark, propagation experiments in `sgrs-core`, governance path audit script after E2E seed, plus targeted TypeScript unit tests in CI.
 
-**What's theoretical:** Full-stack behaviour without the TypeScript unit suite, long-horizon LLM trajectories matching synthetic convergence paths, adversarial robustness beyond tested collusion models.
+**What's theoretical:** Full long-horizon LLM trajectories matching synthetic convergence paths, adversarial robustness beyond tested collusion models.
 
 See [docs/validation.md](docs/validation.md) for methodology and known gaps.
 
@@ -296,7 +300,7 @@ See [docs/validation.md](docs/validation.md) for methodology and known gaps.
 - [Convergence](docs/convergence.md) -- formal theory, Gate C, configuration reference, benchmarks
 - [Experiments](docs/experiments.md) -- protocols and results
 - [Validation](docs/validation.md) -- test methodology, known gaps
-- [Codebase hygiene](docs/codebase-hygiene.md) -- missing assets, E2E caveats, dead paths
+- [Changelog](CHANGELOG.md) -- workspace version and notable tooling/CI changes
 - [Deployment](docs/deployment.md) -- hosted vs self-host, GHCR feed image, enterprise contact
 - [Experimental terms (disclaimer)](docs/experimental-terms.md)
 - [Publications index](publications/README.md)

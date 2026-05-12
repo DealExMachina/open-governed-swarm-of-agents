@@ -265,7 +265,7 @@ validation** and represent known gaps:
 4. **Convergence validated with math first, not representative LLM traces.** The convergence
    tracker is validated against synthetic snapshot trajectories (`benchmark-convergence.ts` and Rust tests). The assumption that real LLM-extracted facts produce trajectories resembling these patterns is unvalidated.
 
-5. **Demo and TypeScript tests not in CI.** The E2E script (`run-e2e.sh`) requires Docker plus an LLM backend and is not wired into CI. **`pnpm run test` finds no files** until `test/**/*.test.ts` exists. Primary automated coverage is **Rust** (`sgrs-core`).
+5. **E2E not in CI; TypeScript unit tests are.** The E2E script (`run-e2e.sh`) requires Docker plus an LLM backend and is not wired into CI. **`pnpm run test` / Vitest** runs in CI after `build:rust` and `pnpm build`. Primary **depth** of automated coverage for the kernel remains **Rust** (`sgrs-core`).
 
 6. **LLM oversight quality unvalidated.** When an LLM is configured, the
    oversight agent chooses between accepting the deterministic result,

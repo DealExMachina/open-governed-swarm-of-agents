@@ -869,9 +869,9 @@ Rust exposes typed `KernelError` (config, unknown state, invalid numeric, stale 
 
 ### Build and integration
 
-- **Build:** `pnpm run build:rust` (or `build:rust:debug`) compiles `sgrs-core` with napi-rs for the current platform; output is `sgrs-core/*.node`.
+- **Build:** Run **`pnpm build:rust`** first (or `build:rust:debug`), then **`pnpm build`** (`tsc`). The napi step writes `sgrs-core/index.js` and `index.d.ts`, which `src/sgrsAdapter.ts` imports; on a clean clone, compiling TypeScript before this step fails.
 - **Package:** `sgrs-core` is a workspace dependency `"sgrs-core": "file:sgrs-core"`; the Node entrypoint is `sgrs-core/index.js` (platform-specific `.node` loading).
-- **CI:** `cargo test` and `cargo clippy` in sgrs-core; `pnpm test` includes TS tests that call the bridge.
+- **CI:** GitHub Actions install Rust stable, run `pnpm build:rust` before `pnpm build` / `pnpm typecheck`; Node **20** for the build job. `cargo test` / `cargo clippy` in `sgrs-core` are run locally or in dedicated pipelines; `pnpm test` runs Vitest against the TS tree.
 
 ---
 

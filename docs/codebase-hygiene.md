@@ -57,7 +57,7 @@ This page lists **documentation vs. reality** mismatches, **optional or missing 
 | Area | Detail |
 |------|--------|
 | **Skill markdown files** | **Dead data path** until `skills/` exists: `loadSkillFile` always hits `catch` and returns `""`. |
-| **Vitest entrypoint** | **Dead test runner** in CI terms: no `test/` tree, so `pnpm test` cannot execute anything. |
+| **Vitest entrypoint** | **`test/`** holds unit and architecture tests; **`pnpm test`** runs in CI after `build:rust` and `pnpm build`. E2E remains out of CI (see [validation.md](validation.md)). |
 | **Causal contribution → evidence state** | Documented in validation as **not implemented by design** (audit-only DAG); do not assume runtime wiring from TS `emitContribution` to full evidence-state consumers. |
 
 ---

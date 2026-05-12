@@ -377,27 +377,14 @@ function dbRowToAgentMemory(row: Record<string, unknown>): AgentMemory {
 
 ## 🟡 Medium Priority Issues
 
-### 8. **Missing TypeScript Strict Mode Benefits**
+### 8. **TypeScript `skipLibCheck` policy**
 
-**Current tsconfig.json:**
-```json
-{
-  "strict": true,  // ✓ Good!
-  "skipLibCheck": true,  // ⚠️ Problematic
-  "esModuleInterop": true  // Legacy compatibility
-}
-```
+**Current `tsconfig.json` (emit build) and `tsconfig.check.json` (noEmit CI check):**
 
-**Issues:**
-- `skipLibCheck: true` hides type errors in dependencies
-- Missing `noImplicitAny` enforcement in some files
-- `noUnusedLocals` and `noUnusedParameters` not enabled
-
-**Recommendation:**
 ```json
 {
   "strict": true,
-  "skipLibCheck": false,  // Remove! Check transitive deps
+  "skipLibCheck": true,
   "noImplicitAny": true,
   "noUnusedLocals": true,
   "noUnusedParameters": true,
@@ -405,6 +392,10 @@ function dbRowToAgentMemory(row: Record<string, unknown>): AgentMemory {
   "noFallthroughCasesInSwitch": true
 }
 ```
+
+**Rationale:** With `skipLibCheck: false`, `tsc` frequently fails on **dependencies’** declaration files (broken subpath exports, internal package paths), not on this repo’s code. That blocked CI without improving kernel safety. **`skipLibCheck: true` is intentional**: strict checking applies to `src/**/*.ts`; library `.d.ts` issues are accepted as upstream noise until pins or fixes land.
+
+**Trade-off:** Rare true incompatibilities between your types and a dependency’s typings may not surface at compile time. Mitigation: pin versions, watch dependency releases, and keep application `strict` options on.
 
 ---
 

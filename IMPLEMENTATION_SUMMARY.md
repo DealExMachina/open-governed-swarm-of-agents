@@ -43,7 +43,7 @@ Created automated CI/CD pipeline:
 | **test.yml** | TypeScript build, Rust build, unit tests, coverage | push/PR |
 | **lint.yml** | ESLint, Prettier, TypeScript strict checks | push/PR |
 | **security.yml** | npm audit, dependency review | push/PR/weekly |
-| **build.yml** | Multi-Node.js version matrix build | push/PR |
+| **build.yml** | TypeScript + typecheck on Node 20, after Rust/napi build | push/PR |
 
 **Coverage:** All workflows configured with proper caching and service setup (Postgres, NATS).
 
@@ -79,9 +79,9 @@ Updated `tsconfig.json`:
 - ✅ `noUnusedParameters: true` - Catch unused params
 - ✅ `noImplicitReturns: true` - Ensure all code paths return
 - ✅ `noFallthroughCasesInSwitch: true` - Prevent switch bugs
-- ✅ `skipLibCheck: false` - Check transitive dependencies (was `true`)
+- ✅ `skipLibCheck: true` - Do not type-check `node_modules` `.d.ts` (keeps CI green; application code remains strict). See [CHANGELOG.md](CHANGELOG.md) and [CODE_QUALITY_ASSESSMENT.md](CODE_QUALITY_ASSESSMENT.md) (section on `skipLibCheck`) for rationale.
 
-**Impact:** Catch more type errors during development, not in production.
+**Historical note:** This repo briefly used `skipLibCheck: false` to surface transitive issues; that was reverted in favour of strict `src/` checks plus dependency pins/upgrades as needed (2026-05-12).
 
 ### 2.5 GitHub Templates
 
