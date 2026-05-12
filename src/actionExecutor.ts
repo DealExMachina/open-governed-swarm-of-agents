@@ -166,7 +166,7 @@ function createExecutorTools(
 }
 
 /** Kept for potential future non-advance_state actions; advance_state always uses executeActionInline. */
-async function processActionWithAgent(action: Action, bus: EventBus, s3: ReturnType<typeof makeS3>, bucket: string): Promise<void> {
+export async function processActionWithAgent(action: Action, bus: EventBus, s3: ReturnType<typeof makeS3>, bucket: string): Promise<void> {
   const modelConfig = getChatModelConfig();
   if (!modelConfig) {
     await executeActionInline(action, bus, s3, bucket);
@@ -220,7 +220,7 @@ async function executeActionInline(
   const actionType = (action as Action & { action_type?: string }).action_type;
   if (actionType !== "advance_state") return;
   const payload = action.payload as { expectedEpoch: number; from?: string; to?: string; scope_id?: string };
-  const { expectedEpoch, from: payloadFrom, to: payloadTo } = payload;
+  const { expectedEpoch } = payload;
   const scopeId = payload.scope_id ?? process.env.SCOPE_ID ?? "default";
   const isHumanOverride = action.approved_by === "human";
   let newState: GraphState | null;
@@ -247,7 +247,7 @@ async function executeActionInline(
       });
       return;
     }
-    logger.warn("executor advance failed", { proposal_id: action.proposal_id });
+    logger.warn("executor advance failed", { proposal_id: action.proposal_id, reason });
     return;
   }
   const nextJob = getNextJobForNode(newState.lastNode);
