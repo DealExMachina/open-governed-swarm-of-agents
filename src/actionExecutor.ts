@@ -14,6 +14,7 @@ import { getChatModelConfig, DETERMINISTIC_SETTINGS, ExecutorOutputSchema } from
 import type { Action } from "./events.js";
 import { createSwarmEvent } from "./events.js";
 import { composeInstructions } from "./skills/loader.js";
+import { generateWithStructuredOutput } from "./mastraStructured.js";
 import { trackAgentTokens } from "./skills/tokenTracker.js";
 import { recordFinalityDecision } from "./finalityDecisions.js";
 import { recordStateTransition } from "./metrics.js";
@@ -190,12 +191,13 @@ async function processActionWithAgent(action: Action, bus: EventBus, s3: ReturnT
   setMaxListeners(64, abortController.signal);
   const timeoutId = setTimeout(() => abortController.abort(), 30000);
   try {
-    const genResult = await llmBreaker.call(() => agent.generate(prompt, {
-      maxSteps: 5,
-      abortSignal: abortController.signal,
-      modelSettings: DETERMINISTIC_SETTINGS,
-      structuredOutput: { schema: ExecutorOutputSchema as any, jsonPromptInjection: true },
-    }));
+    const genResult = await llmBreaker.call(() =>
+      generateWithStructuredOutput(agent, prompt, ExecutorOutputSchema, {
+        maxSteps: 5,
+        abortSignal: abortController.signal,
+        modelSettings: DETERMINISTIC_SETTINGS,
+      }),
+    );
     trackAgentTokens("executor", genResult);
   } catch (e) {
     logger.warn("executor LLM failed or circuit open; falling back to inline execution", {

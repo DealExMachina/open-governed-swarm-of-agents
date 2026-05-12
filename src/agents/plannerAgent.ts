@@ -10,6 +10,7 @@ import { makeReadDriftTool, makeReadFactsTool, makeReadGovernanceRulesTool } fro
 import { composeInstructions } from "../skills/loader.js";
 import { trackAgentTokens } from "../skills/tokenTracker.js";
 import { evaluateGoalsAgainstEvidence } from "../semanticGraph.js";
+import { generateWithStructuredOutput } from "../mastraStructured.js";
 
 const GOVERNANCE_PATH = process.env.GOVERNANCE_PATH ?? join(process.cwd(), "governance.yaml");
 
@@ -42,15 +43,14 @@ export async function runPlannerAgent(
         model: modelConfig,
         tools: { readDrift, readFacts, readGovernanceRules },
       });
-      const result = await agent.generate("Plan actions now.", {
+      const result = await generateWithStructuredOutput(agent, "Plan actions now.", PlannerOutputSchema, {
         maxSteps: 4,
         abortSignal: abortController.signal,
         modelSettings: REASONING_SETTINGS,
-        structuredOutput: { schema: PlannerOutputSchema as any, jsonPromptInjection: true },
       });
       trackAgentTokens("planner", result);
       clearTimeout(timeoutId);
-      const obj = result?.object;
+      const obj = result.object as { actions?: unknown; reasoning?: unknown } | undefined;
       let actions: string[] = [];
       let reasoning = "";
       if (obj) {

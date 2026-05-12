@@ -12,6 +12,7 @@ import { addPending } from "../mitlServer.js";
 import { emitContribution } from "../causalEmit.js";
 import { composeInstructions } from "../skills/loader.js";
 import { trackAgentTokens } from "../skills/tokenTracker.js";
+import { generateWithStructuredOutput } from "../mastraStructured.js";
 import { getActiveScopeId } from "../billingContext.js";
 import type { Proposal } from "../events.js";
 
@@ -140,11 +141,10 @@ export async function runResolverAgent(
     const timeoutId = setTimeout(() => abortController.abort(), RESOLVER_LLM_TIMEOUT_MS);
     setMaxListeners(64, abortController.signal);
     try {
-      const genResult = await agent.generate(prompt, {
+      const genResult = await generateWithStructuredOutput(agent, prompt, ResolverOutputSchema, {
         maxSteps: 5,
         abortSignal: abortController.signal,
         modelSettings: REASONING_SETTINGS,
-        structuredOutput: { schema: ResolverOutputSchema as any, jsonPromptInjection: true },
       });
       trackAgentTokens("resolver", genResult);
     } catch (e) {
