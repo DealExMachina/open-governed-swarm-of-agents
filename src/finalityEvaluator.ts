@@ -690,6 +690,7 @@ export async function evaluateFinality(scopeId: string): Promise<FinalityResult 
             c_trajectory: trajectoryOk,
             d_quiescent: quiescent,
             e_has_content: hasContent,
+            f_elimination_complete: gatesDisabled || (snapshot.contradiction_mass ?? 0) === 0,
             all_passed: false, // computed downstream
           },
           goalScore,

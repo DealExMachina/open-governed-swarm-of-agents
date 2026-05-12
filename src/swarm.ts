@@ -16,6 +16,7 @@ import { runTunerAgentLoop } from "./agents/tunerAgent.js";
 import { createSwarmEvent } from "./events.js";
 import { loadHatcheryConfig } from "./hatcheryConfig.js";
 import { AgentHatchery } from "./hatchery.js";
+import { startRuntimeControlResponder } from "./runtimeControlRpc.js";
 
 const BUCKET = process.env.S3_BUCKET!;
 const AGENT_ID = process.env.AGENT_ID ?? `agent-${Math.random().toString(16).slice(2, 10)}`;
@@ -103,9 +104,11 @@ async function main(): Promise<void> {
   if (ROLE === "hatchery") {
     const config = loadHatcheryConfig();
     const hatchery = new AgentHatchery(config, bus, s3, BUCKET);
+    let stopRuntimeResponder: (() => Promise<void>) | null = null;
 
     const hatcheryShutdown = async (sig: string) => {
       logger.info("hatchery shutdown signal received", { signal: sig });
+      if (stopRuntimeResponder) await stopRuntimeResponder();
       await hatchery.shutdown();
       try { await drainPool(); } catch {}
       process.exit(0);
@@ -117,8 +120,7 @@ async function main(): Promise<void> {
 
     await hatchery.start();
     try {
-      const { startControlPlaneServer } = await import("./controlPlaneServer.js");
-      startControlPlaneServer();
+      stopRuntimeResponder = await startRuntimeControlResponder(hatchery);
       const pool = (await import("./db.js")).getPool();
       if (config.tenantId) {
         await pool.query(
@@ -132,7 +134,7 @@ async function main(): Promise<void> {
         );
       }
     } catch (e) {
-      logger.warn("control_plane_lease_update_failed", { error: String(e) });
+      logger.warn("hatchery_runtime_bridge_init_failed", { error: String(e) });
     }
     await new Promise<void>(() => {}); // block forever; shutdown via signal
     return;

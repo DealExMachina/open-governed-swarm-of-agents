@@ -11,6 +11,7 @@ import { emitContribution } from "../causalEmit.js";
 import { createSwarmEvent } from "../events.js";
 import { makeReadFactsTool, makeReadDriftTool, makeReadContextTool } from "./sharedTools.js";
 import { composeInstructions } from "../skills/loader.js";
+import { generateWithStructuredOutput } from "../mastraStructured.js";
 import { trackAgentTokens } from "../skills/tokenTracker.js";
 
 const SHORT_PROMPT = "Summarize recent changes in 2-3 sentences for a short status update.";
@@ -74,10 +75,9 @@ export async function runStatusAgent(
         tools: { readFacts, readDrift, readRecentEvents, writeBriefing },
       });
       const prompt = isFull ? FULL_PROMPT : SHORT_PROMPT;
-      const genResult = await agent.generate(prompt, {
+      const genResult = await generateWithStructuredOutput(agent, prompt, StatusOutputSchema, {
         maxSteps: 5,
         modelSettings: isFull ? EXTENDED_SETTINGS : DETERMINISTIC_SETTINGS,
-        structuredOutput: { schema: StatusOutputSchema, jsonPromptInjection: true },
       });
       trackAgentTokens("status", genResult);
       const factsRaw = await s3GetText(s3, bucket, "facts/latest.json");

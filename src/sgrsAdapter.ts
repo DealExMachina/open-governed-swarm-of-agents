@@ -42,13 +42,11 @@ import type {
   ConvergenceConfigDto,
   ConvergenceOutputDto,
   GateConfigDto,
-  GateStateDto,
-  ConditionResultDto,
   GovernanceRulesConfigDto,
   KernelInputDto,
-  KernelOutputDto,
-  TransitionDecisionDto,
   LatticePointDto,
+  VectorFinalityResultDto,
+  DetectedContradictionDto,
 } from "../sgrs-core/index.js";
 import type {
   FinalitySnapshot,
@@ -285,6 +283,7 @@ export interface GateState {
   c_trajectory: boolean;
   d_quiescent: boolean;
   e_has_content: boolean;
+  f_elimination_complete: boolean;
   all_passed: boolean;
 }
 
@@ -312,6 +311,7 @@ export function evaluateGates(
     c_trajectory: dto.cTrajectory,
     d_quiescent: dto.dQuiescent,
     e_has_content: dto.eHasContent,
+    f_elimination_complete: dto.fEliminationComplete,
     all_passed: dto.allPassed,
   };
 }
@@ -462,7 +462,7 @@ export function evaluateVectorFinality(
   const required = DIM_NAMES.map((n) => perDimConfig.required_dimensions.includes(n));
   const veto = DIM_NAMES.map((n) => perDimConfig.veto_dimensions.includes(n));
 
-  const dto = timedSgrs("vector_finality", () =>
+  const dto = timedSgrs("vector_finality", (): VectorFinalityResultDto =>
     rustEvaluateVectorFinality(
       scores,
       {
@@ -480,6 +480,7 @@ export function evaluateVectorFinality(
         cTrajectory: globalGates.c_trajectory,
         dQuiescent: globalGates.d_quiescent,
         eHasContent: globalGates.e_has_content,
+        fEliminationComplete: globalGates.f_elimination_complete,
         allPassed: globalGates.all_passed,
       },
       scalarScore,
@@ -488,7 +489,7 @@ export function evaluateVectorFinality(
   );
 
   return {
-    dimension_results: dto.dimensionResults.map((dr: any) => ({
+    dimension_results: dto.dimensionResults.map((dr) => ({
       dimension: dr.dimension,
       score: dr.score,
       threshold: dr.threshold,
@@ -713,10 +714,10 @@ export function extractContradictions(
   numDims: number,
   threshold: number,
 ): DetectedContradiction[] {
-  const dtos = timedSgrs("extract_contradictions", () =>
+  const dtos = timedSgrs("extract_contradictions", (): DetectedContradictionDto[] =>
     rustExtractContradictions(flatState, numRoles, numDims, threshold),
   );
-  return dtos.map((d: any) => ({
+  return dtos.map((d) => ({
     role_i: d.roleI,
     role_j: d.roleJ,
     dimension: d.dimension,

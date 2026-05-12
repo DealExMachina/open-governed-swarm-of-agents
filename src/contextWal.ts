@@ -7,6 +7,12 @@ export interface ContextEvent {
   data: Record<string, unknown>;
 }
 
+interface ContextEventRow {
+  seq: string | number;
+  ts: Date | string;
+  data: unknown;
+}
+
 let _tableEnsured = false;
 
 export function _resetTableEnsured(): void {
@@ -52,11 +58,14 @@ export async function tailEvents(
     [limit],
   );
   return res.rows
-    .map((r: any) => ({
-      seq: parseInt(r.seq, 10),
-      ts: r.ts instanceof Date ? r.ts.toISOString() : String(r.ts),
-      data: typeof r.data === "string" ? JSON.parse(r.data) : r.data,
-    }))
+    .map((r: ContextEventRow) => {
+      const dataRaw = typeof r.data === "string" ? JSON.parse(r.data) : r.data;
+      return {
+        seq: parseInt(String(r.seq), 10),
+        ts: r.ts instanceof Date ? r.ts.toISOString() : String(r.ts),
+        data: dataRaw as Record<string, unknown>,
+      };
+    })
     .reverse();
 }
 
@@ -71,11 +80,14 @@ export async function eventsSince(
     "SELECT seq, ts, data FROM context_events WHERE seq > $1 ORDER BY seq ASC LIMIT $2",
     [afterSeq, limit],
   );
-  return res.rows.map((r: any) => ({
-    seq: parseInt(r.seq, 10),
-    ts: r.ts instanceof Date ? r.ts.toISOString() : String(r.ts),
-    data: typeof r.data === "string" ? JSON.parse(r.data) : r.data,
-  }));
+  return res.rows.map((r: ContextEventRow) => {
+    const dataRaw = typeof r.data === "string" ? JSON.parse(r.data) : r.data;
+    return {
+      seq: parseInt(String(r.seq), 10),
+      ts: r.ts instanceof Date ? r.ts.toISOString() : String(r.ts),
+      data: dataRaw as Record<string, unknown>,
+    };
+  });
 }
 
 /** Event types that represent pipeline progress (new content/state). Used so governance rejections do not retrigger facts. */

@@ -1,5 +1,6 @@
 /**
  * Safe error serialization to avoid logging huge objects (e.g. pg Client, sockets).
+ * Plain objects without `message` / `code` use JSON.stringify (truncated) instead of "[object Object]".
  */
 
 export function toErrorString(e: unknown): string {
@@ -15,6 +16,13 @@ export function toErrorString(e: unknown): string {
     const code = o.code;
     if (typeof msg === "string") return typeof code === "string" ? `${msg} [${code}]` : msg;
     if (typeof code === "string") return code;
+    try {
+      const s = JSON.stringify(e);
+      const max = 2000;
+      return s.length > max ? `${s.slice(0, max)}…` : s;
+    } catch {
+      return "[unserializable object]";
+    }
   }
   try {
     return String(e);

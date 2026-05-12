@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, afterEach, vi } from "vitest";
 import { getPool, _resetPoolForTest } from "../../src/db.js";
 
 describe("db pool", () => {
@@ -40,22 +40,24 @@ describe("db pool", () => {
     }
   });
 
-  it("should handle pool error event gracefully", (done) => {
+  it("should handle pool error event gracefully", async () => {
     process.env.DATABASE_URL = "postgres://localhost/test";
-    const consoleSpy = (msg: string) => {
-      if (msg.includes("pool error")) {
-        done();
+    let resolveSeen!: () => void;
+    const seen = new Promise<void>((res) => {
+      resolveSeen = res;
+    });
+    const spy = vi.spyOn(console, "error").mockImplementation((first: unknown) => {
+      if (typeof first === "string" && first.includes("pool error")) {
+        resolveSeen();
       }
-    };
-    const originalError = console.error;
-    console.error = consoleSpy as any;
+    });
 
     try {
       const pool = getPool();
-      // Simulate error event
       pool.emit("error", new Error("simulated pool error"));
+      await seen;
     } finally {
-      console.error = originalError;
+      spy.mockRestore();
       _resetPoolForTest();
     }
   });
