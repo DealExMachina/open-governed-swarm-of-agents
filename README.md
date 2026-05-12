@@ -95,9 +95,9 @@ pnpm run demo                    # Demo UI on http://localhost:3003
 ./scripts/run-e2e.sh
 ```
 
-**Ports (default compose):** 3002 feed API, 3003 demo UI, 3004 Grafana, 3000/8080 OpenFGA (HTTP/gRPC), 5433 Postgres, 4222 NATS, 8222 NATS metrics, 9000/9001 MinIO, 8010 facts-worker, 9090 Prometheus, 4317/4318 OTLP.
+**Ports (default compose):** 3002 feed API, 3003 demo UI, 3004 Grafana (host: container 3000), 3000/8080 OpenFGA (HTTP playground/gRPC), 5433 Postgres, 4222 NATS, 8222 NATS metrics, 9000/9001 MinIO, 8010 facts-worker, 9090 Prometheus, 4317/4318 OTLP.
 
-To run **SGRS Studio** or the product **API** against an environment, see the companion monorepo [DealExMachina/sgrs](https://github.com/DealExMachina/sgrs) (Quickstart, `ROUTING_ARCHITECTURE.md`, and client packages).
+To run **SGRS Studio** or the product **REST API** on the same machine, see the companion monorepo [DealExMachina/sgrs](https://github.com/DealExMachina/sgrs) — especially [**`ROUTING_ARCHITECTURE.md`**](https://github.com/DealExMachina/sgrs/blob/main/ROUTING_ARCHITECTURE.md) for canonical ports (**Studio 3001**, **API 3003**). **3003 is shared** with the kernel demo UI above: co-run either by stopping one service or moving the product API to another port (e.g. 3005) as described there.
 
 ---
 
