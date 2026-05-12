@@ -5,7 +5,10 @@
 let _scopeId = process.env.SCOPE_ID ?? "default";
 let _tenantId: string | null = process.env.ACTIVE_TENANT_ID ?? null;
 
-export function setActiveBillingContext(tenantId: string | null, scopeId: string): void {
+export function setActiveBillingContext(
+  tenantId: string | null,
+  scopeId: string,
+): void {
   _tenantId = tenantId;
   _scopeId = scopeId;
   process.env.SCOPE_ID = scopeId;

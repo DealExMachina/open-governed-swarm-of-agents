@@ -1,5 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { logger, setLogContext, _resetLogContext, setLogLevel } from "../../src/logger.js";
+import {
+  logger,
+  setLogContext,
+  _resetLogContext,
+  setLogLevel,
+} from "../../src/logger.js";
 
 describe("logger", () => {
   beforeEach(() => {

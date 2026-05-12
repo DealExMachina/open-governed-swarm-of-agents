@@ -124,8 +124,7 @@ export class WeightedVoteCoordinator {
   ): Vote {
     if (!this.proposals.has(proposalId))
       throw new Error(`Unknown proposal: ${proposalId}`);
-    if (!this.agents.has(voterId))
-      throw new Error(`Unknown agent: ${voterId}`);
+    if (!this.agents.has(voterId)) throw new Error(`Unknown agent: ${voterId}`);
 
     const weight = this.agents.get(voterId)!.weight;
     const vote: Vote = {
@@ -190,7 +189,10 @@ export class WeightedVoteCoordinator {
    * Vote function is provided by the caller (simulates agent decision).
    */
   runVotingRound(
-    voteFn: (agent: string, proposal: Proposal) => { accept: boolean; veto: boolean },
+    voteFn: (
+      agent: string,
+      proposal: Proposal,
+    ) => { accept: boolean; veto: boolean },
   ): VotingRoundResult {
     const startTime = performance.now();
     const results: AcceptedFact[] = [];

@@ -20,8 +20,19 @@ import { addPending } from "../mitlServer.js";
 import { isProcessed, markProcessed } from "../messageDedup.js";
 import type { EventBus } from "../eventBus.js";
 import { logger, setLogContext } from "../logger.js";
-import { recordProposal, recordPolicyViolation, recordGovernanceMode, recordGovernancePath, recordGovernanceLoopMs } from "../metrics.js";
-import { getChatModelConfig, getOversightModelConfig, DETERMINISTIC_SETTINGS, GovernanceOutputSchema } from "../modelConfig.js";
+import {
+  recordProposal,
+  recordPolicyViolation,
+  recordGovernanceMode,
+  recordGovernancePath,
+  recordGovernanceLoopMs,
+} from "../metrics.js";
+import {
+  getChatModelConfig,
+  getOversightModelConfig,
+  DETERMINISTIC_SETTINGS,
+  GovernanceOutputSchema,
+} from "../modelConfig.js";
 import type { Proposal, Action } from "../events.js";
 import { makeReadGovernanceRulesTool } from "./sharedTools.js";
 import { composeInstructions } from "../skills/loader.js";
@@ -78,8 +89,14 @@ setLogContext({ agent_id: AGENT_ID, role: "governance" });
 export interface GovernanceAgentEnv {
   s3: S3Client;
   bucket: string;
-  getPublishAction: () => (subject: string, data: Record<string, unknown>) => Promise<void>;
-  getPublishRejection: () => (subject: string, data: Record<string, unknown>) => Promise<void>;
+  getPublishAction: () => (
+    subject: string,
+    data: Record<string, unknown>,
+  ) => Promise<void>;
+  getPublishRejection: () => (
+    subject: string,
+    data: Record<string, unknown>,
+  ) => Promise<void>;
 }
 
 /**
@@ -105,22 +122,32 @@ function createOversightTools(
   proposal: Proposal,
   deterministicResult: DeterministicResult,
   env: GovernanceAgentEnv,
-): { tools: Record<string, ReturnType<typeof createTool>>; getChosen: () => string | null } {
+): {
+  tools: Record<string, ReturnType<typeof createTool>>;
+  getChosen: () => string | null;
+} {
   const chosen: { value: string | null } = { value: null };
   const acceptDeterministicTool = createTool({
     id: "acceptDeterministic",
-    description: "Accept the deterministic result. The pre-computed outcome (approve, reject, or pending) will be published.",
+    description:
+      "Accept the deterministic result. The pre-computed outcome (approve, reject, or pending) will be published.",
     inputSchema: z.object({}),
     outputSchema: z.object({ ok: z.boolean() }),
     execute: async () => {
       chosen.value = "acceptDeterministic";
-      await commitDeterministicResult(proposal, deterministicResult, env, "oversight_acceptDeterministic");
+      await commitDeterministicResult(
+        proposal,
+        deterministicResult,
+        env,
+        "oversight_acceptDeterministic",
+      );
       return { ok: true };
     },
   });
   const escalateToLLMTool = createTool({
     id: "escalateToLLM",
-    description: "Escalate to the full governance LLM for richer reasoning and a final approve/reject decision.",
+    description:
+      "Escalate to the full governance LLM for richer reasoning and a final approve/reject decision.",
     inputSchema: z.object({}),
     outputSchema: z.object({ ok: z.boolean() }),
     execute: async () => {
@@ -151,12 +178,19 @@ function createOversightTools(
           governance_path: "oversight_escalateToHuman",
           scope_id: getActiveScopeId(),
         });
-        await emitContribution("governance-agent", "assessment", {
-          type: "proposal_pending_approval",
+        await emitContribution(
+          "governance-agent",
+          "assessment",
+          {
+            type: "proposal_pending_approval",
+            proposal_id,
+            governance_path: "oversight_escalateToHuman",
+          },
+          { authorityTier: 2, governanceMode: proposal.mode },
+        );
+        logger.info("proposal pending MITL approval (oversight)", {
           proposal_id,
-          governance_path: "oversight_escalateToHuman",
-        }, { authorityTier: 2, governanceMode: proposal.mode });
-        logger.info("proposal pending MITL approval (oversight)", { proposal_id });
+        });
       } else {
         await commitDeterministicResult(proposal, deterministicResult, env);
       }
@@ -187,17 +221,27 @@ export async function runOversightAgent(
     await commitDeterministicResult(proposal, deterministicResult, env);
     return;
   }
-  const { tools, getChosen } = createOversightTools(proposal, deterministicResult, env);
+  const { tools, getChosen } = createOversightTools(
+    proposal,
+    deterministicResult,
+    env,
+  );
   const agent = new Agent({
     id: "oversight-agent",
     name: "Oversight Agent",
-    instructions: composeInstructions(OVERSIGHT_AGENT_INSTRUCTIONS, "oversight"),
+    instructions: composeInstructions(
+      OVERSIGHT_AGENT_INSTRUCTIONS,
+      "oversight",
+    ),
     model: modelConfig,
     tools,
   });
   const summary = `${deterministicResult.outcome}: ${deterministicResult.reason}`;
   const obligations = deterministicResult.record?.obligations ?? [];
-  const obligationStr = obligations.length > 0 ? ` Obligations triggered: ${obligations.join(", ")}.` : " No obligations triggered.";
+  const obligationStr =
+    obligations.length > 0
+      ? ` Obligations triggered: ${obligations.join(", ")}.`
+      : " No obligations triggered.";
   const jobType = proposal.proposed_action ?? "unknown";
   const prompt = `Proposal: ${proposal.proposal_id} (job_type: ${jobType}), result: ${summary}.${obligationStr} Choose: acceptDeterministic, escalateToLLM, or escalateToHuman.`;
   const LLM_TIMEOUT_MS = 30000;
@@ -205,19 +249,29 @@ export async function runOversightAgent(
   const timeoutId = setTimeout(() => abortController.abort(), LLM_TIMEOUT_MS);
   setMaxListeners(64, abortController.signal);
   try {
-    const genResult = await llmBreaker.call(() => agent.generate(prompt, {
-      maxSteps: 3,
-      abortSignal: abortController.signal,
-      modelSettings: DETERMINISTIC_SETTINGS,
-    }));
+    const genResult = await llmBreaker.call(() =>
+      agent.generate(prompt, {
+        maxSteps: 3,
+        abortSignal: abortController.signal,
+        modelSettings: DETERMINISTIC_SETTINGS,
+      }),
+    );
     trackAgentTokens("oversight", genResult);
   } catch (e) {
     if (!getChosen()) {
-      logger.warn("oversight LLM failed or circuit open; committing deterministic result", {
-        proposal_id: proposal.proposal_id,
-        error: String(e),
-      });
-      await commitDeterministicResult(proposal, deterministicResult, env, "oversight_acceptDeterministic");
+      logger.warn(
+        "oversight LLM failed or circuit open; committing deterministic result",
+        {
+          proposal_id: proposal.proposal_id,
+          error: String(e),
+        },
+      );
+      await commitDeterministicResult(
+        proposal,
+        deterministicResult,
+        env,
+        "oversight_acceptDeterministic",
+      );
       return;
     }
     throw e;
@@ -225,10 +279,18 @@ export async function runOversightAgent(
     clearTimeout(timeoutId);
   }
   if (!getChosen()) {
-    logger.info("oversight agent did not call a tool; committing deterministic result", {
-      proposal_id: proposal.proposal_id,
-    });
-    await commitDeterministicResult(proposal, deterministicResult, env, "oversight_acceptDeterministic");
+    logger.info(
+      "oversight agent did not call a tool; committing deterministic result",
+      {
+        proposal_id: proposal.proposal_id,
+      },
+    );
+    await commitDeterministicResult(
+      proposal,
+      deterministicResult,
+      env,
+      "oversight_acceptDeterministic",
+    );
   }
 }
 
@@ -244,12 +306,14 @@ function createGovernanceTools(proposal: Proposal, env: GovernanceAgentEnv) {
     description: "Read the current state graph state (runId, lastNode, epoch).",
     inputSchema: z.object({}),
     outputSchema: z.object({
-      state: z.object({
-        runId: z.string(),
-        lastNode: z.string(),
-        epoch: z.number(),
-        updatedAt: z.string(),
-      }).nullable(),
+      state: z
+        .object({
+          runId: z.string(),
+          lastNode: z.string(),
+          epoch: z.number(),
+          updatedAt: z.string(),
+        })
+        .nullable(),
     }),
     execute: async () => {
       const state = await loadState(getActiveScopeId());
@@ -277,7 +341,8 @@ function createGovernanceTools(proposal: Proposal, env: GovernanceAgentEnv) {
   const readGovernanceRules = makeReadGovernanceRulesTool();
   const checkTransitionTool = createTool({
     id: "checkTransition",
-    description: "Check if the proposed transition (from -> to) is allowed given current drift and governance rules.",
+    description:
+      "Check if the proposed transition (from -> to) is allowed given current drift and governance rules.",
     inputSchema: z.object({}),
     outputSchema: z.object({
       allowed: z.boolean(),
@@ -288,14 +353,24 @@ function createGovernanceTools(proposal: Proposal, env: GovernanceAgentEnv) {
       const drift = raw
         ? (JSON.parse(raw) as { level: string; types: string[] })
         : { level: "none", types: [] as string[] };
-      const govPath = process.env.GOVERNANCE_PATH ?? join(process.cwd(), "governance.yaml");
-      const governance = getGovernanceForScope(getActiveScopeId(), loadPolicies(govPath));
+      const govPath =
+        process.env.GOVERNANCE_PATH ?? join(process.cwd(), "governance.yaml");
+      const governance = getGovernanceForScope(
+        getActiveScopeId(),
+        loadPolicies(govPath),
+      );
       if (from === undefined || to === undefined) {
         return { allowed: false, reason: "missing_from_or_to" };
       }
       const policyVersion = getGovernancePolicyVersion(govPath);
       const kernelResult = evaluateKernel(
-        { from_state: from, to_state: to, drift_level: drift.level, drift_types: drift.types, mode: governance.mode ?? "YOLO" },
+        {
+          from_state: from,
+          to_state: to,
+          drift_level: drift.level,
+          drift_types: drift.types,
+          mode: governance.mode ?? "YOLO",
+        },
         governance,
       );
       const record = buildDecisionRecordFromKernel(kernelResult, policyVersion);
@@ -308,7 +383,9 @@ function createGovernanceTools(proposal: Proposal, env: GovernanceAgentEnv) {
           scope_mode: scopeMode,
         });
       } catch (err) {
-        logger.warn("persistDecisionRecord failed (checkTransition)", { error: String(err) });
+        logger.warn("persistDecisionRecord failed (checkTransition)", {
+          error: String(err),
+        });
       }
       await executeObligations(record.obligations ?? []);
       return { allowed, reason: record.reason };
@@ -316,20 +393,26 @@ function createGovernanceTools(proposal: Proposal, env: GovernanceAgentEnv) {
   });
   const checkPolicyTool = createTool({
     id: "checkPolicy",
-    description: "Check if the proposing agent has permission to write to the target node.",
+    description:
+      "Check if the proposing agent has permission to write to the target node.",
     inputSchema: z.object({}),
     outputSchema: z.object({
       allowed: z.boolean(),
       error: z.string().optional(),
     }),
     execute: async () => {
-      const result = await checkPermission(proposal.agent, "writer", proposal.target_node);
+      const result = await checkPermission(
+        proposal.agent,
+        "writer",
+        proposal.target_node,
+      );
       return { allowed: result.allowed, error: result.error };
     },
   });
   const publishApprovalTool = createTool({
     id: "publishApproval",
-    description: "Approve the proposal and publish the action. Only succeeds if state epoch matches and transition and policy checks pass.",
+    description:
+      "Approve the proposal and publish the action. Only succeeds if state epoch matches and transition and policy checks pass.",
     inputSchema: z.object({
       reason: z.string().describe("Brief reason for approval"),
     }),
@@ -348,17 +431,30 @@ function createGovernanceTools(proposal: Proposal, env: GovernanceAgentEnv) {
       const drift = driftRaw
         ? (JSON.parse(driftRaw) as { level: string; types: string[] })
         : { level: "none", types: [] as string[] };
-      const govPath = process.env.GOVERNANCE_PATH ?? join(process.cwd(), "governance.yaml");
-      const governance = getGovernanceForScope(getActiveScopeId(), loadPolicies(govPath));
+      const govPath =
+        process.env.GOVERNANCE_PATH ?? join(process.cwd(), "governance.yaml");
+      const governance = getGovernanceForScope(
+        getActiveScopeId(),
+        loadPolicies(govPath),
+      );
       if (from === undefined || to === undefined) {
         return { ok: false, error: "missing_from_or_to" };
       }
       const policyVersion = getGovernancePolicyVersion(govPath);
       const kernelResult = evaluateKernel(
-        { from_state: from, to_state: to, drift_level: drift.level, drift_types: drift.types, mode: governance.mode ?? "YOLO" },
+        {
+          from_state: from,
+          to_state: to,
+          drift_level: drift.level,
+          drift_types: drift.types,
+          mode: governance.mode ?? "YOLO",
+        },
         governance,
       );
-      const transitionRecord = buildDecisionRecordFromKernel(kernelResult, policyVersion);
+      const transitionRecord = buildDecisionRecordFromKernel(
+        kernelResult,
+        policyVersion,
+      );
       const transitionAllowed = kernelResult.verdict !== "reject";
       const scopeModeForPublish = governance.mode ?? "YOLO";
       try {
@@ -368,13 +464,19 @@ function createGovernanceTools(proposal: Proposal, env: GovernanceAgentEnv) {
           scope_mode: scopeModeForPublish,
         });
       } catch (err) {
-        logger.warn("persistDecisionRecord failed (publishApproval)", { error: String(err) });
+        logger.warn("persistDecisionRecord failed (publishApproval)", {
+          error: String(err),
+        });
       }
       await executeObligations(transitionRecord.obligations ?? []);
       if (!transitionAllowed) {
         return { ok: false, error: transitionRecord.reason };
       }
-      const policyResult = await checkPermission(proposal.agent, "writer", proposal.target_node);
+      const policyResult = await checkPermission(
+        proposal.agent,
+        "writer",
+        proposal.target_node,
+      );
       if (!policyResult.allowed) {
         recordPolicyViolation();
         return { ok: false, error: policyResult.error ?? "policy_denied" };
@@ -387,9 +489,18 @@ function createGovernanceTools(proposal: Proposal, env: GovernanceAgentEnv) {
         result: "approved",
         reason,
         action_type: "advance_state",
-        payload: { expectedEpoch, runId: state.runId, from, to, scope_id: getActiveScopeId() },
+        payload: {
+          expectedEpoch,
+          runId: state.runId,
+          from,
+          to,
+          scope_id: getActiveScopeId(),
+        },
       };
-      await env.getPublishAction()("swarm.actions.advance_state", action as unknown as Record<string, unknown>);
+      await env.getPublishAction()(
+        "swarm.actions.advance_state",
+        action as unknown as Record<string, unknown>,
+      );
       await appendEvent({
         type: "proposal_approved",
         proposal_id: proposal.proposal_id,
@@ -397,13 +508,21 @@ function createGovernanceTools(proposal: Proposal, env: GovernanceAgentEnv) {
         governance_path: "processProposalWithAgent",
         scope_id: getActiveScopeId(),
       });
-      await emitContribution("governance-agent", "assessment", {
-        type: "proposal_approved",
+      await emitContribution(
+        "governance-agent",
+        "assessment",
+        {
+          type: "proposal_approved",
+          proposal_id: proposal.proposal_id,
+          reason,
+          governance_path: "processProposalWithAgent",
+        },
+        { authorityTier: 2, governanceMode: proposal.mode },
+      );
+      logger.info("proposal approved (agent)", {
         proposal_id: proposal.proposal_id,
         reason,
-        governance_path: "processProposalWithAgent",
-      }, { authorityTier: 2, governanceMode: proposal.mode });
-      logger.info("proposal approved (agent)", { proposal_id: proposal.proposal_id, reason });
+      });
       return { ok: true };
     },
   });
@@ -421,11 +540,14 @@ function createGovernanceTools(proposal: Proposal, env: GovernanceAgentEnv) {
       const reason = (input as { reason?: string })?.reason ?? "rejected";
       decided = true;
       recordProposal(proposal.proposed_action, "rejected");
-      await env.getPublishRejection()(`swarm.rejections.${proposal.proposed_action}`, {
-        proposal_id: proposal.proposal_id,
-        reason,
-        result: "rejected",
-      });
+      await env.getPublishRejection()(
+        `swarm.rejections.${proposal.proposed_action}`,
+        {
+          proposal_id: proposal.proposal_id,
+          reason,
+          result: "rejected",
+        },
+      );
       await appendEvent({
         type: "proposal_rejected",
         proposal_id: proposal.proposal_id,
@@ -433,13 +555,21 @@ function createGovernanceTools(proposal: Proposal, env: GovernanceAgentEnv) {
         governance_path: "processProposalWithAgent",
         scope_id: getActiveScopeId(),
       });
-      await emitContribution("governance-agent", "assessment", {
-        type: "proposal_rejected",
+      await emitContribution(
+        "governance-agent",
+        "assessment",
+        {
+          type: "proposal_rejected",
+          proposal_id: proposal.proposal_id,
+          reason,
+          governance_path: "processProposalWithAgent",
+        },
+        { authorityTier: 2, governanceMode: proposal.mode },
+      );
+      logger.info("proposal rejected (agent)", {
         proposal_id: proposal.proposal_id,
         reason,
-        governance_path: "processProposalWithAgent",
-      }, { authorityTier: 2, governanceMode: proposal.mode });
-      logger.info("proposal rejected (agent)", { proposal_id: proposal.proposal_id, reason });
+      });
       return { ok: true };
     },
   });
@@ -472,7 +602,10 @@ export async function processProposalWithAgent(
   const agent = new Agent({
     id: "governance-agent",
     name: "Governance Agent",
-    instructions: composeInstructions(GOVERNANCE_AGENT_INSTRUCTIONS, "governance"),
+    instructions: composeInstructions(
+      GOVERNANCE_AGENT_INSTRUCTIONS,
+      "governance",
+    ),
     model: modelConfig,
     tools: {
       readState: tools.readState,
@@ -500,10 +633,13 @@ export async function processProposalWithAgent(
     trackAgentTokens("governance", genResult);
   } catch (e) {
     if (!tools.isDecided()) {
-      logger.warn("governance LLM failed or circuit open; falling back to rule-based", {
-        proposal_id: proposal.proposal_id,
-        error: String(e),
-      });
+      logger.warn(
+        "governance LLM failed or circuit open; falling back to rule-based",
+        {
+          proposal_id: proposal.proposal_id,
+          error: String(e),
+        },
+      );
       await processProposal(proposal, env);
       return;
     }
@@ -512,7 +648,9 @@ export async function processProposalWithAgent(
     clearTimeout(timeoutId);
   }
   if (!tools.isDecided()) {
-    logger.info("governance agent did not decide; falling back to rule-based", { proposal_id: proposal.proposal_id });
+    logger.info("governance agent did not decide; falling back to rule-based", {
+      proposal_id: proposal.proposal_id,
+    });
     await processProposal(proposal, env);
   }
 }
@@ -530,7 +668,11 @@ export async function evaluateProposalDeterministic(
     return { outcome: "ignore", reason: "non advance_state proposal" };
   }
 
-  const { expectedEpoch, from, to } = payload as { expectedEpoch: number; from: string; to: string };
+  const { expectedEpoch, from, to } = payload as {
+    expectedEpoch: number;
+    from: string;
+    to: string;
+  };
   const state = await loadState(getActiveScopeId());
   if (!state || state.epoch !== expectedEpoch) {
     return { outcome: "reject", reason: "state_epoch_mismatch" };
@@ -540,8 +682,12 @@ export async function evaluateProposalDeterministic(
   const drift = driftRaw
     ? (JSON.parse(driftRaw) as { level: string; types: string[] })
     : { level: "none", types: [] as string[] };
-  const govPath = process.env.GOVERNANCE_PATH ?? join(process.cwd(), "governance.yaml");
-  const governance = getGovernanceForScope(getActiveScopeId(), loadPolicies(govPath));
+  const govPath =
+    process.env.GOVERNANCE_PATH ?? join(process.cwd(), "governance.yaml");
+  const governance = getGovernanceForScope(
+    getActiveScopeId(),
+    loadPolicies(govPath),
+  );
 
   // All modes (YOLO, MITL, MASTER) flow through the sgrs reduction kernel.
   const policyVersion = getGovernancePolicyVersion(govPath);
@@ -631,8 +777,11 @@ export async function commitDeterministicResult(
     return;
   }
 
-  const govPath = process.env.GOVERNANCE_PATH ?? join(process.cwd(), "governance.yaml");
-  const scopeMode = getGovernanceForScope(getActiveScopeId(), loadPolicies(govPath)).mode ?? "YOLO";
+  const govPath =
+    process.env.GOVERNANCE_PATH ?? join(process.cwd(), "governance.yaml");
+  const scopeMode =
+    getGovernanceForScope(getActiveScopeId(), loadPolicies(govPath)).mode ??
+    "YOLO";
   recordGovernanceMode(getActiveScopeId(), scopeMode);
   recordGovernancePath(path);
   if (result.record) {
@@ -643,7 +792,10 @@ export async function commitDeterministicResult(
         scope_mode: scopeMode,
       });
     } catch (err) {
-      logger.warn("persistDecisionRecord failed (commitDeterministicResult)", { error: String(err), governance_path: path });
+      logger.warn("persistDecisionRecord failed (commitDeterministicResult)", {
+        error: String(err),
+        governance_path: path,
+      });
     }
   }
 
@@ -664,13 +816,22 @@ export async function commitDeterministicResult(
       governance_path: path,
       scope_id: getActiveScopeId(),
     });
-    await emitContribution("governance-agent", "assessment", {
-      type: "proposal_rejected",
+    await emitContribution(
+      "governance-agent",
+      "assessment",
+      {
+        type: "proposal_rejected",
+        proposal_id,
+        reason: result.reason,
+        governance_path: path,
+      },
+      { authorityTier: 2, governanceMode: proposal.mode },
+    );
+    logger.info("proposal rejected", {
       proposal_id,
       reason: result.reason,
       governance_path: path,
-    }, { authorityTier: 2, governanceMode: proposal.mode });
-    logger.info("proposal rejected", { proposal_id, reason: result.reason, governance_path: path });
+    });
     return;
   }
 
@@ -687,12 +848,20 @@ export async function commitDeterministicResult(
       governance_path: path,
       scope_id: getActiveScopeId(),
     });
-    await emitContribution("governance-agent", "assessment", {
-      type: "proposal_pending_approval",
+    await emitContribution(
+      "governance-agent",
+      "assessment",
+      {
+        type: "proposal_pending_approval",
+        proposal_id,
+        governance_path: path,
+      },
+      { authorityTier: 2, governanceMode: proposal.mode },
+    );
+    logger.info("proposal pending MITL approval", {
       proposal_id,
       governance_path: path,
-    }, { authorityTier: 2, governanceMode: proposal.mode });
-    logger.info("proposal pending MITL approval", { proposal_id, governance_path: path });
+    });
     return;
   }
 
@@ -707,7 +876,10 @@ export async function commitDeterministicResult(
       action_type: "advance_state",
       payload: { ...result.actionPayload, scope_id: getActiveScopeId() },
     };
-    await env.getPublishAction()("swarm.actions.advance_state", action as unknown as Record<string, unknown>);
+    await env.getPublishAction()(
+      "swarm.actions.advance_state",
+      action as unknown as Record<string, unknown>,
+    );
     await appendEvent({
       type: "proposal_approved",
       proposal_id,
@@ -715,13 +887,22 @@ export async function commitDeterministicResult(
       governance_path: path,
       scope_id: getActiveScopeId(),
     });
-    await emitContribution("governance-agent", "assessment", {
-      type: "proposal_approved",
+    await emitContribution(
+      "governance-agent",
+      "assessment",
+      {
+        type: "proposal_approved",
+        proposal_id,
+        reason: result.reason,
+        governance_path: path,
+      },
+      { authorityTier: 2, governanceMode: proposal.mode },
+    );
+    logger.info("proposal approved", {
       proposal_id,
       reason: result.reason,
       governance_path: path,
-    }, { authorityTier: 2, governanceMode: proposal.mode });
-    logger.info("proposal approved", { proposal_id, reason: result.reason, governance_path: path });
+    });
   }
 }
 
@@ -734,7 +915,10 @@ export async function processProposal(
   let path: GovernancePath = "processProposal";
   if (result.reason?.startsWith("yolo_override:")) {
     path = "processProposal_yoloOverride";
-  } else if (result.outcome === "pending" && result.reason === "mitl_required") {
+  } else if (
+    result.outcome === "pending" &&
+    result.reason === "mitl_required"
+  ) {
     path = "processProposal_mitlEscalation";
   } else if (result.outcome === "reject" && proposal.mode === "MASTER") {
     path = "processProposal_masterReject";
@@ -749,7 +933,10 @@ export async function processProposal(
 export async function runFinalityCheck(scopeId: string): Promise<void> {
   const result = await evaluateFinality(scopeId);
   if (result?.kind === "status") {
-    logger.info("finality outcome", { scope_id: scopeId, outcome: result.status });
+    logger.info("finality outcome", {
+      scope_id: scopeId,
+      outcome: result.status,
+    });
   } else if (result?.kind === "review") {
     logger.info("finality outcome", {
       scope_id: scopeId,
@@ -767,37 +954,65 @@ export async function runFinalityCheck(scopeId: string): Promise<void> {
   // Fire-and-forget: Studio unavailability must never block governance.
   try {
     const { syncFinalityToSgrs } = await import("../sgrsSync.js");
-    const { loadFinalitySnapshot, computeGoalScore, loadFinalityConfig } = await import("../finalityEvaluator.js");
+    const { loadFinalitySnapshot, computeGoalScore, loadFinalityConfig } =
+      await import("../finalityEvaluator.js");
     const { getConvergenceState } = await import("../convergenceTracker.js");
-    const snap   = await loadFinalitySnapshot(scopeId);
+    const snap = await loadFinalitySnapshot(scopeId);
     const config = loadFinalityConfig();
-    const score  = computeGoalScore(snap, config.goal_gradient);
-    const conv   = await getConvergenceState(scopeId, config.convergence ?? {}, 0.92);
+    const score = computeGoalScore(snap, config.goal_gradient);
+    const conv = await getConvergenceState(
+      scopeId,
+      config.convergence ?? {},
+      0.92,
+    );
     // SGRS API state convention: lowercase ("active" | "near-final" | "resolved" | "escalated")
     // Evaluator produces ACTIVE / RESOLVED / ESCALATED — .toLowerCase() is the exact transform.
-    const swarmStatus = result?.kind === "status" ? result.status
-      : result?.kind === "review" ? "ESCALATED" : "ACTIVE";
-    const state = swarmStatus.toLowerCase() as "active" | "near-final" | "resolved" | "escalated";
+    const swarmStatus =
+      result?.kind === "status"
+        ? result.status
+        : result?.kind === "review"
+          ? "ESCALATED"
+          : "ACTIVE";
+    const state = swarmStatus.toLowerCase() as
+      | "active"
+      | "near-final"
+      | "resolved"
+      | "escalated";
     const contraTotal = snap.contradictions_total_count || 0;
     const perDimension = {
-      claim_confidence:         snap.claims_active_avg_confidence,
-      contradiction_resolution: contraTotal === 0 ? 1 : 1 - snap.contradictions_unresolved_count / contraTotal,
-      goal_completion:          snap.goals_completion_ratio,
-      risk_score_inverse:       1 - Math.min(snap.scope_risk_score, 1),
+      claim_confidence: snap.claims_active_avg_confidence,
+      contradiction_resolution:
+        contraTotal === 0
+          ? 1
+          : 1 - snap.contradictions_unresolved_count / contraTotal,
+      goal_completion: snap.goals_completion_ratio,
+      risk_score_inverse: 1 - Math.min(snap.scope_risk_score, 1),
     };
     await syncFinalityToSgrs(
-      scopeId, score, state, perDimension,
-      conv.history.length, conv.plateau_rounds, conv.convergence_rate,
+      scopeId,
+      score,
+      state,
+      perDimension,
+      conv.history.length,
+      conv.plateau_rounds,
+      conv.convergence_rate,
       state === "escalated",
     );
-    logger.info("sgrs finality sync", { scopeId, score: score.toFixed(3), state });
+    logger.info("sgrs finality sync", {
+      scopeId,
+      score: score.toFixed(3),
+      state,
+    });
   } catch (e) {
     logger.warn("sgrs finality sync skipped", { scopeId, error: String(e) });
   }
 }
 
 /** Dedicated consumer for swarm.finality.evaluate; acks only after runFinalityCheck succeeds (retry on failure). */
-async function runFinalityConsumerLoop(bus: EventBus, signal?: AbortSignal): Promise<void> {
+async function runFinalityConsumerLoop(
+  bus: EventBus,
+  signal?: AbortSignal,
+): Promise<void> {
   const stream = process.env.NATS_STREAM ?? "SWARM_JOBS";
   const subject = "swarm.finality.evaluate";
   const consumer = "finality-evaluator";
@@ -808,7 +1023,9 @@ async function runFinalityConsumerLoop(bus: EventBus, signal?: AbortSignal): Pro
       subject,
       consumer,
       async (msg) => {
-        const scopeId = String((msg.data as Record<string, unknown>).scope_id ?? "default");
+        const scopeId = String(
+          (msg.data as Record<string, unknown>).scope_id ?? "default",
+        );
         await runFinalityCheck(scopeId);
       },
       { timeoutMs: 5000, maxMessages: 10 },
@@ -829,22 +1046,31 @@ export interface GovernanceLoopOpts {
   startMitl?: boolean;
 }
 
-export async function runGovernanceAgentLoop(bus: EventBus, s3: S3Client, bucket: string, signalOrOpts?: AbortSignal | GovernanceLoopOpts): Promise<void> {
-  const opts: GovernanceLoopOpts = signalOrOpts instanceof AbortSignal
-    ? { signal: signalOrOpts }
-    : (signalOrOpts ?? {});
+export async function runGovernanceAgentLoop(
+  bus: EventBus,
+  s3: S3Client,
+  bucket: string,
+  signalOrOpts?: AbortSignal | GovernanceLoopOpts,
+): Promise<void> {
+  const opts: GovernanceLoopOpts =
+    signalOrOpts instanceof AbortSignal
+      ? { signal: signalOrOpts }
+      : (signalOrOpts ?? {});
   const signal = opts.signal;
   const effectiveAgentId = opts.agentId ?? AGENT_ID;
   const shouldStartMitl = opts.startMitl !== false;
 
-  const { setMitlPublishFns, startMitlServer } = await import("../mitlServer.js");
+  const { setMitlPublishFns, startMitlServer } =
+    await import("../mitlServer.js");
   const { startResolutionMcpServer } = await import("../resolutionMcp.js");
   const { startWatchdog } = await import("../watchdog.js");
   if (shouldStartMitl) {
     const mitlPort = parseInt(process.env.MITL_PORT ?? "3001", 10);
     setMitlPublishFns(
-      (subj, data) => bus.publish(subj, data as Record<string, string>).then(() => {}),
-      (subj, data) => bus.publish(subj, data as Record<string, string>).then(() => {}),
+      (subj, data) =>
+        bus.publish(subj, data as Record<string, string>).then(() => {}),
+      (subj, data) =>
+        bus.publish(subj, data as Record<string, string>).then(() => {}),
     );
     startMitlServer(mitlPort);
     const mcpPort = parseInt(process.env.RESOLUTION_MCP_PORT ?? "3006", 10);
@@ -857,7 +1083,11 @@ export async function runGovernanceAgentLoop(bus: EventBus, s3: S3Client, bucket
 
   const subject = "swarm.proposals.>";
   const consumer = opts.consumerName ?? `governance-${effectiveAgentId}`;
-  logger.info("governance agent started", { subject, consumer, agentId: effectiveAgentId });
+  logger.info("governance agent started", {
+    subject,
+    consumer,
+    agentId: effectiveAgentId,
+  });
 
   const BACKOFF_MS = 500;
   const BACKOFF_MAX_MS = 5000;
@@ -892,7 +1122,10 @@ export async function runGovernanceAgentLoop(bus: EventBus, s3: S3Client, bucket
         if (proposal.mode === "MASTER" || proposal.mode === "MITL") {
           await processProposal(proposal, env);
         } else {
-          const deterministicResult = await evaluateProposalDeterministic(proposal, env);
+          const deterministicResult = await evaluateProposalDeterministic(
+            proposal,
+            env,
+          );
           if (!getChatModelConfig()) {
             await commitDeterministicResult(proposal, deterministicResult, env);
           } else {
@@ -900,7 +1133,9 @@ export async function runGovernanceAgentLoop(bus: EventBus, s3: S3Client, bucket
           }
         }
         recordGovernanceLoopMs(Date.now() - govLoopStart);
-        await bus.publish("swarm.finality.evaluate", { scope_id: getActiveScopeId() } as Record<string, string>);
+        await bus.publish("swarm.finality.evaluate", {
+          scope_id: getActiveScopeId(),
+        } as Record<string, string>);
         watchdogState.lastProposalAt = Date.now();
         await markProcessed(consumer, msg.id);
       },

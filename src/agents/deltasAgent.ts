@@ -4,7 +4,10 @@
  * and writes a delta summary to S3 for downstream consumption.
  */
 import type { S3Client } from "@aws-sdk/client-s3";
-import { loadLatestEvidenceStates, type PerRoleEvidence } from "../evidenceStateManager.js";
+import {
+  loadLatestEvidenceStates,
+  type PerRoleEvidence,
+} from "../evidenceStateManager.js";
 import { s3PutJson } from "../s3.js";
 import { logger } from "../logger.js";
 import { loadPropagationConfig } from "../config/propagation.js";
@@ -30,8 +33,14 @@ function toMillis(iso: string | null): number {
   return iso === null ? Number.POSITIVE_INFINITY : new Date(iso).getTime();
 }
 
-function intersectInterval(a: TimeInterval, b: TimeInterval): TimeInterval | null {
-  const startMs = Math.max(new Date(a.start).getTime(), new Date(b.start).getTime());
+function intersectInterval(
+  a: TimeInterval,
+  b: TimeInterval,
+): TimeInterval | null {
+  const startMs = Math.max(
+    new Date(a.start).getTime(),
+    new Date(b.start).getTime(),
+  );
   const endMs = Math.min(toMillis(a.end), toMillis(b.end));
   if (endMs < startMs) return null;
   return {
@@ -59,7 +68,10 @@ export function joinDelta(current: Delta, incoming: Delta): Delta {
 
   return {
     ...current,
-    value: Math.abs(incoming.value) > Math.abs(current.value) ? incoming.value : current.value,
+    value:
+      Math.abs(incoming.value) > Math.abs(current.value)
+        ? incoming.value
+        : current.value,
     v_time: intersection,
   };
 }
@@ -132,7 +144,8 @@ export async function runDeltasAgent(
   bucket: string,
   payload: Record<string, unknown>,
 ): Promise<Record<string, unknown>> {
-  const scopeId = (payload.scope_id as string) ?? process.env.SCOPE_ID ?? "default";
+  const scopeId =
+    (payload.scope_id as string) ?? process.env.SCOPE_ID ?? "default";
   const config = loadPropagationConfig();
   const dimensionNames = config.propagation.dimensions;
 
@@ -148,10 +161,18 @@ export async function runDeltasAgent(
     end: (payload.valid_to as string) ?? null,
   };
   const tTime = new Date().toISOString();
-  const deltas = extractDeltas(latest.perRole, dimensionNames, MATERIAL_THRESHOLD, vTime, tTime);
+  const deltas = extractDeltas(
+    latest.perRole,
+    dimensionNames,
+    MATERIAL_THRESHOLD,
+    vTime,
+    tTime,
+  );
 
   // Propagation result passed through from previous agent
-  const propagationResult = payload.propagation_result as Record<string, unknown> | undefined;
+  const propagationResult = payload.propagation_result as
+    | Record<string, unknown>
+    | undefined;
 
   const summary = {
     epoch: latest.epoch,

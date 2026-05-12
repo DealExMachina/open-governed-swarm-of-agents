@@ -8,7 +8,12 @@
 import { readFileSync } from "fs";
 import { join } from "path";
 import { loadBenchmarkPackageForScenario } from "../manifest/index.js";
-import type { AgentRole, BenchmarkConfig, GroundTruth, ScenarioDocument } from "./types.js";
+import type {
+  AgentRole,
+  BenchmarkConfig,
+  GroundTruth,
+  ScenarioDocument,
+} from "./types.js";
 
 export type {
   AgentRole,
@@ -24,14 +29,19 @@ export type {
 const REPO_ROOT = process.cwd();
 
 /** Default package: S1 manifest (synchronized with demo/scenario/docs/). */
-export const DEFAULT_BENCHMARK_PACKAGE = loadBenchmarkPackageForScenario(REPO_ROOT, "s1");
+export const DEFAULT_BENCHMARK_PACKAGE = loadBenchmarkPackageForScenario(
+  REPO_ROOT,
+  "s1",
+);
 
-export const SCENARIO_DOCUMENTS: ScenarioDocument[] = DEFAULT_BENCHMARK_PACKAGE.documents;
+export const SCENARIO_DOCUMENTS: ScenarioDocument[] =
+  DEFAULT_BENCHMARK_PACKAGE.documents;
 export const GROUND_TRUTH: GroundTruth = DEFAULT_BENCHMARK_PACKAGE.groundTruth;
 export const AGENT_ROLES: AgentRole[] = DEFAULT_BENCHMARK_PACKAGE.agentRoles;
 
 /** M&A role → dimensions (S1); other manifests carry their own maps on the package. */
-export const DEFAULT_ROLE_DIMENSION_MAP = DEFAULT_BENCHMARK_PACKAGE.roleDimensionMap;
+export const DEFAULT_ROLE_DIMENSION_MAP =
+  DEFAULT_BENCHMARK_PACKAGE.roleDimensionMap;
 
 /** Load document text for a document belonging to the default S1 package. */
 export function loadDocumentText(doc: ScenarioDocument): string {
@@ -46,7 +56,10 @@ export function loadDocumentTextForPackage(
   pkg: { repoRoot: string; docsRootRelative: string },
   doc: ScenarioDocument,
 ): string {
-  return readFileSync(join(pkg.repoRoot, pkg.docsRootRelative, doc.path), "utf-8");
+  return readFileSync(
+    join(pkg.repoRoot, pkg.docsRootRelative, doc.path),
+    "utf-8",
+  );
 }
 
 /** Load all default (S1) documents with text */

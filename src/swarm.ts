@@ -19,7 +19,8 @@ import { AgentHatchery } from "./hatchery.js";
 import { startRuntimeControlResponder } from "./runtimeControlRpc.js";
 
 const BUCKET = process.env.S3_BUCKET!;
-const AGENT_ID = process.env.AGENT_ID ?? `agent-${Math.random().toString(16).slice(2, 10)}`;
+const AGENT_ID =
+  process.env.AGENT_ID ?? `agent-${Math.random().toString(16).slice(2, 10)}`;
 const ROLE = process.env.AGENT_ROLE ?? "facts";
 const NATS_STREAM = process.env.NATS_STREAM ?? "SWARM_JOBS";
 const SCOPE_ID = process.env.SCOPE_ID ?? "default";
@@ -70,9 +71,17 @@ process.on("SIGINT", () => onShutdownSignal("SIGINT"));
 // ── Main ─────────────────────────────────────────────────────────────────────
 
 async function bootstrap(bus: EventBus): Promise<void> {
-  const jobSubjects = ["swarm.jobs.extract_facts", "swarm.jobs.check_drift", "swarm.jobs.plan_actions", "swarm.jobs.summarize_status"];
+  const jobSubjects = [
+    "swarm.jobs.extract_facts",
+    "swarm.jobs.check_drift",
+    "swarm.jobs.plan_actions",
+    "swarm.jobs.summarize_status",
+  ];
   for (const subj of jobSubjects) {
-    await bus.publish(subj, { type: subj.split(".").pop()!, reason: "bootstrap" });
+    await bus.publish(subj, {
+      type: subj.split(".").pop()!,
+      reason: "bootstrap",
+    });
   }
   await bus.publishEvent(
     createSwarmEvent("bootstrap", { reason: "bootstrap" }, { source: "swarm" }),
@@ -110,7 +119,9 @@ async function main(): Promise<void> {
       logger.info("hatchery shutdown signal received", { signal: sig });
       if (stopRuntimeResponder) await stopRuntimeResponder();
       await hatchery.shutdown();
-      try { await drainPool(); } catch {}
+      try {
+        await drainPool();
+      } catch {}
       process.exit(0);
     };
     process.removeAllListeners("SIGTERM");
@@ -157,7 +168,9 @@ async function main(): Promise<void> {
 
   if (ROLE === "tuner") {
     await runTunerAgentLoop(s3, BUCKET, async (type, payload) => {
-      await bus.publishEvent(createSwarmEvent(type, payload, { source: "tuner" }));
+      await bus.publishEvent(
+        createSwarmEvent(type, payload, { source: "tuner" }),
+      );
     });
     return;
   }

@@ -30,7 +30,12 @@ import {
   type DetectedContradiction,
 } from "./sgrsAdapter.js";
 
-export type { SpectralAnalysis, PropagationStepResult, ISSAnalysis, DetectedContradiction };
+export type {
+  SpectralAnalysis,
+  PropagationStepResult,
+  ISSAnalysis,
+  DetectedContradiction,
+};
 
 /** Evidence state as flat vector: length = num_roles * 2 * num_dims (support then refutation per role). */
 export type EvidenceStateFlat = number[];
@@ -64,7 +69,9 @@ export class PropagationEngine {
     const prop = config.propagation;
     this.numRoles = options.num_roles ?? (prop.roles.length || 7);
     this.numDims = options.num_dims ?? (prop.dimensions.length || 4);
-    this.stalkDim = (prop.roles[0] as PropagationRoleConfig | undefined)?.stalk_dim ?? 2 * this.numDims;
+    this.stalkDim =
+      (prop.roles[0] as PropagationRoleConfig | undefined)?.stalk_dim ??
+      2 * this.numDims;
     this.supportRange = prop.admissible_set.support_range;
     this.refutationRange = prop.admissible_set.refutation_range;
     this.maxAlphaRatio = prop.diffusion.max_alpha_ratio;
@@ -141,7 +148,7 @@ export class PropagationEngine {
           const roleName = this.roles[i]?.name ?? `role-${i}`;
           console.warn(
             `[PropagationEngine] Role "${roleName}" (idx=${i}) has no edges ` +
-            `in sheaf.edges — it will be disconnected in the sheaf Laplacian.`,
+              `in sheaf.edges — it will be disconnected in the sheaf Laplacian.`,
           );
         }
       }
@@ -303,7 +310,8 @@ export class PropagationEngine {
     const noiseBound = noiseHistory.length > 0 ? Math.max(...noiseHistory) : 0;
     const contradictionRate =
       contradictionHistory.length > 0
-        ? contradictionHistory.reduce((a, b) => a + b, 0) / contradictionHistory.length
+        ? contradictionHistory.reduce((a, b) => a + b, 0) /
+          contradictionHistory.length
         : 0;
     return analyzeISS(
       spec.spectral_gap,
@@ -315,8 +323,16 @@ export class PropagationEngine {
   }
 
   /** Extract contradictions from an evidence state (pairs exceeding threshold). */
-  extractContradictions(state: EvidenceStateFlat, threshold: number): DetectedContradiction[] {
-    return rawExtractContradictions(state, this.numRoles, this.numDims, threshold);
+  extractContradictions(
+    state: EvidenceStateFlat,
+    threshold: number,
+  ): DetectedContradiction[] {
+    return rawExtractContradictions(
+      state,
+      this.numRoles,
+      this.numDims,
+      threshold,
+    );
   }
 
   /** Create engine with config loaded from propagation.yaml. */

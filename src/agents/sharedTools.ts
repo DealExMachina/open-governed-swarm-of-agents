@@ -9,12 +9,14 @@ import { join } from "path";
 const KEY_FACTS = "facts/latest.json";
 const KEY_DRIFT = "drift/latest.json";
 const KEY_FACTS_HIST_PREFIX = "facts/history/";
-const GOVERNANCE_PATH = process.env.GOVERNANCE_PATH ?? join(process.cwd(), "governance.yaml");
+const GOVERNANCE_PATH =
+  process.env.GOVERNANCE_PATH ?? join(process.cwd(), "governance.yaml");
 
 export function makeReadFactsTool(s3: S3Client, bucket: string) {
   return createTool({
     id: "readFacts",
-    description: "Read the current structured facts from storage (facts/latest.json).",
+    description:
+      "Read the current structured facts from storage (facts/latest.json).",
     inputSchema: z.object({}),
     outputSchema: z.object({
       facts: z.record(z.unknown()).nullable(),
@@ -30,7 +32,8 @@ export function makeReadFactsTool(s3: S3Client, bucket: string) {
 export function makeReadDriftTool(s3: S3Client, bucket: string) {
   return createTool({
     id: "readDrift",
-    description: "Read the current drift analysis from storage (drift/latest.json).",
+    description:
+      "Read the current drift analysis from storage (drift/latest.json).",
     inputSchema: z.object({}),
     outputSchema: z.object({
       drift: z.record(z.unknown()).nullable(),
@@ -46,7 +49,8 @@ export function makeReadDriftTool(s3: S3Client, bucket: string) {
 export function makeReadContextTool(limitDefault: number = 200) {
   return createTool({
     id: "readContext",
-    description: "Read the latest context events from the WAL (recent events that form the shared context).",
+    description:
+      "Read the latest context events from the WAL (recent events that form the shared context).",
     inputSchema: z.object({
       limit: z.number().optional().default(limitDefault),
     }),
@@ -62,10 +66,15 @@ export function makeReadContextTool(limitDefault: number = 200) {
   });
 }
 
-export function makeReadFactsHistoryTool(s3: S3Client, bucket: string, maxKeys: number = 5) {
+export function makeReadFactsHistoryTool(
+  s3: S3Client,
+  bucket: string,
+  maxKeys: number = 5,
+) {
   return createTool({
     id: "readFactsHistory",
-    description: "Read recent facts snapshots from history for comparison (facts/history/*.json).",
+    description:
+      "Read recent facts snapshots from history for comparison (facts/history/*.json).",
     inputSchema: z.object({
       maxKeys: z.number().optional().default(maxKeys),
     }),
@@ -89,7 +98,8 @@ export function makeReadFactsHistoryTool(s3: S3Client, bucket: string, maxKeys: 
 export function makeReadGovernanceRulesTool() {
   return createTool({
     id: "readGovernanceRules",
-    description: "Read the governance rules and transition rules from governance.yaml.",
+    description:
+      "Read the governance rules and transition rules from governance.yaml.",
     inputSchema: z.object({}),
     outputSchema: z.object({
       rules: z.array(z.record(z.unknown())),
@@ -97,10 +107,16 @@ export function makeReadGovernanceRulesTool() {
     }),
     execute: async () => {
       const scopeId = process.env.SCOPE_ID ?? "default";
-      const config = getGovernanceForScope(scopeId, loadPolicies(GOVERNANCE_PATH));
+      const config = getGovernanceForScope(
+        scopeId,
+        loadPolicies(GOVERNANCE_PATH),
+      );
       return {
         rules: (config.rules ?? []) as unknown as Record<string, unknown>[],
-        transition_rules: (config.transition_rules ?? []) as unknown as Record<string, unknown>[],
+        transition_rules: (config.transition_rules ?? []) as unknown as Record<
+          string,
+          unknown
+        >[],
       };
     },
   });

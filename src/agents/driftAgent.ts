@@ -3,11 +3,19 @@ import { createTool } from "@mastra/core/tools";
 import { Agent } from "@mastra/core/agent";
 import { z } from "zod";
 import { setMaxListeners } from "events";
-import { getChatModelConfig, REASONING_SETTINGS, DriftOutputSchema } from "../modelConfig.js";
+import {
+  getChatModelConfig,
+  REASONING_SETTINGS,
+  DriftOutputSchema,
+} from "../modelConfig.js";
 import { logger } from "../logger.js";
 import { s3GetText, s3PutJson } from "../s3.js";
 import { emitContribution } from "../causalEmit.js";
-import { makeReadFactsTool, makeReadFactsHistoryTool, makeReadDriftTool } from "./sharedTools.js";
+import {
+  makeReadFactsTool,
+  makeReadFactsHistoryTool,
+  makeReadDriftTool,
+} from "./sharedTools.js";
 import { composeInstructions } from "../skills/loader.js";
 import { generateWithStructuredOutput } from "../mastraStructured.js";
 import { trackAgentTokens } from "../skills/tokenTracker.js";
@@ -15,7 +23,8 @@ import { trackAgentTokens } from "../skills/tokenTracker.js";
 const DRIFT_LLM_TIMEOUT_MS = 90_000;
 
 const KEY_DRIFT = "drift/latest.json";
-const KEY_DRIFT_HIST = (ts: string) => `drift/history/${ts.replace(/[:.]/g, "-")}.json`;
+const KEY_DRIFT_HIST = (ts: string) =>
+  `drift/history/${ts.replace(/[:.]/g, "-")}.json`;
 
 const DRIFT_INSTRUCTIONS = `You are a drift analysis agent. Your job is to detect ALL forms of drift and contradiction.
 
@@ -38,25 +47,32 @@ const driftRefSchema = z.object({
 function createWriteDriftTool(s3: S3Client, bucket: string) {
   return createTool({
     id: "writeDrift",
-    description: "Write drift analysis to storage (drift/latest.json and drift/history). Include references (sources) with type, doc, excerpt when citing a drift finding.",
+    description:
+      "Write drift analysis to storage (drift/latest.json and drift/history). Include references (sources) with type, doc, excerpt when citing a drift finding.",
     inputSchema: z.object({
       level: z.enum(["none", "low", "medium", "high", "critical"]),
       types: z.array(z.string()),
       notes: z.array(z.string()).optional(),
       reasoning: z.string().optional(),
       references: z.array(driftRefSchema).optional(),
-      recommend_hitl: z.boolean().optional().default(false)
+      recommend_hitl: z
+        .boolean()
+        .optional()
+        .default(false)
         .describe("True when unresolved contradictions need human resolution"),
     }),
     outputSchema: z.object({
       wrote: z.array(z.string()),
     }),
     execute: async (ctx) => {
-      const input = ((ctx as unknown) as { context?: Record<string, unknown> })?.context ?? (ctx as unknown) as Record<string, unknown>;
+      const input =
+        (ctx as unknown as { context?: Record<string, unknown> })?.context ??
+        (ctx as unknown as Record<string, unknown>);
       const level = String(input.level ?? "none");
       const types = Array.isArray(input.types) ? input.types.map(String) : [];
       const notes = Array.isArray(input.notes) ? input.notes.map(String) : [];
-      const reasoning = typeof input.reasoning === "string" ? input.reasoning : undefined;
+      const reasoning =
+        typeof input.reasoning === "string" ? input.reasoning : undefined;
       const recommendHitl = input.recommend_hitl === true;
       const rawRefs = input.references;
       const references = Array.isArray(rawRefs)
@@ -69,7 +85,13 @@ function createWriteDriftTool(s3: S3Client, bucket: string) {
             };
           })
         : [];
-      const drift = { level, types, notes: reasoning ? [...notes, reasoning] : notes, references, recommend_hitl: recommendHitl };
+      const drift = {
+        level,
+        types,
+        notes: reasoning ? [...notes, reasoning] : notes,
+        references,
+        recommend_hitl: recommendHitl,
+      };
       const ts = new Date().toISOString();
       await s3PutJson(s3, bucket, KEY_DRIFT, drift);
       await s3PutJson(s3, bucket, KEY_DRIFT_HIST(ts), drift);
@@ -106,30 +128,51 @@ export async function runDriftAgent(
         },
       });
       const abortController = new AbortController();
-      const timeoutId = setTimeout(() => abortController.abort(), DRIFT_LLM_TIMEOUT_MS);
+      const timeoutId = setTimeout(
+        () => abortController.abort(),
+        DRIFT_LLM_TIMEOUT_MS,
+      );
       setMaxListeners(64, abortController.signal);
       try {
-        const genResult = await generateWithStructuredOutput(agent, "Analyze drift now.", DriftOutputSchema, {
-          maxSteps: 5,
-          abortSignal: abortController.signal,
-          modelSettings: REASONING_SETTINGS,
-        });
+        const genResult = await generateWithStructuredOutput(
+          agent,
+          "Analyze drift now.",
+          DriftOutputSchema,
+          {
+            maxSteps: 5,
+            abortSignal: abortController.signal,
+            modelSettings: REASONING_SETTINGS,
+          },
+        );
         trackAgentTokens("drift", genResult);
       } finally {
         clearTimeout(timeoutId);
       }
       const driftRaw = await s3GetText(s3, bucket, KEY_DRIFT);
-      const drift = driftRaw ? (JSON.parse(driftRaw) as { level: string; types: string[] }) : { level: "none", types: [] };
-      logger.info("drift written (LLM)", { drift_level: drift.level, types: drift.types });
-      await emitContribution("drift-agent", "evidence", {
+      const drift = driftRaw
+        ? (JSON.parse(driftRaw) as { level: string; types: string[] })
+        : { level: "none", types: [] };
+      logger.info("drift written (LLM)", {
         drift_level: drift.level,
-        drift_types: drift.types,
-      }, { scopeId: process.env.SCOPE_ID ?? "default" });
+        types: drift.types,
+      });
+      await emitContribution(
+        "drift-agent",
+        "evidence",
+        {
+          drift_level: drift.level,
+          drift_types: drift.types,
+        },
+        { scopeId: process.env.SCOPE_ID ?? "default" },
+      );
       return { wrote: [KEY_DRIFT], level: drift.level, types: drift.types };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       if (/timeout|TIMEOUT|ECONNREFUSED|API|fetch failed|abort/i.test(msg)) {
-        logger.warn("Mastra/OpenAI unreachable or timed out, falling back to direct drift archive", { error: msg });
+        logger.warn(
+          "Mastra/OpenAI unreachable or timed out, falling back to direct drift archive",
+          { error: msg },
+        );
       } else {
         throw err;
       }
@@ -137,14 +180,20 @@ export async function runDriftAgent(
   }
 
   const factsRaw = await s3GetText(s3, bucket, "facts/latest.json");
-  const facts = factsRaw ? (JSON.parse(factsRaw) as Record<string, unknown>) : null;
+  const facts = factsRaw
+    ? (JSON.parse(factsRaw) as Record<string, unknown>)
+    : null;
 
   const intraBatch = detectIntraBatchDrift(facts);
   const graphState = await getGraphResolutionState();
 
   const driftRaw = await s3GetText(s3, bucket, KEY_DRIFT);
   const existing = driftRaw
-    ? (JSON.parse(driftRaw) as { level: string; types: string[]; notes?: string[] })
+    ? (JSON.parse(driftRaw) as {
+        level: string;
+        types: string[];
+        notes?: string[];
+      })
     : null;
 
   const base = intraBatch.hasContradictions
@@ -155,10 +204,30 @@ export async function runDriftAgent(
         references: intraBatch.references,
       }
     : existing
-      ? { level: existing.level, types: existing.types, notes: existing.notes ?? [], references: undefined }
-      : { level: "none", types: [] as string[], notes: ["no drift yet"], references: undefined };
-  let drift: { level: string; types: string[]; notes: string[]; references?: Array<{ type: string; doc?: string; excerpt?: string }> } = {
-    level: base.level, types: base.types, notes: base.notes, references: base.references as Array<{ type: string; doc?: string; excerpt?: string }> | undefined,
+      ? {
+          level: existing.level,
+          types: existing.types,
+          notes: existing.notes ?? [],
+          references: undefined,
+        }
+      : {
+          level: "none",
+          types: [] as string[],
+          notes: ["no drift yet"],
+          references: undefined,
+        };
+  let drift: {
+    level: string;
+    types: string[];
+    notes: string[];
+    references?: Array<{ type: string; doc?: string; excerpt?: string }>;
+  } = {
+    level: base.level,
+    types: base.types,
+    notes: base.notes,
+    references: base.references as
+      | Array<{ type: string; doc?: string; excerpt?: string }>
+      | undefined,
   };
 
   drift = adjustDriftForResolutions(drift, graphState);
@@ -166,12 +235,24 @@ export async function runDriftAgent(
   const ts = new Date().toISOString();
   await s3PutJson(s3, bucket, KEY_DRIFT, drift);
   await s3PutJson(s3, bucket, KEY_DRIFT_HIST(ts), drift);
-  logger.info("drift written (fallback)", { drift_level: drift.level, types: drift.types });
-  await emitContribution("drift-agent", "evidence", {
+  logger.info("drift written (fallback)", {
     drift_level: drift.level,
-    drift_types: drift.types,
-  }, { scopeId: process.env.SCOPE_ID ?? "default" });
-  return { wrote: [KEY_DRIFT, KEY_DRIFT_HIST(ts)], level: drift.level, types: drift.types };
+    types: drift.types,
+  });
+  await emitContribution(
+    "drift-agent",
+    "evidence",
+    {
+      drift_level: drift.level,
+      drift_types: drift.types,
+    },
+    { scopeId: process.env.SCOPE_ID ?? "default" },
+  );
+  return {
+    wrote: [KEY_DRIFT, KEY_DRIFT_HIST(ts)],
+    level: drift.level,
+    types: drift.types,
+  };
 }
 
 interface GraphResolutionState {
@@ -212,7 +293,13 @@ async function getGraphResolutionState(): Promise<GraphResolutionState> {
       goalsInProgress: Number(gr.in_progress ?? 0),
     };
   } catch {
-    return { contradictionsTotal: 0, contradictionsResolved: 0, goalsTotal: 0, goalsResolved: 0, goalsInProgress: 0 };
+    return {
+      contradictionsTotal: 0,
+      contradictionsResolved: 0,
+      goalsTotal: 0,
+      goalsResolved: 0,
+      goalsInProgress: 0,
+    };
   }
 }
 
@@ -222,24 +309,36 @@ async function getGraphResolutionState(): Promise<GraphResolutionState> {
  * If goals are progressing, remove "goal" type.
  */
 function adjustDriftForResolutions(
-  drift: { level: string; types: string[]; notes: string[]; references?: Array<{ type: string; doc?: string; excerpt?: string }> },
+  drift: {
+    level: string;
+    types: string[];
+    notes: string[];
+    references?: Array<{ type: string; doc?: string; excerpt?: string }>;
+  },
   graph: GraphResolutionState,
 ): typeof drift {
   const types = [...drift.types];
   const notes = [...drift.notes];
 
-  const allContrasResolved = graph.contradictionsTotal > 0 && graph.contradictionsResolved >= graph.contradictionsTotal;
+  const allContrasResolved =
+    graph.contradictionsTotal > 0 &&
+    graph.contradictionsResolved >= graph.contradictionsTotal;
   if (allContrasResolved && types.includes("contradiction")) {
     types.splice(types.indexOf("contradiction"), 1);
-    notes.push(`All ${graph.contradictionsTotal} contradiction(s) resolved in the knowledge graph`);
+    notes.push(
+      `All ${graph.contradictionsTotal} contradiction(s) resolved in the knowledge graph`,
+    );
   }
 
-  const goalProgress = graph.goalsTotal > 0
-    ? (graph.goalsResolved + graph.goalsInProgress) / graph.goalsTotal
-    : 0;
+  const goalProgress =
+    graph.goalsTotal > 0
+      ? (graph.goalsResolved + graph.goalsInProgress) / graph.goalsTotal
+      : 0;
   if (goalProgress >= 0.5 && types.includes("goal")) {
     types.splice(types.indexOf("goal"), 1);
-    notes.push(`Goals progressing: ${graph.goalsResolved} resolved, ${graph.goalsInProgress} in progress out of ${graph.goalsTotal}`);
+    notes.push(
+      `Goals progressing: ${graph.goalsResolved} resolved, ${graph.goalsInProgress} in progress out of ${graph.goalsTotal}`,
+    );
   }
 
   let level = drift.level;
@@ -265,26 +364,44 @@ function detectIntraBatchDrift(facts: Record<string, unknown> | null): {
   notes: string[];
   references: Array<{ type: string; doc?: string; excerpt?: string }>;
 } {
-  if (!facts) return { hasContradictions: false, level: "none", types: [], notes: [], references: [] };
+  if (!facts)
+    return {
+      hasContradictions: false,
+      level: "none",
+      types: [],
+      notes: [],
+      references: [],
+    };
 
-  const claims = Array.isArray(facts.claims) ? facts.claims.filter((c): c is string => typeof c === "string") : [];
-  const contradictions = Array.isArray(facts.contradictions) ? facts.contradictions.filter((c): c is string => typeof c === "string") : [];
-  const risks = Array.isArray(facts.risks) ? facts.risks.filter((r): r is string => typeof r === "string") : [];
-  const goals = Array.isArray(facts.goals) ? facts.goals.filter((g): g is string => typeof g === "string") : [];
+  const claims = Array.isArray(facts.claims)
+    ? facts.claims.filter((c): c is string => typeof c === "string")
+    : [];
+  const contradictions = Array.isArray(facts.contradictions)
+    ? facts.contradictions.filter((c): c is string => typeof c === "string")
+    : [];
+  const risks = Array.isArray(facts.risks)
+    ? facts.risks.filter((r): r is string => typeof r === "string")
+    : [];
+  const goals = Array.isArray(facts.goals)
+    ? facts.goals.filter((g): g is string => typeof g === "string")
+    : [];
 
   const notes: string[] = [];
-  const references: Array<{ type: string; doc?: string; excerpt?: string }> = [];
+  const references: Array<{ type: string; doc?: string; excerpt?: string }> =
+    [];
   const types = new Set<string>();
 
   if (contradictions.length > 0) {
     types.add("contradiction");
-    notes.push(`${contradictions.length} contradiction(s) detected within the current facts`);
+    notes.push(
+      `${contradictions.length} contradiction(s) detected within the current facts`,
+    );
     for (const c of contradictions) {
       references.push({ type: "contradiction", excerpt: c.slice(0, 200) });
     }
   }
 
-  const numericClaims = claims.filter(c => /\d/.test(c));
+  const numericClaims = claims.filter((c) => /\d/.test(c));
   for (let i = 0; i < numericClaims.length; i++) {
     for (let j = i + 1; j < numericClaims.length; j++) {
       const shared = findSharedEntity(numericClaims[i], numericClaims[j]);
@@ -298,7 +415,10 @@ function detectIntraBatchDrift(facts: Record<string, unknown> | null): {
               const note = `Numeric discrepancy for "${shared}": ${n1} vs ${n2}`;
               if (!notes.includes(note)) {
                 notes.push(note);
-                references.push({ type: "factual", excerpt: `"${numericClaims[i].slice(0, 80)}" vs "${numericClaims[j].slice(0, 80)}"` });
+                references.push({
+                  type: "factual",
+                  excerpt: `"${numericClaims[i].slice(0, 80)}" vs "${numericClaims[j].slice(0, 80)}"`,
+                });
               }
             }
           }
@@ -309,23 +429,28 @@ function detectIntraBatchDrift(facts: Record<string, unknown> | null): {
 
   if (risks.length >= 3) {
     types.add("entropy");
-    notes.push(`High risk density: ${risks.length} risks identified across the fact set`);
+    notes.push(
+      `High risk density: ${risks.length} risks identified across the fact set`,
+    );
   }
 
   if (goals.length > 0 && risks.length > 0) {
     types.add("goal");
-    notes.push(`${goals.length} goal(s) coexist with ${risks.length} risk(s) that may impede them`);
+    notes.push(
+      `${goals.length} goal(s) coexist with ${risks.length} risk(s) that may impede them`,
+    );
   }
 
   const hasContradictions = notes.length > 0;
   const typesArr = [...types];
-  const level = contradictions.length > 0 || typesArr.length >= 3
-    ? "high"
-    : typesArr.length >= 2
-      ? "medium"
-      : hasContradictions
-        ? "low"
-        : "none";
+  const level =
+    contradictions.length > 0 || typesArr.length >= 3
+      ? "high"
+      : typesArr.length >= 2
+        ? "medium"
+        : hasContradictions
+          ? "low"
+          : "none";
 
   if (hasContradictions) {
     notes.unshift("automatic structured drift detection");
@@ -335,9 +460,32 @@ function detectIntraBatchDrift(facts: Record<string, unknown> | null): {
 }
 
 function findSharedEntity(a: string, b: string): string | null {
-  const wordsA = a.toLowerCase().split(/\s+/).filter(w => w.length > 3);
-  const wordsB = new Set(b.toLowerCase().split(/\s+/).filter(w => w.length > 3));
-  const stopWords = new Set(["that", "this", "with", "from", "have", "been", "were", "will", "about", "into", "than", "also", "their", "which"]);
+  const wordsA = a
+    .toLowerCase()
+    .split(/\s+/)
+    .filter((w) => w.length > 3);
+  const wordsB = new Set(
+    b
+      .toLowerCase()
+      .split(/\s+/)
+      .filter((w) => w.length > 3),
+  );
+  const stopWords = new Set([
+    "that",
+    "this",
+    "with",
+    "from",
+    "have",
+    "been",
+    "were",
+    "will",
+    "about",
+    "into",
+    "than",
+    "also",
+    "their",
+    "which",
+  ]);
   for (const w of wordsA) {
     if (wordsB.has(w) && !stopWords.has(w)) return w;
   }
@@ -347,6 +495,6 @@ function findSharedEntity(a: string, b: string): string | null {
 function extractNumbers(s: string): number[] {
   const matches = s.match(/[\d,.]+/g) ?? [];
   return matches
-    .map(m => parseFloat(m.replace(/,/g, "")))
-    .filter(n => Number.isFinite(n) && n > 0);
+    .map((m) => parseFloat(m.replace(/,/g, "")))
+    .filter((n) => Number.isFinite(n) && n > 0);
 }

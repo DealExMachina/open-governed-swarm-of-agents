@@ -10,7 +10,10 @@ export interface DemoSession {
   closed_at: string | null;
 }
 
-export async function startDemoSession(scenarioId: string, scopeId: string): Promise<DemoSession> {
+export async function startDemoSession(
+  scenarioId: string,
+  scopeId: string,
+): Promise<DemoSession> {
   const pool = getPool();
   const sessionId = `demo-${randomUUID()}`;
   const res = await pool.query<DemoSession>(
@@ -32,4 +35,3 @@ export async function closeDemoSession(sessionId: string): Promise<boolean> {
   );
   return (res.rowCount ?? 0) > 0;
 }
-

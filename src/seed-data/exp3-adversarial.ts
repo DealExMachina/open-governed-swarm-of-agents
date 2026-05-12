@@ -11,13 +11,21 @@ export type Exp3Pattern = "spike-and-drop" | "oscillating" | "stale" | "empty";
 export interface SpikeAndDropSeed {
   pattern: "spike-and-drop";
   claims: Array<{ content: string; confidence: number }>;
-  contradictions: Array<{ sourceIndex: number; targetIndex: number; raw: string }>;
+  contradictions: Array<{
+    sourceIndex: number;
+    targetIndex: number;
+    raw: string;
+  }>;
 }
 
 export interface OscillatingSeed {
   pattern: "oscillating";
   claims: string[];
-  contradictions: Array<{ sourceIndex: number; targetIndex: number; raw: string }>;
+  contradictions: Array<{
+    sourceIndex: number;
+    targetIndex: number;
+    raw: string;
+  }>;
 }
 
 export interface StaleSeed {
@@ -29,7 +37,11 @@ export interface EmptySeed {
   pattern: "empty";
 }
 
-export type Exp3SeedData = SpikeAndDropSeed | OscillatingSeed | StaleSeed | EmptySeed;
+export type Exp3SeedData =
+  | SpikeAndDropSeed
+  | OscillatingSeed
+  | StaleSeed
+  | EmptySeed;
 
 export function makeExp3Seed(pattern: Exp3Pattern): Exp3SeedData {
   switch (pattern) {
@@ -37,14 +49,31 @@ export function makeExp3Seed(pattern: Exp3Pattern): Exp3SeedData {
       return {
         pattern: "spike-and-drop",
         claims: [
-          { content: "Exp3 spike: Revenue target met at 120%", confidence: 0.95 },
-          { content: "Exp3 spike: All milestones delivered on time", confidence: 0.95 },
+          {
+            content: "Exp3 spike: Revenue target met at 120%",
+            confidence: 0.95,
+          },
+          {
+            content: "Exp3 spike: All milestones delivered on time",
+            confidence: 0.95,
+          },
           { content: "Exp3 drop: Budget overrun reported", confidence: 0.95 },
-          { content: "Exp3 drop: Timeline slipped by 2 quarters", confidence: 0.95 },
+          {
+            content: "Exp3 drop: Timeline slipped by 2 quarters",
+            confidence: 0.95,
+          },
         ],
         contradictions: [
-          { sourceIndex: 0, targetIndex: 2, raw: "Revenue met vs budget overrun" },
-          { sourceIndex: 1, targetIndex: 3, raw: "On time vs timeline slipped" },
+          {
+            sourceIndex: 0,
+            targetIndex: 2,
+            raw: "Revenue met vs budget overrun",
+          },
+          {
+            sourceIndex: 1,
+            targetIndex: 3,
+            raw: "On time vs timeline slipped",
+          },
         ],
       };
     case "oscillating":
@@ -58,7 +87,11 @@ export function makeExp3Seed(pattern: Exp3Pattern): Exp3SeedData {
         ],
         contradictions: [
           { sourceIndex: 0, targetIndex: 1, raw: "Bullish vs bearish" },
-          { sourceIndex: 2, targetIndex: 3, raw: "Accelerating vs decelerating" },
+          {
+            sourceIndex: 2,
+            targetIndex: 3,
+            raw: "Accelerating vs decelerating",
+          },
         ],
       };
     case "stale": {

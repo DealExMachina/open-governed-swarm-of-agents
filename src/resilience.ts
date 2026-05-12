@@ -89,7 +89,9 @@ export class CircuitBreaker {
   async call<T>(fn: () => Promise<T>): Promise<T> {
     const now = Date.now();
     if (this.failures >= this.threshold && now < this.openUntil) {
-      throw new Error(`Circuit breaker '${this.name}' is open (${this.failures} failures, cooldown until ${new Date(this.openUntil).toISOString()})`);
+      throw new Error(
+        `Circuit breaker '${this.name}' is open (${this.failures} failures, cooldown until ${new Date(this.openUntil).toISOString()})`,
+      );
     }
     // Half-open: reset failures on cooldown expiry to allow one probe
     if (now >= this.openUntil && this.failures >= this.threshold) {

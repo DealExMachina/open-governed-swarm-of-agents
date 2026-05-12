@@ -22,10 +22,16 @@ const DEFAULT_OPENAI_BASE = "https://api.openai.com/v1";
 // ── Model settings tiers ────────────────────────────────────────────────────
 
 /** Binary decisions, tool orchestration — no creativity needed. */
-export const DETERMINISTIC_SETTINGS = { temperature: 0, maxTokens: 1024 } as const;
+export const DETERMINISTIC_SETTINGS = {
+  temperature: 0,
+  maxTokens: 1024,
+} as const;
 
 /** Analytical reasoning — drift causes, action planning, contradiction resolution. */
-export const REASONING_SETTINGS = { temperature: 0.2, maxTokens: 1536 } as const;
+export const REASONING_SETTINGS = {
+  temperature: 0.2,
+  maxTokens: 1536,
+} as const;
 
 /** Large text output — full status briefings. */
 export const EXTENDED_SETTINGS = { temperature: 0, maxTokens: 2048 } as const;
@@ -34,25 +40,43 @@ export const EXTENDED_SETTINGS = { temperature: 0, maxTokens: 2048 } as const;
 
 export const PlannerOutputSchema = z.object({
   actions: z.array(z.string()).describe("Ordered list of recommended actions"),
-  reasoning: z.string().describe("Brief explanation of why these actions were chosen"),
+  reasoning: z
+    .string()
+    .describe("Brief explanation of why these actions were chosen"),
 });
 
 export const DriftOutputSchema = z.object({
   level: z.enum(["none", "low", "medium", "high", "critical"]),
   types: z.array(z.string()).describe("Drift categories detected"),
-  reasoning: z.string().describe("Reasoning about potential drift causes and patterns"),
-  recommend_hitl: z.boolean().optional().default(false)
+  reasoning: z
+    .string()
+    .describe("Reasoning about potential drift causes and patterns"),
+  recommend_hitl: z
+    .boolean()
+    .optional()
+    .default(false)
     .describe("True when unresolved contradictions need human resolution"),
 });
 
 export const ResolverOutputSchema = z.object({
-  resolutions: z.array(z.object({
-    id: z.string(),
-    judgment: z.enum(["confirmed", "resolved", "noise"]),
-    reason: z.string().describe("Why this judgment — map resolution evidence to the specific contradiction"),
-    requires_hitl: z.boolean().optional().default(false)
-      .describe("True when resolution requires business/legal human judgment"),
-  })),
+  resolutions: z.array(
+    z.object({
+      id: z.string(),
+      judgment: z.enum(["confirmed", "resolved", "noise"]),
+      reason: z
+        .string()
+        .describe(
+          "Why this judgment — map resolution evidence to the specific contradiction",
+        ),
+      requires_hitl: z
+        .boolean()
+        .optional()
+        .default(false)
+        .describe(
+          "True when resolution requires business/legal human judgment",
+        ),
+    }),
+  ),
 });
 
 export const StatusOutputSchema = z.object({
@@ -106,14 +130,22 @@ function openAICompatibleBaseUrl(rawBase: string, isOllama: boolean): string {
  * When OLLAMA_BASE_URL is set, returns Ollama url and the appropriate model for the role;
  * otherwise uses OPENAI_* env vars. Returns null when no API is configured.
  */
-export function getChatModelConfig(
-  defaults?: { model?: string; baseUrl?: string },
-): ChatModelConfig | null {
+export function getChatModelConfig(defaults?: {
+  model?: string;
+  baseUrl?: string;
+}): ChatModelConfig | null {
   const ollamaBase = getOllamaBaseUrl();
   if (ollamaBase) {
-    const requested = process.env.EXTRACTION_MODEL || defaults?.model || "qwen3:8b";
-    const model = enforceModelOnboarding("ollama", requested, "qwen2.5:3b").model;
-    const id = (model.includes("/") ? model : `openai/${model}`) as `${string}/${string}`;
+    const requested =
+      process.env.EXTRACTION_MODEL || defaults?.model || "qwen3:8b";
+    const model = enforceModelOnboarding(
+      "ollama",
+      requested,
+      "qwen2.5:3b",
+    ).model;
+    const id = (
+      model.includes("/") ? model : `openai/${model}`
+    ) as `${string}/${string}`;
     return {
       id,
       url: openAICompatibleBaseUrl(ollamaBase, true),
@@ -122,11 +154,16 @@ export function getChatModelConfig(
   }
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) return null;
-  const requested = process.env.OPENAI_MODEL || defaults?.model || "gpt-4o-mini";
+  const requested =
+    process.env.OPENAI_MODEL || defaults?.model || "gpt-4o-mini";
   const raw = enforceModelOnboarding("openai", requested, "gpt-4o-mini").model;
-  const id = (raw.includes("/") ? raw : `openai/${raw}`) as `${string}/${string}`;
+  const id = (
+    raw.includes("/") ? raw : `openai/${raw}`
+  ) as `${string}/${string}`;
   const url = openAICompatibleBaseUrl(
-    process.env.OPENAI_BASE_URL?.trim() || defaults?.baseUrl || DEFAULT_OPENAI_BASE,
+    process.env.OPENAI_BASE_URL?.trim() ||
+      defaults?.baseUrl ||
+      DEFAULT_OPENAI_BASE,
     false,
   );
   return { id, url, apiKey };
@@ -141,10 +178,14 @@ export function getOversightModelConfig(): ChatModelConfig | null {
   if (!base) return null;
   const overSee = process.env.OVERSEE_MODEL?.trim();
   if (!overSee) return base;
-  const provider = getOllamaBaseUrl() ? "ollama" as const : "openai" as const;
+  const provider = getOllamaBaseUrl()
+    ? ("ollama" as const)
+    : ("openai" as const);
   const fallback = provider === "ollama" ? "qwen2.5:3b" : "gpt-4o-mini";
   const model = enforceModelOnboarding(provider, overSee, fallback).model;
-  const id = (model.includes("/") ? model : `openai/${model}`) as `${string}/${string}`;
+  const id = (
+    model.includes("/") ? model : `openai/${model}`
+  ) as `${string}/${string}`;
   return { ...base, id };
 }
 
@@ -156,21 +197,27 @@ export function getOllamaBaseUrl(): string | null {
 
 export function getExtractionModel(): string {
   const requested = process.env.EXTRACTION_MODEL?.trim() || "qwen3:8b";
-  const provider = getOllamaBaseUrl() ? "ollama" as const : "openai" as const;
+  const provider = getOllamaBaseUrl()
+    ? ("ollama" as const)
+    : ("openai" as const);
   const fallback = provider === "ollama" ? "qwen2.5:3b" : "gpt-4o-mini";
   return enforceModelOnboarding(provider, requested, fallback).model;
 }
 
 export function getRationaleModel(): string {
   const requested = process.env.RATIONALE_MODEL?.trim() || "phi4-mini";
-  const provider = getOllamaBaseUrl() ? "ollama" as const : "openai" as const;
+  const provider = getOllamaBaseUrl()
+    ? ("ollama" as const)
+    : ("openai" as const);
   const fallback = provider === "ollama" ? "qwen2.5:3b" : "gpt-4o-mini";
   return enforceModelOnboarding(provider, requested, fallback).model;
 }
 
 export function getHitlModel(): string {
   const requested = process.env.HITL_MODEL?.trim() || "mistral-small:22b";
-  const provider = getOllamaBaseUrl() ? "ollama" as const : "openai" as const;
+  const provider = getOllamaBaseUrl()
+    ? ("ollama" as const)
+    : ("openai" as const);
   const fallback = provider === "ollama" ? "qwen2.5:3b" : "gpt-4o-mini";
   return enforceModelOnboarding(provider, requested, fallback).model;
 }
@@ -188,7 +235,9 @@ export function getFinalityThresholds(): FinalityThresholds {
   const near = Number(process.env.NEAR_FINALITY_THRESHOLD);
   const auto = Number(process.env.AUTO_FINALITY_THRESHOLD);
   return {
-    nearFinalityThreshold: Number.isFinite(near) && near >= 0 && near <= 1 ? near : 0.75,
-    autoFinalityThreshold: Number.isFinite(auto) && auto >= 0 && auto <= 1 ? auto : 0.92,
+    nearFinalityThreshold:
+      Number.isFinite(near) && near >= 0 && near <= 1 ? near : 0.75,
+    autoFinalityThreshold:
+      Number.isFinite(auto) && auto >= 0 && auto <= 1 ? auto : 0.92,
   };
 }

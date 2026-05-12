@@ -30,7 +30,10 @@ function stripTrailingSlashes(s: string): string {
   return s.replace(/\/+$/, "");
 }
 
-function ensureOpenAICompatV1Base(originOrV1: string): { openAICompatBaseUrl: string; originWithoutV1: string } {
+function ensureOpenAICompatV1Base(originOrV1: string): {
+  openAICompatBaseUrl: string;
+  originWithoutV1: string;
+} {
   const raw = stripTrailingSlashes(originOrV1);
   if (raw.endsWith("/v1")) {
     return { openAICompatBaseUrl: raw, originWithoutV1: raw.slice(0, -3) };
@@ -41,14 +44,21 @@ function ensureOpenAICompatV1Base(originOrV1: string): { openAICompatBaseUrl: st
 /**
  * Resolve endpoint + onboarded model for benchmark LLM systems (Mastra, LangGraph, Agentica).
  */
-export function resolveBenchmarkOllamaInference(requestedModel: string): BenchmarkOllamaInference {
+export function resolveBenchmarkOllamaInference(
+  requestedModel: string,
+): BenchmarkOllamaInference {
   const apiKey = process.env.OLLAMA_API_KEY?.trim();
   if (apiKey) {
     const hostInput =
       process.env.OLLAMA_BASE_URL?.trim() || OLLAMA_CLOUD_DEFAULT_ORIGIN;
-    const { openAICompatBaseUrl, originWithoutV1 } = ensureOpenAICompatV1Base(hostInput);
+    const { openAICompatBaseUrl, originWithoutV1 } =
+      ensureOpenAICompatV1Base(hostInput);
     const fallback = "mistral-large-3:675b-cloud";
-    const model = enforceModelOnboarding("ollama", requestedModel, fallback).model;
+    const model = enforceModelOnboarding(
+      "ollama",
+      requestedModel,
+      fallback,
+    ).model;
     return {
       mode: "cloud",
       openAICompatBaseUrl,
@@ -60,9 +70,14 @@ export function resolveBenchmarkOllamaInference(requestedModel: string): Benchma
 
   const hostInput =
     process.env.OLLAMA_BASE_URL?.trim() || "http://localhost:11434";
-  const { openAICompatBaseUrl, originWithoutV1 } = ensureOpenAICompatV1Base(hostInput);
+  const { openAICompatBaseUrl, originWithoutV1 } =
+    ensureOpenAICompatV1Base(hostInput);
   const fallback = "qwen2.5:3b";
-  const model = enforceModelOnboarding("ollama", requestedModel, fallback).model;
+  const model = enforceModelOnboarding(
+    "ollama",
+    requestedModel,
+    fallback,
+  ).model;
   return {
     mode: "local",
     openAICompatBaseUrl,

@@ -12,7 +12,9 @@ export function regulationVersionForEpoch(
 ): string {
   const raw = pkg.evaluation?.epochRegulationVersion;
   if (raw && typeof raw === "object") {
-    const v = (raw as Record<string | number, string | undefined>)[epoch] ?? raw[String(epoch)];
+    const v =
+      (raw as Record<string | number, string | undefined>)[epoch] ??
+      raw[String(epoch)];
     if (typeof v === "string" && v.length > 0) return v;
   }
   return `${pkg.id}#e${epoch}`;

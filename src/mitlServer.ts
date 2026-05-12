@@ -39,12 +39,20 @@ export async function ensureMitlPendingTable(pool?: pg.Pool): Promise<void> {
       created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
     )
   `);
-  await p.query("CREATE INDEX IF NOT EXISTS idx_mitl_pending_status ON mitl_pending (status)");
+  await p.query(
+    "CREATE INDEX IF NOT EXISTS idx_mitl_pending_status ON mitl_pending (status)",
+  );
   _tableEnsured = true;
 }
 
-let publishAction: (subject: string, data: Record<string, unknown>) => Promise<void> = async () => {};
-let publishRejection: (subject: string, data: Record<string, unknown>) => Promise<void> = async () => {};
+let publishAction: (
+  subject: string,
+  data: Record<string, unknown>,
+) => Promise<void> = async () => {};
+let publishRejection: (
+  subject: string,
+  data: Record<string, unknown>,
+) => Promise<void> = async () => {};
 
 export function setMitlPublishFns(
   action: (subject: string, data: Record<string, unknown>) => Promise<void>,
@@ -70,29 +78,38 @@ export async function addPending(
   );
 }
 
-export async function getPending(pool?: pg.Pool, scopeId?: string): Promise<Array<{ proposal_id: string; proposal: Proposal }>> {
+export async function getPending(
+  pool?: pg.Pool,
+  scopeId?: string,
+): Promise<Array<{ proposal_id: string; proposal: Proposal }>> {
   const p = getPool(pool);
   await ensureMitlPendingTable(p);
   const res = scopeId
     ? await p.query(
-      `SELECT proposal_id, proposal
+        `SELECT proposal_id, proposal
        FROM mitl_pending
        WHERE status = 'pending'
          AND proposal->'payload'->>'scope_id' = $1
        ORDER BY created_at`,
-      [scopeId],
-    )
+        [scopeId],
+      )
     : await p.query(
-      "SELECT proposal_id, proposal FROM mitl_pending WHERE status = 'pending' ORDER BY created_at",
-    );
+        "SELECT proposal_id, proposal FROM mitl_pending WHERE status = 'pending' ORDER BY created_at",
+      );
   return res.rows.map((row) => ({
     proposal_id: row.proposal_id,
-    proposal: typeof row.proposal === "string" ? (JSON.parse(row.proposal) as Proposal) : (row.proposal as Proposal),
+    proposal:
+      typeof row.proposal === "string"
+        ? (JSON.parse(row.proposal) as Proposal)
+        : (row.proposal as Proposal),
   }));
 }
 
 /** True if there is already a pending finality_review for this scope (avoids duplicate HITL entries). */
-export async function hasPendingFinalityReviewForScope(scopeId: string, pool?: pg.Pool): Promise<boolean> {
+export async function hasPendingFinalityReviewForScope(
+  scopeId: string,
+  pool?: pg.Pool,
+): Promise<boolean> {
   const p = getPool(pool);
   await ensureMitlPendingTable(p);
   const prefix = `finality-${scopeId}-`;
@@ -109,7 +126,10 @@ export async function _clearPendingForTest(pool?: pg.Pool): Promise<void> {
   _tableEnsured = false;
 }
 
-async function getPendingItem(proposalId: string, pool?: pg.Pool): Promise<PendingItem | null> {
+async function getPendingItem(
+  proposalId: string,
+  pool?: pg.Pool,
+): Promise<PendingItem | null> {
   const p = getPool(pool);
   await ensureMitlPendingTable(p);
   const res = await p.query(
@@ -118,17 +138,31 @@ async function getPendingItem(proposalId: string, pool?: pg.Pool): Promise<Pendi
   );
   if (res.rowCount === 0) return null;
   const row = res.rows[0];
-  const proposal = typeof row.proposal === "string" ? (JSON.parse(row.proposal) as Proposal) : (row.proposal as Proposal);
-  const actionPayload = (typeof row.action_payload === "string" ? JSON.parse(row.action_payload) : row.action_payload) ?? {};
+  const proposal =
+    typeof row.proposal === "string"
+      ? (JSON.parse(row.proposal) as Proposal)
+      : (row.proposal as Proposal);
+  const actionPayload =
+    (typeof row.action_payload === "string"
+      ? JSON.parse(row.action_payload)
+      : row.action_payload) ?? {};
   return { proposal, actionPayload };
 }
 
-async function removePending(proposalId: string, pool?: pg.Pool): Promise<void> {
+async function removePending(
+  proposalId: string,
+  pool?: pg.Pool,
+): Promise<void> {
   const p = getPool(pool);
-  await p.query("DELETE FROM mitl_pending WHERE proposal_id = $1", [proposalId]);
+  await p.query("DELETE FROM mitl_pending WHERE proposal_id = $1", [
+    proposalId,
+  ]);
 }
 
-export async function approvePending(proposalId: string, pool?: pg.Pool): Promise<{ ok: boolean; error?: string }> {
+export async function approvePending(
+  proposalId: string,
+  pool?: pg.Pool,
+): Promise<{ ok: boolean; error?: string }> {
   const item = await getPendingItem(proposalId, pool);
   if (!item) return { ok: false, error: "not_found" };
   if (item.actionPayload?.type === "finality_review") {
@@ -142,12 +176,19 @@ export async function approvePending(proposalId: string, pool?: pg.Pool): Promis
     action_type: "advance_state",
     payload: item.actionPayload,
   };
-  await publishAction("swarm.actions.advance_state", action as unknown as Record<string, unknown>);
+  await publishAction(
+    "swarm.actions.advance_state",
+    action as unknown as Record<string, unknown>,
+  );
   await removePending(proposalId, pool);
   return { ok: true };
 }
 
-export type FinalityOptionAction = "approve_finality" | "provide_resolution" | "escalate" | "defer";
+export type FinalityOptionAction =
+  | "approve_finality"
+  | "provide_resolution"
+  | "escalate"
+  | "defer";
 
 export async function resolveFinalityPending(
   proposalId: string,
@@ -157,13 +198,18 @@ export async function resolveFinalityPending(
   maybePool?: pg.Pool,
 ): Promise<{ ok: boolean; error?: string }> {
   const scopeId = typeof scopeOrPool === "string" ? scopeOrPool : undefined;
-  const pool = (typeof scopeOrPool === "string" ? maybePool : scopeOrPool) as pg.Pool | undefined;
+  const pool = (typeof scopeOrPool === "string" ? maybePool : scopeOrPool) as
+    | pg.Pool
+    | undefined;
   const item = await getPendingItem(proposalId, pool);
   if (!item) return { ok: false, error: "not_found" };
   if (item.actionPayload?.type !== "finality_review") {
     return { ok: false, error: "not_finality_review" };
   }
-  const proposalScopeId = String((item.proposal.payload as { scope_id?: string } | undefined)?.scope_id ?? "");
+  const proposalScopeId = String(
+    (item.proposal.payload as { scope_id?: string } | undefined)?.scope_id ??
+      "",
+  );
   if (scopeId && proposalScopeId && proposalScopeId !== scopeId) {
     return { ok: false, error: "scope_mismatch" };
   }
@@ -176,12 +222,19 @@ export async function resolveFinalityPending(
     days,
     payload: item.actionPayload,
   };
-  await publishAction("swarm.actions.finality", actionPayload as unknown as Record<string, unknown>);
+  await publishAction(
+    "swarm.actions.finality",
+    actionPayload as unknown as Record<string, unknown>,
+  );
   await removePending(proposalId, pool);
   return { ok: true };
 }
 
-export async function rejectPending(proposalId: string, reason?: string, pool?: pg.Pool): Promise<{ ok: boolean; error?: string }> {
+export async function rejectPending(
+  proposalId: string,
+  reason?: string,
+  pool?: pg.Pool,
+): Promise<{ ok: boolean; error?: string }> {
   const item = await getPendingItem(proposalId, pool);
   if (!item) return { ok: false, error: "not_found" };
   await publishRejection("swarm.rejections.advance_state", {
@@ -199,7 +252,9 @@ function parseBody(req: IncomingMessage): Promise<Record<string, unknown>> {
     req.on("data", (chunk) => chunks.push(chunk));
     req.on("end", () => {
       try {
-        const body = chunks.length ? JSON.parse(Buffer.concat(chunks).toString()) : {};
+        const body = chunks.length
+          ? JSON.parse(Buffer.concat(chunks).toString())
+          : {};
         resolve(body);
       } catch {
         resolve({});
@@ -211,105 +266,144 @@ function parseBody(req: IncomingMessage): Promise<Record<string, unknown>> {
 
 export function startMitlServer(port: number): void {
   const host = process.env.MITL_HOST ?? "127.0.0.1";
-  const server = createServer(async (req: IncomingMessage, res: ServerResponse) => {
-    const url = req.url ?? "/";
-    const method = req.method ?? "GET";
-    const match = url.match(/^\/approve\/([^/]+)$/);
-    const matchReject = url.match(/^\/reject\/([^/]+)$/);
-    const matchFinality = url.match(/^\/finality-response\/([^/]+)$/);
+  const server = createServer(
+    async (req: IncomingMessage, res: ServerResponse) => {
+      const url = req.url ?? "/";
+      const method = req.method ?? "GET";
+      const match = url.match(/^\/approve\/([^/]+)$/);
+      const matchReject = url.match(/^\/reject\/([^/]+)$/);
+      const matchFinality = url.match(/^\/finality-response\/([^/]+)$/);
 
-    res.setHeader("Content-Type", "application/json");
-    const send = (status: number, data: object) => {
-      res.writeHead(status);
-      res.end(JSON.stringify(data));
-    };
+      res.setHeader("Content-Type", "application/json");
+      const send = (status: number, data: object) => {
+        res.writeHead(status);
+        res.end(JSON.stringify(data));
+      };
 
-    if (method === "GET" && url === "/health") {
-      try {
-        await getSharedPool().query("SELECT 1");
-        send(200, { status: "ok", pg: "connected" });
-      } catch (e) {
-        send(503, { status: "unhealthy", pg: String(e) });
+      if (method === "GET" && url === "/health") {
+        try {
+          await getSharedPool().query("SELECT 1");
+          send(200, { status: "ok", pg: "connected" });
+        } catch (e) {
+          send(503, { status: "unhealthy", pg: String(e) });
+        }
+        return;
       }
-      return;
-    }
-    if (method === "GET" && url.startsWith("/pending")) {
-      if (!requireBearer(req, res)) return;
-      try {
-        const scopeId = String(new URL(url, "http://localhost").searchParams.get("scope_id") ?? "");
+      if (method === "GET" && url.startsWith("/pending")) {
+        if (!requireBearer(req, res)) return;
+        try {
+          const scopeId = String(
+            new URL(url, "http://localhost").searchParams.get("scope_id") ?? "",
+          );
+          if (!scopeId) {
+            send(400, { error: "scope_required" });
+            return;
+          }
+          const pending = await getPending(undefined, scopeId);
+          send(200, { pending });
+        } catch (e) {
+          send(500, { error: String(e) });
+        }
+        return;
+      }
+      const matchCert = url.match(/^\/finality-certificate\/([^/]+)$/);
+      if (method === "GET" && matchCert) {
+        try {
+          const { getLatestCertificate } =
+            await import("./finalityCertificates.js");
+          const scopeId = decodeURIComponent(matchCert[1]);
+          const cert = await getLatestCertificate(scopeId);
+          if (!cert) {
+            send(404, { error: "no_certificate", scope_id: scopeId });
+            return;
+          }
+          send(200, {
+            scope_id: scopeId,
+            certificate_jws: cert.certificate_jws,
+            payload: cert.payload,
+          });
+        } catch (e) {
+          send(500, { error: String(e) });
+        }
+        return;
+      }
+      if (method === "POST" && match) {
+        if (!requireBearer(req, res)) return;
+        const result = await approvePending(match[1]);
+        send(result.ok ? 200 : 404, result);
+        return;
+      }
+      if (method === "POST" && matchReject) {
+        if (!requireBearer(req, res)) return;
+        const body = await parseBody(req);
+        const result = await rejectPending(
+          matchReject[1],
+          body.reason as string,
+        );
+        send(result.ok ? 200 : 404, result);
+        return;
+      }
+      if (method === "POST" && matchFinality) {
+        if (!requireBearer(req, res)) return;
+        const body = await parseBody(req);
+        const option = body.option as FinalityOptionAction | undefined;
+        const valid: FinalityOptionAction[] = [
+          "approve_finality",
+          "provide_resolution",
+          "escalate",
+          "defer",
+        ];
+        if (!option || !valid.includes(option)) {
+          send(400, { ok: false, error: "invalid_option" });
+          return;
+        }
+        const scopeId = typeof body.scope_id === "string" ? body.scope_id : "";
         if (!scopeId) {
-          send(400, { error: "scope_required" });
+          send(400, { ok: false, error: "scope_required" });
           return;
         }
-        const pending = await getPending(undefined, scopeId);
-        send(200, { pending });
-      } catch (e) {
-        send(500, { error: String(e) });
-      }
-      return;
-    }
-    const matchCert = url.match(/^\/finality-certificate\/([^/]+)$/);
-    if (method === "GET" && matchCert) {
-      try {
-        const { getLatestCertificate } = await import("./finalityCertificates.js");
-        const scopeId = decodeURIComponent(matchCert[1]);
-        const cert = await getLatestCertificate(scopeId);
-        if (!cert) {
-          send(404, { error: "no_certificate", scope_id: scopeId });
-          return;
-        }
-        send(200, { scope_id: scopeId, certificate_jws: cert.certificate_jws, payload: cert.payload });
-      } catch (e) {
-        send(500, { error: String(e) });
-      }
-      return;
-    }
-    if (method === "POST" && match) {
-      if (!requireBearer(req, res)) return;
-      const result = await approvePending(match[1]);
-      send(result.ok ? 200 : 404, result);
-      return;
-    }
-    if (method === "POST" && matchReject) {
-      if (!requireBearer(req, res)) return;
-      const body = await parseBody(req);
-      const result = await rejectPending(matchReject[1], body.reason as string);
-      send(result.ok ? 200 : 404, result);
-      return;
-    }
-    if (method === "POST" && matchFinality) {
-      if (!requireBearer(req, res)) return;
-      const body = await parseBody(req);
-      const option = body.option as FinalityOptionAction | undefined;
-      const valid: FinalityOptionAction[] = ["approve_finality", "provide_resolution", "escalate", "defer"];
-      if (!option || !valid.includes(option)) {
-        send(400, { ok: false, error: "invalid_option" });
+        const days = option === "defer" ? (Number(body.days) ?? 7) : undefined;
+        const result = await resolveFinalityPending(
+          matchFinality[1],
+          option,
+          days,
+          scopeId,
+        );
+        send(result.ok ? 200 : 404, result);
         return;
       }
-      const scopeId = typeof body.scope_id === "string" ? body.scope_id : "";
-      if (!scopeId) {
-        send(400, { ok: false, error: "scope_required" });
-        return;
-      }
-      const days = option === "defer" ? Number(body.days) ?? 7 : undefined;
-      const result = await resolveFinalityPending(matchFinality[1], option, days, scopeId);
-      send(result.ok ? 200 : 404, result);
-      return;
-    }
-    send(404, { error: "not_found" });
-  });
+      send(404, { error: "not_found" });
+    },
+  );
   server.on("error", (err: NodeJS.ErrnoException) => {
     if (err.code === "EADDRINUSE") {
       process.stderr.write(
-        JSON.stringify({ ts: new Date().toISOString(), level: "error", msg: "MITL server port in use, retrying after kill", port }) + "\n",
+        JSON.stringify({
+          ts: new Date().toISOString(),
+          level: "error",
+          msg: "MITL server port in use, retrying after kill",
+          port,
+        }) + "\n",
       );
-      try { require("child_process").execSync(`lsof -ti :${port} | xargs kill -9`, { stdio: "ignore" }); } catch {}
+      try {
+        require("child_process").execSync(`lsof -ti :${port} | xargs kill -9`, {
+          stdio: "ignore",
+        });
+      } catch {}
       setTimeout(() => server.listen(port, host), 1000);
     } else {
       throw err;
     }
   });
   server.listen(port, host, () => {
-    process.stdout.write(JSON.stringify({ ts: new Date().toISOString(), level: "info", msg: "MITL server listening", port, host }) + "\n");
+    process.stdout.write(
+      JSON.stringify({
+        ts: new Date().toISOString(),
+        level: "info",
+        msg: "MITL server listening",
+        port,
+        host,
+      }) + "\n",
+    );
   });
 }

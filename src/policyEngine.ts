@@ -70,7 +70,8 @@ export function createYamlPolicyEngine(
   const version = policyVersion ?? "yaml";
   return {
     async evaluate(input: PolicyContext): Promise<PolicyResult> {
-      const { getGovernanceForScope, canTransition, evaluateRules } = await import("./governance.js");
+      const { getGovernanceForScope, canTransition, evaluateRules } =
+        await import("./governance.js");
       const scopeConfig = getGovernanceForScope(input.scope_id, config);
       const drift = { level: input.drift_level, types: input.drift_types };
       const transition = canTransition(

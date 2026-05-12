@@ -45,20 +45,30 @@ function buildConvergenceSection(request: FinalityReviewRequest): string {
   ];
 
   if (c.is_plateaued) {
-    lines.push(`PLATEAU DETECTED: The system has been plateaued for ${c.plateau_rounds} consecutive evaluation(s). Progress has stalled.`);
+    lines.push(
+      `PLATEAU DETECTED: The system has been plateaued for ${c.plateau_rounds} consecutive evaluation(s). Progress has stalled.`,
+    );
   }
 
   if (c.highest_pressure) {
-    lines.push(`Highest-pressure dimension (bottleneck): ${c.highest_pressure}`);
+    lines.push(
+      `Highest-pressure dimension (bottleneck): ${c.highest_pressure}`,
+    );
   }
 
-  lines.push(`Trajectory quality (Gate C): ${c.trajectory_quality.toFixed(2)} (need >= 0.7 for auto-resolve)`);
+  lines.push(
+    `Trajectory quality (Gate C): ${c.trajectory_quality.toFixed(2)} (need >= 0.7 for auto-resolve)`,
+  );
   if (c.oscillation_detected) {
-    lines.push("Oscillation detected: score history shows direction changes or negative autocorrelation; auto-resolve is gated.");
+    lines.push(
+      "Oscillation detected: score history shows direction changes or negative autocorrelation; auto-resolve is gated.",
+    );
   }
 
   if (c.score_history.length > 1) {
-    lines.push(`Score trajectory: [${c.score_history.map((s) => s.toFixed(3)).join(", ")}]`);
+    lines.push(
+      `Score trajectory: [${c.score_history.map((s) => s.toFixed(3)).join(", ")}]`,
+    );
   }
 
   lines.push("---", "");
@@ -68,7 +78,9 @@ function buildConvergenceSection(request: FinalityReviewRequest): string {
 /**
  * Call Ollama chat to generate the HITL explanation. Returns empty string if Ollama unavailable.
  */
-async function generateHitlExplanation(request: FinalityReviewRequest): Promise<string> {
+async function generateHitlExplanation(
+  request: FinalityReviewRequest,
+): Promise<string> {
   const base = getOllamaBaseUrl();
   const model = getHitlModel();
   if (!base) return "";
@@ -76,7 +88,10 @@ async function generateHitlExplanation(request: FinalityReviewRequest): Promise<
   const dimensionJson = JSON.stringify(request.dimension_breakdown, null, 2);
   const blockersJson = JSON.stringify(request.blockers, null, 2);
   const convergenceSection = buildConvergenceSection(request);
-  const prompt = HITL_PROMPT.replace("{{goal_score}}", String(request.goal_score))
+  const prompt = HITL_PROMPT.replace(
+    "{{goal_score}}",
+    String(request.goal_score),
+  )
     .replace("{{auto_threshold}}", String(request.auto_threshold))
     .replace("{{dimension_breakdown_json}}", dimensionJson)
     .replace("{{blockers_json}}", blockersJson)
@@ -104,11 +119,15 @@ async function generateHitlExplanation(request: FinalityReviewRequest): Promise<
 /**
  * Build suggested_actions from blockers (one action per blocker type).
  */
-function suggestedActionsFromBlockers(request: FinalityReviewRequest): string[] {
+function suggestedActionsFromBlockers(
+  request: FinalityReviewRequest,
+): string[] {
   const actions: string[] = [];
   for (const b of request.blockers) {
     if (b.type === "unresolved_contradiction")
-      actions.push("Post resolution for contradiction(s) or mark as accepted risk.");
+      actions.push(
+        "Post resolution for contradiction(s) or mark as accepted risk.",
+      );
     else if (b.type === "critical_risk")
       actions.push("Address critical risk(s) or escalate.");
     else if (b.type === "low_confidence_claims")
@@ -137,13 +156,16 @@ export async function submitFinalityReviewForScope(
   }
 
   const result =
-    preComputedReview?.kind === "review" ? preComputedReview : await evaluateFinality(scopeId);
+    preComputedReview?.kind === "review"
+      ? preComputedReview
+      : await evaluateFinality(scopeId);
   if (!result || result.kind !== "review") return false;
 
   const request = result.request;
   request.llm_explanation = await generateHitlExplanation(request);
-  request.suggested_actions =
-    request.suggested_actions?.length ? request.suggested_actions : suggestedActionsFromBlockers(request);
+  request.suggested_actions = request.suggested_actions?.length
+    ? request.suggested_actions
+    : suggestedActionsFromBlockers(request);
 
   const reviewId = `finality-${scopeId}-${randomUUID().slice(0, 8)}`;
   const proposal: Proposal = {
@@ -155,11 +177,23 @@ export async function submitFinalityReviewForScope(
     mode: "MITL",
   };
   try {
-    await addPending(reviewId, proposal, request as unknown as Record<string, unknown>);
-    logger.info("finality review added to MITL", { scope_id: scopeId, review_id: reviewId, goal_score: request.goal_score });
+    await addPending(
+      reviewId,
+      proposal,
+      request as unknown as Record<string, unknown>,
+    );
+    logger.info("finality review added to MITL", {
+      scope_id: scopeId,
+      review_id: reviewId,
+      goal_score: request.goal_score,
+    });
     return true;
   } catch (err) {
-    logger.error("finality review addPending failed", { scope_id: scopeId, review_id: reviewId, error: String(err) });
+    logger.error("finality review addPending failed", {
+      scope_id: scopeId,
+      review_id: reviewId,
+      error: String(err),
+    });
     throw err;
   }
 }

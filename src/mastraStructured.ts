@@ -6,7 +6,11 @@ import type { z } from "zod";
  */
 export type MastraStructuredResult = {
   object?: unknown;
-  usage?: { promptTokens?: number; completionTokens?: number; totalTokens?: number };
+  usage?: {
+    promptTokens?: number;
+    completionTokens?: number;
+    totalTokens?: number;
+  };
 };
 
 /**

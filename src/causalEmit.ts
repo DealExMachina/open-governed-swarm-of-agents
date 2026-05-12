@@ -65,7 +65,9 @@ export async function emitContribution(
       try {
         parents = await getFrontier(scopeId, opts?.pool);
       } catch (error) {
-        console.debug("no frontier available, treating as root contribution", { scopeId });
+        console.debug("no frontier available, treating as root contribution", {
+          scopeId,
+        });
         parents = [];
       }
     }

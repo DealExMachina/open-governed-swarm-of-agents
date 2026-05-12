@@ -27,7 +27,9 @@ export function computeBenchmarkMetrics(
   metrics.m1_error_amplification =
     falseClaims.length > 0 ? falseClaimsInState.length / falseClaims.length : 0;
 
-  const firstContradictionEpoch = result.epochs.find((e) => e.contradictionsDetected > 0);
+  const firstContradictionEpoch = result.epochs.find(
+    (e) => e.contradictionsDetected > 0,
+  );
   metrics.m2_contradiction_step = firstContradictionEpoch
     ? firstContradictionEpoch.epoch
     : null;
@@ -50,13 +52,15 @@ export function computeBenchmarkMetrics(
   const c1 = evaluateC1(stateFacts);
   const c2 = evaluateC2(stateFacts, groundTruth.falseClaims);
 
-  const epoch0Reconstructed: StateFact[] = (result.stateSnapshots[0] || []).map((f) => ({
-    id: `${f.dimension}-0`,
-    content: f.content,
-    dimension: f.dimension,
-    agentId: "reconstructed",
-    epoch: 0,
-  }));
+  const epoch0Reconstructed: StateFact[] = (result.stateSnapshots[0] || []).map(
+    (f) => ({
+      id: `${f.dimension}-0`,
+      content: f.content,
+      dimension: f.dimension,
+      agentId: "reconstructed",
+      epoch: 0,
+    }),
+  );
   const epoch0GroundTruth: StateFact[] = groundTruth.epoch0State.map((f) => ({
     id: `${f.dimension}-0`,
     content: f.content,

@@ -19,12 +19,16 @@ describe("architecture boundary invariants", () => {
   });
 
   it("keeps the feed scoped by default", () => {
-    expect(validateScopedRequest("/context/docs?scope_id=alpha", undefined, "alpha")).toEqual({
+    expect(
+      validateScopedRequest("/context/docs?scope_id=alpha", undefined, "alpha"),
+    ).toEqual({
       ok: true,
       scopeId: "alpha",
     });
 
-    expect(validateScopedRequest("/context/docs?scope_id=beta", undefined, "alpha")).toEqual({
+    expect(
+      validateScopedRequest("/context/docs?scope_id=beta", undefined, "alpha"),
+    ).toEqual({
       ok: false,
       status: 409,
       error: "unsupported_scope_for_runtime",
@@ -32,7 +36,9 @@ describe("architecture boundary invariants", () => {
   });
 
   it("does not let SGRS read-model failures break finality sync callers", async () => {
-    const fetchMock = vi.fn(async () => new Response("offline", { status: 503 }));
+    const fetchMock = vi.fn(
+      async () => new Response("offline", { status: 503 }),
+    );
     vi.stubGlobal("fetch", fetchMock);
 
     await expect(

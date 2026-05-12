@@ -34,7 +34,9 @@ export async function persistDecisionRecord(
       record.reason,
       JSON.stringify(record.obligations ?? []),
       record.binding ?? "sgrs",
-      record.suggested_actions ? JSON.stringify(record.suggested_actions) : null,
+      record.suggested_actions
+        ? JSON.stringify(record.suggested_actions)
+        : null,
       path,
       scopeId,
       scopeMode,

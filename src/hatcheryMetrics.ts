@@ -7,7 +7,10 @@ import { logger } from "./logger.js";
 
 // ── Arrival rate estimation ──────────────────────────────────────────────────
 
-interface Sample { count: number; ts: number }
+interface Sample {
+  count: number;
+  ts: number;
+}
 
 export class ArrivalRateEstimator {
   private samples: Sample[] = [];
@@ -43,7 +46,10 @@ export class ArrivalRateEstimator {
 
 // ── Service rate ─────────────────────────────────────────────────────────────
 
-export function computeServiceRate(avgLatencyMs: number, role?: string): number {
+export function computeServiceRate(
+  avgLatencyMs: number,
+  role?: string,
+): number {
   if (avgLatencyMs > 0) return 1000 / avgLatencyMs;
   return DEFAULT_SERVICE_RATES[role ?? ""] ?? 0.01;
 }
@@ -51,7 +57,11 @@ export function computeServiceRate(avgLatencyMs: number, role?: string): number 
 // ── M/M/c optimal workers ────────────────────────────────────────────────────
 
 export function computeOptimalWorkers(
-  lambda: number, mu: number, rhoTarget: number, min: number, max: number,
+  lambda: number,
+  mu: number,
+  rhoTarget: number,
+  min: number,
+  max: number,
 ): number {
   if (lambda <= 0 || mu <= 0 || rhoTarget <= 0) return min;
   const c = Math.ceil(lambda / (mu * rhoTarget));
@@ -68,7 +78,9 @@ export function littlesLawQueueDepth(lambda: number, mu: number): number {
 // ── Consumer lag ─────────────────────────────────────────────────────────────
 
 export async function getConsumerLag(
-  bus: EventBus, stream: string, consumer: string,
+  bus: EventBus,
+  stream: string,
+  consumer: string,
 ): Promise<number> {
   return bus.getConsumerPending(stream, consumer);
 }
@@ -119,8 +131,14 @@ export async function evaluateScalingDecisions(
     if (!state) continue;
     if (roleConfig.category === "tuner") {
       decisions.push({
-        role, action: "none", currentCount: state.instanceCount,
-        targetCount: state.instanceCount, lambda: 0, mu: 0, lag: 0, pressure: 0,
+        role,
+        action: "none",
+        currentCount: state.instanceCount,
+        targetCount: state.instanceCount,
+        lambda: 0,
+        mu: 0,
+        lag: 0,
+        pressure: 0,
       });
       continue;
     }
@@ -137,11 +155,22 @@ export async function evaluateScalingDecisions(
     }
 
     let cOptimal = computeOptimalWorkers(
-      lambda, mu, roleConfig.targetUtilization, roleConfig.minInstances, roleConfig.maxInstances,
+      lambda,
+      mu,
+      roleConfig.targetUtilization,
+      roleConfig.minInstances,
+      roleConfig.maxInstances,
     );
 
-    const lag = await getConsumerLag(bus, config.natsStream, state.consumerName);
-    if (lag > roleConfig.lagThreshold && lag > roleConfig.activationLagThreshold) {
+    const lag = await getConsumerLag(
+      bus,
+      config.natsStream,
+      state.consumerName,
+    );
+    if (
+      lag > roleConfig.lagThreshold &&
+      lag > roleConfig.activationLagThreshold
+    ) {
       const cLag = Math.min(
         Math.ceil(lag / roleConfig.lagThreshold) + state.instanceCount,
         roleConfig.maxInstances,
@@ -151,26 +180,42 @@ export async function evaluateScalingDecisions(
 
     const L = littlesLawQueueDepth(lambda, mu);
     if (L > 2 * lag && lag > 0) {
-      logger.warn("hatchery: lambda estimate may be inflated", { role, L, lag, lambda, mu });
+      logger.warn("hatchery: lambda estimate may be inflated", {
+        role,
+        L,
+        lag,
+        lambda,
+        mu,
+      });
     }
 
     let pressure = 0;
     if (config.pressureDirectedScaling) {
       const dims = ROLE_TO_DIMENSIONS[role] ?? [];
-      pressure = dims.reduce((sum, d) => sum + (convergencePressure[d] ?? 0), 0);
+      pressure = dims.reduce(
+        (sum, d) => sum + (convergencePressure[d] ?? 0),
+        0,
+      );
     }
 
     let action: ScalingAction = "none";
     if (cOptimal > state.instanceCount) {
       action = "scale_up";
     } else if (cOptimal < state.instanceCount && state.agentsInFlight === 0) {
-      const cooldownOk = Date.now() - state.lastScaleDownAt >= config.scaleDownCooldownMs;
+      const cooldownOk =
+        Date.now() - state.lastScaleDownAt >= config.scaleDownCooldownMs;
       if (cooldownOk) action = "scale_down";
     }
 
     decisions.push({
-      role, action, currentCount: state.instanceCount,
-      targetCount: cOptimal, lambda, mu, lag, pressure,
+      role,
+      action,
+      currentCount: state.instanceCount,
+      targetCount: cOptimal,
+      lambda,
+      mu,
+      lag,
+      pressure,
     });
   }
 

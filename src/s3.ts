@@ -59,21 +59,32 @@ export function makeS3() {
   });
 }
 
-export async function s3GetText(s3: S3Client, bucket: string, key: string): Promise<string | null> {
+export async function s3GetText(
+  s3: S3Client,
+  bucket: string,
+  key: string,
+): Promise<string | null> {
   return withCircuitBreaker(async () => {
     try {
       await s3.send(new HeadObjectCommand({ Bucket: bucket, Key: key }));
     } catch {
       return null;
     }
-    const res: GetObjectCommandOutput = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
+    const res: GetObjectCommandOutput = await s3.send(
+      new GetObjectCommand({ Bucket: bucket, Key: key }),
+    );
     const { Body } = res;
     if (!Body) return null;
     return streamToString(Body as Readable);
   });
 }
 
-export async function s3PutJson(s3: S3Client, bucket: string, key: string, data: unknown) {
+export async function s3PutJson(
+  s3: S3Client,
+  bucket: string,
+  key: string,
+  data: unknown,
+) {
   return withCircuitBreaker(() =>
     s3.send(
       new PutObjectCommand({
@@ -81,8 +92,8 @@ export async function s3PutJson(s3: S3Client, bucket: string, key: string, data:
         Key: key,
         Body: JSON.stringify(data, null, 2),
         ContentType: "application/json",
-      })
-    )
+      }),
+    ),
   );
 }
 
@@ -105,9 +116,20 @@ export async function s3PutText(
   );
 }
 
-export async function s3ListKeys(s3: S3Client, bucket: string, prefix: string, maxKeys: number = 1000): Promise<string[]> {
+export async function s3ListKeys(
+  s3: S3Client,
+  bucket: string,
+  prefix: string,
+  maxKeys: number = 1000,
+): Promise<string[]> {
   return withCircuitBreaker(async () => {
-    const res = await s3.send(new ListObjectsV2Command({ Bucket: bucket, Prefix: prefix, MaxKeys: maxKeys }));
+    const res = await s3.send(
+      new ListObjectsV2Command({
+        Bucket: bucket,
+        Prefix: prefix,
+        MaxKeys: maxKeys,
+      }),
+    );
     return (res.Contents ?? []).map((c) => c.Key!).filter(Boolean);
   });
 }
