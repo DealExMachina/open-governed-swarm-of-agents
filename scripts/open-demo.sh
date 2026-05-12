@@ -9,7 +9,7 @@ cd "$(dirname "$0")/.."
 # Prefer pnpm when lockfile is pnpm (repo is pnpm-managed)
 if command -v pnpm >/dev/null 2>&1 && [ -f pnpm-lock.yaml ]; then RUNNER=pnpm; else RUNNER=npm; fi
 
-DEMO_PORT="${DEMO_PORT:-3003}"
+DEMO_PORT="${DEMO_PORT:-3005}"
 DEMO_URL="http://localhost:${DEMO_PORT}"
 BROWSER="${BROWSER:-}"
 WAIT_MAX="${WAIT_MAX:-20}"

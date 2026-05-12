@@ -41,8 +41,8 @@ fi
 echo "Purging stale NATS consumers..."
 node --loader ts-node/esm scripts/purge-consumers.ts || echo "purge-consumers failed (non-fatal, continuing)."
 
-# Kill old agent processes and free ports (MITL 3001, resolution-mcp 3005) before starting fresh
-for port in 3001 3005; do
+# Kill old agent processes and free ports (MITL 3001, resolution-mcp 3006) before starting fresh
+for port in 3001 3006; do
   lsof -ti :$port 2>/dev/null | xargs kill -9 2>/dev/null || true
 done
 pkill -f "AGENT_ROLE=" 2>/dev/null || true

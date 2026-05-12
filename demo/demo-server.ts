@@ -7,7 +7,7 @@
  * near-finality. Project Horizon (M&A) is the flagship scenario.
  *
  * Usage:  pnpm run demo
- * Opens:  http://localhost:3003
+ * Opens:  http://localhost:3005
  *
  * Prerequisites:
  *   docker compose up -d && pnpm run swarm:start   (in a separate terminal)
@@ -36,7 +36,7 @@ import { startDemoSession, closeDemoSession } from "../src/demoSessions.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const DEMO_PORT = parseInt(process.env.DEMO_PORT ?? "3003", 10);
+const DEMO_PORT = parseInt(process.env.DEMO_PORT ?? "3005", 10);
 const FEED_URL = (process.env.FEED_URL ?? "http://127.0.0.1:3002").replace(/\/$/, "");
 const MITL_URL = (process.env.MITL_URL ?? "http://127.0.0.1:3001").replace(/\/$/, "");
 const SWARM_API_TOKEN = process.env.SWARM_API_TOKEN ?? "";
@@ -549,7 +549,7 @@ async function handleResolution(req: IncomingMessage, res: ServerResponse): Prom
     // When node_ids are provided (from the contradiction HITL modal), pass them so the
     // MCP evaluates against those specific contradictions even if the resolver agent
     // already marked them resolved in the background (race condition protection).
-    const mcpPort = process.env.RESOLUTION_MCP_PORT ?? "3005";
+    const mcpPort = process.env.RESOLUTION_MCP_PORT ?? "3006";
     let evaluation: Record<string, unknown> = {};
     try {
       if (nodeIds.length > 0 && !decision.trim()) {

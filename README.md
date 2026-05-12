@@ -87,7 +87,7 @@ pnpm run swarm:start
 
 **Run the demo:**
 ```bash
-pnpm run demo                    # Demo UI on http://localhost:3003
+pnpm run demo                    # Demo UI on http://localhost:3005
 ```
 
 **Full automated E2E** (Docker, reset, migrate, seed, bootstrap, run, verify):
@@ -95,9 +95,9 @@ pnpm run demo                    # Demo UI on http://localhost:3003
 ./scripts/run-e2e.sh
 ```
 
-**Ports (default compose):** 3002 feed API, 3003 demo UI, 3004 Grafana (host: container 3000), 3000/8080 OpenFGA (HTTP playground/gRPC), 5433 Postgres, 4222 NATS, 8222 NATS metrics, 9000/9001 MinIO, 8010 facts-worker, 9090 Prometheus, 4317/4318 OTLP.
+**Ports (default compose):** 3002 feed API, **3005 demo UI** (default `DEMO_PORT`), **3006 resolution MCP** (default `RESOLUTION_MCP_PORT` when hatchery runs it), 3004 Grafana (host: container 3000), 3000/8080 OpenFGA (HTTP playground/gRPC), 5433 Postgres, 4222 NATS, 8222 NATS metrics, 9000/9001 MinIO, 8010 facts-worker, 9090 Prometheus, 4317/4318 OTLP. Product SGRS API uses **3003** — see companion monorepo `ROUTING_ARCHITECTURE.md`.
 
-To run **SGRS Studio** or the product **REST API** on the same machine, see the companion monorepo [DealExMachina/sgrs](https://github.com/DealExMachina/sgrs) — especially [**`ROUTING_ARCHITECTURE.md`**](https://github.com/DealExMachina/sgrs/blob/main/ROUTING_ARCHITECTURE.md) for canonical ports (**Studio 3001**, **API 3003**). **3003 is shared** with the kernel demo UI above: co-run either by stopping one service or moving the product API to another port (e.g. 3005) as described there.
+To run **SGRS Studio** or the product **REST API** on the same machine, see [DealExMachina/sgrs](https://github.com/DealExMachina/sgrs) — [**`ROUTING_ARCHITECTURE.md`**](https://github.com/DealExMachina/sgrs/blob/main/ROUTING_ARCHITECTURE.md) assigns **Studio 3001** and **product API 3003**; this repo assigns **demo 3005** and **resolution MCP 3006** so nothing shares a listening port.
 
 ---
 
@@ -269,7 +269,7 @@ See [docs/validation.md](docs/validation.md) for methodology and known gaps.
 | `pnpm run bootstrap-once` | Publish bootstrap job. |
 | `pnpm run seed:all` | Seed context WAL from `seed-docs/`. |
 | `pnpm run seed:hitl` | Seed near-finality state with unresolved contradiction. |
-| `pnpm run demo` | Demo UI (port 3003). |
+| `pnpm run demo` | Demo UI (port 3005). |
 | `pnpm run feed` | Feed server (port 3002). |
 | `pnpm run observe` | Tail NATS events in terminal. |
 | `pnpm run reset-e2e` | Truncate DB, empty S3, delete NATS stream. |

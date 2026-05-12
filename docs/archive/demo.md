@@ -16,7 +16,7 @@ pnpm run ensure-bucket && pnpm run ensure-schema && pnpm run ensure-stream
 export GOVERNANCE_PATH="$(pwd)/demo/scenario/governance-demo.yaml"
 pnpm run swarm:start   # terminal 1
 pnpm run feed          # terminal 2
-pnpm run demo          # terminal 3 — http://localhost:3003
+pnpm run demo          # terminal 3 — http://localhost:3005
 ```
 
 - **Grafana:** http://localhost:3004 (needs `otel-collector`, `prometheus`, `grafana` from compose).
