@@ -1,21 +1,21 @@
-# @sgrs/sgrs-client (TypeScript)
+# @sgrs/kernel-client (TypeScript, internal)
 
-HTTP client for the **SGRS Governed Swarm** control plane (`/v1`). Point it at your swarm **control plane** URL—on-prem or in the cloud—and drive scopes, documents, runtime, and metrics from your own agents or services.
+HTTP client for the **SGRS kernel control plane** (`/v1`), intended for internal wiring and migration tooling.
 
-Published under the [npm **`sgrs`** organization](https://www.npmjs.com/org/sgrs).
+For external/public integrations, use the product clients from the `sgrs` repository (`@sgrs/client-ts` and `sgrs-client`).
 
 ## Install
 
 ```bash
-npm install @sgrs/sgrs-client
+npm install @sgrs/kernel-client
 ```
 
 ## Usage
 
 ```ts
-import { createSgrsClient } from "@sgrs/sgrs-client";
+import { createKernelClient } from "@sgrs/kernel-client";
 
-const client = createSgrsClient({
+const client = createKernelClient({
   baseUrl: "https://your-control-plane.example.com",
   apiKey: process.env.SWARM_API_KEY!,
 });
@@ -25,7 +25,7 @@ await client.runtimeStart("scope-id");
 
 ## Python
 
-The paired Python package lives in `packages/sgrs-client-py` (PyPI name **`sgrs-client`**, import **`sgrs_client`**).
+The paired Python package lives in `packages/sgrs-client-py` (PyPI name **`sgrs-kernel-client`**, import **`sgrs_client`**).
 
 ## License
 

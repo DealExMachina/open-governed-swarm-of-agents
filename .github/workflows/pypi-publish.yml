@@ -2,7 +2,7 @@
 # Repo: DealExMachina/open-governed-swarm-of-agents.
 # Uses GitHub Environment `pypi-publish` — name must match what you set on PyPI (if any).
 
-name: Publish sgrs-client (PyPI)
+name: Publish sgrs-kernel-client (PyPI)
 
 on:
   workflow_dispatch:

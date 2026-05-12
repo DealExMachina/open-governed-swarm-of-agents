@@ -1,33 +1,35 @@
-# sgrs-client (Python)
+# sgrs-kernel-client (Python, internal)
 
-HTTP client for the **SGRS Governed Swarm** control plane (`/v1`). Use it to integrate **your** agents with a swarm runtime (**on-prem or cloud**) without pulling in the full stack.
+HTTP client for the **SGRS kernel control plane** (`/v1`), intended for internal wiring and migration tooling.
+
+For external/public integrations, use the product clients from the `sgrs` repository (`@sgrs/client-ts` and `sgrs-client`).
 
 ## Install
 
 ```bash
-pip install sgrs-client
+pip install sgrs-kernel-client
 ```
 
 Optional NATS helpers:
 
 ```bash
-pip install 'sgrs-client[nats]'
+pip install 'sgrs-kernel-client[nats]'
 ```
 
 ## Usage
 
 ```python
-from sgrs_client import SgrsClient
+from sgrs_client import KernelClient
 
-with SgrsClient("https://your-control-plane.example.com", api_key) as client:
+with KernelClient("https://your-control-plane.example.com", api_key) as client:
     client.runtime_start("scope-id")
 ```
 
-`SwarmControlPlaneClient` remains available as an alias for `SgrsClient`.
+`SgrsClient` and `SwarmControlPlaneClient` remain available as aliases for compatibility.
 
 ## TypeScript
 
-See npm package **`@sgrs/sgrs-client`** (`packages/sgrs-client` in this repo).
+See npm package **`@sgrs/kernel-client`** (`packages/sgrs-client` in this repo).
 
 ## License
 

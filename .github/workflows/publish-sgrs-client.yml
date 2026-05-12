@@ -2,7 +2,7 @@
 # with publish rights for the @sgrs scope), or whatever secret name your env uses — set
 # NODE_AUTH_TOKEN mapping below if different.
 
-name: Publish @sgrs/sgrs-client (npm)
+name: Publish @sgrs/kernel-client (npm)
 
 on:
   workflow_dispatch:
@@ -41,7 +41,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build
-        run: pnpm --filter @sgrs/sgrs-client build
+        run: pnpm --filter @sgrs/kernel-client build
 
       - name: Publish to npm (dry run)
         if: inputs.dry_run

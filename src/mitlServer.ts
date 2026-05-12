@@ -210,6 +210,7 @@ function parseBody(req: IncomingMessage): Promise<Record<string, unknown>> {
 }
 
 export function startMitlServer(port: number): void {
+  const host = process.env.MITL_HOST ?? "127.0.0.1";
   const server = createServer(async (req: IncomingMessage, res: ServerResponse) => {
     const url = req.url ?? "/";
     const method = req.method ?? "GET";
@@ -303,12 +304,12 @@ export function startMitlServer(port: number): void {
         JSON.stringify({ ts: new Date().toISOString(), level: "error", msg: "MITL server port in use, retrying after kill", port }) + "\n",
       );
       try { require("child_process").execSync(`lsof -ti :${port} | xargs kill -9`, { stdio: "ignore" }); } catch {}
-      setTimeout(() => server.listen(port), 1000);
+      setTimeout(() => server.listen(port, host), 1000);
     } else {
       throw err;
     }
   });
-  server.listen(port, () => {
-    process.stdout.write(JSON.stringify({ ts: new Date().toISOString(), level: "info", msg: "MITL server listening", port }) + "\n");
+  server.listen(port, host, () => {
+    process.stdout.write(JSON.stringify({ ts: new Date().toISOString(), level: "info", msg: "MITL server listening", port, host }) + "\n");
   });
 }

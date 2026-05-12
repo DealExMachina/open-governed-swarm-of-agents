@@ -17,7 +17,7 @@ This kernel repo runs the orchestration stack (feed API, agents, Postgres, NATS,
 When Studio and API are reachable over HTTPS:
 
 1. Configure your tenant / scope and API base URL (see the [sgrs](https://github.com/DealExMachina/sgrs) repo).
-2. Use the TypeScript client [`@sgrs/sgrs-client`](https://www.npmjs.com/package/@sgrs/sgrs-client) or Python [`sgrs-client`](https://pypi.org/project/sgrs-client/) (install from registries when published, or from the monorepo while developing).
+2. Use the product TypeScript client [`@sgrs/client-ts`](https://www.npmjs.com/package/@sgrs/client-ts) or Python [`sgrs-client`](https://pypi.org/project/sgrs-client/) from the `sgrs` repository for external integrations.
 
 Python releases use GitHub Actions [`.github/workflows/pypi-publish.yml`](../.github/workflows/pypi-publish.yml) (**filename must stay in sync with PyPI Trusted Publishing**). Stable semver policy: [release-versioning.md](./release-versioning.md).
 
@@ -37,6 +37,14 @@ docker compose up -d
 ```
 
 This builds the **feed** image locally (`Dockerfile.feed`) and bind-mounts the repo into the container for development-style iteration.
+
+By default, feed now binds on the internal compose network only (`FEED_HOST=0.0.0.0` inside container, no host port mapping). This keeps a **single external API door** on the product side.
+
+If you need host access to `http://localhost:3002` for local scripts/debugging, use the dev override:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+```
 
 Follow the **Quick start** in [README.md](../README.md) for `pnpm install`, `ensure-schema`, `seed:all`, and `swarm:start`.
 
@@ -67,4 +75,4 @@ Compose already relies on upstream images (e.g. Postgres + pgvector, NATS, MinIO
 
 ## License reminder
 
-Orchestration code in this repo is **AGPL-3.0-only**; the Rust kernel under `sgrs-core/` is **Elastic License 2.0 (ELv2)**. The published HTTP clients (`packages/sgrs-client`, `packages/sgrs-client-py`) are **MIT**. See [README.md](../README.md#license).
+Orchestration code in this repo is **AGPL-3.0-only**; the Rust kernel under `sgrs-core/` is **Elastic License 2.0 (ELv2)**. The kernel internal HTTP clients (`packages/sgrs-client`, `packages/sgrs-client-py`) are **MIT**. See [README.md](../README.md#license).

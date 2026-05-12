@@ -44,6 +44,7 @@ export function startResolutionMcpServer(
   s3?: S3Client | null,
   bucket?: string,
 ): void {
+  const host = process.env.RESOLUTION_MCP_HOST ?? "127.0.0.1";
   const s3Client = s3 ?? null;
   const s3Bucket = bucket ?? "swarm";
 
@@ -113,8 +114,8 @@ export function startResolutionMcpServer(
     }
   });
 
-  server.listen(port, () => {
-    logger.info("resolution-mcp server listening", { port });
+  server.listen(port, host, () => {
+    logger.info("resolution-mcp server listening", { port, host });
   });
 
   server.on("error", (e: NodeJS.ErrnoException) => {
@@ -124,7 +125,7 @@ export function startResolutionMcpServer(
         const { execSync } = require("child_process");
         execSync(`lsof -ti :${port} | xargs kill -9 2>/dev/null || true`);
       } catch { /* best effort */ }
-      setTimeout(() => server.listen(port), 1000);
+      setTimeout(() => server.listen(port, host), 1000);
     }
   });
 }

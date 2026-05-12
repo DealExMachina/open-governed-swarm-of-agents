@@ -1,11 +1,11 @@
 {
-  "name": "@sgrs/sgrs-client",
+  "name": "@sgrs/kernel-client",
   "version": "0.1.0",
   "private": false,
   "publishConfig": {
     "access": "public"
   },
-  "description": "TypeScript client for the SGRS Governed Swarm control plane HTTP API (/v1). Use from your own agents against a swarm runtime on-prem or in the cloud.",
+  "description": "Internal TypeScript client for the SGRS kernel control-plane HTTP API (/v1). Prefer product clients from the sgrs repository for external integrations.",
   "license": "MIT",
   "type": "module",
   "sideEffects": false,
