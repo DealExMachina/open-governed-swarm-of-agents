@@ -9,6 +9,7 @@ import { s3GetText, s3PutJson } from "../s3.js";
 import { emitContribution } from "../causalEmit.js";
 import { makeReadFactsTool, makeReadFactsHistoryTool, makeReadDriftTool } from "./sharedTools.js";
 import { composeInstructions } from "../skills/loader.js";
+import { generateWithStructuredOutput } from "../mastraStructured.js";
 import { trackAgentTokens } from "../skills/tokenTracker.js";
 
 const DRIFT_LLM_TIMEOUT_MS = 90_000;
@@ -108,11 +109,10 @@ export async function runDriftAgent(
       const timeoutId = setTimeout(() => abortController.abort(), DRIFT_LLM_TIMEOUT_MS);
       setMaxListeners(64, abortController.signal);
       try {
-        const genResult = await agent.generate("Analyze drift now.", {
+        const genResult = await generateWithStructuredOutput(agent, "Analyze drift now.", DriftOutputSchema, {
           maxSteps: 5,
           abortSignal: abortController.signal,
           modelSettings: REASONING_SETTINGS,
-          structuredOutput: { schema: DriftOutputSchema as any, jsonPromptInjection: true },
         });
         trackAgentTokens("drift", genResult);
       } finally {

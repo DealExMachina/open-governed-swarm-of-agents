@@ -25,6 +25,7 @@ import { getChatModelConfig, getOversightModelConfig, DETERMINISTIC_SETTINGS, Go
 import type { Proposal, Action } from "../events.js";
 import { makeReadGovernanceRulesTool } from "./sharedTools.js";
 import { composeInstructions } from "../skills/loader.js";
+import { generateWithStructuredOutput } from "../mastraStructured.js";
 import { trackAgentTokens } from "../skills/tokenTracker.js";
 import { getActiveScopeId } from "../billingContext.js";
 
@@ -489,12 +490,13 @@ export async function processProposalWithAgent(
   const timeoutId = setTimeout(() => abortController.abort(), LLM_TIMEOUT_MS);
   setMaxListeners(64, abortController.signal);
   try {
-    const genResult = await llmBreaker.call(() => agent.generate(prompt, {
-      maxSteps: 8,
-      abortSignal: abortController.signal,
-      modelSettings: DETERMINISTIC_SETTINGS,
-      structuredOutput: { schema: GovernanceOutputSchema as any, jsonPromptInjection: true },
-    }));
+    const genResult = await llmBreaker.call(() =>
+      generateWithStructuredOutput(agent, prompt, GovernanceOutputSchema, {
+        maxSteps: 8,
+        abortSignal: abortController.signal,
+        modelSettings: DETERMINISTIC_SETTINGS,
+      }),
+    );
     trackAgentTokens("governance", genResult);
   } catch (e) {
     if (!tools.isDecided()) {
