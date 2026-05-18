@@ -2,7 +2,7 @@
 
 > Back to [README](../README.md) | See also [experiments.md](experiments.md) | [Codebase hygiene](codebase-hygiene.md) (missing assets, dead paths).
 
-**Last updated:** 2026-04-30 (TS test tree absent in repo; hygiene doc; honest validation surface).
+**Last updated:** 2026-05-18 (sgrs-client-py test suite expanded; TS test tree present in repo; CI updated).
 
 This document provides an honest accounting of what is tested, what is validated
 mathematically, and what remains theoretical or unverified. The goal is
@@ -23,6 +23,8 @@ flowchart TB
     LEAN[Lean 4 proofs — companion formal work]
     TLAP[TLA+ — companion model checking]
     E2E[E2E pipeline run-e2e.sh manual]
+    PY[sgrs-client-py: 60 unittest tests in CI]
+    TS[TypeScript: Vitest unit suite in CI]
   end
   subgraph theoretical["Theoretical / assumed"]
     T1[Concurrent CAS contention]
@@ -35,7 +37,7 @@ flowchart TB
   PROP --> E2E
 ```
 
-> **Note:** Vitest is configured at the repo root, but **`test/` is not shipped** — there is currently **no executable TypeScript unit suite** in-tree. Treat “TS unit coverage” below as historical / aspirational unless you restore `test/**/*.test.ts`. See [codebase-hygiene.md](codebase-hygiene.md).
+> **Note (2026-05-18):** `test/**/*.test.ts` is present in the repo and the Vitest suite runs in CI. `packages/sgrs-client-py` has a 60-test `unittest` suite covering all public API surface; it is wired into CI via the `python-client-tests` job.
 
 | Aspect | Tested / Validated | Theoretical / Assumed |
 |--------|-------------------|-----------------------|
@@ -71,7 +73,7 @@ flowchart TB
 
 ## 2. TypeScript unit tests (Vitest)
 
-**Status:** `vitest.config.ts` expects files under `test/**/*.test.ts` and `test/setup.ts`. **This repository snapshot does not include a `test/` directory**, so `pnpm run test` exits with *no test files*. The table below is **retained as a checklist** of modules that were historically covered by Vitest-style tests; restore files if you reintroduce the suite.
+**Status (2026-05-18):** `test/**/*.test.ts` and `test/setup.ts` are present in the repo and executed by `pnpm test` in CI. The table below is a checklist of coverage areas; cells marked *absent* reflect deliberate deferred work, not missing infrastructure.
 
 | Module / concern | What to cover when adding tests |
 |-----------------|----------------------------------|
@@ -88,6 +90,31 @@ See [codebase-hygiene.md](codebase-hygiene.md).
 
 ---
 
+---
+
+## 2b. Python client unit tests (sgrs-client-py)
+
+**Status (2026-05-18):** 60 tests, all passing. Runs in CI via the `python-client-tests` job (Python 3.11 / 3.12 / 3.13 matrix). No external services required; the suite is pure-unit with `unittest.mock`.
+
+**Run locally:**
+
+```bash
+cd packages/sgrs-client-py
+PYTHONPATH=src python3 -m unittest discover -s tests -v
+```
+
+| Test module | Tests | What is covered |
+|-------------|-------|-----------------|
+| `test_sse_subscribe.py` | 13 | `_decode_sse_append` (9 cases: split, partial, invalid JSON, no-data line, array payload, remainder) + `subscribe_events` integration against `http.server.HTTPServer` (chunked delivery, 401 no-callback, close-on-hang) |
+| `test_sgrs_client.py` | 32 | `SgrsClient.__init__` (trailing-slash strip, own-client flag, auth header, context manager, idempotent close, external client not closed); `_request` (JSON body, empty body → `{}`, `raise_for_status` called, HTTP error propagated, kwargs forwarded); all 13 HTTP methods (`health`, `list_scopes`, `create_scope`, `add_document`, `ingest`, `summary`, `metrics` ×4, `reset_scope`, `runtime_start/pause/resume/stop/restart`) |
+| `test_admin_client.py` | 6 | `AdminClient.__init__` (base-url strip, auth header); `create_tenant` (returns JSON, `raise_for_status` called, error propagated, body shape) |
+| `test_aliases.py` | 9 | Class hierarchy (`KernelClient ⊂ SgrsClient`, `KernelAdminClient ⊂ AdminClient`); deprecated aliases (`SwarmControlPlaneClient is SgrsClient`, `SgrsKernelClient is KernelClient`); instantiation round-trip for all four alias classes |
+
+**Known gaps:**
+
+- `health()` calls `httpx.get` directly (unauthenticated probe) rather than `self._http`; this is tested via `patch('sgrs_client.httpx.get')` but the design means the api_key is never sent to the health endpoint — intentional but undocumented in the source.
+- No test for `subscribe_events` when the server sends a keep-alive `:` comment line; SSE spec behaviour is assumed correct from the `_decode_sse_append` block-parsing tests.
+- `AdminClient` has no context manager (`__enter__`/`__exit__`); gap tracked, not yet filed.
 ## 3. Convergence benchmark (11 scenarios)
 
 **Pure math. No Docker, no Postgres, no NATS, no LLM.**
