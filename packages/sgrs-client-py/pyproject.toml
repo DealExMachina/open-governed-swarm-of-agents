@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "sgrs-kernel-client"
-version = "0.1.0"
+version = "0.1.1"
 description = "Internal Python client for the SGRS kernel control-plane /v1 API. External integrations should use product clients from the sgrs repository."
 readme = "README.md"
 license = "MIT"

@@ -77,3 +77,29 @@ jobs:
         with:
           files: ./coverage/coverage-final.json
           fail_ci_if_error: false
+
+  python-client-tests:
+    name: sgrs-client-py tests (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install runtime dependency
+        run: pip install httpx>=0.27
+        working-directory: packages/sgrs-client-py
+
+      - name: Run tests
+        run: python -m unittest discover -s tests -v
+        working-directory: packages/sgrs-client-py
+        env:
+          PYTHONPATH: src
