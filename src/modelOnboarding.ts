@@ -107,7 +107,6 @@ export function enforceModelOnboarding(
     }
     if (!warnedMissingPolicy) {
       warnedMissingPolicy = true;
-      // eslint-disable-next-line no-console
       console.warn("model onboarding policy missing; skipping enforcement");
     }
     return { model: requested, accepted: true, reason: "policy_missing" };
@@ -118,7 +117,6 @@ export function enforceModelOnboarding(
   }
   const fallbackKey = normalizeProviderModel(provider, fallbackModel);
   if (policy.qualified_models.includes(fallbackKey)) {
-    // eslint-disable-next-line no-console
     console.warn(
       `model ${requestedKey} rejected by onboarding policy, falling back to ${fallbackKey}`,
     );
@@ -129,7 +127,6 @@ export function enforceModelOnboarding(
       `model ${requestedKey} rejected; fallback ${fallbackKey} not qualified`,
     );
   }
-  // eslint-disable-next-line no-console
   console.warn(
     `model ${requestedKey} rejected; fallback ${fallbackKey} not qualified, using requested model`,
   );

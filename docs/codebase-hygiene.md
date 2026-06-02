@@ -21,6 +21,7 @@ This page lists **documentation vs. reality** mismatches, **optional or missing 
 |------|--------|
 | **`prototype/studio-preview/index.html`** | Static **SGRS Studio** UI (Cytoscape, bundled demo graph). Serve with any static server, e.g. `npx serve prototype/studio-preview`. Not referenced from `package.json`. |
 | **`scripts/benchmark-*-agents.ts`** (LangChain, Mastra, Agentica, Gateway) | Comparative / baseline drivers; not listed in the main README script table. Safe to treat as **optional research tooling**. |
+| **`scripts/test-dashboard-*.ts`** | Dashboard quality checks exposed through `pnpm run test:dashboard:smoke` and `pnpm run test:dashboard:regression`. Useful for UI/ops regression guardrails; optional for core kernel development. |
 
 ---
 
@@ -49,6 +50,13 @@ This page lists **documentation vs. reality** mismatches, **optional or missing 
 
 - **`migrations/`** (repo root): application Postgres schema for the Node swarm.
 - **`sgrs-core/migrations/`**: schema and assets used by the Rust crate / native build. Overlap in numbering (e.g. 019–021) reflects **parallel evolution** — they are not interchangeable. Application changes belong in root `migrations/` unless you are working inside `sgrs-core` only.
+
+---
+
+## Control-plane HTTP API
+
+- **`/v1/*` routes** are implemented in `src/controlPlaneServer.ts` and **mounted by the feed server** (`pnpm run feed`, port 3002). There is no separate control-plane process; do not add a `control-plane` npm script.
+- **Internal clients:** `packages/sgrs-client` (`@sgrs/kernel-client`) and `packages/sgrs-client-py`. Product-facing SDKs live in the [sgrs](https://github.com/DealExMachina/sgrs) repository.
 
 ---
 

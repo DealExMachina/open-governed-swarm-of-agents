@@ -1,0 +1,102 @@
+name: Dashboard Smoke
+
+on:
+  push:
+    branches: ["main", "dev", "claude/**"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  dashboard-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@v1
+        with:
+          toolchain: stable
+
+      - uses: pnpm/action-setup@v2
+        with:
+          version: "10.30.1"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Rust kernel (required by runtime imports)
+        run: pnpm build:rust
+
+      - name: Install Playwright browser
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Start required Docker services
+        run: COMPOSE_FILE=docker-compose.yml:docker-compose.dev.yml docker compose up -d postgres s3 nats facts-worker otel-collector prometheus grafana
+
+      - name: Initialize storage + schema + stream
+        run: pnpm run ensure-bucket && pnpm run ensure-schema && pnpm run ensure-stream && pnpm run bootstrap-once
+        env:
+          DATABASE_URL: postgresql://swarm:swarm@localhost:5433/swarm
+          NATS_URL: nats://localhost:4222
+          NATS_SERVERS: localhost:4222
+          S3_ENDPOINT: http://localhost:9000
+          S3_ACCESS_KEY: minioadmin
+          S3_SECRET_KEY: minioadmin
+          S3_BUCKET: swarm
+          S3_FORCE_PATH_STYLE: "1"
+
+      - name: Start feed server
+        run: nohup pnpm run feed > /tmp/feed.log 2>&1 &
+        env:
+          DATABASE_URL: postgresql://swarm:swarm@localhost:5433/swarm
+          NATS_URL: nats://localhost:4222
+          NATS_SERVERS: localhost:4222
+          S3_ENDPOINT: http://localhost:9000
+          S3_ACCESS_KEY: minioadmin
+          S3_SECRET_KEY: minioadmin
+          S3_BUCKET: swarm
+          S3_FORCE_PATH_STYLE: "1"
+          FEED_HOST: 0.0.0.0
+          FEED_PORT: "3002"
+
+      - name: Start demo server
+        run: nohup pnpm run demo > /tmp/demo.log 2>&1 &
+        env:
+          FEED_URL: http://127.0.0.1:3002
+          MITL_URL: http://127.0.0.1:3001
+
+      - name: Wait for dashboard endpoints
+        run: |
+          for url in http://localhost:3002/ http://localhost:3005/ http://localhost:3004/; do
+            echo "Waiting for $url"
+            for i in {1..60}; do
+              if curl -fsS "$url" >/dev/null; then
+                echo "Ready: $url"
+                break
+              fi
+              if [ $i -eq 60 ]; then
+                echo "Timed out waiting for $url"
+                exit 1
+              fi
+              sleep 2
+            done
+          done
+
+      - name: Run dashboard smoke suite
+        run: pnpm run test:dashboard:smoke
+
+      - name: Upload server logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dashboard-smoke-logs
+          path: |
+            /tmp/feed.log
+            /tmp/demo.log
+

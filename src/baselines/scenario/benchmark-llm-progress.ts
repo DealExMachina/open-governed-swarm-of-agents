@@ -11,7 +11,7 @@ export function logBenchmarkLlmAgentStep(
   roleId: string,
 ): void {
   if (suppressed()) return;
-  console.log(
+  console.warn(
     `    [${stack}] ${doc.id} epoch ${doc.epoch} → role ${roleId} (Ollama)…`,
   );
 }
@@ -23,7 +23,7 @@ export function logBenchmarkLlmGraphDoc(
   agentCount: number,
 ): void {
   if (suppressed()) return;
-  console.log(
+  console.warn(
     `    [${stack}] ${doc.id} epoch ${doc.epoch} — ${agentCount}-agent pipeline (Ollama, may take a while)…`,
   );
 }
