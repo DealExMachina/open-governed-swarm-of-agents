@@ -1,8 +1,29 @@
 {
   "name": "swarm-of-governed-agents",
   "version": "1.1.0",
-  "license": "AGPL-3.0-only",
+  "description": "Governed multi-agent orchestration with formal convergence, bitemporal state, and auditable policy enforcement.",
+  "license": "SEE LICENSE IN LICENSES.md",
   "private": true,
+  "homepage": "https://github.com/DealExMachina/open-governed-swarm-of-agents",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DealExMachina/open-governed-swarm-of-agents.git"
+  },
+  "bugs": {
+    "url": "https://github.com/DealExMachina/open-governed-swarm-of-agents/issues"
+  },
+  "keywords": [
+    "multi-agent",
+    "agent-orchestration",
+    "governance",
+    "convergence",
+    "compliance",
+    "auditability",
+    "bitemporal",
+    "langgraph",
+    "rust",
+    "typescript"
+  ],
   "type": "module",
   "packageManager": "pnpm@10.30.1",
   "engines": {
@@ -41,7 +62,6 @@
     "observe": "node --loader ts-node/esm scripts/observer.ts",
     "observability": "docker compose up -d otel-collector prometheus grafana",
     "feed": "node --loader ts-node/esm src/feed.ts",
-    "control-plane": "node --loader ts-node/esm src/controlPlaneServer.ts",
     "build:client": "pnpm --filter @sgrs/kernel-client build",
     "ensure-bucket": "node --loader ts-node/esm scripts/ensure-bucket.ts",
     "ensure-schema": "node --loader ts-node/esm scripts/ensure-schema.ts",
@@ -55,6 +75,8 @@
     "build:rust": "cd sgrs-core && pnpm exec napi build --release --platform",
     "build:rust:debug": "cd sgrs-core && pnpm exec napi build --platform",
     "benchmark:sgrs": "npx tsx scripts/benchmark-sgrs-load.ts",
+    "test:dashboard:smoke": "pnpm exec tsx scripts/test-dashboard-smoke.ts",
+    "test:dashboard:regression": "pnpm exec tsx scripts/test-dashboard-regression.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",

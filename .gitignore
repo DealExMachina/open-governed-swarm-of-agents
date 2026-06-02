@@ -8,6 +8,7 @@
 node_modules/
 dist/
 .pnpm-store/
+packages/**/pnpm-lock.yaml
 __pycache__/
 *.py[cod]
 .pytest_cache/
@@ -20,6 +21,7 @@ venv/
 # IDE and OS
 .idea/
 .vscode/
+*.code-workspace
 .cursor/
 .claude/
 .DS_Store

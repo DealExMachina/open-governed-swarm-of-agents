@@ -4,7 +4,7 @@
  */
 
 import { createHash } from "crypto";
-import pg from "pg";
+import type pg from "pg";
 import type { S3Client } from "@aws-sdk/client-s3";
 import { getPool } from "./db.js";
 import { tailEvents, getLatestPipelineWalSeqForFacts } from "./contextWal.js";
@@ -484,9 +484,9 @@ export async function checkFilter(
             const { recordPressureDirectedActivation } =
               await import("./metrics.js");
             recordPressureDirectedActivation(config.agentRole, true, "unknown");
-          } catch (error) {
+          } catch {
             // metrics recording non-fatal, but log for debugging
-            console.debug(
+            console.warn(
               "failed to record pressure activation (metrics module unavailable)",
             );
           }
@@ -534,8 +534,8 @@ export async function checkFilter(
             isHighPressure,
             highestDim,
           );
-        } catch (error) {
-          console.debug("failed to record pressure activation metric", {
+        } catch {
+          console.warn("failed to record pressure activation metric", {
             role: config.agentRole,
           });
         }
@@ -544,8 +544,8 @@ export async function checkFilter(
           reason,
           context: { agentPressure, maxPressure, dims },
         };
-      } catch (error) {
-        console.debug(
+      } catch {
+        console.warn(
           "convergence_history evaluation failed, falling back to allow activation",
           { role: config.agentRole },
         );
@@ -553,8 +553,8 @@ export async function checkFilter(
           const { recordPressureDirectedActivation } =
             await import("./metrics.js");
           recordPressureDirectedActivation(config.agentRole, true, "unknown");
-        } catch (metricError) {
-          console.debug("failed to record fallback activation metric");
+        } catch {
+          console.warn("failed to record fallback activation metric");
         }
         return {
           shouldActivate: true,
