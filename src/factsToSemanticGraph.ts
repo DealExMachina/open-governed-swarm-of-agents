@@ -81,9 +81,10 @@ function parseNliContradiction(s: string): [string, string] | null {
   );
   if (butWhile) return [butWhile[1].trim(), butWhile[2].trim()];
 
-  const revised = /(.+?)\s+(?:was|were)\s+(?:revised|restated|corrected)\s+(?:to|at)\s+(.+)/i.exec(
-    trimmed,
-  );
+  const revised =
+    /(.+?)\s+(?:was|were)\s+(?:revised|restated|corrected)\s+(?:to|at)\s+(.+)/i.exec(
+      trimmed,
+    );
   if (revised) return [revised[1].trim(), revised[2].trim()];
 
   return null;

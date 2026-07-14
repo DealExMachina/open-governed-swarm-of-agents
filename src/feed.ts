@@ -929,7 +929,7 @@ async function handleStudioLoadCorpus(
     const corpus =
       typeof body.corpus === "string"
         ? body.corpus
-        : getQuery(req.url ?? "").corpus ?? "";
+        : (getQuery(req.url ?? "").corpus ?? "");
     if (!corpus) {
       sendJson(res, 400, {
         error: "corpus_required",
@@ -1001,7 +1001,12 @@ async function handleStudioUploadDocs(
     if (hatchery) {
       await hatchery.rebindActiveScope(scopeId, null);
     }
-    sendJson(res, 200, { ok: true, scope_id: scopeId, fed: fed.length, documents: fed });
+    sendJson(res, 200, {
+      ok: true,
+      scope_id: scopeId,
+      fed: fed.length,
+      documents: fed,
+    });
   } catch (e) {
     sendJson(res, 500, { error: toErrorString(e) });
   }
@@ -1039,7 +1044,10 @@ async function main(): Promise<void> {
           sendJson(res, 200, { corpora: listStudioCorpora() });
           return;
         }
-        if (pathname.startsWith("/studio/scopes/") && pathname.endsWith("/load-corpus")) {
+        if (
+          pathname.startsWith("/studio/scopes/") &&
+          pathname.endsWith("/load-corpus")
+        ) {
           const parts = pathname.split("/").filter(Boolean);
           const scopeId = parts[2] ?? "";
           if (req.method === "POST") {
@@ -1047,7 +1055,10 @@ async function main(): Promise<void> {
             return;
           }
         }
-        if (pathname.startsWith("/studio/scopes/") && pathname.endsWith("/documents")) {
+        if (
+          pathname.startsWith("/studio/scopes/") &&
+          pathname.endsWith("/documents")
+        ) {
           const parts = pathname.split("/").filter(Boolean);
           const scopeId = parts[2] ?? "";
           if (req.method === "POST") {

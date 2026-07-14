@@ -80,7 +80,10 @@ vi.mock("../../src/sgrsSync.js", () => ({
 // Imported after mocks are declared (vi.mock is hoisted regardless).
 import { trackAgentTokens } from "../../src/skills/tokenTracker.js";
 import { runFactsPipelineDirect } from "../../src/agents/factsAgent.js";
-import { makeReadFactsTool, makeReadContextTool } from "../../src/agents/sharedTools.js";
+import {
+  makeReadFactsTool,
+  makeReadContextTool,
+} from "../../src/agents/sharedTools.js";
 
 describe("Mastra v1 createTool execute contract", () => {
   it("passes validated input as the first positional argument (inputData, context)", async () => {
@@ -259,7 +262,10 @@ describe("shared read tools receive inputData under v1", () => {
   });
 
   it("readContext honours the limit passed as inputData (not wrapped in context)", async () => {
-    tailEvents.mockResolvedValueOnce([{ data: { seq: 1 } }, { data: { seq: 2 } }]);
+    tailEvents.mockResolvedValueOnce([
+      { data: { seq: 1 } },
+      { data: { seq: 2 } },
+    ]);
     const tool = makeReadContextTool(200);
     const out = (await tool.execute?.({ limit: 5 }, {})) as {
       context: unknown[];

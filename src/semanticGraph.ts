@@ -1748,11 +1748,7 @@ export async function getStudioGraphElements(scopeId: string): Promise<{
   const edgeKeys = new Set(
     edges.map((e) => `${e.data.source}|${e.data.target}|${e.data.type}`),
   );
-  const pushEdge = (
-    source: string,
-    target: string,
-    type: string,
-  ): void => {
+  const pushEdge = (source: string, target: string, type: string): void => {
     const key = `${source}|${target}|${type}`;
     if (!source || !target || edgeKeys.has(key)) return;
     edgeKeys.add(key);
@@ -1791,7 +1787,8 @@ export async function getStudioGraphElements(scopeId: string): Promise<{
       const claimIds = meta.claim_ids;
       if (Array.isArray(claimIds)) {
         for (const cid of claimIds) {
-          if (typeof cid === "string") pushEdge(String(row.node_id), cid, "refers");
+          if (typeof cid === "string")
+            pushEdge(String(row.node_id), cid, "refers");
         }
       }
     }

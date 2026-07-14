@@ -68,6 +68,7 @@ jobs:
       - name: Start demo server
         run: nohup pnpm run demo > /tmp/demo.log 2>&1 &
         env:
+          DEMO_SKIP_PREFLIGHT: "1"
           FEED_URL: http://127.0.0.1:3002
           MITL_URL: http://127.0.0.1:3001
 
