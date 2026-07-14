@@ -28,7 +28,10 @@ export async function checkPermission(
 ): Promise<CheckResult> {
   const { storeId, modelId, url, allowIfUnavailable } = getConfig();
   if (!storeId) {
-    return { allowed: true, error: "OPENFGA_STORE_ID not set (allow by default)" };
+    return {
+      allowed: true,
+      error: "OPENFGA_STORE_ID not set (allow by default)",
+    };
   }
 
   const user = agent.startsWith("agent:") ? agent : `agent:${agent}`;

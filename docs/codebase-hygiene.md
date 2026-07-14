@@ -19,8 +19,9 @@ This page lists **documentation vs. reality** mismatches, **optional or missing 
 
 | Item | Notes |
 |------|--------|
-| **`prototype/studio-preview/index.html`** | Static **SGRS Studio** UI (Cytoscape, bundled demo graph). Serve with any static server, e.g. `npx serve prototype/studio-preview`. Not referenced from `package.json`. |
+| **`prototype/studio-preview/index.html`** | **SGRS Studio** UI (Cytoscape). Served by the feed at **`http://localhost:3002/studio`** when `pnpm run feed` is running; loads graph from **`GET /studio/elements?scope_id=`** (falls back to embedded demo graph if empty). Optional static serve: `npx serve prototype/studio-preview`. |
 | **`scripts/benchmark-*-agents.ts`** (LangChain, Mastra, Agentica, Gateway) | Comparative / baseline drivers; not listed in the main README script table. Safe to treat as **optional research tooling**. |
+| **`scripts/test-dashboard-*.ts`** | Dashboard quality checks exposed through `pnpm run test:dashboard:smoke` and `pnpm run test:dashboard:regression`. Useful for UI/ops regression guardrails; optional for core kernel development. |
 
 ---
 
@@ -41,7 +42,7 @@ This page lists **documentation vs. reality** mismatches, **optional or missing 
 ## Docker / compose
 
 - **`opa` service** in `docker-compose.yml` is **commented out** (optional Phase-1 policy bundle server). Do not document it as running by default.
-- **Port 3000** on the host maps to **OpenFGA** when compose is up; the **demo UI** uses **3003**, **Grafana** **3004**, **feed** **3002**.
+- **Port 3000** on the host maps to **OpenFGA** when compose is up; the **demo UI** uses **3005** (default `DEMO_PORT`), **resolution MCP** **3006** (default `RESOLUTION_MCP_PORT`), **Grafana** **3004**, **feed** **3002**.
 
 ---
 
@@ -52,12 +53,19 @@ This page lists **documentation vs. reality** mismatches, **optional or missing 
 
 ---
 
+## Control-plane HTTP API
+
+- **`/v1/*` routes** are implemented in `src/controlPlaneServer.ts` and **mounted by the feed server** (`pnpm run feed`, port 3002). There is no separate control-plane process; do not add a `control-plane` npm script.
+- **Internal clients:** `packages/sgrs-client` (`@sgrs/kernel-client`) and `packages/sgrs-client-py`. Product-facing SDKs live in the [sgrs](https://github.com/DealExMachina/sgrs) repository.
+
+---
+
 ## Dead or low-value code (high signal)
 
 | Area | Detail |
 |------|--------|
 | **Skill markdown files** | **Dead data path** until `skills/` exists: `loadSkillFile` always hits `catch` and returns `""`. |
-| **Vitest entrypoint** | **Dead test runner** in CI terms: no `test/` tree, so `pnpm test` cannot execute anything. |
+| **Vitest entrypoint** | **`test/`** holds unit and architecture tests; **`pnpm test`** runs in CI after `build:rust` and `pnpm build`. E2E remains out of CI (see [validation.md](validation.md)). |
 | **Causal contribution → evidence state** | Documented in validation as **not implemented by design** (audit-only DAG); do not assume runtime wiring from TS `emitContribution` to full evidence-state consumers. |
 
 ---

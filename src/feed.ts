@@ -18,12 +18,41 @@ import { makeS3 } from "./s3.js";
 import { s3GetText } from "./s3.js";
 import { toErrorString } from "./errors.js";
 import { getPool } from "./db.js";
-import { loadPolicies, getGovernanceForScope, evaluateRules } from "./governance.js";
-import { evaluateFinality, computeGoalScoreForScope, loadFinalityConfig, loadFinalitySnapshot } from "./finalityEvaluator.js";
-import { getConvergenceState, type ConvergenceState } from "./convergenceTracker.js";
-import { getGraphSummary, appendResolutionGoal, loadAllContradictionsWithResolutions } from "./semanticGraph.js";
-import { getLatestFinalityDecision, getAllFinalityDecisions } from "./finalityDecisions.js";
-import { getGovernancePolicyVersion, getFinalityPolicyVersion } from "./policyVersions.js";
+import {
+  loadPolicies,
+  getGovernanceForScope,
+  evaluateRules,
+} from "./governance.js";
+import {
+  evaluateFinality,
+  computeGoalScoreForScope,
+  loadFinalityConfig,
+  loadFinalitySnapshot,
+} from "./finalityEvaluator.js";
+import {
+  getConvergenceState,
+  type ConvergenceState,
+} from "./convergenceTracker.js";
+import {
+  getGraphSummary,
+  getStudioGraphElements,
+  appendResolutionGoal,
+  loadAllContradictionsWithResolutions,
+} from "./semanticGraph.js";
+import {
+  listStudioCatalogScopes,
+  createStudioCatalogScope,
+  scopeIsKnown,
+} from "./studioCatalog.js";
+import { loadCorpusDocuments, listStudioCorpora } from "./studioCorpora.js";
+import {
+  getLatestFinalityDecision,
+  getAllFinalityDecisions,
+} from "./finalityDecisions.js";
+import {
+  getGovernancePolicyVersion,
+  getFinalityPolicyVersion,
+} from "./policyVersions.js";
 import { getLatestCertificate } from "./finalityCertificates.js";
 import { requireBearer } from "./auth.js";
 import { getHatcheryInstance } from "./hatchery.js";
@@ -36,10 +65,9 @@ let _feedBus: EventBus | null = null;
 async function getFeedBus(): Promise<EventBus> {
   if (!_feedBus) {
     _feedBus = await makeEventBus();
-    await _feedBus.ensureStream(
-      process.env.NATS_STREAM ?? "SWARM_JOBS",
-      ["swarm.events.>"],
-    );
+    await _feedBus.ensureStream(process.env.NATS_STREAM ?? "SWARM_JOBS", [
+      "swarm.events.>",
+    ]);
   }
   return _feedBus;
 }
@@ -47,10 +75,14 @@ async function getFeedBus(): Promise<EventBus> {
 const FEED_PORT = parseInt(process.env.FEED_PORT ?? "3002", 10);
 const NATS_STREAM = process.env.NATS_STREAM ?? "SWARM_JOBS";
 const S3_BUCKET = process.env.S3_BUCKET ?? null;
-const GOVERNANCE_PATH = process.env.GOVERNANCE_PATH ?? join(process.cwd(), "governance.yaml");
+const GOVERNANCE_PATH =
+  process.env.GOVERNANCE_PATH ?? join(process.cwd(), "governance.yaml");
 const RUNTIME_SCOPE_ID = process.env.SCOPE_ID ?? "default";
 const ACCEPT_ANY_SCOPE = process.env.ACCEPT_ANY_SCOPE === "1";
-const MITL_URL = (process.env.MITL_URL ?? "http://localhost:3001").replace(/\/$/, "");
+const MITL_URL = (process.env.MITL_URL ?? "http://localhost:3001").replace(
+  /\/$/,
+  "",
+);
 
 function getPathname(url: string): string {
   try {
@@ -73,7 +105,11 @@ function getQuery(url: string): Record<string, string> {
   }
 }
 
-function sendJson(res: ServerResponse, status: number, data: Record<string, unknown>): void {
+function sendJson(
+  res: ServerResponse,
+  status: number,
+  data: Record<string, unknown>,
+): void {
   res.writeHead(status, { "Content-Type": "application/json" });
   res.end(JSON.stringify(data));
 }
@@ -94,7 +130,10 @@ function readJsonBody(req: IncomingMessage): Promise<Record<string, unknown>> {
   });
 }
 
-function readScopeIdFromRequest(req: IncomingMessage, body?: Record<string, unknown>): string | null {
+function readScopeIdFromRequest(
+  req: IncomingMessage,
+  body?: Record<string, unknown>,
+): string | null {
   const query = getQuery(req.url ?? "");
   const fromQuery = typeof query.scope_id === "string" ? query.scope_id : "";
   const fromBody = typeof body?.scope_id === "string" ? body.scope_id : "";
@@ -103,19 +142,22 @@ function readScopeIdFromRequest(req: IncomingMessage, body?: Record<string, unkn
   return scopeId;
 }
 
-function validateScopeId(scopeId: string): { ok: true } | { ok: false; status: number; error: string } {
+async function validateScopeAccess(
+  scopeId: string,
+): Promise<{ ok: true } | { ok: false; status: number; error: string }> {
   if (!scopeId) return { ok: false, status: 400, error: "scope_required" };
-  if (!ACCEPT_ANY_SCOPE && scopeId !== RUNTIME_SCOPE_ID) {
-    return { ok: false, status: 409, error: "unsupported_scope_for_runtime" };
-  }
-  return { ok: true };
+  if (ACCEPT_ANY_SCOPE || scopeId === RUNTIME_SCOPE_ID) return { ok: true };
+  if (await scopeIsKnown(scopeId)) return { ok: true };
+  return { ok: false, status: 409, error: "unsupported_scope_for_runtime" };
 }
 
 export function validateScopedRequest(
   requestUrl: string | undefined,
   body: Record<string, unknown> | undefined,
   runtimeScopeId: string = RUNTIME_SCOPE_ID,
-): { ok: true; scopeId: string } | { ok: false; status: number; error: string } {
+):
+  | { ok: true; scopeId: string }
+  | { ok: false; status: number; error: string } {
   const query = getQuery(requestUrl ?? "");
   const fromQuery = typeof query.scope_id === "string" ? query.scope_id : "";
   const fromBody = typeof body?.scope_id === "string" ? body.scope_id : "";
@@ -128,7 +170,10 @@ export function validateScopedRequest(
 }
 
 /** POST /context/docs: add a document to the WAL (type context_doc). Triggers facts pipeline. */
-async function handleAddDoc(req: IncomingMessage, res: ServerResponse): Promise<void> {
+async function handleAddDoc(
+  req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
   try {
     const body = await readJsonBody(req);
     const scopeId = readScopeIdFromRequest(req, body);
@@ -136,13 +181,21 @@ async function handleAddDoc(req: IncomingMessage, res: ServerResponse): Promise<
       sendJson(res, 400, { error: "scope_required" });
       return;
     }
-    const valid = validateScopeId(scopeId);
+    const valid = await validateScopeAccess(scopeId);
     if (!valid.ok) {
-      sendJson(res, valid.status, { error: valid.error, runtime_scope_id: RUNTIME_SCOPE_ID });
+      sendJson(res, valid.status, {
+        error: valid.error,
+        runtime_scope_id: RUNTIME_SCOPE_ID,
+      });
       return;
     }
     const title = typeof body.title === "string" ? body.title : "doc";
-    const text = typeof body.body === "string" ? body.body : typeof body.text === "string" ? body.text : "";
+    const text =
+      typeof body.body === "string"
+        ? body.body
+        : typeof body.text === "string"
+          ? body.text
+          : "";
     if (!text) {
       sendJson(res, 400, { error: "body or text required" });
       return;
@@ -155,14 +208,22 @@ async function handleAddDoc(req: IncomingMessage, res: ServerResponse): Promise<
     const seq = await appendEvent(event as unknown as Record<string, unknown>);
     const bus = await getFeedBus();
     await bus.publishEvent(event);
-    sendJson(res, 200, { seq, ok: true, message: "Document added; facts pipeline will run when agents process it." });
+    sendJson(res, 200, {
+      seq,
+      ok: true,
+      message:
+        "Document added; facts pipeline will run when agents process it.",
+    });
   } catch (e) {
     sendJson(res, 500, { error: toErrorString(e) });
   }
 }
 
 /** POST /context/resolution: add a manual resolution/decision to the WAL (type resolution). Integrates as new context so facts re-run and drift can clear; graph and fact history record the resolution. Optional node_ids: when provided (e.g. from Choose A/B), marks those contradiction nodes resolved. When absent (freeform), uses semantic matching to find and mark addressed contradictions. */
-async function handleAddResolution(req: IncomingMessage, res: ServerResponse): Promise<void> {
+async function handleAddResolution(
+  req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
   try {
     const body = await readJsonBody(req);
     const scopeId = readScopeIdFromRequest(req, body);
@@ -170,12 +231,20 @@ async function handleAddResolution(req: IncomingMessage, res: ServerResponse): P
       sendJson(res, 400, { error: "scope_required" });
       return;
     }
-    const valid = validateScopeId(scopeId);
+    const valid = await validateScopeAccess(scopeId);
     if (!valid.ok) {
-      sendJson(res, valid.status, { error: valid.error, runtime_scope_id: RUNTIME_SCOPE_ID });
+      sendJson(res, valid.status, {
+        error: valid.error,
+        runtime_scope_id: RUNTIME_SCOPE_ID,
+      });
       return;
     }
-    const decision = typeof body.decision === "string" ? body.decision : typeof body.text === "string" ? body.text : "";
+    const decision =
+      typeof body.decision === "string"
+        ? body.decision
+        : typeof body.text === "string"
+          ? body.text
+          : "";
     if (!decision.trim()) {
       sendJson(res, 400, { error: "decision or text required" });
       return;
@@ -209,7 +278,10 @@ async function handleAddResolution(req: IncomingMessage, res: ServerResponse): P
 
     let evaluationResult: Record<string, unknown> = {};
     try {
-      const { markResolved: markResolvedSvc, markResolvedByText: markResolvedByTextSvc } = await import("./resolutionService.js");
+      const {
+        markResolved: markResolvedSvc,
+        markResolvedByText: markResolvedByTextSvc,
+      } = await import("./resolutionService.js");
       const s3ForResolution = S3_BUCKET ? makeS3() : null;
       if (nodeIds.length > 0) {
         const resolvedIds: string[] = [];
@@ -225,7 +297,9 @@ async function handleAddResolution(req: IncomingMessage, res: ServerResponse): P
             });
             resolvedIds.push(nodeId);
           } catch (err) {
-            process.stderr.write(`[feed] mark-resolved failed for ${nodeId}: ${err instanceof Error ? err.message : String(err)}\n`);
+            process.stderr.write(
+              `[feed] mark-resolved failed for ${nodeId}: ${err instanceof Error ? err.message : String(err)}\n`,
+            );
           }
         }
         evaluationResult = { method: "explicit_node_ids", marked: resolvedIds };
@@ -239,7 +313,9 @@ async function handleAddResolution(req: IncomingMessage, res: ServerResponse): P
         evaluationResult = result as unknown as Record<string, unknown>;
       }
     } catch (err) {
-      process.stderr.write(`[feed] resolution service error: ${err instanceof Error ? err.message : String(err)}\n`);
+      process.stderr.write(
+        `[feed] resolution service error: ${err instanceof Error ? err.message : String(err)}\n`,
+      );
     }
 
     sendJson(res, 200, {
@@ -254,24 +330,39 @@ async function handleAddResolution(req: IncomingMessage, res: ServerResponse): P
 }
 
 /** GET /pending: proxy to MITL server pending list (for finality reviews and other proposals). */
-async function handleGetPending(req: IncomingMessage, res: ServerResponse): Promise<void> {
+async function handleGetPending(
+  req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
   try {
     const scopeId = readScopeIdFromRequest(req);
     if (!scopeId) {
       sendJson(res, 400, { error: "scope_required", pending: [] });
       return;
     }
-    const valid = validateScopeId(scopeId);
+    const valid = await validateScopeAccess(scopeId);
     if (!valid.ok) {
-      sendJson(res, valid.status, { error: valid.error, pending: [], runtime_scope_id: RUNTIME_SCOPE_ID });
+      sendJson(res, valid.status, {
+        error: valid.error,
+        pending: [],
+        runtime_scope_id: RUNTIME_SCOPE_ID,
+      });
       return;
     }
-    const r = await fetch(`${MITL_URL}/pending?scope_id=${encodeURIComponent(scopeId)}`, { method: "GET" });
+    const r = await fetch(
+      `${MITL_URL}/pending?scope_id=${encodeURIComponent(scopeId)}`,
+      { method: "GET" },
+    );
     if (!r.ok) {
       sendJson(res, 502, { error: "mitl_unavailable", pending: [] });
       return;
     }
-    const data = (await r.json()) as { pending?: Array<{ proposal_id: string; proposal: Record<string, unknown> }> };
+    const data = (await r.json()) as {
+      pending?: Array<{
+        proposal_id: string;
+        proposal: Record<string, unknown>;
+      }>;
+    };
     sendJson(res, 200, { pending: data.pending ?? [] });
   } catch (e) {
     sendJson(res, 502, { error: toErrorString(e), pending: [] });
@@ -279,7 +370,10 @@ async function handleGetPending(req: IncomingMessage, res: ServerResponse): Prom
 }
 
 /** POST /finality-response: proxy to MITL finality-response for a given proposal. Body: { proposal_id, option, days? }. */
-async function handleFinalityResponse(req: IncomingMessage, res: ServerResponse): Promise<void> {
+async function handleFinalityResponse(
+  req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
   try {
     const body = await readJsonBody(req);
     const scopeId = readScopeIdFromRequest(req, body);
@@ -287,24 +381,42 @@ async function handleFinalityResponse(req: IncomingMessage, res: ServerResponse)
       sendJson(res, 400, { ok: false, error: "scope_required" });
       return;
     }
-    const validScope = validateScopeId(scopeId);
+    const validScope = await validateScopeAccess(scopeId);
     if (!validScope.ok) {
-      sendJson(res, validScope.status, { ok: false, error: validScope.error, runtime_scope_id: RUNTIME_SCOPE_ID });
+      sendJson(res, validScope.status, {
+        ok: false,
+        error: validScope.error,
+        runtime_scope_id: RUNTIME_SCOPE_ID,
+      });
       return;
     }
-    const proposalId = typeof body.proposal_id === "string" ? body.proposal_id : "";
+    const proposalId =
+      typeof body.proposal_id === "string" ? body.proposal_id : "";
     const option = body.option as string | undefined;
-    const valid: string[] = ["approve_finality", "provide_resolution", "escalate", "defer"];
+    const valid: string[] = [
+      "approve_finality",
+      "provide_resolution",
+      "escalate",
+      "defer",
+    ];
     if (!proposalId || !option || !valid.includes(option)) {
-      sendJson(res, 400, { ok: false, error: "proposal_id and option (one of: " + valid.join(", ") + ") required" });
+      sendJson(res, 400, {
+        ok: false,
+        error:
+          "proposal_id and option (one of: " + valid.join(", ") + ") required",
+      });
       return;
     }
-    const days = option === "defer" && body.days != null ? Number(body.days) : undefined;
-    const r = await fetch(`${MITL_URL}/finality-response/${encodeURIComponent(proposalId)}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ option, days, scope_id: scopeId }),
-    });
+    const days =
+      option === "defer" && body.days != null ? Number(body.days) : undefined;
+    const r = await fetch(
+      `${MITL_URL}/finality-response/${encodeURIComponent(proposalId)}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ option, days, scope_id: scopeId }),
+      },
+    );
     const data = (await r.json()) as { ok?: boolean; error?: string };
     sendJson(res, r.ok ? 200 : 404, data);
   } catch (e) {
@@ -342,7 +454,9 @@ function toFactStringList(val: unknown): string[] {
 /**
  * Build studio/demo summary JSON for a scope (shared by feed and control plane).
  */
-export async function buildScopeSummaryForScope(scopeId: string): Promise<Record<string, unknown>> {
+export async function buildScopeSummaryForScope(
+  scopeId: string,
+): Promise<Record<string, unknown>> {
   const state = await loadState(scopeId);
   const recent = await tailEvents(20);
   let facts: Record<string, unknown> | null = null;
@@ -361,7 +475,12 @@ export async function buildScopeSummaryForScope(scopeId: string): Promise<Record
   return {
     scope_id: scopeId,
     state: state
-      ? { lastNode: state.lastNode, epoch: state.epoch, runId: state.runId, updatedAt: state.updatedAt }
+      ? {
+          lastNode: state.lastNode,
+          epoch: state.epoch,
+          runId: state.runId,
+          updatedAt: state.updatedAt,
+        }
       : null,
     facts: facts
       ? {
@@ -372,7 +491,18 @@ export async function buildScopeSummaryForScope(scopeId: string): Promise<Record
           assumptions: toFactStringList(facts.assumptions),
           confidence: facts.confidence ?? null,
           hash: (facts as { hash?: string }).hash ?? null,
-          keys: Object.keys(facts).filter((k) => !["hash", "goals", "confidence", "claims", "risks", "contradictions", "assumptions"].includes(k)),
+          keys: Object.keys(facts).filter(
+            (k) =>
+              ![
+                "hash",
+                "goals",
+                "confidence",
+                "claims",
+                "risks",
+                "contradictions",
+                "assumptions",
+              ].includes(k),
+          ),
         }
       : null,
     drift: (() => {
@@ -382,22 +512,40 @@ export async function buildScopeSummaryForScope(scopeId: string): Promise<Record
       const notes = (drift.notes as string[]) ?? [];
       let suggested_actions: string[] = [];
       try {
-        const config = getGovernanceForScope(scopeId, loadPolicies(GOVERNANCE_PATH));
+        const config = getGovernanceForScope(
+          scopeId,
+          loadPolicies(GOVERNANCE_PATH),
+        );
         suggested_actions = evaluateRules({ level, types }, config);
       } catch {
         // governance file optional for summary
       }
-      const references = (drift.references as Array<{ type?: string; doc?: string; excerpt?: string }>) ?? [];
+      const references =
+        (drift.references as Array<{
+          type?: string;
+          doc?: string;
+          excerpt?: string;
+        }>) ?? [];
       return { level, types, notes, suggested_actions, references };
     })(),
     what_changed: recent
-      .filter((e) => ["state_transition", "facts_extracted", "drift_analyzed", "context_doc", "bootstrap", "resolution"].includes((e.data as { type?: string })?.type ?? ""))
+      .filter((e) =>
+        [
+          "state_transition",
+          "facts_extracted",
+          "drift_analyzed",
+          "context_doc",
+          "bootstrap",
+          "resolution",
+        ].includes((e.data as { type?: string })?.type ?? ""),
+      )
       .slice(-10)
       .map((e) => ({
         seq: e.seq,
         type: (e.data as { type?: string }).type,
         ts: e.ts,
-        payload: (e.data as { payload?: Record<string, unknown> }).payload ?? {},
+        payload:
+          (e.data as { payload?: Record<string, unknown> }).payload ?? {},
       })),
     finality: await (async () => {
       try {
@@ -406,24 +554,40 @@ export async function buildScopeSummaryForScope(scopeId: string): Promise<Record
         const auto = config.goal_gradient?.auto_finality_threshold ?? 0.92;
         const goal_score = await computeGoalScoreForScope(scopeId);
         const result = await evaluateFinality(scopeId);
-        const status = result?.kind === "status" ? result.status : result?.kind === "review" ? "near_finality" : "ACTIVE";
+        const status =
+          result?.kind === "status"
+            ? result.status
+            : result?.kind === "review"
+              ? "near_finality"
+              : "ACTIVE";
         let last_decision: { option: string; created_at: string } | null = null;
         try {
           const decision = await getLatestFinalityDecision(scopeId);
-          if (decision) last_decision = { option: decision.option, created_at: decision.created_at };
+          if (decision)
+            last_decision = {
+              option: decision.option,
+              created_at: decision.created_at,
+            };
         } catch {
           // table may not exist
         }
         let convergence: Record<string, unknown> | null = null;
         try {
           const convConfig = config.convergence ?? {};
-          const convState: ConvergenceState = await getConvergenceState(scopeId, convConfig, auto);
+          const convState: ConvergenceState = await getConvergenceState(
+            scopeId,
+            convConfig,
+            auto,
+          );
           convergence = {
             rate: convState.convergence_rate,
             estimated_rounds: convState.estimated_rounds,
             is_plateaued: convState.is_plateaued,
             plateau_rounds: convState.plateau_rounds,
-            lyapunov_v: convState.history.length > 0 ? convState.history[convState.history.length - 1].lyapunov_v : null,
+            lyapunov_v:
+              convState.history.length > 0
+                ? convState.history[convState.history.length - 1].lyapunov_v
+                : null,
             highest_pressure: convState.highest_pressure_dimension,
             is_monotonic: convState.is_monotonic,
             trajectory_quality: convState.trajectory_quality,
@@ -438,10 +602,19 @@ export async function buildScopeSummaryForScope(scopeId: string): Promise<Record
           // convergence_history table may not exist
         }
 
-        let policy_version: { governance?: string; finality?: string } | undefined;
-        let finality_certificate: { decision: string; timestamp: string; has_jws: boolean } | null = null;
+        let policy_version:
+          | { governance?: string; finality?: string }
+          | undefined;
+        let finality_certificate: {
+          decision: string;
+          timestamp: string;
+          has_jws: boolean;
+        } | null = null;
         try {
-          policy_version = { governance: getGovernancePolicyVersion(), finality: getFinalityPolicyVersion() };
+          policy_version = {
+            governance: getGovernancePolicyVersion(),
+            finality: getFinalityPolicyVersion(),
+          };
         } catch {
           // optional
         }
@@ -463,7 +636,10 @@ export async function buildScopeSummaryForScope(scopeId: string): Promise<Record
           near_threshold: near,
           auto_threshold: auto,
           resolved: status === "RESOLVED",
-          dimension_breakdown: result?.kind === "review" ? result.request.dimension_breakdown : null,
+          dimension_breakdown:
+            result?.kind === "review"
+              ? result.request.dimension_breakdown
+              : null,
           blockers: result?.kind === "review" ? result.request.blockers : null,
           last_decision: last_decision ?? undefined,
           policy_version: policy_version ?? undefined,
@@ -473,14 +649,19 @@ export async function buildScopeSummaryForScope(scopeId: string): Promise<Record
             try {
               const snap = await loadFinalitySnapshot(scopeId);
               const contraTotal = snap.contradictions_total_count || 0;
-              const contraResolved = contraTotal === 0 ? 1 : 1 - (snap.contradictions_unresolved_count / contraTotal);
+              const contraResolved =
+                contraTotal === 0
+                  ? 1
+                  : 1 - snap.contradictions_unresolved_count / contraTotal;
               return {
                 claim_avg_confidence: snap.claims_active_avg_confidence,
                 contradiction_resolution_ratio: contraResolved,
                 goal_completion_ratio: snap.goals_completion_ratio,
                 risk_score_inverse: 1 - Math.min(snap.scope_risk_score, 1),
               };
-            } catch { return null; }
+            } catch {
+              return null;
+            }
           })(),
         };
       } catch {
@@ -512,16 +693,22 @@ export async function buildScopeSummaryForScope(scopeId: string): Promise<Record
 }
 
 /** GET /summary: state, facts summary, drift, and recent pipeline events for demo output. */
-async function handleSummary(req: IncomingMessage, res: ServerResponse): Promise<void> {
+async function handleSummary(
+  req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
   try {
     const scopeId = readScopeIdFromRequest(req);
     if (!scopeId) {
       sendJson(res, 400, { error: "scope_required" });
       return;
     }
-    const valid = validateScopeId(scopeId);
+    const valid = await validateScopeAccess(scopeId);
     if (!valid.ok) {
-      sendJson(res, valid.status, { error: valid.error, runtime_scope_id: RUNTIME_SCOPE_ID });
+      sendJson(res, valid.status, {
+        error: valid.error,
+        runtime_scope_id: RUNTIME_SCOPE_ID,
+      });
       return;
     }
     const summary = await buildScopeSummaryForScope(scopeId);
@@ -532,7 +719,10 @@ async function handleSummary(req: IncomingMessage, res: ServerResponse): Promise
 }
 
 /** GET /convergence?scope=<id>: full convergence state for a scope (debugging + benchmark). */
-async function handleConvergence(req: IncomingMessage, res: ServerResponse): Promise<void> {
+async function handleConvergence(
+  req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
   try {
     const query = getQuery(req.url ?? "");
     const scopeId = query.scope ?? query.scope_id ?? "";
@@ -559,7 +749,10 @@ async function handleConvergence(req: IncomingMessage, res: ServerResponse): Pro
   }
 }
 
-async function handleEvents(req: IncomingMessage, res: ServerResponse): Promise<void> {
+async function handleEvents(
+  req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
   const pathname = getPathname(req.url ?? "/");
   if (req.method !== "GET" || pathname !== "/events") {
     res.writeHead(404, { "Content-Type": "application/json" });
@@ -597,7 +790,10 @@ async function handleEvents(req: IncomingMessage, res: ServerResponse): Promise<
     res.write(": keepalive\n\n");
   }, 25000);
 
-  const onMessage = async (msg: { id: string; data: Record<string, unknown> }) => {
+  const onMessage = async (msg: {
+    id: string;
+    data: Record<string, unknown>;
+  }) => {
     if (res.writableEnded) return;
     const line = `id: ${msg.id}\ndata: ${JSON.stringify(msg.data)}\n\n`;
     res.write(line);
@@ -615,96 +811,352 @@ async function handleEvents(req: IncomingMessage, res: ServerResponse): Promise<
 }
 
 const __feed_dirname = dirname(fileURLToPath(import.meta.url));
-const INDEX_HTML = readFileSync(join(__feed_dirname, "observability.html"), "utf-8");
+const INDEX_HTML = readFileSync(
+  join(__feed_dirname, "observability.html"),
+  "utf-8",
+);
+const STUDIO_HTML = readFileSync(
+  join(__feed_dirname, "..", "prototype", "studio-preview", "index.html"),
+  "utf-8",
+);
+const STUDIO_APP_JS = readFileSync(
+  join(__feed_dirname, "..", "prototype", "studio-preview", "studio-app.js"),
+  "utf-8",
+);
 
+async function handleStudioElements(
+  req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  const scopeId = readScopeIdFromRequest(req);
+  if (!scopeId) {
+    sendJson(res, 400, { error: "scope_required" });
+    return;
+  }
+  const valid = await validateScopeAccess(scopeId);
+  if (!valid.ok) {
+    sendJson(res, valid.status, {
+      error: valid.error,
+      runtime_scope_id: RUNTIME_SCOPE_ID,
+    });
+    return;
+  }
+  try {
+    const elements = await getStudioGraphElements(scopeId);
+    sendJson(res, 200, { scope_id: scopeId, ...elements });
+  } catch (e) {
+    sendJson(res, 500, { error: toErrorString(e) });
+  }
+}
+
+async function handleStudioScopesList(
+  _req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  try {
+    const scopes = await listStudioCatalogScopes();
+    sendJson(res, 200, { scopes });
+  } catch (e) {
+    sendJson(res, 500, { error: toErrorString(e) });
+  }
+}
+
+async function handleStudioScopeCreate(
+  req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  try {
+    const body = await readJsonBody(req);
+    const name = typeof body.name === "string" ? body.name.trim() : "";
+    const tag = typeof body.tag === "string" ? body.tag.trim() : "custom";
+    let id =
+      typeof body.id === "string"
+        ? body.id.trim().replace(/\s+/g, "-").toLowerCase()
+        : "";
+    if (!name) {
+      sendJson(res, 400, { error: "name_required" });
+      return;
+    }
+    if (!id) {
+      id = name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "")
+        .slice(0, 48);
+    }
+    if (!id) {
+      sendJson(res, 400, { error: "id_required" });
+      return;
+    }
+    const scope = await createStudioCatalogScope({ id, name, tag });
+    sendJson(res, 201, { scope });
+  } catch (e) {
+    sendJson(res, 500, { error: toErrorString(e) });
+  }
+}
+
+async function ingestContextDoc(
+  scopeId: string,
+  title: string,
+  text: string,
+): Promise<number> {
+  const event = createSwarmEvent(
+    "context_doc",
+    { title, text, source: "studio", scope_id: scopeId },
+    { source: "feed" },
+  );
+  const seq = await appendEvent(event as unknown as Record<string, unknown>);
+  const bus = await getFeedBus();
+  await bus.publishEvent(event);
+  return seq;
+}
+
+async function handleStudioLoadCorpus(
+  req: IncomingMessage,
+  res: ServerResponse,
+  scopeId: string,
+): Promise<void> {
+  const valid = await validateScopeAccess(scopeId);
+  if (!valid.ok) {
+    sendJson(res, valid.status, {
+      error: valid.error,
+      runtime_scope_id: RUNTIME_SCOPE_ID,
+    });
+    return;
+  }
+  try {
+    const body = await readJsonBody(req);
+    const corpus =
+      typeof body.corpus === "string"
+        ? body.corpus
+        : (getQuery(req.url ?? "").corpus ?? "");
+    if (!corpus) {
+      sendJson(res, 400, {
+        error: "corpus_required",
+        corpora: listStudioCorpora(),
+      });
+      return;
+    }
+    const docs = loadCorpusDocuments(corpus);
+    if (docs.length === 0) {
+      sendJson(res, 404, { error: "corpus_not_found", corpus });
+      return;
+    }
+    const fed: Array<{ title: string; seq: number }> = [];
+    for (const doc of docs) {
+      const seq = await ingestContextDoc(scopeId, doc.title, doc.body);
+      fed.push({ title: doc.title, seq });
+    }
+    const hatchery = getHatcheryInstance();
+    if (hatchery) {
+      await hatchery.rebindActiveScope(scopeId, null);
+    }
+    sendJson(res, 200, {
+      ok: true,
+      scope_id: scopeId,
+      corpus,
+      fed: fed.length,
+      documents: fed,
+    });
+  } catch (e) {
+    sendJson(res, 500, { error: toErrorString(e) });
+  }
+}
+
+async function handleStudioUploadDocs(
+  req: IncomingMessage,
+  res: ServerResponse,
+  scopeId: string,
+): Promise<void> {
+  const valid = await validateScopeAccess(scopeId);
+  if (!valid.ok) {
+    sendJson(res, valid.status, {
+      error: valid.error,
+      runtime_scope_id: RUNTIME_SCOPE_ID,
+    });
+    return;
+  }
+  try {
+    const body = await readJsonBody(req);
+    const docs = Array.isArray(body.documents) ? body.documents : [];
+    if (docs.length === 0) {
+      sendJson(res, 400, { error: "documents_required" });
+      return;
+    }
+    const fed: Array<{ title: string; seq: number }> = [];
+    for (const raw of docs) {
+      const row = raw as Record<string, unknown>;
+      const title = typeof row.title === "string" ? row.title : "doc";
+      const text =
+        typeof row.body === "string"
+          ? row.body
+          : typeof row.text === "string"
+            ? row.text
+            : "";
+      if (!text.trim()) continue;
+      const seq = await ingestContextDoc(scopeId, title, text);
+      fed.push({ title, seq });
+    }
+    const hatchery = getHatcheryInstance();
+    if (hatchery) {
+      await hatchery.rebindActiveScope(scopeId, null);
+    }
+    sendJson(res, 200, {
+      ok: true,
+      scope_id: scopeId,
+      fed: fed.length,
+      documents: fed,
+    });
+  } catch (e) {
+    sendJson(res, 500, { error: toErrorString(e) });
+  }
+}
 
 async function main(): Promise<void> {
-  const server = createServer(async (req: IncomingMessage, res: ServerResponse) => {
-    try {
-      const pathname = getPathname(req.url ?? "/");
-      if (req.method === "GET" && pathname === "/") {
-        res.writeHead(200, { "Content-Type": "text/html" });
-        res.end(INDEX_HTML);
-        return;
-      }
-      if (req.method === "GET" && pathname === "/summary") {
-        const query = getQuery(req.url ?? "");
-        const wantJson = query.raw === "1" || query.format === "json";
-        const accept = (req.headers["accept"] ?? "").toLowerCase();
-        if (!wantJson && accept.includes("text/html")) {
+  const server = createServer(
+    async (req: IncomingMessage, res: ServerResponse) => {
+      try {
+        const pathname = getPathname(req.url ?? "/");
+        if (req.method === "GET" && pathname === "/") {
           res.writeHead(200, { "Content-Type": "text/html" });
           res.end(INDEX_HTML);
           return;
         }
-        await handleSummary(req, res);
-        return;
-      }
-      if (pathname.startsWith("/v1/")) {
-        const { handleControlRequest } = await import("./controlPlaneServer.js");
-        await handleControlRequest(req, res);
-        return;
-      }
-      if (req.method === "POST" && pathname === "/context/docs") {
-        if (!requireBearer(req, res)) return;
-        await handleAddDoc(req, res);
-        return;
-      }
-      if (req.method === "POST" && pathname === "/context/resolution") {
-        if (!requireBearer(req, res)) return;
-        await handleAddResolution(req, res);
-        return;
-      }
-      if (req.method === "GET" && pathname === "/pending") {
-        if (!requireBearer(req, res)) return;
-        await handleGetPending(req, res);
-        return;
-      }
-      if (req.method === "POST" && pathname === "/finality-response") {
-        if (!requireBearer(req, res)) return;
-        await handleFinalityResponse(req, res);
-        return;
-      }
-      if (req.method === "GET" && pathname === "/convergence") {
-        if (!requireBearer(req, res)) return;
-        const scopeId = readScopeIdFromRequest(req);
-        if (!scopeId) {
-          sendJson(res, 400, { error: "scope_required" });
+        if (req.method === "GET" && pathname === "/studio") {
+          res.writeHead(200, { "Content-Type": "text/html" });
+          res.end(STUDIO_HTML);
           return;
         }
-        const valid = validateScopeId(scopeId);
-        if (!valid.ok) {
-          sendJson(res, valid.status, { error: valid.error, runtime_scope_id: RUNTIME_SCOPE_ID });
+        if (req.method === "GET" && pathname === "/studio/app.js") {
+          res.writeHead(200, { "Content-Type": "application/javascript" });
+          res.end(STUDIO_APP_JS);
           return;
         }
-        await handleConvergence(req, res);
-        return;
-      }
-      if (req.method === "GET" && pathname === "/hatchery/snapshot") {
-        const hatchery = getHatcheryInstance();
-        if (!hatchery) {
-          sendJson(res, 404, { error: "hatchery not active (legacy mode)" });
-        } else {
-          sendJson(res, 200, hatchery.getSnapshot() as unknown as Record<string, unknown>);
+        if (req.method === "GET" && pathname === "/studio/scopes") {
+          await handleStudioScopesList(req, res);
+          return;
         }
-        return;
-      }
-      if (req.method === "GET" && pathname === "/health") {
-        try {
-          await getPool().query("SELECT 1");
-          sendJson(res, 200, { status: "ok", pg: "connected" });
-        } catch (e) {
-          sendJson(res, 503, { status: "unhealthy", pg: toErrorString(e) });
+        if (req.method === "POST" && pathname === "/studio/scopes") {
+          await handleStudioScopeCreate(req, res);
+          return;
         }
-        return;
+        if (req.method === "GET" && pathname === "/studio/corpora") {
+          sendJson(res, 200, { corpora: listStudioCorpora() });
+          return;
+        }
+        if (
+          pathname.startsWith("/studio/scopes/") &&
+          pathname.endsWith("/load-corpus")
+        ) {
+          const parts = pathname.split("/").filter(Boolean);
+          const scopeId = parts[2] ?? "";
+          if (req.method === "POST") {
+            await handleStudioLoadCorpus(req, res, scopeId);
+            return;
+          }
+        }
+        if (
+          pathname.startsWith("/studio/scopes/") &&
+          pathname.endsWith("/documents")
+        ) {
+          const parts = pathname.split("/").filter(Boolean);
+          const scopeId = parts[2] ?? "";
+          if (req.method === "POST") {
+            await handleStudioUploadDocs(req, res, scopeId);
+            return;
+          }
+        }
+        if (req.method === "GET" && pathname === "/studio/elements") {
+          await handleStudioElements(req, res);
+          return;
+        }
+        if (req.method === "GET" && pathname === "/summary") {
+          const query = getQuery(req.url ?? "");
+          const wantJson = query.raw === "1" || query.format === "json";
+          const accept = (req.headers["accept"] ?? "").toLowerCase();
+          if (!wantJson && accept.includes("text/html")) {
+            res.writeHead(200, { "Content-Type": "text/html" });
+            res.end(INDEX_HTML);
+            return;
+          }
+          await handleSummary(req, res);
+          return;
+        }
+        if (pathname.startsWith("/v1/")) {
+          const { handleControlRequest } =
+            await import("./controlPlaneServer.js");
+          await handleControlRequest(req, res);
+          return;
+        }
+        if (req.method === "POST" && pathname === "/context/docs") {
+          if (!requireBearer(req, res)) return;
+          await handleAddDoc(req, res);
+          return;
+        }
+        if (req.method === "POST" && pathname === "/context/resolution") {
+          if (!requireBearer(req, res)) return;
+          await handleAddResolution(req, res);
+          return;
+        }
+        if (req.method === "GET" && pathname === "/pending") {
+          if (!requireBearer(req, res)) return;
+          await handleGetPending(req, res);
+          return;
+        }
+        if (req.method === "POST" && pathname === "/finality-response") {
+          if (!requireBearer(req, res)) return;
+          await handleFinalityResponse(req, res);
+          return;
+        }
+        if (req.method === "GET" && pathname === "/convergence") {
+          if (!requireBearer(req, res)) return;
+          const scopeId = readScopeIdFromRequest(req);
+          if (!scopeId) {
+            sendJson(res, 400, { error: "scope_required" });
+            return;
+          }
+          const valid = await validateScopeAccess(scopeId);
+          if (!valid.ok) {
+            sendJson(res, valid.status, {
+              error: valid.error,
+              runtime_scope_id: RUNTIME_SCOPE_ID,
+            });
+            return;
+          }
+          await handleConvergence(req, res);
+          return;
+        }
+        if (req.method === "GET" && pathname === "/hatchery/snapshot") {
+          const hatchery = getHatcheryInstance();
+          if (!hatchery) {
+            sendJson(res, 404, { error: "hatchery not active (legacy mode)" });
+          } else {
+            sendJson(
+              res,
+              200,
+              hatchery.getSnapshot() as unknown as Record<string, unknown>,
+            );
+          }
+          return;
+        }
+        if (req.method === "GET" && pathname === "/health") {
+          try {
+            await getPool().query("SELECT 1");
+            sendJson(res, 200, { status: "ok", pg: "connected" });
+          } catch (e) {
+            sendJson(res, 503, { status: "unhealthy", pg: toErrorString(e) });
+          }
+          return;
+        }
+        await handleEvents(req, res);
+      } catch (err) {
+        if (!res.writableEnded) {
+          res.writeHead(500, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: String(err) }));
+        }
       }
-      await handleEvents(req, res);
-    } catch (err) {
-      if (!res.writableEnded) {
-        res.writeHead(500, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ error: String(err) }));
-      }
-    }
-  });
+    },
+  );
 
   const FEED_HOST = process.env.FEED_HOST ?? "127.0.0.1";
   server.listen(FEED_PORT, FEED_HOST, () => {
@@ -716,6 +1168,7 @@ async function main(): Promise<void> {
         port: FEED_PORT,
         host: FEED_HOST,
         path: "/events",
+        studio: "/studio",
       }) + "\n",
     );
   });

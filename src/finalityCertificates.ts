@@ -12,7 +12,10 @@ import {
   type KeyObject,
 } from "crypto";
 import type { FinalityCertificatePayload } from "./finalityEvaluator.js";
-import { getGovernancePolicyVersion, getFinalityPolicyVersion } from "./policyVersions.js";
+import {
+  getGovernancePolicyVersion,
+  getFinalityPolicyVersion,
+} from "./policyVersions.js";
 import { getPool } from "./db.js";
 import type pg from "pg";
 
@@ -42,9 +45,13 @@ export function buildCertificatePayload(
   };
 }
 
-let _ephemeralKeys: { publicKey: KeyObject; privateKey: KeyObject } | null = null;
+let _ephemeralKeys: { publicKey: KeyObject; privateKey: KeyObject } | null =
+  null;
 
-function getSigningKey(): { publicKey: KeyObject | null; privateKey: KeyObject } {
+function getSigningKey(): {
+  publicKey: KeyObject | null;
+  privateKey: KeyObject;
+} {
   const pem = process.env.FINALITY_CERT_PRIVATE_KEY_PEM;
   if (pem) {
     const privateKey = createPrivateKey(pem);
@@ -53,7 +60,10 @@ function getSigningKey(): { publicKey: KeyObject | null; privateKey: KeyObject }
     return { privateKey, publicKey };
   }
   if (!_ephemeralKeys) _ephemeralKeys = generateKeyPairSync(ALG);
-  return { privateKey: _ephemeralKeys.privateKey, publicKey: _ephemeralKeys.publicKey };
+  return {
+    privateKey: _ephemeralKeys.privateKey,
+    publicKey: _ephemeralKeys.publicKey,
+  };
 }
 
 /**
@@ -83,7 +93,8 @@ export function verifyCertificate(jws: string): FinalityCertificatePayload {
   const toVerify = `${b64Header}.${b64Payload}`;
   const sig = Buffer.from(b64Sig, "base64url");
   const { publicKey } = getSigningKey();
-  if (!publicKey) throw new Error("FINALITY_CERT_PUBLIC_KEY_PEM required for verification");
+  if (!publicKey)
+    throw new Error("FINALITY_CERT_PUBLIC_KEY_PEM required for verification");
   if (!cryptoVerify(null, Buffer.from(toVerify, "utf-8"), publicKey, sig)) {
     throw new Error("JWS signature verification failed");
   }
@@ -109,7 +120,10 @@ export async function persistCertificate(
 export async function getLatestCertificate(
   scopeId: string,
   pool?: pg.Pool,
-): Promise<{ certificate_jws: string; payload: FinalityCertificatePayload } | null> {
+): Promise<{
+  certificate_jws: string;
+  payload: FinalityCertificatePayload;
+} | null> {
   const p = pool ?? getPool();
   const res = await p.query(
     `SELECT certificate_jws, payload FROM finality_certificates WHERE scope_id = $1 ORDER BY created_at DESC LIMIT 1`,
@@ -119,6 +133,7 @@ export async function getLatestCertificate(
   const row = res.rows[0];
   return {
     certificate_jws: row.certificate_jws,
-    payload: typeof row.payload === "string" ? JSON.parse(row.payload) : row.payload,
+    payload:
+      typeof row.payload === "string" ? JSON.parse(row.payload) : row.payload,
   };
 }

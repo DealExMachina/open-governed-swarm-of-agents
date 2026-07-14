@@ -10,12 +10,22 @@ export const EXP1_CREATED_BY = "seed-exp1";
 /** Generate claim texts for a given contradiction count. */
 export function makeExp1Claims(contradictionCount: number): string[] {
   const n = Math.max(2, contradictionCount * 2);
-  return Array.from({ length: n }, (_, i) => `Exp1 claim ${i + 1}: baseline assertion for cycle ${contradictionCount}C`);
+  return Array.from(
+    { length: n },
+    (_, i) =>
+      `Exp1 claim ${i + 1}: baseline assertion for cycle ${contradictionCount}C`,
+  );
 }
 
 /** Generate contradiction edges: each pair (2i, 2i+1) forms one contradiction. */
-export function makeExp1ContradictionEdges(contradictionCount: number): Array<{ sourceIndex: number; targetIndex: number; raw: string }> {
-  const edges: Array<{ sourceIndex: number; targetIndex: number; raw: string }> = [];
+export function makeExp1ContradictionEdges(
+  contradictionCount: number,
+): Array<{ sourceIndex: number; targetIndex: number; raw: string }> {
+  const edges: Array<{
+    sourceIndex: number;
+    targetIndex: number;
+    raw: string;
+  }> = [];
   for (let i = 0; i < contradictionCount; i++) {
     const a = i * 2;
     const b = i * 2 + 1;

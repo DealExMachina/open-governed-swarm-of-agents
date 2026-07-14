@@ -21,7 +21,10 @@ export function getPool(): pg.Pool {
       options: "-c statement_timeout=30000", // 30s max query time — prevents pool exhaustion
     });
     _pool.on("error", (err) => {
-      console.error("[db] pool error (connection lost; new queries may reconnect):", err.message);
+      console.error(
+        "[db] pool error (connection lost; new queries may reconnect):",
+        err.message,
+      );
     });
   }
   return _pool;
@@ -70,7 +73,8 @@ export async function runInTransaction<T>(
     return result;
   } catch (e) {
     await client.query("ROLLBACK").catch(() => {});
-    const msg = e instanceof Error ? e.message : (e as Record<string, unknown>)?.message;
+    const msg =
+      e instanceof Error ? e.message : (e as Record<string, unknown>)?.message;
     const code = (e as Record<string, unknown>)?.code;
     throw new Error(`runInTransaction: ${msg ?? code ?? String(e)}`);
   } finally {

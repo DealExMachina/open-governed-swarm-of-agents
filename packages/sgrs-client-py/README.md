@@ -25,6 +25,14 @@ with KernelClient("https://your-control-plane.example.com", api_key) as client:
     client.runtime_start("scope-id")
 ```
 
+Server-Sent Events (same behaviour as the TypeScript `subscribeEvents`):
+
+```python
+close = client.subscribe_events("scope-id", lambda event: print(event))
+# … later
+close()
+```
+
 `SgrsClient` and `SwarmControlPlaneClient` remain available as aliases for compatibility.
 
 ## TypeScript

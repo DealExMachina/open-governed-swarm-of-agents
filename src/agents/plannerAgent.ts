@@ -2,17 +2,30 @@ import { setMaxListeners } from "events";
 import { join } from "path";
 import type { S3Client } from "@aws-sdk/client-s3";
 import { Agent } from "@mastra/core/agent";
-import { getChatModelConfig, REASONING_SETTINGS, PlannerOutputSchema } from "../modelConfig.js";
+import {
+  getChatModelConfig,
+  REASONING_SETTINGS,
+  PlannerOutputSchema,
+} from "../modelConfig.js";
 import { logger } from "../logger.js";
 import { s3GetText } from "../s3.js";
-import { loadPolicies, getGovernanceForScope, evaluateRules } from "../governance.js";
-import { makeReadDriftTool, makeReadFactsTool, makeReadGovernanceRulesTool } from "./sharedTools.js";
+import {
+  loadPolicies,
+  getGovernanceForScope,
+  evaluateRules,
+} from "../governance.js";
+import {
+  makeReadDriftTool,
+  makeReadFactsTool,
+  makeReadGovernanceRulesTool,
+} from "./sharedTools.js";
 import { composeInstructions } from "../skills/loader.js";
 import { trackAgentTokens } from "../skills/tokenTracker.js";
 import { evaluateGoalsAgainstEvidence } from "../semanticGraph.js";
 import { generateWithStructuredOutput } from "../mastraStructured.js";
 
-const GOVERNANCE_PATH = process.env.GOVERNANCE_PATH ?? join(process.cwd(), "governance.yaml");
+const GOVERNANCE_PATH =
+  process.env.GOVERNANCE_PATH ?? join(process.cwd(), "governance.yaml");
 
 const PLANNER_INSTRUCTIONS = `You are a governance-aware planning agent. Given drift analysis, current facts, and governance rules, determine what actions to take.
 Use the tools: readDrift, readFacts, readGovernanceRules. Respect governance constraints. Prioritize by severity.
@@ -43,14 +56,21 @@ export async function runPlannerAgent(
         model: modelConfig,
         tools: { readDrift, readFacts, readGovernanceRules },
       });
-      const result = await generateWithStructuredOutput(agent, "Plan actions now.", PlannerOutputSchema, {
-        maxSteps: 4,
-        abortSignal: abortController.signal,
-        modelSettings: REASONING_SETTINGS,
-      });
+      const result = await generateWithStructuredOutput(
+        agent,
+        "Plan actions now.",
+        PlannerOutputSchema,
+        {
+          maxSteps: 4,
+          abortSignal: abortController.signal,
+          modelSettings: REASONING_SETTINGS,
+        },
+      );
       trackAgentTokens("planner", result);
       clearTimeout(timeoutId);
-      const obj = result.object as { actions?: unknown; reasoning?: unknown } | undefined;
+      const obj = result.object as
+        | { actions?: unknown; reasoning?: unknown }
+        | undefined;
       let actions: string[] = [];
       let reasoning = "";
       if (obj) {
@@ -65,22 +85,39 @@ export async function runPlannerAgent(
         const scopeId = process.env.SCOPE_ID ?? "default";
         const goalEval = await evaluateGoalsAgainstEvidence(scopeId);
         if (goalEval.resolved > 0 || goalEval.in_progress > 0) {
-          logger.info("planner: goal evaluation advanced", { scopeId, ...goalEval });
+          logger.info("planner: goal evaluation advanced", {
+            scopeId,
+            ...goalEval,
+          });
         }
       } catch (err) {
         logger.warn("planner: goal evaluation failed", { error: String(err) });
       }
-      return { drift: { level: drift.level, types: drift.types }, actions, reasoning };
+      return {
+        drift: { level: drift.level, types: drift.types },
+        actions,
+        reasoning,
+      };
     } catch (err) {
       clearTimeout(timeoutId);
       const msg = err instanceof Error ? err.message : String(err);
-      const isAbort = err instanceof Error && (err as Error & { name?: string }).name === "AbortError";
-      const isRetryable = isAbort || /timeout|ECONNREFUSED|API|fetch failed|aborted/i.test(msg);
+      const isAbort =
+        err instanceof Error &&
+        (err as Error & { name?: string }).name === "AbortError";
+      const isRetryable =
+        isAbort || /timeout|ECONNREFUSED|API|fetch failed|aborted/i.test(msg);
       if (isRetryable) {
-        logger.warn("planner LLM unreachable or timeout, falling back to rule-based", {
-          error: msg,
-          ...(isAbort ? { hint: `LLM took longer than ${timeoutMs}ms. Set PLANNER_LLM_TIMEOUT_MS for heavy runs.` } : {}),
-        });
+        logger.warn(
+          "planner LLM unreachable or timeout, falling back to rule-based",
+          {
+            error: msg,
+            ...(isAbort
+              ? {
+                  hint: `LLM took longer than ${timeoutMs}ms. Set PLANNER_LLM_TIMEOUT_MS for heavy runs.`,
+                }
+              : {}),
+          },
+        );
       } else {
         throw err;
       }
@@ -97,7 +134,10 @@ export async function runPlannerAgent(
   try {
     const goalEval = await evaluateGoalsAgainstEvidence(scopeId);
     if (goalEval.resolved > 0 || goalEval.in_progress > 0) {
-      logger.info("planner: goal evaluation advanced", { scopeId, ...goalEval });
+      logger.info("planner: goal evaluation advanced", {
+        scopeId,
+        ...goalEval,
+      });
     }
   } catch (err) {
     logger.warn("planner: goal evaluation failed", { error: String(err) });

@@ -4,7 +4,10 @@ import type { BenchmarkScenarioPackage, ManifestYamlV1 } from "./types.js";
 import { buildS1ProjectHorizonPackage } from "./builtin-s1.js";
 import { resolveManifestAbsolutePath } from "./registry.js";
 
-const ALLOWED_BUILTINS: Record<string, (repoRoot: string) => BenchmarkScenarioPackage> = {
+const ALLOWED_BUILTINS: Record<
+  string,
+  (repoRoot: string) => BenchmarkScenarioPackage
+> = {
   "s1-project-horizon": buildS1ProjectHorizonPackage,
 };
 
@@ -19,7 +22,8 @@ function mergePackage(
       `Manifest id "${overlay.id}" does not match builtin package id "${base.id}"`,
     );
   }
-  if (overlay.prdScenario !== undefined) out.prdScenario = String(overlay.prdScenario);
+  if (overlay.prdScenario !== undefined)
+    out.prdScenario = String(overlay.prdScenario);
   if (overlay.docsRootRelative !== undefined) {
     out.docsRootRelative = String(overlay.docsRootRelative);
   }
@@ -27,13 +31,16 @@ function mergePackage(
     out.documents = overlay.documents as BenchmarkScenarioPackage["documents"];
   }
   if (overlay.groundTruth !== undefined) {
-    out.groundTruth = overlay.groundTruth as BenchmarkScenarioPackage["groundTruth"];
+    out.groundTruth =
+      overlay.groundTruth as BenchmarkScenarioPackage["groundTruth"];
   }
   if (overlay.agentRoles !== undefined && overlay.agentRoles.length > 0) {
-    out.agentRoles = overlay.agentRoles as BenchmarkScenarioPackage["agentRoles"];
+    out.agentRoles =
+      overlay.agentRoles as BenchmarkScenarioPackage["agentRoles"];
   }
   if (overlay.roleDimensionMap !== undefined) {
-    out.roleDimensionMap = overlay.roleDimensionMap as BenchmarkScenarioPackage["roleDimensionMap"];
+    out.roleDimensionMap =
+      overlay.roleDimensionMap as BenchmarkScenarioPackage["roleDimensionMap"];
   }
   if (overlay.evaluation !== undefined) {
     out.evaluation = overlay.evaluation;
@@ -51,7 +58,9 @@ export function loadBenchmarkPackageFromFile(
   const raw = readFileSync(manifestAbsolutePath, "utf-8");
   const data = parse(raw) as ManifestYamlV1;
   if (!data || String(data.manifestVersion ?? "") !== "1") {
-    throw new Error(`Invalid manifest (expected manifestVersion: "1"): ${manifestAbsolutePath}`);
+    throw new Error(
+      `Invalid manifest (expected manifestVersion: "1"): ${manifestAbsolutePath}`,
+    );
   }
 
   if (data.builtinRef) {
@@ -86,7 +95,8 @@ export function loadBenchmarkPackageFromFile(
     documents: data.documents as BenchmarkScenarioPackage["documents"],
     groundTruth: data.groundTruth as BenchmarkScenarioPackage["groundTruth"],
     agentRoles: data.agentRoles as BenchmarkScenarioPackage["agentRoles"],
-    roleDimensionMap: data.roleDimensionMap as BenchmarkScenarioPackage["roleDimensionMap"],
+    roleDimensionMap:
+      data.roleDimensionMap as BenchmarkScenarioPackage["roleDimensionMap"],
     evaluation: data.evaluation,
   };
 }

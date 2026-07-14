@@ -44,7 +44,9 @@ export interface ISSCascadeInput {
 /**
  * Build ISS cascade result from propagation/ISS data and optional semantic inputs.
  */
-export function computeISSCascadeResult(input: ISSCascadeInput): ISSCascadeResult {
+export function computeISSCascadeResult(
+  input: ISSCascadeInput,
+): ISSCascadeResult {
   const {
     psi = 0,
     monotone = true,
@@ -55,7 +57,8 @@ export function computeISSCascadeResult(input: ISSCascadeInput): ISSCascadeResul
   } = input;
 
   const practicalBound = iss.steady_state_disagreement;
-  const withinBound = Number.isFinite(practicalBound) && omega <= practicalBound + 1e-12;
+  const withinBound =
+    Number.isFinite(practicalBound) && omega <= practicalBound + 1e-12;
   const contradictionBounded =
     Number.isFinite(iss.steady_state_contradictions) &&
     burden <= iss.steady_state_contradictions + 1e-12;

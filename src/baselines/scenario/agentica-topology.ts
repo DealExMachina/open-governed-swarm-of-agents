@@ -121,22 +121,25 @@ Claims (JSON array only):`;
     let tokensUsed = 0;
 
     if (inference.mode === "cloud") {
-      const response = await fetch(`${inference.openAICompatBaseUrl}/chat/completions`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${inference.apiKey}`,
+      const response = await fetch(
+        `${inference.openAICompatBaseUrl}/chat/completions`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${inference.apiKey}`,
+          },
+          body: JSON.stringify({
+            model: inference.model,
+            messages: [
+              { role: "system", content: system },
+              { role: "user", content: user },
+            ],
+            temperature: 0,
+            max_tokens: maxTokens,
+          }),
         },
-        body: JSON.stringify({
-          model: inference.model,
-          messages: [
-            { role: "system", content: system },
-            { role: "user", content: user },
-          ],
-          temperature: 0,
-          max_tokens: maxTokens,
-        }),
-      });
+      );
 
       if (!response.ok) {
         return { claims: [], tokensUsed: 0 };
@@ -174,14 +177,20 @@ Claims (JSON array only):`;
       tokensUsed = (data.eval_count || 0) + (data.prompt_eval_count || 0);
     }
 
-    let claims: Array<{ dimension: string; content: string; confidence: number }> = [];
+    let claims: Array<{
+      dimension: string;
+      content: string;
+      confidence: number;
+    }> = [];
     try {
       const jsonMatch = text.match(/\[[\s\S]*?\]/);
       if (jsonMatch) {
         claims = JSON.parse(jsonMatch[0]);
       }
     } catch {
-      claims = [{ dimension: "raw", content: text.slice(0, 200), confidence: 0.5 }];
+      claims = [
+        { dimension: "raw", content: text.slice(0, 200), confidence: 0.5 },
+      ];
     }
 
     return { claims, tokensUsed };
@@ -211,7 +220,10 @@ export async function runAgenticaTopology(
   const rng = mulberry32(config.seed);
   const roles = pkg.agentRoles.slice(0, config.numAgents);
   const state = createTypedState();
-  const stateSnapshots: Record<number, Array<{ dimension: string; content: string }>> = {};
+  const stateSnapshots: Record<
+    number,
+    Array<{ dimension: string; content: string }>
+  > = {};
   const epochResults: EpochResult[] = [];
   const startWall = Date.now();
   let totalTokens = 0;
@@ -229,7 +241,13 @@ export async function runAgenticaTopology(
       }
       const result = config.skipLlm
         ? await extractClaimsOffline(role, doc, rng, pkg.roleDimensionMap)
-        : await extractClaimsWithLlm(role, doc, docText, config.inference, config.maxTokens);
+        : await extractClaimsWithLlm(
+            role,
+            doc,
+            docText,
+            config.inference,
+            config.maxTokens,
+          );
 
       // Update typed state
       for (const claim of result.claims) {
@@ -267,16 +285,23 @@ export async function runAgenticaTopology(
     // Count contradictions (post-hoc, Agentica has no built-in detection)
     const dimContents = new Map<string, Set<string>>();
     for (const claim of state.history.filter((c) => c.epoch <= doc.epoch)) {
-      if (!dimContents.has(claim.dimension)) dimContents.set(claim.dimension, new Set());
+      if (!dimContents.has(claim.dimension))
+        dimContents.set(claim.dimension, new Set());
       dimContents.get(claim.dimension)!.add(claim.content);
     }
-    const contradictions = Array.from(dimContents.values()).filter((s) => s.size > 1).length;
+    const contradictions = Array.from(dimContents.values()).filter(
+      (s) => s.size > 1,
+    ).length;
 
     // Reversions: dimension overwrites
     let reversions = 0;
     for (const claim of epochClaims) {
       const existing = state.current.get(claim.dimension);
-      if (existing && existing.content !== claim.content && existing.epoch < doc.epoch) {
+      if (
+        existing &&
+        existing.content !== claim.content &&
+        existing.epoch < doc.epoch
+      ) {
         reversions++;
       }
     }

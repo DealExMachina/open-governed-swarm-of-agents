@@ -51,7 +51,10 @@ export function loadSkills(role: SkillRole): string {
  * Compose role-specific instructions with skills appended.
  * Convenience wrapper: `composeInstructions(base, role)` = base + skills.
  */
-export function composeInstructions(baseInstructions: string, role: SkillRole): string {
+export function composeInstructions(
+  baseInstructions: string,
+  role: SkillRole,
+): string {
   const skills = loadSkills(role);
   if (!skills) return baseInstructions;
   return `${baseInstructions}\n\n${skills}`;

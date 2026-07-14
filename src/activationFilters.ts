@@ -4,13 +4,18 @@
  */
 
 import { createHash } from "crypto";
-import pg from "pg";
+import type pg from "pg";
 import type { S3Client } from "@aws-sdk/client-s3";
 import { getPool } from "./db.js";
 import { tailEvents, getLatestPipelineWalSeqForFacts } from "./contextWal.js";
 import { s3GetText, s3PutJson } from "./s3.js";
 
-export type FilterType = "hash_delta" | "sequence_delta" | "timer" | "composite" | "pressure_directed";
+export type FilterType =
+  | "hash_delta"
+  | "sequence_delta"
+  | "timer"
+  | "composite"
+  | "pressure_directed";
 
 export interface FilterStats {
   activations: number;
@@ -92,7 +97,13 @@ const DEFAULT_FILTERS: Record<string, Omit<FilterConfig, "updatedAt">> = {
     agentRole: "facts",
     type: "sequence_delta",
     params: { minNewEvents: 1, cooldownMs: 2000 },
-    stats: { activations: 0, productive: 0, wasted: 0, avgLatencyMs: 0, lastActivatedAt: null },
+    stats: {
+      activations: 0,
+      productive: 0,
+      wasted: 0,
+      avgLatencyMs: 0,
+      lastActivatedAt: null,
+    },
     version: 0,
     updatedBy: "system",
   },
@@ -100,39 +111,85 @@ const DEFAULT_FILTERS: Record<string, Omit<FilterConfig, "updatedAt">> = {
     agentRole: "drift",
     type: "sequence_delta",
     params: { minNewEvents: 1, cooldownMs: 5000 },
-    stats: { activations: 0, productive: 0, wasted: 0, avgLatencyMs: 0, lastActivatedAt: null },
+    stats: {
+      activations: 0,
+      productive: 0,
+      wasted: 0,
+      avgLatencyMs: 0,
+      lastActivatedAt: null,
+    },
     version: 0,
     updatedBy: "system",
   },
   resolver: {
     agentRole: "resolver",
     type: "hash_delta",
-    params: { field: "drift/latest.json", sensitivity: "structural", cooldownMs: 10000 },
-    stats: { activations: 0, productive: 0, wasted: 0, avgLatencyMs: 0, lastActivatedAt: null },
+    params: {
+      field: "drift/latest.json",
+      sensitivity: "structural",
+      cooldownMs: 10000,
+    },
+    stats: {
+      activations: 0,
+      productive: 0,
+      wasted: 0,
+      avgLatencyMs: 0,
+      lastActivatedAt: null,
+    },
     version: 0,
     updatedBy: "system",
   },
   planner: {
     agentRole: "planner",
     type: "hash_delta",
-    params: { field: "drift/latest.json", sensitivity: "structural", cooldownMs: 5000 },
-    stats: { activations: 0, productive: 0, wasted: 0, avgLatencyMs: 0, lastActivatedAt: null },
+    params: {
+      field: "drift/latest.json",
+      sensitivity: "structural",
+      cooldownMs: 5000,
+    },
+    stats: {
+      activations: 0,
+      productive: 0,
+      wasted: 0,
+      avgLatencyMs: 0,
+      lastActivatedAt: null,
+    },
     version: 0,
     updatedBy: "system",
   },
   status: {
     agentRole: "status",
     type: "timer",
-    params: { shortIntervalMs: 120000, fullIntervalMs: 600000, eventBurstThreshold: 10 },
-    stats: { activations: 0, productive: 0, wasted: 0, avgLatencyMs: 0, lastActivatedAt: null },
+    params: {
+      shortIntervalMs: 120000,
+      fullIntervalMs: 600000,
+      eventBurstThreshold: 10,
+    },
+    stats: {
+      activations: 0,
+      productive: 0,
+      wasted: 0,
+      avgLatencyMs: 0,
+      lastActivatedAt: null,
+    },
     version: 0,
     updatedBy: "system",
   },
   propagation: {
     agentRole: "propagation",
     type: "hash_delta",
-    params: { field: "drift/latest.json", sensitivity: "structural", cooldownMs: 5000 },
-    stats: { activations: 0, productive: 0, wasted: 0, avgLatencyMs: 0, lastActivatedAt: null },
+    params: {
+      field: "drift/latest.json",
+      sensitivity: "structural",
+      cooldownMs: 5000,
+    },
+    stats: {
+      activations: 0,
+      productive: 0,
+      wasted: 0,
+      avgLatencyMs: 0,
+      lastActivatedAt: null,
+    },
     version: 0,
     updatedBy: "system",
   },
@@ -140,13 +197,22 @@ const DEFAULT_FILTERS: Record<string, Omit<FilterConfig, "updatedAt">> = {
     agentRole: "deltas",
     type: "sequence_delta",
     params: { minNewEvents: 1, cooldownMs: 5000 },
-    stats: { activations: 0, productive: 0, wasted: 0, avgLatencyMs: 0, lastActivatedAt: null },
+    stats: {
+      activations: 0,
+      productive: 0,
+      wasted: 0,
+      avgLatencyMs: 0,
+      lastActivatedAt: null,
+    },
     version: 0,
     updatedBy: "system",
   },
 };
 
-export async function loadFilterConfig(agentRole: string, pool?: pg.Pool): Promise<FilterConfig> {
+export async function loadFilterConfig(
+  agentRole: string,
+  pool?: pg.Pool,
+): Promise<FilterConfig> {
   const p = pool ?? getPool();
   await ensureFilterTable(p);
   const res = await p.query(
@@ -162,7 +228,10 @@ export async function loadFilterConfig(agentRole: string, pool?: pg.Pool): Promi
       stats: typeof r.stats === "string" ? JSON.parse(r.stats) : r.stats,
       version: parseInt(r.version, 10),
       updatedBy: r.updated_by,
-      updatedAt: r.updated_at instanceof Date ? r.updated_at.toISOString() : String(r.updated_at),
+      updatedAt:
+        r.updated_at instanceof Date
+          ? r.updated_at.toISOString()
+          : String(r.updated_at),
     };
   }
   const def = DEFAULT_FILTERS[agentRole];
@@ -171,14 +240,24 @@ export async function loadFilterConfig(agentRole: string, pool?: pg.Pool): Promi
       `INSERT INTO filter_configs (agent_role, type, params, stats, version, updated_by)
        VALUES ($1, $2, $3::jsonb, $4::jsonb, $5, $6)
        ON CONFLICT (agent_role) DO NOTHING`,
-      [def.agentRole, def.type, JSON.stringify(def.params), JSON.stringify(def.stats), def.version, def.updatedBy],
+      [
+        def.agentRole,
+        def.type,
+        JSON.stringify(def.params),
+        JSON.stringify(def.stats),
+        def.version,
+        def.updatedBy,
+      ],
     );
     return { ...def, updatedAt: new Date().toISOString() };
   }
   throw new Error(`Unknown agent role for filter: ${agentRole}`);
 }
 
-export async function loadAgentMemory(agentRole: string, pool?: pg.Pool): Promise<AgentMemory> {
+export async function loadAgentMemory(
+  agentRole: string,
+  pool?: pg.Pool,
+): Promise<AgentMemory> {
   const p = pool ?? getPool();
   await ensureFilterTable(p);
   const res = await p.query(
@@ -191,8 +270,10 @@ export async function loadAgentMemory(agentRole: string, pool?: pg.Pool): Promis
       lastProcessedSeq: parseInt(r.last_processed_seq, 10) || 0,
       lastHash: r.last_hash,
       lastDriftHash: r.last_drift_hash,
-      lastActivatedAt: r.last_activated_at ? new Date(r.last_activated_at).getTime() : 0,
-      data: typeof r.data === "string" ? JSON.parse(r.data) : r.data ?? {},
+      lastActivatedAt: r.last_activated_at
+        ? new Date(r.last_activated_at).getTime()
+        : 0,
+      data: typeof r.data === "string" ? JSON.parse(r.data) : (r.data ?? {}),
     };
   }
   await p.query(
@@ -255,7 +336,11 @@ async function getLatestWalSeq(): Promise<number> {
   return events.length ? events[events.length - 1].seq : 0;
 }
 
-async function readHashFromS3(s3: S3Client, bucket: string, key: string): Promise<string | null> {
+async function readHashFromS3(
+  s3: S3Client,
+  bucket: string,
+  key: string,
+): Promise<string | null> {
   const text = await s3GetText(s3, bucket, key);
   if (text === null) return null;
   const parsed = JSON.parse(text) as Record<string, unknown>;
@@ -287,23 +372,37 @@ export async function checkFilter(
           : await getLatestWalSeq();
       const minNew = (config.params.minNewEvents as number) ?? 1;
       const delta = latestSeq - memory.lastProcessedSeq;
-      const inCooldown = memory.lastActivatedAt !== 0 && now - memory.lastActivatedAt < cooldownMs;
+      const inCooldown =
+        memory.lastActivatedAt !== 0 &&
+        now - memory.lastActivatedAt < cooldownMs;
       const shouldActivate = delta >= minNew && !inCooldown;
       const reason = shouldActivate
         ? "activated"
         : delta < minNew
           ? `no_new_events (delta=${delta}, latestSeq=${latestSeq}, lastProcessedSeq=${memory.lastProcessedSeq})`
           : `cooldown (${now - memory.lastActivatedAt}ms < ${cooldownMs}ms)`;
-      return { shouldActivate, reason, context: { latestSeq, previousSeq: memory.lastProcessedSeq } };
+      return {
+        shouldActivate,
+        reason,
+        context: { latestSeq, previousSeq: memory.lastProcessedSeq },
+      };
     }
     case "hash_delta": {
       const field = (config.params.field as string) ?? "facts/latest.json";
-      const lastHash = field.includes("drift") ? memory.lastDriftHash : memory.lastHash;
-      const inCooldown = memory.lastActivatedAt !== 0 && now - memory.lastActivatedAt < cooldownMs;
+      const lastHash = field.includes("drift")
+        ? memory.lastDriftHash
+        : memory.lastHash;
+      const inCooldown =
+        memory.lastActivatedAt !== 0 &&
+        now - memory.lastActivatedAt < cooldownMs;
 
       // Skip S3 read if still in cooldown — hash can't trigger activation anyway
       if (inCooldown) {
-        return { shouldActivate: false, reason: `cooldown (${now - memory.lastActivatedAt}ms < ${cooldownMs}ms)`, context: { field } };
+        return {
+          shouldActivate: false,
+          reason: `cooldown (${now - memory.lastActivatedAt}ms < ${cooldownMs}ms)`,
+          context: { field },
+        };
       }
 
       // Also skip S3 read if we fetched recently and hash was unchanged (cache for half the cooldown)
@@ -311,7 +410,11 @@ export async function checkFilter(
       const lastReadAt = (memory.data[cacheKey] as number) ?? 0;
       const cacheTtlMs = cooldownMs / 2;
       if (lastReadAt > 0 && now - lastReadAt < cacheTtlMs) {
-        return { shouldActivate: false, reason: `hash_cached (field=${field}, age=${now - lastReadAt}ms < ${cacheTtlMs}ms)`, context: { field } };
+        return {
+          shouldActivate: false,
+          reason: `hash_cached (field=${field}, age=${now - lastReadAt}ms < ${cacheTtlMs}ms)`,
+          context: { field },
+        };
       }
 
       const currentHash = await readHashFromS3(ctx.s3, ctx.bucket, field);
@@ -323,84 +426,149 @@ export async function checkFilter(
         : currentHash === null
           ? `hash_missing (field=${field})`
           : `hash_unchanged (field=${field})`;
-      return { shouldActivate, reason, context: { currentHash, previousHash: lastHash, field } };
+      return {
+        shouldActivate,
+        reason,
+        context: { currentHash, previousHash: lastHash, field },
+      };
     }
     case "timer": {
       const shortMs = (config.params.shortIntervalMs as number) ?? 120000;
       const fullMs = (config.params.fullIntervalMs as number) ?? 600000;
-      const elapsed = memory.lastActivatedAt === 0 ? Infinity : now - memory.lastActivatedAt;
+      const elapsed =
+        memory.lastActivatedAt === 0 ? Infinity : now - memory.lastActivatedAt;
       const shouldActivate = elapsed >= shortMs;
-      const reason = shouldActivate ? "activated" : `timer_wait (${elapsed}ms < ${shortMs}ms)`;
+      const reason = shouldActivate
+        ? "activated"
+        : `timer_wait (${elapsed}ms < ${shortMs}ms)`;
       return {
         shouldActivate,
         reason,
-        context: { lastActivatedAt: memory.lastActivatedAt, elapsedMs: elapsed, nextShortMs: shortMs, nextFullMs: fullMs },
+        context: {
+          lastActivatedAt: memory.lastActivatedAt,
+          elapsedMs: elapsed,
+          nextShortMs: shortMs,
+          nextFullMs: fullMs,
+        },
       };
     }
     case "pressure_directed": {
       if (process.env.PRESSURE_ROUTING_DISABLED === "1") {
-        return { shouldActivate: true, reason: "pressure_routing_disabled", context: {} };
+        return {
+          shouldActivate: true,
+          reason: "pressure_routing_disabled",
+          context: {},
+        };
       }
       // Stigmergic pressure routing: activate only if this agent's dimension has high pressure.
       // Params: scopeId (string), pressureThreshold (number, default 0.05), cooldownMs (number).
       const scopeId = (config.params.scopeId as string) ?? "default";
-      const pressureThreshold = (config.params.pressureThreshold as number) ?? 0.05;
-      const inCooldown = memory.lastActivatedAt !== 0 && now - memory.lastActivatedAt < cooldownMs;
+      const pressureThreshold =
+        (config.params.pressureThreshold as number) ?? 0.05;
+      const inCooldown =
+        memory.lastActivatedAt !== 0 &&
+        now - memory.lastActivatedAt < cooldownMs;
       if (inCooldown) {
-        return { shouldActivate: false, reason: `cooldown (${now - memory.lastActivatedAt}ms < ${cooldownMs}ms)`, context: {} };
+        return {
+          shouldActivate: false,
+          reason: `cooldown (${now - memory.lastActivatedAt}ms < ${cooldownMs}ms)`,
+          context: {},
+        };
       }
       try {
-        const { loadConvergenceHistory } = await import("./convergenceTracker.js");
+        const { loadConvergenceHistory } =
+          await import("./convergenceTracker.js");
         const history = await loadConvergenceHistory(scopeId, 1);
         if (history.length === 0) {
           try {
-            const { recordPressureDirectedActivation } = await import("./metrics.js");
+            const { recordPressureDirectedActivation } =
+              await import("./metrics.js");
             recordPressureDirectedActivation(config.agentRole, true, "unknown");
-          } catch (error) {
+          } catch {
             // metrics recording non-fatal, but log for debugging
-            console.debug("failed to record pressure activation (metrics module unavailable)");
+            console.warn(
+              "failed to record pressure activation (metrics module unavailable)",
+            );
           }
-          return { shouldActivate: true, reason: "no_convergence_history_yet", context: {} };
+          return {
+            shouldActivate: true,
+            reason: "no_convergence_history_yet",
+            context: {},
+          };
         }
         const latest = history[history.length - 1];
         const roleToDim: Record<string, string[]> = {
           facts: ["claim_confidence"],
           drift: ["contradiction_resolution"],
           planner: ["goal_completion", "risk_score_inverse"],
-          status: ["claim_confidence", "contradiction_resolution", "goal_completion", "risk_score_inverse"],
+          status: [
+            "claim_confidence",
+            "contradiction_resolution",
+            "goal_completion",
+            "risk_score_inverse",
+          ],
         };
         const dims = roleToDim[config.agentRole] ?? [];
-        const agentPressure = dims.reduce((sum, d) => sum + (latest.pressure[d] ?? 0), 0);
+        const agentPressure = dims.reduce(
+          (sum, d) => sum + (latest.pressure[d] ?? 0),
+          0,
+        );
         const maxPressure = Math.max(...Object.values(latest.pressure), 0);
         const entries = Object.entries(latest.pressure);
-        const highestDim = entries.length > 0
-          ? entries.reduce((a, b) => (b[1] > a[1] ? b : a), ["unknown", 0])[0]
-          : "unknown";
+        const highestDim =
+          entries.length > 0
+            ? entries.reduce((a, b) => (b[1] > a[1] ? b : a), ["unknown", 0])[0]
+            : "unknown";
         // Activate if agent's pressure is the highest (or within 80% of highest) and above threshold
-        const isHighPressure = agentPressure >= maxPressure * 0.8 && agentPressure >= pressureThreshold;
+        const isHighPressure =
+          agentPressure >= maxPressure * 0.8 &&
+          agentPressure >= pressureThreshold;
         const reason = isHighPressure
           ? `activated (pressure=${agentPressure.toFixed(3)}, max=${maxPressure.toFixed(3)})`
           : `low_pressure (${agentPressure.toFixed(3)} < threshold or not highest)`;
         try {
-          const { recordPressureDirectedActivation } = await import("./metrics.js");
-          recordPressureDirectedActivation(config.agentRole, isHighPressure, highestDim);
-        } catch (error) {
-          console.debug("failed to record pressure activation metric", { role: config.agentRole });
+          const { recordPressureDirectedActivation } =
+            await import("./metrics.js");
+          recordPressureDirectedActivation(
+            config.agentRole,
+            isHighPressure,
+            highestDim,
+          );
+        } catch {
+          console.warn("failed to record pressure activation metric", {
+            role: config.agentRole,
+          });
         }
-        return { shouldActivate: isHighPressure, reason, context: { agentPressure, maxPressure, dims } };
-      } catch (error) {
-        console.debug("convergence_history evaluation failed, falling back to allow activation", { role: config.agentRole });
+        return {
+          shouldActivate: isHighPressure,
+          reason,
+          context: { agentPressure, maxPressure, dims },
+        };
+      } catch {
+        console.warn(
+          "convergence_history evaluation failed, falling back to allow activation",
+          { role: config.agentRole },
+        );
         try {
-          const { recordPressureDirectedActivation } = await import("./metrics.js");
+          const { recordPressureDirectedActivation } =
+            await import("./metrics.js");
           recordPressureDirectedActivation(config.agentRole, true, "unknown");
-        } catch (metricError) {
-          console.debug("failed to record fallback activation metric");
+        } catch {
+          console.warn("failed to record fallback activation metric");
         }
-        return { shouldActivate: true, reason: "convergence_unavailable_fallback", context: {} };
+        return {
+          shouldActivate: true,
+          reason: "convergence_unavailable_fallback",
+          context: {},
+        };
       }
     }
     default:
-      return { shouldActivate: false, reason: "unknown_filter_type", context: {} };
+      return {
+        shouldActivate: false,
+        reason: "unknown_filter_type",
+        context: {},
+      };
   }
 }
 
@@ -421,12 +589,17 @@ export async function recordActivation(
   );
   if (!res.rowCount || !res.rows[0]) return;
   const stats: FilterStats =
-    typeof res.rows[0].stats === "string" ? JSON.parse(res.rows[0].stats) : res.rows[0].stats;
+    typeof res.rows[0].stats === "string"
+      ? JSON.parse(res.rows[0].stats)
+      : res.rows[0].stats;
   const activations = (stats.activations ?? 0) + 1;
   const productiveCount = (stats.productive ?? 0) + (productive ? 1 : 0);
   const wasted = (stats.wasted ?? 0) + (productive ? 0 : 1);
   const prevAvg = stats.avgLatencyMs ?? 0;
-  const avgLatencyMs = prevAvg === 0 ? latencyMs : (prevAvg * (activations - 1) + latencyMs) / activations;
+  const avgLatencyMs =
+    prevAvg === 0
+      ? latencyMs
+      : (prevAvg * (activations - 1) + latencyMs) / activations;
   const newStats: FilterStats = {
     activations,
     productive: productiveCount,
@@ -447,7 +620,9 @@ export async function recordActivation(
   }
 }
 
-export async function loadAllFilterConfigs(pool?: pg.Pool): Promise<FilterConfig[]> {
+export async function loadAllFilterConfigs(
+  pool?: pg.Pool,
+): Promise<FilterConfig[]> {
   const p = pool ?? getPool();
   await ensureFilterTable(p);
   const res = await p.query(
@@ -461,10 +636,15 @@ export async function loadAllFilterConfigs(pool?: pg.Pool): Promise<FilterConfig
         ? (JSON.parse(r.params) as FilterConfig["params"])
         : (r.params as FilterConfig["params"]),
     stats:
-      typeof r.stats === "string" ? (JSON.parse(r.stats) as FilterStats) : (r.stats as FilterStats),
+      typeof r.stats === "string"
+        ? (JSON.parse(r.stats) as FilterStats)
+        : (r.stats as FilterStats),
     version: parseInt(String(r.version), 10),
     updatedBy: r.updated_by,
-    updatedAt: r.updated_at instanceof Date ? r.updated_at.toISOString() : String(r.updated_at),
+    updatedAt:
+      r.updated_at instanceof Date
+        ? r.updated_at.toISOString()
+        : String(r.updated_at),
   }));
 }
 
@@ -501,6 +681,11 @@ export async function snapshotFilterToS3(
 ): Promise<string> {
   const ts = new Date().toISOString().replace(/[:.]/g, "-");
   const key = `filters/history/${config.agentRole}-${ts}-v${config.version}.json`;
-  await s3PutJson(s3, bucket, key, config as unknown as Record<string, unknown>);
+  await s3PutJson(
+    s3,
+    bucket,
+    key,
+    config as unknown as Record<string, unknown>,
+  );
   return key;
 }

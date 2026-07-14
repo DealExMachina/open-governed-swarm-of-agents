@@ -15,10 +15,13 @@
  *   SGRS_SCOPE_ID   — Scope to write into        (default: SCOPE_ID env var or "default")
  */
 
-const SGRS_API_URL  = (process.env.SGRS_API_URL  ?? "http://localhost:3003").replace(/\/$/, "");
+const SGRS_API_URL = (
+  process.env.SGRS_API_URL ?? "http://localhost:3003"
+).replace(/\/$/, "");
 const SGRS_API_TOKEN = process.env.SGRS_API_TOKEN ?? "";
 const SGRS_TENANT_ID = process.env.SGRS_TENANT_ID ?? "deal-ex-machina";
-const SGRS_SCOPE_ID  = process.env.SGRS_SCOPE_ID  ?? process.env.SCOPE_ID ?? "default";
+const SGRS_SCOPE_ID =
+  process.env.SGRS_SCOPE_ID ?? process.env.SCOPE_ID ?? "default";
 
 // ── HTTP helpers ──────────────────────────────────────────────────────────────
 
@@ -57,8 +60,14 @@ function toStr(item: unknown): string {
   if (item && typeof item === "object") {
     const o = item as Record<string, unknown>;
     return String(
-      o["claim"] ?? o["risk"] ?? o["goal"] ?? o["assumption"] ??
-      o["contradiction"] ?? o["text"] ?? o["content"] ?? ""
+      o["claim"] ??
+        o["risk"] ??
+        o["goal"] ??
+        o["assumption"] ??
+        o["contradiction"] ??
+        o["text"] ??
+        o["content"] ??
+        "",
     ).trim();
   }
   return "";
@@ -72,7 +81,10 @@ function toList(val: unknown): string[] {
 // ── Document sync ─────────────────────────────────────────────────────────────
 
 /** Register a source document in the Studio. Returns the new document id, or null on error. */
-export async function syncDocumentToSgrs(title: string, type = "txt"): Promise<string | null> {
+export async function syncDocumentToSgrs(
+  title: string,
+  type = "txt",
+): Promise<string | null> {
   try {
     const res = await post("/api/documents", {
       scope_id: SGRS_SCOPE_ID,
@@ -81,7 +93,7 @@ export async function syncDocumentToSgrs(title: string, type = "txt"): Promise<s
       status: "processing",
     });
     if (!res.ok) return null;
-    const body = await res.json() as { id?: string };
+    const body = (await res.json()) as { id?: string };
     return body.id ?? null;
   } catch {
     return null;
@@ -99,7 +111,9 @@ export async function patchDocumentInSgrs(
       status,
       ...(claimCount !== undefined ? { claim_count: claimCount } : {}),
     });
-  } catch { /* non-critical */ }
+  } catch {
+    /* non-critical */
+  }
 }
 
 // ── Facts sync ────────────────────────────────────────────────────────────────
@@ -129,10 +143,11 @@ export async function syncFactsToSgrs(
     risks_synced: 0,
   };
 
-  const confidence = typeof facts["confidence"] === "number" ? facts["confidence"] : 0.7;
-  const claims        = toList(facts["claims"]);
+  const confidence =
+    typeof facts["confidence"] === "number" ? facts["confidence"] : 0.7;
+  const claims = toList(facts["claims"]);
   const contradictions = toList(facts["contradictions"]);
-  const risks         = toList(facts["risks"]);
+  const risks = toList(facts["risks"]);
 
   // Register source document
   const docId = await syncDocumentToSgrs(docTitle, docType);
@@ -149,7 +164,9 @@ export async function syncFactsToSgrs(
         round,
       });
       if (r.ok) result.claims_synced++;
-    } catch { /* non-critical */ }
+    } catch {
+      /* non-critical */
+    }
   }
 
   // Persist contradictions — split "X vs Y" style strings into two sides
@@ -158,9 +175,11 @@ export async function syncFactsToSgrs(
       const parts = desc.split(/ vs\.? | but | however /i);
       const claim_a = parts[0]?.trim() ?? desc;
       const claim_b = parts[1]?.trim() ?? `Alternative reading: ${desc}`;
-      const severity =
-        /critical|overstat/i.test(desc) ? "critical" :
-        /high|significant/i.test(desc)  ? "high" : "medium";
+      const severity = /critical|overstat/i.test(desc)
+        ? "critical"
+        : /high|significant/i.test(desc)
+          ? "high"
+          : "medium";
       const r = await post("/api/contradictions", {
         scope_id: SGRS_SCOPE_ID,
         claim_a,
@@ -171,16 +190,21 @@ export async function syncFactsToSgrs(
         round,
       });
       if (r.ok) result.contradictions_synced++;
-    } catch { /* non-critical */ }
+    } catch {
+      /* non-critical */
+    }
   }
 
   // Persist risks
   for (const description of risks) {
     try {
-      const level =
-        /critical|severe/i.test(description)   ? "critical" :
-        /high|significant/i.test(description)  ? "high" :
-        /low/i.test(description)               ? "low" : "medium";
+      const level = /critical|severe/i.test(description)
+        ? "critical"
+        : /high|significant/i.test(description)
+          ? "high"
+          : /low/i.test(description)
+            ? "low"
+            : "medium";
       const r = await post("/api/risks", {
         scope_id: SGRS_SCOPE_ID,
         description,
@@ -189,7 +213,9 @@ export async function syncFactsToSgrs(
         round,
       });
       if (r.ok) result.risks_synced++;
-    } catch { /* non-critical */ }
+    } catch {
+      /* non-critical */
+    }
   }
 
   // Mark document as indexed with final claim count
@@ -240,10 +266,15 @@ export async function syncFinalityToSgrs(
       throw new Error(`finality POST ${resp.status}: ${errBody}`);
     }
     // Mirror score+state onto the scope row so the Studio scope list stays current
-    await patch(`/api/scopes/${scopeId}`, { score, state }).catch(() => {/* non-critical */});
+    await patch(`/api/scopes/${scopeId}`, { score, state }).catch(() => {
+      /* non-critical */
+    });
   } catch (e) {
     // Log but never propagate — Studio unavailability must never block governance.
     const { logger } = await import("./logger.js");
-    logger.warn("sgrsSync: finality POST failed", { scopeId, error: String(e) });
+    logger.warn("sgrsSync: finality POST failed", {
+      scopeId,
+      error: String(e),
+    });
   }
 }

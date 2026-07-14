@@ -108,7 +108,9 @@ const PIPELINE_EVENT_TYPES = [
 export async function getLatestPipelineWalSeq(pool?: pg.Pool): Promise<number> {
   const p = pool ?? getPool();
   await ensureContextTable(p);
-  const placeholders = PIPELINE_EVENT_TYPES.map((_, i) => `$${i + 1}`).join(", ");
+  const placeholders = PIPELINE_EVENT_TYPES.map((_, i) => `$${i + 1}`).join(
+    ", ",
+  );
   const res = await p.query(
     `SELECT seq FROM context_events WHERE data->>'type' IN (${placeholders}) ORDER BY seq DESC LIMIT 1`,
     PIPELINE_EVENT_TYPES,
@@ -123,7 +125,9 @@ export async function getLatestPipelineWalSeq(pool?: pg.Pool): Promise<number> {
  * a full cycle, allowing it to propose DeltasExtracted → ContextIngested. Other state_transitions
  * are ignored so governance rejections do not retrigger facts.
  */
-export async function getLatestPipelineWalSeqForFacts(pool?: pg.Pool): Promise<number> {
+export async function getLatestPipelineWalSeqForFacts(
+  pool?: pg.Pool,
+): Promise<number> {
   const p = pool ?? getPool();
   await ensureContextTable(p);
   const res = await p.query(

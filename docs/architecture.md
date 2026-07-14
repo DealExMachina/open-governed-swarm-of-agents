@@ -308,6 +308,24 @@ The convergence tracker implements five mechanisms from the distributed
 consensus literature to detect whether the system is making progress toward
 finality. For the full formal treatment, see [docs/convergence.md](convergence.md).
 
+Finality is lattice-geometric and spans two orthogonal layers. RESOLVED requires
+both to certify at once — the dual-condition (∧) gate:
+
+```
+RESOLVED  ⟺  [ f(x) < ε_prop ]  ∧  F*(t)
+```
+
+- **Semantic layer** — vector finality `F*(t)`: every required dimension
+  independently meets its threshold (non-compensable), on the convergence-rank
+  lattice `M = L × A`. The scalar `V(t)` below is a **diagnostic** certificate
+  (rate, ETA, plateau, pressure), not the admissibility test.
+- **Propagation layer** — the sheaf Dirichlet energy `f(x) = xᵀL_F x` must fall
+  below `ε_prop`, i.e. the evidence state reaches a global section `H⁰(G;F)` (all
+  connected roles agree on shared observations). `f(x)` is the true Lyapunov
+  function for the diffusion `x_{t+1} = Π_A[(I − αL_F)x_t + ε_t]`; the variance
+  proxy `Ω` is retained only as a topology-health signal. See
+  [docs/convergence.md §7–8](convergence.md#7-propagation-layer-sheaf-dirichlet-energy-and-global-sections).
+
 ### Lyapunov disagreement function V(t)
 
 Defined as a weighted quadratic distance to finality targets:
@@ -869,9 +887,9 @@ Rust exposes typed `KernelError` (config, unknown state, invalid numeric, stale 
 
 ### Build and integration
 
-- **Build:** `pnpm run build:rust` (or `build:rust:debug`) compiles `sgrs-core` with napi-rs for the current platform; output is `sgrs-core/*.node`.
+- **Build:** Run **`pnpm build:rust`** first (or `build:rust:debug`), then **`pnpm build`** (`tsc`). The napi step writes `sgrs-core/index.js` and `index.d.ts`, which `src/sgrsAdapter.ts` imports; on a clean clone, compiling TypeScript before this step fails.
 - **Package:** `sgrs-core` is a workspace dependency `"sgrs-core": "file:sgrs-core"`; the Node entrypoint is `sgrs-core/index.js` (platform-specific `.node` loading).
-- **CI:** `cargo test` and `cargo clippy` in sgrs-core; `pnpm test` includes TS tests that call the bridge.
+- **CI:** GitHub Actions install Rust stable, run `pnpm build:rust` before `pnpm build` / `pnpm typecheck`; Node **20** for the build job. `cargo test` / `cargo clippy` in `sgrs-core` are run locally or in dedicated pipelines; `pnpm test` runs Vitest against the TS tree.
 
 ---
 

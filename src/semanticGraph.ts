@@ -49,8 +49,10 @@ export interface AppendNodeInput {
 type Queryable = pg.Pool | pg.PoolClient;
 
 /** Bitemporal "current" view: not superseded and (valid now or open-ended). Use in node/edge SELECTs when migration 011 is applied. */
-const CURRENT_VIEW_NODES = "superseded_at IS NULL AND (valid_to IS NULL OR valid_to > now())";
-const CURRENT_VIEW_EDGES = "superseded_at IS NULL AND (valid_to IS NULL OR valid_to > now())";
+const CURRENT_VIEW_NODES =
+  "superseded_at IS NULL AND (valid_to IS NULL OR valid_to > now())";
+const CURRENT_VIEW_EDGES =
+  "superseded_at IS NULL AND (valid_to IS NULL OR valid_to > now())";
 
 /** Delete nodes (and their edges via FK CASCADE) by scope and created_by. Returns deleted count. */
 export async function deleteNodesBySource(
@@ -75,7 +77,8 @@ export async function appendNode(
     input.embedding && input.embedding.length > 0
       ? `[${input.embedding.join(",")}]`
       : null;
-  const hasBitemporal = input.valid_from !== undefined || input.valid_to !== undefined;
+  const hasBitemporal =
+    input.valid_from !== undefined || input.valid_to !== undefined;
   const validFrom = input.valid_from ?? null;
   const validTo = input.valid_to ?? null;
   if (hasBitemporal) {
@@ -136,7 +139,8 @@ export async function appendEdge(
   client?: pg.PoolClient,
 ): Promise<string> {
   const p: Queryable = client ?? getPool();
-  const hasBitemporal = input.valid_from !== undefined || input.valid_to !== undefined;
+  const hasBitemporal =
+    input.valid_from !== undefined || input.valid_to !== undefined;
   const validFrom = input.valid_from ?? null;
   const validTo = input.valid_to ?? null;
   if (hasBitemporal) {
@@ -221,17 +225,25 @@ export interface QueryNodesOptions {
   asOfRecordedAt?: string;
 }
 
-function buildNodeViewCondition(opts: QueryNodesOptions, params: unknown[], startIdx: number): { clause: string; nextIdx: number } {
+function buildNodeViewCondition(
+  opts: QueryNodesOptions,
+  params: unknown[],
+  startIdx: number,
+): { clause: string; nextIdx: number } {
   let idx = startIdx;
   if (opts.asOfValidTime || opts.asOfRecordedAt) {
     const parts: string[] = [];
     if (opts.asOfValidTime) {
-      parts.push(`valid_from <= $${idx}::timestamptz AND (valid_to IS NULL OR valid_to > $${idx}::timestamptz)`);
+      parts.push(
+        `valid_from <= $${idx}::timestamptz AND (valid_to IS NULL OR valid_to > $${idx}::timestamptz)`,
+      );
       params.push(opts.asOfValidTime);
       idx++;
     }
     if (opts.asOfRecordedAt) {
-      parts.push(`recorded_at <= $${idx}::timestamptz AND (superseded_at IS NULL OR superseded_at > $${idx}::timestamptz)`);
+      parts.push(
+        `recorded_at <= $${idx}::timestamptz AND (superseded_at IS NULL OR superseded_at > $${idx}::timestamptz)`,
+      );
       params.push(opts.asOfRecordedAt);
       idx++;
     }
@@ -240,17 +252,25 @@ function buildNodeViewCondition(opts: QueryNodesOptions, params: unknown[], star
   return { clause: `(${CURRENT_VIEW_NODES})`, nextIdx: idx };
 }
 
-function buildEdgeViewCondition(opts: QueryEdgesOptions, params: unknown[], startIdx: number): { clause: string; nextIdx: number } {
+function buildEdgeViewCondition(
+  opts: QueryEdgesOptions,
+  params: unknown[],
+  startIdx: number,
+): { clause: string; nextIdx: number } {
   let idx = startIdx;
   if (opts.asOfValidTime || opts.asOfRecordedAt) {
     const parts: string[] = [];
     if (opts.asOfValidTime) {
-      parts.push(`valid_from <= $${idx}::timestamptz AND (valid_to IS NULL OR valid_to > $${idx}::timestamptz)`);
+      parts.push(
+        `valid_from <= $${idx}::timestamptz AND (valid_to IS NULL OR valid_to > $${idx}::timestamptz)`,
+      );
       params.push(opts.asOfValidTime);
       idx++;
     }
     if (opts.asOfRecordedAt) {
-      parts.push(`recorded_at <= $${idx}::timestamptz AND (superseded_at IS NULL OR superseded_at > $${idx}::timestamptz)`);
+      parts.push(
+        `recorded_at <= $${idx}::timestamptz AND (superseded_at IS NULL OR superseded_at > $${idx}::timestamptz)`,
+      );
       params.push(opts.asOfRecordedAt);
       idx++;
     }
@@ -259,7 +279,9 @@ function buildEdgeViewCondition(opts: QueryEdgesOptions, params: unknown[], star
   return { clause: `(${CURRENT_VIEW_EDGES})`, nextIdx: idx };
 }
 
-export async function queryNodes(opts: QueryNodesOptions): Promise<SemanticNode[]> {
+export async function queryNodes(
+  opts: QueryNodesOptions,
+): Promise<SemanticNode[]> {
   const p = getPool();
   const conditions: string[] = ["scope_id = $1"];
   const params: unknown[] = [opts.scope_id];
@@ -311,7 +333,9 @@ export interface QueryEdgesOptions {
   asOfRecordedAt?: string;
 }
 
-export async function queryEdges(opts: QueryEdgesOptions): Promise<SemanticEdge[]> {
+export async function queryEdges(
+  opts: QueryEdgesOptions,
+): Promise<SemanticEdge[]> {
   const p = getPool();
   const conditions: string[] = ["scope_id = $1"];
   const params: unknown[] = [opts.scope_id];
@@ -355,7 +379,9 @@ export async function queryEdges(opts: QueryEdgesOptions): Promise<SemanticEdge[
 /**
  * Single-query aggregation for finality evaluation. Returns scope-level aggregates.
  */
-export async function loadFinalitySnapshot(scopeId: string): Promise<FinalitySnapshot> {
+export async function loadFinalitySnapshot(
+  scopeId: string,
+): Promise<FinalitySnapshot> {
   const startMs = Date.now();
   try {
     return await loadFinalitySnapshotImpl(scopeId);
@@ -369,7 +395,9 @@ export async function loadFinalitySnapshot(scopeId: string): Promise<FinalitySna
   }
 }
 
-async function loadFinalitySnapshotImpl(scopeId: string): Promise<FinalitySnapshot> {
+async function loadFinalitySnapshotImpl(
+  scopeId: string,
+): Promise<FinalitySnapshot> {
   const p = getPool();
   const nodeRes = await p.query(
     `SELECT
@@ -393,7 +421,8 @@ async function loadFinalitySnapshotImpl(scopeId: string): Promise<FinalitySnapsh
   );
   const goalRow = goalRes.rows[0] ?? {};
   const goalsTotal = Number(goalRow.total ?? 0);
-  const goalsCompletionRatio = goalsTotal === 0 ? 1 : Number(goalRow.resolved ?? 0) / goalsTotal;
+  const goalsCompletionRatio =
+    goalsTotal === 0 ? 1 : Number(goalRow.resolved ?? 0) / goalsTotal;
 
   if (claimsCount === 0) {
     const evidence_coverage = await getEvidenceCoverageForScope(scopeId, p);
@@ -416,7 +445,10 @@ async function loadFinalitySnapshotImpl(scopeId: string): Promise<FinalitySnapsh
      FROM nodes WHERE scope_id = $1 AND type = 'assessment' AND status = 'active' AND (${CURRENT_VIEW_NODES})`,
     [scopeId],
   );
-  const scopeRiskScore = Math.min(1, Math.max(0, Number(assessmentRes.rows[0]?.risk_score ?? 0)));
+  const scopeRiskScore = Math.min(
+    1,
+    Math.max(0, Number(assessmentRes.rows[0]?.risk_score ?? 0)),
+  );
 
   // Contradiction counts from nodes only (canonical source)
   const contraNodeRes = await p.query(
@@ -463,7 +495,13 @@ async function getEvidenceCoverageForScope(
     const path = join(process.cwd(), "evidence_schemas.yaml");
     const raw = readFileSync(path, "utf-8");
     const schemas = parseYaml(raw) as {
-      schemas?: Record<string, { evidence_types?: string[]; temporal_constraint?: { max_age_days?: number | null } }>;
+      schemas?: Record<
+        string,
+        {
+          evidence_types?: string[];
+          temporal_constraint?: { max_age_days?: number | null };
+        }
+      >;
     };
     const defaultSchema = schemas?.schemas?.default;
     const required = defaultSchema?.evidence_types ?? [];
@@ -492,7 +530,11 @@ const HUMAN_RESOLUTION_CONFIDENCE = 0.95;
 function parseContradictionSides(content: string): [string, string] | null {
   const s = content.trim();
   const nli = /^NLI:\s*"(.*?)"\s+vs\s+"(.*?)"/s.exec(s);
-  if (nli) return [nli[1].replace(/\.\.\.$/, "").trim(), nli[2].replace(/\.\.\.$/, "").trim()];
+  if (nli)
+    return [
+      nli[1].replace(/\.\.\.$/, "").trim(),
+      nli[2].replace(/\.\.\.$/, "").trim(),
+    ];
   const contradicts = /^(.*?)\s+contradicts?\s+(.*)$/i.exec(s);
   if (contradicts) return [contradicts[1].trim(), contradicts[2].trim()];
   const versus = /(.+?)\s+(?:versus|vs\.?)\s+(.+)/i.exec(s);
@@ -529,13 +571,46 @@ export async function loadUnresolvedContradictionDetails(
   const out: UnresolvedContradictionDetail[] = [];
 
   const HITL_STOP = new Set([
-    "the","and","for","are","was","were","has","have","had","not","but","its",
-    "that","this","from","with","they","been","which","into","also","than",
-    "will","can","may","who","how","all","any","each","some","such","very",
+    "the",
+    "and",
+    "for",
+    "are",
+    "was",
+    "were",
+    "has",
+    "have",
+    "had",
+    "not",
+    "but",
+    "its",
+    "that",
+    "this",
+    "from",
+    "with",
+    "they",
+    "been",
+    "which",
+    "into",
+    "also",
+    "than",
+    "will",
+    "can",
+    "may",
+    "who",
+    "how",
+    "all",
+    "any",
+    "each",
+    "some",
+    "such",
+    "very",
   ]);
   function hitlSigWords(s: string): Set<string> {
     return new Set(
-      s.toLowerCase().replace(/[^a-z0-9\s]/g, "").split(/\s+/)
+      s
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, "")
+        .split(/\s+/)
         .filter((w) => w.length > 2 && !HITL_STOP.has(w))
         .map((w) => (w.length > 6 ? w.slice(0, 6) : w)),
     );
@@ -561,21 +636,29 @@ export async function loadUnresolvedContradictionDetails(
     [scopeId],
   );
   for (const row of nodeRes.rows) {
-    const r = row as { node_id: string; content: string; metadata?: { claim_source_id?: string; claim_target_id?: string } };
+    const r = row as {
+      node_id: string;
+      content: string;
+      metadata?: { claim_source_id?: string; claim_target_id?: string };
+    };
     if (isDuplicateContent(r.content)) continue;
     const sides = parseContradictionSides(r.content);
     const sa = sides?.[0] ?? "";
     const sb = sides?.[1] ?? "";
     if (sa || sb) seenPairs.add(pairKey(sa, sb));
     let related_claims: string[] | undefined;
-    const srcId = (r.metadata as Record<string, unknown> | undefined)?.claim_source_id as string | undefined;
-    const tgtId = (r.metadata as Record<string, unknown> | undefined)?.claim_target_id as string | undefined;
+    const srcId = (r.metadata as Record<string, unknown> | undefined)
+      ?.claim_source_id as string | undefined;
+    const tgtId = (r.metadata as Record<string, unknown> | undefined)
+      ?.claim_target_id as string | undefined;
     if (srcId && tgtId) {
       const claimRes = await p.query(
         `SELECT content FROM nodes WHERE node_id = ANY($1::uuid[]) AND scope_id = $2`,
         [[srcId, tgtId], scopeId],
       );
-      related_claims = claimRes.rows.map((c: { content: string }) => c.content).filter(Boolean);
+      related_claims = claimRes.rows
+        .map((c: { content: string }) => c.content)
+        .filter(Boolean);
     }
     out.push({
       node_id: r.node_id,
@@ -608,7 +691,12 @@ export async function loadUnresolvedContradictionDetails(
   );
 
   for (const row of edgeRes.rows) {
-    const r = row as { source_id: string; target_id: string; claim_a: string; claim_b: string };
+    const r = row as {
+      source_id: string;
+      target_id: string;
+      claim_a: string;
+      claim_b: string;
+    };
     const key = pairKey(r.claim_a || "", r.claim_b || "");
     if (seenPairs.has(key)) continue;
     seenPairs.add(key);
@@ -664,26 +752,34 @@ export async function loadAllContradictionsWithResolutions(
      ORDER BY created_at ASC`,
     [scopeId],
   );
-  return res.rows.map((r: { node_id: string; content: string; status: string; source_ref?: Record<string, unknown> }) => {
-    const sides = parseContradictionSides(r.content);
-    const src = (r.source_ref as Record<string, unknown> | undefined) ?? {};
-    const resolution =
-      r.status === "resolved" && (src.resolved_by != null || src.resolution_reason != null)
-        ? {
-            by: String(src.resolved_by ?? ""),
-            reason: String(src.resolution_reason ?? ""),
-            resolved_at: String(src.resolved_at ?? ""),
-          }
-        : undefined;
-    return {
-      node_id: r.node_id,
-      content: r.content,
-      status: r.status,
-      side_a: sides?.[0],
-      side_b: sides?.[1],
-      resolution,
-    };
-  });
+  return res.rows.map(
+    (r: {
+      node_id: string;
+      content: string;
+      status: string;
+      source_ref?: Record<string, unknown>;
+    }) => {
+      const sides = parseContradictionSides(r.content);
+      const src = (r.source_ref as Record<string, unknown> | undefined) ?? {};
+      const resolution =
+        r.status === "resolved" &&
+        (src.resolved_by != null || src.resolution_reason != null)
+          ? {
+              by: String(src.resolved_by ?? ""),
+              reason: String(src.resolution_reason ?? ""),
+              resolved_at: String(src.resolved_at ?? ""),
+            }
+          : undefined;
+      return {
+        node_id: r.node_id,
+        content: r.content,
+        status: r.status,
+        side_a: sides?.[0],
+        side_b: sides?.[1],
+        resolution,
+      };
+    },
+  );
 }
 
 /**
@@ -704,7 +800,8 @@ export async function appendResolutionAsClaim(
      AND content = $2 AND status = 'active' LIMIT 1`,
     [scopeId, trimmed],
   );
-  if (exist.rowCount && exist.rows[0]) return (exist.rows[0] as { node_id: string }).node_id;
+  if (exist.rowCount && exist.rows[0])
+    return (exist.rows[0] as { node_id: string }).node_id;
   return appendNode(
     {
       scope_id: scopeId,
@@ -760,16 +857,21 @@ export async function appendResolutionGoal(
   const matched: string[] = [];
   for (const m of matches) {
     if (m.status === "not_addressed") continue;
-    const newStatus = m.status === "fully_resolved" ? "resolved" : "in_progress";
+    const newStatus =
+      m.status === "fully_resolved" ? "resolved" : "in_progress";
     await q.query(
       `UPDATE nodes SET status = $2, updated_at = now(), version = version + 1,
        source_ref = source_ref || $3::jsonb
        WHERE node_id = $1`,
-      [m.node_id, newStatus, JSON.stringify({
-        resolved_by: "resolution",
-        match_confidence: m.confidence,
-        decision_preview: decision.trim().slice(0, 200),
-      })],
+      [
+        m.node_id,
+        newStatus,
+        JSON.stringify({
+          resolved_by: "resolution",
+          match_confidence: m.confidence,
+          decision_preview: decision.trim().slice(0, 200),
+        }),
+      ],
     );
     matched.push(m.node_id);
   }
@@ -786,7 +888,10 @@ export async function appendResolutionGoal(
       content,
       confidence: 1.0,
       status: "resolved",
-      source_ref: { source: "resolution", decision_preview: decision.trim().slice(0, 200) },
+      source_ref: {
+        source: "resolution",
+        decision_preview: decision.trim().slice(0, 200),
+      },
       metadata: {},
       created_by: "resolution",
     },
@@ -825,7 +930,9 @@ export async function evaluateGoalsAgainstEvidence(
      ORDER BY confidence DESC LIMIT 50`,
     [scopeId],
   );
-  const claims = claimsRes.rows.map((r) => (r as { content: string }).content).filter(Boolean);
+  const claims = claimsRes.rows
+    .map((r) => (r as { content: string }).content)
+    .filter(Boolean);
   const evidenceText = claims.join(". ").slice(0, 8000);
 
   let matches: GoalMatch[];
@@ -839,7 +946,8 @@ export async function evaluateGoalsAgainstEvidence(
   let inProgress = 0;
   for (const m of matches) {
     if (m.status === "not_addressed") continue;
-    const newStatus = m.status === "fully_resolved" ? "resolved" : "in_progress";
+    const newStatus =
+      m.status === "fully_resolved" ? "resolved" : "in_progress";
     await q.query(
       `UPDATE nodes SET status = $2, updated_at = now(), version = version + 1,
        source_ref = source_ref || $3::jsonb
@@ -867,9 +975,12 @@ async function matchGoalsAgainstEvidenceWithLLM(
 ): Promise<GoalMatch[]> {
   const { getChatModelConfig } = await import("./modelConfig.js");
   const config = getChatModelConfig();
-  if (!config || goals.length === 0) return matchGoalsDeterministic(evidenceText, goals);
+  if (!config || goals.length === 0)
+    return matchGoalsDeterministic(evidenceText, goals);
 
-  const goalsText = goals.map((g, i) => `${i + 1}. [${g.node_id}] ${g.content}`).join("\n");
+  const goalsText = goals
+    .map((g, i) => `${i + 1}. [${g.node_id}] ${g.content}`)
+    .join("\n");
   const prompt = `Given these established facts (claims extracted from documents):
 
 """
@@ -914,8 +1025,18 @@ Be pragmatic: if relevant facts exist for a goal's domain, mark it resolved. Onl
   if (usage) {
     try {
       const { recordLLMTokens } = await import("./metrics.js");
-      recordLLMTokens("planner_goal_eval", "input", usage.prompt_tokens ?? 0, config?.id);
-      recordLLMTokens("planner_goal_eval", "output", usage.completion_tokens ?? 0, config?.id);
+      recordLLMTokens(
+        "planner_goal_eval",
+        "input",
+        usage.prompt_tokens ?? 0,
+        config?.id,
+      );
+      recordLLMTokens(
+        "planner_goal_eval",
+        "output",
+        usage.completion_tokens ?? 0,
+        config?.id,
+      );
     } catch {
       /* no-op */
     }
@@ -924,8 +1045,13 @@ Be pragmatic: if relevant facts exist for a goal's domain, mark it resolved. Onl
   const jsonMatch = text.match(/\[[\s\S]*\]/);
   if (!jsonMatch) throw new Error("No JSON array in LLM response");
 
-  const validated = z.array(GoalMatchItemSchema).safeParse(JSON.parse(jsonMatch[0]));
-  if (!validated.success) throw new Error(`Goal match schema validation failed: ${validated.error.message}`);
+  const validated = z
+    .array(GoalMatchItemSchema)
+    .safeParse(JSON.parse(jsonMatch[0]));
+  if (!validated.success)
+    throw new Error(
+      `Goal match schema validation failed: ${validated.error.message}`,
+    );
 
   const goalIds = new Set(goals.map((g) => g.node_id));
   return validated.data
@@ -949,9 +1075,12 @@ async function matchGoalsWithLLM(
 ): Promise<GoalMatch[]> {
   const { getChatModelConfig } = await import("./modelConfig.js");
   const config = getChatModelConfig();
-  if (!config || goals.length === 0) return matchGoalsDeterministic(decision, goals);
+  if (!config || goals.length === 0)
+    return matchGoalsDeterministic(decision, goals);
 
-  const goalsText = goals.map((g, i) => `${i + 1}. [${g.node_id}] ${g.content}`).join("\n");
+  const goalsText = goals
+    .map((g, i) => `${i + 1}. [${g.node_id}] ${g.content}`)
+    .join("\n");
   const prompt = `A user submitted this resolution:\n"${decision.trim()}"\n\nHere are the active goals:\n${goalsText}\n\nFor each goal, decide if the resolution addresses it. Reply with ONLY a JSON array, one object per goal:\n[{"id":"<node_id>","status":"fully_resolved"|"partially_resolved"|"not_addressed","confidence":0.0-1.0}]\n\n- "fully_resolved": the resolution clearly answers or completes this goal\n- "partially_resolved": the resolution provides relevant information but doesn't fully close the goal\n- "not_addressed": the resolution is unrelated to this goal\n\nBe generous: if the resolution mentions a topic related to the goal, mark it at least partially_resolved. Reply with ONLY the JSON array, no other text.`;
 
   const url = `${config.url.replace(/\/+$/, "")}/chat/completions`;
@@ -980,8 +1109,18 @@ async function matchGoalsWithLLM(
   if (usage) {
     try {
       const { recordLLMTokens } = await import("./metrics.js");
-      recordLLMTokens("resolution", "input", usage.prompt_tokens ?? 0, config?.id);
-      recordLLMTokens("resolution", "output", usage.completion_tokens ?? 0, config?.id);
+      recordLLMTokens(
+        "resolution",
+        "input",
+        usage.prompt_tokens ?? 0,
+        config?.id,
+      );
+      recordLLMTokens(
+        "resolution",
+        "output",
+        usage.completion_tokens ?? 0,
+        config?.id,
+      );
     } catch {
       /* no-op */
     }
@@ -990,13 +1129,18 @@ async function matchGoalsWithLLM(
   const jsonMatch = text.match(/\[[\s\S]*\]/);
   if (!jsonMatch) throw new Error("No JSON array in LLM response");
 
-  const validated = z.array(GoalMatchItemSchema).safeParse(JSON.parse(jsonMatch[0]));
-  if (!validated.success) throw new Error(`Goal match schema validation failed: ${validated.error.message}`);
+  const validated = z
+    .array(GoalMatchItemSchema)
+    .safeParse(JSON.parse(jsonMatch[0]));
+  if (!validated.success)
+    throw new Error(
+      `Goal match schema validation failed: ${validated.error.message}`,
+    );
 
-  const goalIds = new Set(goals.map(g => g.node_id));
+  const goalIds = new Set(goals.map((g) => g.node_id));
   return validated.data
-    .filter(p => goalIds.has(p.id))
-    .map(p => ({
+    .filter((p) => goalIds.has(p.id))
+    .map((p) => ({
       node_id: p.id,
       status: p.status,
       confidence: p.confidence,
@@ -1007,10 +1151,10 @@ function matchGoalsDeterministic(
   decision: string,
   goals: Array<{ node_id: string; content: string }>,
 ): GoalMatch[] {
-  const MATCH_THRESHOLD = 0.10;
+  const MATCH_THRESHOLD = 0.1;
   const sentences = splitIntoSentences(decision);
   const fullTokens = expandSynonyms(tokenize(decision));
-  const sentenceTokenSets = sentences.map(s => expandSynonyms(tokenize(s)));
+  const sentenceTokenSets = sentences.map((s) => expandSynonyms(tokenize(s)));
   const results: GoalMatch[] = [];
 
   for (const goal of goals) {
@@ -1019,7 +1163,7 @@ function matchGoalsDeterministic(
     if (score >= MATCH_THRESHOLD) {
       results.push({
         node_id: goal.node_id,
-        status: score >= 0.20 ? "fully_resolved" : "partially_resolved",
+        status: score >= 0.2 ? "fully_resolved" : "partially_resolved",
         confidence: score,
       });
     }
@@ -1085,27 +1229,91 @@ function bestMatchScore(
 function splitIntoSentences(text: string): string[] {
   return text
     .split(/[.!?;,]+|\n+/)
-    .map(s => s.trim())
-    .filter(s => s.length > 5);
+    .map((s) => s.trim())
+    .filter((s) => s.length > 5);
 }
 
 const STOP_WORDS = new Set([
-  "the", "a", "an", "and", "or", "but", "in", "on", "at", "to", "for",
-  "of", "with", "by", "from", "is", "are", "was", "were", "be", "been",
-  "has", "have", "had", "do", "does", "did", "will", "would", "could",
-  "should", "may", "might", "shall", "can", "this", "that", "these",
-  "those", "it", "its", "not", "no", "all", "any", "each", "every",
-  "both", "few", "more", "most", "other", "some", "such", "than",
-  "too", "very", "just", "about", "above", "after", "before", "between",
-  "into", "through", "during", "until", "against", "among", "out", "up",
+  "the",
+  "a",
+  "an",
+  "and",
+  "or",
+  "but",
+  "in",
+  "on",
+  "at",
+  "to",
+  "for",
+  "of",
+  "with",
+  "by",
+  "from",
+  "is",
+  "are",
+  "was",
+  "were",
+  "be",
+  "been",
+  "has",
+  "have",
+  "had",
+  "do",
+  "does",
+  "did",
+  "will",
+  "would",
+  "could",
+  "should",
+  "may",
+  "might",
+  "shall",
+  "can",
+  "this",
+  "that",
+  "these",
+  "those",
+  "it",
+  "its",
+  "not",
+  "no",
+  "all",
+  "any",
+  "each",
+  "every",
+  "both",
+  "few",
+  "more",
+  "most",
+  "other",
+  "some",
+  "such",
+  "than",
+  "too",
+  "very",
+  "just",
+  "about",
+  "above",
+  "after",
+  "before",
+  "between",
+  "into",
+  "through",
+  "during",
+  "until",
+  "against",
+  "among",
+  "out",
+  "up",
 ]);
 
 function tokenize(text: string): Set<string> {
   return new Set(
-    text.toLowerCase()
+    text
+      .toLowerCase()
       .replace(/[^a-z0-9àâäéèêëïîôùûüÿçæœ€%]+/gi, " ")
       .split(/\s+/)
-      .filter(w => w.length > 2 && !STOP_WORDS.has(w))
+      .filter((w) => w.length > 2 && !STOP_WORDS.has(w)),
   );
 }
 
@@ -1208,7 +1416,13 @@ export async function queryNodesByCreator(
  * Canonical source for UI panels that need both counts and text.
  */
 export async function getKnowledgeState(scopeId: string): Promise<{
-  counts: { claims: number; goals: number; contradictions: number; risks: number; contradictions_resolved: number };
+  counts: {
+    claims: number;
+    goals: number;
+    contradictions: number;
+    risks: number;
+    contradictions_resolved: number;
+  };
   claims: string[];
   goals: string[];
   contradictions: string[];
@@ -1229,15 +1443,53 @@ export async function getKnowledgeState(scopeId: string): Promise<{
   let contraResolved = 0;
 
   const KS_STOP = new Set([
-    "the","and","for","are","was","were","has","have","had","not","but","its",
-    "that","this","from","with","they","been","which","into","also","than",
-    "will","can","may","who","how","all","any","each","some","such","very",
-    "just","about","between","through","during","out","more","other",
+    "the",
+    "and",
+    "for",
+    "are",
+    "was",
+    "were",
+    "has",
+    "have",
+    "had",
+    "not",
+    "but",
+    "its",
+    "that",
+    "this",
+    "from",
+    "with",
+    "they",
+    "been",
+    "which",
+    "into",
+    "also",
+    "than",
+    "will",
+    "can",
+    "may",
+    "who",
+    "how",
+    "all",
+    "any",
+    "each",
+    "some",
+    "such",
+    "very",
+    "just",
+    "about",
+    "between",
+    "through",
+    "during",
+    "out",
+    "more",
+    "other",
   ]);
 
   function ksSigWords(s: string): Set<string> {
     return new Set(
-      s.toLowerCase()
+      s
+        .toLowerCase()
         .replace(/[^a-z0-9\s]/g, "")
         .split(/\s+/)
         .filter((w) => w.length > 2 && !KS_STOP.has(w))
@@ -1245,11 +1497,16 @@ export async function getKnowledgeState(scopeId: string): Promise<{
     );
   }
 
-  function isDuplicateClaim(existing: string[], candidate: string, candidateSource: string): boolean {
+  function isDuplicateClaim(
+    existing: string[],
+    candidate: string,
+    candidateSource: string,
+  ): boolean {
     const cw = ksSigWords(candidate);
     if (cw.size === 0) return true;
     for (let j = 0; j < existing.length; j++) {
-      if (candidateSource !== "resolution" && claimSources[j] === "resolution") continue;
+      if (candidateSource !== "resolution" && claimSources[j] === "resolution")
+        continue;
       const ew = ksSigWords(existing[j]);
       let overlap = 0;
       for (const w of cw) if (ew.has(w)) overlap++;
@@ -1283,7 +1540,11 @@ export async function getKnowledgeState(scopeId: string): Promise<{
    * shares key terms with an existing entry.
    */
   function findSuperseded(existing: string[], candidate: string): number {
-    if (!/\b(adjust\w*|revis\w*|correct\w*|overstat\w*|downward|previously stated|not the .{3,40}previously)\b/i.test(candidate))
+    if (
+      !/\b(adjust\w*|revis\w*|correct\w*|overstat\w*|downward|previously stated|not the .{3,40}previously)\b/i.test(
+        candidate,
+      )
+    )
       return -1;
     const cw = ksSigWords(candidate);
     if (cw.size === 0) return -1;
@@ -1291,7 +1552,8 @@ export async function getKnowledgeState(scopeId: string): Promise<{
       const ew = ksSigWords(existing[i]);
       let overlap = 0;
       for (const w of cw) if (ew.has(w)) overlap++;
-      if (overlap >= 2 && overlap / Math.min(cw.size, ew.size) >= 0.25) return i;
+      if (overlap >= 2 && overlap / Math.min(cw.size, ew.size) >= 0.25)
+        return i;
     }
     return -1;
   }
@@ -1318,21 +1580,28 @@ export async function getKnowledgeState(scopeId: string): Promise<{
           if (isDuplicateClaim(claims, content, createdBy)) break;
           claims.push(content);
           claimSources.push(createdBy);
-          if (createdBy === "resolution") resolutionClaimIndices.push(claims.length - 1);
+          if (createdBy === "resolution")
+            resolutionClaimIndices.push(claims.length - 1);
         }
         break;
       case "goal":
-        if (status === "active" && !isDuplicate(goals, content)) goals.push(content);
+        if (status === "active" && !isDuplicate(goals, content))
+          goals.push(content);
         break;
       case "contradiction":
-        if (status === "active" && !isDuplicate(contradictions, content)) contradictions.push(content);
-        else if (status === "resolved" && !isDuplicate(resolvedContraTexts, content)) {
+        if (status === "active" && !isDuplicate(contradictions, content))
+          contradictions.push(content);
+        else if (
+          status === "resolved" &&
+          !isDuplicate(resolvedContraTexts, content)
+        ) {
           resolvedContraTexts.push(content);
           contraResolved++;
         }
         break;
       case "risk":
-        if (status === "active" && !isDuplicate(risks, content)) risks.push(content);
+        if (status === "active" && !isDuplicate(risks, content))
+          risks.push(content);
         break;
     }
   }
@@ -1347,11 +1616,20 @@ export async function getKnowledgeState(scopeId: string): Promise<{
     let coveredWords = 0;
     for (const w of rw) {
       for (let i = 0; i < claims.length; i++) {
-        if (i === ri || suppressedIndices.has(i) || claimSources[i] === "resolution") continue;
-        if (ksSigWords(claims[i]).has(w)) { coveredWords++; break; }
+        if (
+          i === ri ||
+          suppressedIndices.has(i) ||
+          claimSources[i] === "resolution"
+        )
+          continue;
+        if (ksSigWords(claims[i]).has(w)) {
+          coveredWords++;
+          break;
+        }
       }
     }
-    if (coveredWords >= 3 || (rw.size > 0 && coveredWords / rw.size >= 0.5)) suppressedIndices.add(ri);
+    if (coveredWords >= 3 || (rw.size > 0 && coveredWords / rw.size >= 0.5))
+      suppressedIndices.add(ri);
   }
   const filteredClaims = claims.filter((_, i) => !suppressedIndices.has(i));
 
@@ -1370,7 +1648,9 @@ export async function getKnowledgeState(scopeId: string): Promise<{
   };
 }
 
-export async function getGraphSummary(scopeId: string): Promise<{ nodes: Record<string, number>; edges: Record<string, number> }> {
+export async function getGraphSummary(
+  scopeId: string,
+): Promise<{ nodes: Record<string, number>; edges: Record<string, number> }> {
   const p = getPool();
   const nodeRes = await p.query(
     `SELECT type, COUNT(*)::int AS c FROM nodes WHERE scope_id = $1 AND (${CURRENT_VIEW_NODES}) GROUP BY type`,
@@ -1385,6 +1665,134 @@ export async function getGraphSummary(scopeId: string): Promise<{ nodes: Record<
   );
   const edges: Record<string, number> = {};
   for (const r of edgeRes.rows) edges[String(r.edge_type)] = Number(r.c ?? 0);
+
+  return { nodes, edges };
+}
+
+function truncateStudioLabel(content: string, max = 48): string {
+  const line = content.replace(/\s+/g, " ").trim();
+  if (!line) return "—";
+  return line.length > max ? `${line.slice(0, max - 1)}…` : line;
+}
+
+/** Cytoscape elements for SGRS Studio (`GET /studio/elements`). */
+export async function getStudioGraphElements(scopeId: string): Promise<{
+  nodes: Array<{ data: Record<string, unknown> }>;
+  edges: Array<{ data: Record<string, unknown> }>;
+}> {
+  const p = getPool();
+  const nodeRes = await p.query(
+    `SELECT node_id, type, content, status, confidence, metadata, source_ref, created_by
+     FROM nodes WHERE scope_id = $1 AND (${CURRENT_VIEW_NODES})
+     ORDER BY type, created_at ASC`,
+    [scopeId],
+  );
+  const edgeRes = await p.query(
+    `SELECT source_id, target_id, edge_type
+     FROM edges WHERE scope_id = $1 AND (${CURRENT_VIEW_EDGES})`,
+    [scopeId],
+  );
+
+  const nodes = nodeRes.rows.map(
+    (r: {
+      node_id: string;
+      type: string;
+      content: string;
+      status: string;
+      confidence: number | null;
+      metadata: Record<string, unknown> | null;
+      source_ref: Record<string, unknown> | null;
+      created_by: string | null;
+    }) => {
+      const type = String(r.type);
+      const meta = r.metadata ?? {};
+      const src = r.source_ref ?? {};
+      const data: Record<string, unknown> = {
+        id: String(r.node_id),
+        label: truncateStudioLabel(String(r.content || type)),
+        type,
+        info: {
+          subtitle: `${type} · ${r.status ?? "active"}`,
+          desc: String(r.content || "").slice(0, 500),
+        },
+      };
+      if (type === "claim" && r.confidence != null) {
+        data.conf = Number(r.confidence);
+      }
+      if (type === "contradiction") {
+        data.resolved = r.status === "resolved";
+        data.veto =
+          meta.veto === true ||
+          meta.blocks_finality === true ||
+          src.blocks_finality === true;
+      }
+      if (type === "resolution" || r.created_by === "resolution") {
+        data.type = "resolution";
+        const targets = src.targetsContradiction ?? src.contradiction_id;
+        if (targets) data.targetsContradiction = String(targets);
+      }
+      return { data };
+    },
+  );
+
+  const edges = edgeRes.rows.map(
+    (r: { source_id: string; target_id: string; edge_type: string }) => ({
+      data: {
+        source: String(r.source_id),
+        target: String(r.target_id),
+        type: String(r.edge_type || "refers"),
+      },
+    }),
+  );
+
+  const edgeKeys = new Set(
+    edges.map((e) => `${e.data.source}|${e.data.target}|${e.data.type}`),
+  );
+  const pushEdge = (source: string, target: string, type: string): void => {
+    const key = `${source}|${target}|${type}`;
+    if (!source || !target || edgeKeys.has(key)) return;
+    edgeKeys.add(key);
+    edges.push({ data: { source, target, type } });
+  };
+
+  // Synthetic edges from node metadata when DB edges table is sparse.
+  const nodeMetaRes = await p.query(
+    `SELECT node_id, type, metadata, source_ref FROM nodes
+     WHERE scope_id = $1 AND (${CURRENT_VIEW_NODES})`,
+    [scopeId],
+  );
+  for (const row of nodeMetaRes.rows as Array<{
+    node_id: string;
+    type: string;
+    metadata: Record<string, unknown> | null;
+    source_ref: Record<string, unknown> | null;
+  }>) {
+    const meta = row.metadata ?? {};
+    const srcRef = row.source_ref ?? {};
+    if (row.type === "contradiction") {
+      const a = String(meta.claim_source_id ?? "");
+      const b = String(meta.claim_target_id ?? "");
+      if (a && b) {
+        pushEdge(String(row.node_id), a, "contradicts");
+        pushEdge(String(row.node_id), b, "contradicts");
+      }
+    }
+    if (row.type === "resolution") {
+      const target = String(
+        meta.targetsContradiction ?? srcRef.contradiction_id ?? "",
+      );
+      if (target) pushEdge(String(row.node_id), target, "resolves");
+    }
+    if (row.type === "doc") {
+      const claimIds = meta.claim_ids;
+      if (Array.isArray(claimIds)) {
+        for (const cid of claimIds) {
+          if (typeof cid === "string")
+            pushEdge(String(row.node_id), cid, "refers");
+        }
+      }
+    }
+  }
 
   return { nodes, edges };
 }

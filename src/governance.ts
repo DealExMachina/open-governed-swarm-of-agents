@@ -58,7 +58,10 @@ export function loadPolicies(path: string): GovernanceConfig {
  * Return the effective governance config for a scope (merge scope overrides onto base).
  * If the scope has an entry in config.scopes, its mode overrides the top-level mode.
  */
-export function getGovernanceForScope(scopeId: string, config: GovernanceConfig): GovernanceConfig {
+export function getGovernanceForScope(
+  scopeId: string,
+  config: GovernanceConfig,
+): GovernanceConfig {
   const overrides = config.scopes?.[scopeId];
   if (!overrides) return config;
   return {
@@ -72,7 +75,10 @@ import {
   canTransition as rustCanTransition,
 } from "./sgrsAdapter.js";
 
-export function evaluateRules(drift: DriftInput, config: GovernanceConfig): string[] {
+export function evaluateRules(
+  drift: DriftInput,
+  config: GovernanceConfig,
+): string[] {
   return rustEvaluateRules(drift, config);
 }
 

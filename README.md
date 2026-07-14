@@ -1,8 +1,78 @@
 # Swarm of Governed Agents (SGRS)
 
+[![License Model: Split](https://img.shields.io/badge/license-split-blue.svg)](./LICENSES.md)
+[![Orchestration: AGPL-3.0-only](https://img.shields.io/badge/orchestration-AGPL--3.0--only-blue.svg)](./LICENSE)
+[![Kernel: ELv2](https://img.shields.io/badge/kernel-ELv2-6f42c1.svg)](./sgrs-core/LICENSE)
+[![Clients: MIT](https://img.shields.io/badge/clients-MIT-green.svg)](./packages/sgrs-client/LICENSE)
+[![Tests](https://github.com/DealExMachina/open-governed-swarm-of-agents/actions/workflows/test.yml/badge.svg)](https://github.com/DealExMachina/open-governed-swarm-of-agents/actions/workflows/test.yml)
+[![Lint](https://github.com/DealExMachina/open-governed-swarm-of-agents/actions/workflows/lint.yml/badge.svg)](https://github.com/DealExMachina/open-governed-swarm-of-agents/actions/workflows/lint.yml)
+[![Publication 1](https://img.shields.io/badge/publication-1-8a2be2.svg)](publications/publication_1/swarm-governed-agents.pdf)
+[![Quick Start](https://img.shields.io/badge/start-quickstart-0a7ea4.svg)](#quick-start)
+[![Deployment](https://img.shields.io/badge/deploy-guide-2f855a.svg)](docs/deployment.md)
+[![OpenFGA Ready](https://img.shields.io/badge/authz-OpenFGA-ff6f00.svg)](#what-makes-sgrs-unique)
+[![Companion Product Repo](https://img.shields.io/badge/product%20layer-sgrs-black.svg)](https://github.com/DealExMachina/sgrs)
+
+Governed multi-agent orchestration for regulated operations.  
+SGRS gives you **formal convergence**, **bitemporal auditability**, and **policy-bound decisions** so AI workflows stay explainable under real compliance pressure.
+
+## Choose your path
+
+| Audience | Start here |
+|---|---|
+| **Researchers (Publication 1)** | [Paper (PDF)](publications/publication_1/swarm-governed-agents.pdf), [Convergence theory](docs/convergence.md), [Validation](docs/validation.md), [Experiments](docs/experiments.md) |
+| **Pragmatic engineers** | [Quick start](#quick-start), [Deployment](docs/deployment.md), [Demo guide](demo/DEMO.md), [Product repo (Studio/API/SDKs)](https://github.com/DealExMachina/sgrs) |
+
+## How SGRS works (plain English)
+
+1. **Agents read shared context** from documents, events, and prior decisions.
+2. **Agents propose updates** (facts, contradictions, risk changes), but do not mutate state directly.
+3. **Governance gates review each proposal** against policy, approval mode, and convergence conditions.
+4. **Approved updates become auditable state** in a bitemporal causal graph.
+5. **Finality is certified, not terminal**: new evidence can reopen the scope and continue safely.
+
+You can use SGRS without prior knowledge of lattices, Lyapunov functions, or sheaf theory; those formal tools power reliability under the hood.
+
+## Quick tour (10 minutes)
+
+- **2 min**: read [The problem](#the-problem) and [What makes SGRS unique](#what-makes-sgrs-unique).
+- **3 min**: run [Quick start](#quick-start) and open the demo with `pnpm run demo`.
+- **3 min**: inspect one contradiction flow in [Demo guide](demo/DEMO.md).
+- **2 min**: skim [Convergence theory](docs/convergence.md) only if you want the formal layer.
+
+## What is coming next
+
+- **Simpler onboarding**: guided presets for common regulated workflows.
+- **Framework adapters**: tighter bridges for teams already using mainstream agent frameworks.
+- **Governance UX upgrades**: clearer policy-path explanations and contradiction-resolution guidance.
+- **Operational hardening**: stronger deployment templates and larger benchmark suites.
+
+## Built for two audiences
+
+- **Agent-coordination researchers**: study convergence behavior, governance paths, contradiction dynamics, and long-horizon lifecycle guarantees on reproducible scenarios.
+- **Pragmatic engineers in regulated environments**: run governed orchestration as an alternative or complement to existing agent frameworks without sacrificing delivery speed.
+
+## What makes SGRS unique
+
+- **Contradiction detection as a first-class signal**: contradictions are explicit graph edges and can block closure until resolved.
+- **Bitemporal state model**: every claim is queryable by valid time and transaction time for strict audit reconstruction.
+- **Causal semantic graph**: state evolves through evidence links, not hidden prompt state.
+- **Governance gates with formal convergence**: transitions are policy-checked and scored against monotonic convergence criteria.
+- **Fine-grained authorization with OpenFGA**: governance actions and approvals can be bound to explicit relationship-based permissions.
+- **Framework-compatible deployment**: use SGRS standalone or alongside LangGraph/CrewAI/Mastra-style stacks where governance depth is missing.
+
+## At a glance
+
+| What | SGRS capability |
+|---|---|
+| Core promise | Governed swarm orchestration with measurable convergence |
+| Primary users | AI/platform teams in finance, insurance, pharma, public sector |
+| Deployment model | Self-host with `docker compose` + open architecture |
+| Validation assets | Reproducible demos, experiments, formal references, E2E scripts |
+| Commercial path | Open-access core + advisory/production support |
+
 ## The problem
 
-Deploying agent swarms in regulated environments hits a wall that current frameworks do not address. Agent coordination is often addressed through pre cooked topologies and ad hoc graph states. Yet when targeting very long "for ever" contexts, agents need a common representation, and a set of governance rules to update this context. This context is not static and need to progress to a goal(s) finality shared by all the swarm. Drifts, contradictions, risks, are part of the context and should not be filtered out. Bi-Temporality mus be a first class citizen and, of course, in enterprise context we need to feed in Hierarchy and Functional contexts to elevate decision planes. 
+Deploying agent swarms in regulated environments hits a wall that current frameworks do not address. Agent coordination is often handled through pre-cooked topologies and ad hoc graph states. Yet for long-lived contexts, agents need a common representation plus governance rules to evolve that context toward shared finality. Drift, contradictions, and risk are part of the state and must remain visible. Bitemporality must be first-class. Enterprise deployments also need hierarchy and functional contexts to elevate decision planes.
 
 **DAG-based orchestration** (LangGraph, CrewAI, Mastra, Autogen) hardcodes coordination into topology. Every new rule, exception, or agent requires rewiring the graph. Sequencing and governance are fused; you cannot change one without breaking the other. When an agent stalls, the entire downstream pipeline stalls with it.
 
@@ -31,6 +101,13 @@ An event-driven agent swarm where:
 - A **Rust reduction kernel** (`sgrs-core`) enforces transition rules via a product lattice **M = L × A** (governance level × convergence rank), with explicit meet/join on both factors. Zero LLM tokens. Always available.
 - **Formal convergence** is tracked via a Lyapunov disagreement function V(t), with monotonicity gates, plateau detection, and divergence escalation.
 - **Ed25519-signed finality certificates** chain over time as new evidence and regulations arrive.
+
+### Ideal use cases
+
+- **Regulated decision cycles**: KYC/AML reviews, solvency workflows, impairment analysis, pharmacovigilance.
+- **High-stakes contradiction handling**: when unresolved conflict must block closure by design.
+- **Audit-sensitive AI orchestration**: teams that need reproducibility across policy versions and time axes.
+- **Enterprise control-plane integration**: platform teams exposing governed orchestration to internal products.
 
 ```
 Agents --> shared bitemporal state --> governance kernel --> finality certificates
@@ -87,7 +164,7 @@ pnpm run swarm:start
 
 **Run the demo:**
 ```bash
-pnpm run demo                    # Demo UI on http://localhost:3003
+pnpm run demo                    # Demo UI on http://localhost:3005
 ```
 
 **Full automated E2E** (Docker, reset, migrate, seed, bootstrap, run, verify):
@@ -95,9 +172,9 @@ pnpm run demo                    # Demo UI on http://localhost:3003
 ./scripts/run-e2e.sh
 ```
 
-**Ports (default compose):** 3002 feed API, 3003 demo UI, 3004 Grafana, 3000/8080 OpenFGA (HTTP/gRPC), 5433 Postgres, 4222 NATS, 8222 NATS metrics, 9000/9001 MinIO, 8010 facts-worker, 9090 Prometheus, 4317/4318 OTLP.
+**Ports (default compose):** 3002 feed API, **3005 demo UI** (default `DEMO_PORT`), **3006 resolution MCP** (default `RESOLUTION_MCP_PORT` when hatchery runs it), 3004 Grafana (host: container 3000), 3000/8080 OpenFGA (HTTP playground/gRPC), 5433 Postgres, 4222 NATS, 8222 NATS metrics, 9000/9001 MinIO, 8010 facts-worker, 9090 Prometheus, 4317/4318 OTLP. Product SGRS API uses **3003** — see companion monorepo `ROUTING_ARCHITECTURE.md`.
 
-To run **SGRS Studio** or the product **API** against an environment, see the companion monorepo [DealExMachina/sgrs](https://github.com/DealExMachina/sgrs) (Quickstart, `ROUTING_ARCHITECTURE.md`, and client packages).
+To run **SGRS Studio** or the product **REST API** on the same machine, see [DealExMachina/sgrs](https://github.com/DealExMachina/sgrs) — [**`ROUTING_ARCHITECTURE.md`**](https://github.com/DealExMachina/sgrs/blob/main/ROUTING_ARCHITECTURE.md) assigns **Studio 3001** and **product API 3003**; this repo assigns **demo 3005** and **resolution MCP 3006** so nothing shares a listening port.
 
 ---
 
@@ -236,21 +313,27 @@ See [docs/demos/README.md](docs/demos/README.md) for detailed protocols.
 
 ---
 
+**From source (TypeScript + Rust addon):** after `pnpm install`, run `pnpm build:rust` then `pnpm build` so napi generates `sgrs-core/index.js` before `tsc`. CI uses the same order with Rust stable and Node 20.
+
+---
+
 ## Validation
 
 ```bash
-pnpm run test                                     # Vitest (requires test/ — see hygiene doc)
+pnpm run test                                     # Vitest (test/ — runs in CI after native + TS build)
 cargo test --manifest-path sgrs-core/Cargo.toml  # Rust kernel, propagation, governance, …
 npx tsx scripts/benchmark-convergence.ts         # Synthetic convergence scenarios (no Docker)
 pnpm run benchmark:sgrs                          # sgrs load benchmark
+pnpm run test:dashboard:smoke                    # Dashboard smoke checks
+pnpm run test:dashboard:regression               # Dashboard regression checks
 ./scripts/run-e2e.sh                             # Docker E2E (applies a subset of migrations — prefer ensure-schema for full DB)
 ```
 
-The repository ships **Vitest config** but **no `test/` tree**: `pnpm run test` will report *no test files* until tests are added. **Rust** carries the primary automated coverage (`sgrs-core`). See [docs/codebase-hygiene.md](docs/codebase-hygiene.md) for missing assets, E2E vs. `ensure-schema`, and prototype code.
+The repository includes a **Vitest** suite under `test/` (architecture boundaries, logger, errors, DB helpers). **CI** runs `pnpm test` after installing dependencies, building `sgrs-core`, and compiling TypeScript. **Rust** still carries the deepest automated coverage for the kernel (`sgrs-core`). See [docs/codebase-hygiene.md](docs/codebase-hygiene.md) for E2E vs. `ensure-schema` and prototype code.
 
-**What's proven (high level):** Convergence math (benchmark + Rust), kernel load benchmark, propagation experiments in `sgrs-core`, governance path audit script after E2E seed.
+**What's proven (high level):** Convergence math (benchmark + Rust), kernel load benchmark, propagation experiments in `sgrs-core`, governance path audit script after E2E seed, plus targeted TypeScript unit tests in CI.
 
-**What's theoretical:** Full-stack behaviour without the TypeScript unit suite, long-horizon LLM trajectories matching synthetic convergence paths, adversarial robustness beyond tested collusion models.
+**What's theoretical:** Full long-horizon LLM trajectories matching synthetic convergence paths, adversarial robustness beyond tested collusion models.
 
 See [docs/validation.md](docs/validation.md) for methodology and known gaps.
 
@@ -269,7 +352,9 @@ See [docs/validation.md](docs/validation.md) for methodology and known gaps.
 | `pnpm run bootstrap-once` | Publish bootstrap job. |
 | `pnpm run seed:all` | Seed context WAL from `seed-docs/`. |
 | `pnpm run seed:hitl` | Seed near-finality state with unresolved contradiction. |
-| `pnpm run demo` | Demo UI (port 3003). |
+| `pnpm run demo` | Demo UI (port 3005). |
+| `pnpm run test:dashboard:smoke` | Run dashboard smoke scenario checks. |
+| `pnpm run test:dashboard:regression` | Run dashboard regression scenario checks. |
 | `pnpm run feed` | Feed server (port 3002). |
 | `pnpm run observe` | Tail NATS events in terminal. |
 | `pnpm run reset-e2e` | Truncate DB, empty S3, delete NATS stream. |
@@ -296,7 +381,7 @@ See [docs/validation.md](docs/validation.md) for methodology and known gaps.
 - [Convergence](docs/convergence.md) -- formal theory, Gate C, configuration reference, benchmarks
 - [Experiments](docs/experiments.md) -- protocols and results
 - [Validation](docs/validation.md) -- test methodology, known gaps
-- [Codebase hygiene](docs/codebase-hygiene.md) -- missing assets, E2E caveats, dead paths
+- [Changelog](CHANGELOG.md) -- workspace version and notable tooling/CI changes
 - [Deployment](docs/deployment.md) -- hosted vs self-host, GHCR feed image, enterprise contact
 - [Experimental terms (disclaimer)](docs/experimental-terms.md)
 - [Publications index](publications/README.md)
@@ -338,6 +423,8 @@ See [docs/validation.md](docs/validation.md) for methodology and known gaps.
 Use is at your own risk. See [docs/experimental-terms.md](docs/experimental-terms.md).
 
 ## License
+
+See [LICENSES.md](./LICENSES.md) for the component-level license matrix.
 
 **TypeScript orchestration** (root, `src/`, `scripts/`): [AGPL-3.0-only](./LICENSE).
 

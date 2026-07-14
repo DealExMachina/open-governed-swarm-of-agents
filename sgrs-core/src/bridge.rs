@@ -1093,6 +1093,10 @@ pub struct PropagationStepResultDto {
     pub contraction_ratio: f64,
     pub perturbation_norm: f64,
     pub contraction_achieved: bool,
+    /// True sheaf Dirichlet energy f(x) = xᵀL_F x before this step.
+    pub dirichlet_before: f64,
+    /// True sheaf Dirichlet energy f(x) = xᵀL_F x after this step.
+    pub dirichlet_after: f64,
     /// Flattened new state (same layout as input) for chaining steps from TS.
     pub flat_new_state: Vec<f64>,
 }
@@ -1120,6 +1124,69 @@ pub fn per_dimension_disagreement_bridge(
     let state =
         propagation::EvidenceState::from_flat(&flat_state, num_roles as usize, num_dims as usize);
     propagation::per_dimension_disagreement(&state)
+}
+
+/// True sheaf Dirichlet energy f(x) = xᵀL_F x on a projection sheaf.
+///
+/// This is the Lyapunov function for the diffusion dynamics and the correct
+/// propagation-layer convergence quantity. f(x) = 0 iff x is a global section
+/// (all connected roles agree on their shared observed dimensions). Prefer this
+/// over `compute_disagreement_bridge` (the Ω variance proxy) for finality gating.
+///
+/// role_observed_dims: per-role observed dimension indices (e.g. [[0], [1], [0,1,2,3]])
+/// edges: flat edge list [u0, v0, u1, v1, ...]
+#[napi]
+pub fn dirichlet_energy_bridge(
+    flat_state: Vec<f64>,
+    num_roles: u32,
+    num_dims: u32,
+    role_observed_dims: Vec<Vec<u32>>,
+    edges: Vec<u32>,
+) -> f64 {
+    let n = num_roles as usize;
+    let d = num_dims as usize;
+    let state = propagation::EvidenceState::from_flat(&flat_state, n, d);
+
+    let obs: Vec<Vec<usize>> = role_observed_dims
+        .iter()
+        .map(|dims| dims.iter().map(|&x| x as usize).collect())
+        .collect();
+    let edge_list: Vec<(usize, usize)> = edges
+        .chunks_exact(2)
+        .map(|pair| (pair[0] as usize, pair[1] as usize))
+        .collect();
+
+    let sheaf = propagation::CellularSheaf::from_role_observations(n, d, &obs, &edge_list);
+    propagation::dirichlet_energy(&sheaf, &state)
+}
+
+/// Per-edge Dirichlet energy ‖δ_e x‖² for bottleneck attribution. The sum equals
+/// the total f(x); the highest-energy edge is the role pair with the most
+/// disagreement on their shared observations. Same arguments as
+/// `dirichlet_energy_bridge`; returns one value per edge (in edge-list order).
+#[napi]
+pub fn dirichlet_energy_by_edge_bridge(
+    flat_state: Vec<f64>,
+    num_roles: u32,
+    num_dims: u32,
+    role_observed_dims: Vec<Vec<u32>>,
+    edges: Vec<u32>,
+) -> Vec<f64> {
+    let n = num_roles as usize;
+    let d = num_dims as usize;
+    let state = propagation::EvidenceState::from_flat(&flat_state, n, d);
+
+    let obs: Vec<Vec<usize>> = role_observed_dims
+        .iter()
+        .map(|dims| dims.iter().map(|&x| x as usize).collect())
+        .collect();
+    let edge_list: Vec<(usize, usize)> = edges
+        .chunks_exact(2)
+        .map(|pair| (pair[0] as usize, pair[1] as usize))
+        .collect();
+
+    let sheaf = propagation::CellularSheaf::from_role_observations(n, d, &obs, &edge_list);
+    propagation::dirichlet_energy_by_edge(&sheaf, &state)
 }
 
 /// Analyze the spectrum of a sheaf Laplacian built from identity restriction maps
@@ -1262,6 +1329,8 @@ pub fn propagation_step_bridge(
         contraction_ratio: result.contraction_ratio,
         perturbation_norm: result.perturbation_norm,
         contraction_achieved: result.contraction_achieved,
+        dirichlet_before: result.dirichlet_before,
+        dirichlet_after: result.dirichlet_after,
         flat_new_state: result.new_state.to_flat(),
     }
 }
@@ -1389,6 +1458,8 @@ pub fn propagation_step_topology_bridge(
         contraction_ratio: result.contraction_ratio,
         perturbation_norm: result.perturbation_norm,
         contraction_achieved: result.contraction_achieved,
+        dirichlet_before: result.dirichlet_before,
+        dirichlet_after: result.dirichlet_after,
         flat_new_state: result.new_state.to_flat(),
     }
 }
@@ -1515,6 +1586,8 @@ pub fn propagation_step_sheaf_bridge(
         contraction_ratio: result.contraction_ratio,
         perturbation_norm: result.perturbation_norm,
         contraction_achieved: result.contraction_achieved,
+        dirichlet_before: result.dirichlet_before,
+        dirichlet_after: result.dirichlet_after,
         flat_new_state: result.new_state.to_flat(),
     }
 }

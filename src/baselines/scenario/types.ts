@@ -55,7 +55,12 @@ export interface BenchmarkConfig {
 export interface EpochResult {
   epoch: number;
   document: string;
-  claims: Array<{ dimension: string; content: string; agentId: string; confidence: number }>;
+  claims: Array<{
+    dimension: string;
+    content: string;
+    agentId: string;
+    confidence: number;
+  }>;
   contradictionsDetected: number;
   semanticReversions: number;
   latencyMs: number;

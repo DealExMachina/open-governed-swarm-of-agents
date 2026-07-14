@@ -16,7 +16,14 @@ export async function recordUsageTokens(opts: {
     await pool.query(
       `INSERT INTO usage_events (tenant_id, scope_id, role, model, input_tokens, output_tokens)
        VALUES ($1::uuid, $2, $3, $4, $5, $6)`,
-      [opts.tenantId, opts.scopeId, opts.role, opts.model ?? null, opts.inputTokens, opts.outputTokens],
+      [
+        opts.tenantId,
+        opts.scopeId,
+        opts.role,
+        opts.model ?? null,
+        opts.inputTokens,
+        opts.outputTokens,
+      ],
     );
   } catch {
     // Missing migrations or legacy mode — non-fatal

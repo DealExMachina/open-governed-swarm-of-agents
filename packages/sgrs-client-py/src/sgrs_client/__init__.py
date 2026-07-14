@@ -2,11 +2,42 @@
 
 from __future__ import annotations
 
+import json
+import logging
+import threading
+from collections.abc import Callable
 from typing import Any, MutableMapping
+from urllib.parse import quote
 
 import httpx
 
+logger = logging.getLogger(__name__)
+
 Json = MutableMapping[str, Any]
+
+
+def _decode_sse_append(buf: str, text: str) -> tuple[list[Any], str]:
+    """
+    Append decoded text to an SSE buffer. Returns (complete JSON payloads, remainder).
+
+    Matches TS client behaviour: blocks split on ``\\n\\n``, first ``data: `` line per block, ``json.loads``.
+    """
+    buf += text
+    parts = buf.split("\n\n")
+    buf = parts.pop() if parts else ""
+    out: list[Any] = []
+    for block in parts:
+        line = next(
+            (ln for ln in block.split("\n") if ln.startswith("data: ")),
+            None,
+        )
+        if not line:
+            continue
+        try:
+            out.append(json.loads(line[6:]))
+        except json.JSONDecodeError:
+            pass
+    return out, buf
 
 
 class SgrsClient:
@@ -97,6 +128,62 @@ class SgrsClient:
 
     def runtime_restart(self, scope_id: str) -> Json:
         return self._request("POST", "/v1/runtime/restart", json={"scope_id": scope_id})
+
+    def subscribe_events(
+        self,
+        scope_id: str,
+        on_message: Callable[[Any], None],
+    ) -> Callable[[], None]:
+        """
+        Subscribe to GET /v1/scopes/{scope_id}/events (SSE).
+
+        Parses blocks split by ``\\n\\n``, emits JSON from the first ``data:`` line (parity with TS client).
+
+        Returns a ``close`` callable that stops the background reader (same role as TS ``{ close }``).
+
+        Exceptions raised by ``on_message`` are logged and do not stop the reader thread.
+        """
+        path = f"/v1/scopes/{quote(scope_id, safe='')}/events"
+        stream_client = httpx.Client(
+            base_url=self._base,
+            headers={
+                "Authorization": f"Bearer {self._api_key}",
+                "Accept": "text/event-stream",
+            },
+            timeout=httpx.Timeout(connect=30.0, read=None, write=30.0, pool=30.0),
+        )
+        done = threading.Event()
+
+        def worker() -> None:
+            try:
+                with stream_client.stream("GET", path) as response:
+                    response.raise_for_status()
+                    buf = ""
+                    for chunk in response.iter_bytes():
+                        if done.is_set():
+                            break
+                        text = chunk.decode("utf-8", errors="replace")
+                        events, buf = _decode_sse_append(buf, text)
+                        for ev in events:
+                            try:
+                                on_message(ev)
+                            except Exception:
+                                logger.exception(
+                                    "subscribe_events on_message failed for scope_id=%r",
+                                    scope_id,
+                                )
+            except (httpx.HTTPError, httpx.RequestError):
+                pass
+            finally:
+                stream_client.close()
+
+        threading.Thread(target=worker, daemon=True, name="sgrs-kernel-sse").start()
+
+        def close() -> None:
+            done.set()
+            stream_client.close()
+
+        return close
 
 
 class AdminClient:

@@ -22,12 +22,20 @@ import {
 
 type S3Client = ReturnType<typeof import("./s3.js").makeS3>;
 
-async function readJsonBody(req: IncomingMessage): Promise<Record<string, unknown>> {
+async function readJsonBody(
+  req: IncomingMessage,
+): Promise<Record<string, unknown>> {
   return new Promise((resolve, reject) => {
     let body = "";
-    req.on("data", (chunk) => { body += chunk; });
+    req.on("data", (chunk) => {
+      body += chunk;
+    });
     req.on("end", () => {
-      try { resolve(JSON.parse(body)); } catch (e) { reject(e); }
+      try {
+        resolve(JSON.parse(body));
+      } catch (e) {
+        reject(e);
+      }
     });
     req.on("error", reject);
   });
@@ -69,8 +77,14 @@ export function startResolutionMcpServer(
       if (method === "POST" && url === "/is-resolved") {
         const body = await readJsonBody(req);
         const text = String(body.text ?? "");
-        if (!text.trim()) { send(res, 400, { error: "text required" }); return; }
-        const result = await isResolved(text, String(body.scope_id ?? "default"));
+        if (!text.trim()) {
+          send(res, 400, { error: "text required" });
+          return;
+        }
+        const result = await isResolved(
+          text,
+          String(body.scope_id ?? "default"),
+        );
         send(res, 200, result);
         return;
       }
@@ -78,7 +92,10 @@ export function startResolutionMcpServer(
       if (method === "POST" && url === "/mark-resolved") {
         const body = await readJsonBody(req);
         const nodeId = String(body.node_id ?? "");
-        if (!nodeId) { send(res, 400, { error: "node_id required" }); return; }
+        if (!nodeId) {
+          send(res, 400, { error: "node_id required" });
+          return;
+        }
         const result = await markResolved({
           scope_id: String(body.scope_id ?? "default"),
           node_id: nodeId,
@@ -93,9 +110,18 @@ export function startResolutionMcpServer(
 
       if (method === "POST" && url === "/mark-resolved-by-text") {
         const body = await readJsonBody(req);
-        const resolutionText = String(body.resolution_text ?? body.decision ?? body.text ?? "").trim();
-        if (!resolutionText) { send(res, 400, { error: "resolution_text, decision, or text required" }); return; }
-        const nodeIds = Array.isArray(body.node_ids) ? (body.node_ids as string[]) : undefined;
+        const resolutionText = String(
+          body.resolution_text ?? body.decision ?? body.text ?? "",
+        ).trim();
+        if (!resolutionText) {
+          send(res, 400, {
+            error: "resolution_text, decision, or text required",
+          });
+          return;
+        }
+        const nodeIds = Array.isArray(body.node_ids)
+          ? (body.node_ids as string[])
+          : undefined;
         const result = await markResolvedByText({
           scope_id: String(body.scope_id ?? "default"),
           resolution_text: resolutionText,
@@ -124,7 +150,9 @@ export function startResolutionMcpServer(
       try {
         const { execSync } = require("child_process");
         execSync(`lsof -ti :${port} | xargs kill -9 2>/dev/null || true`);
-      } catch { /* best effort */ }
+      } catch {
+        /* best effort */
+      }
       setTimeout(() => server.listen(port, host), 1000);
     }
   });

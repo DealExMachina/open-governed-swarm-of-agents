@@ -9,11 +9,24 @@
  */
 import type { S3Client } from "@aws-sdk/client-s3";
 import { getPool } from "./db.js";
-import { getEmbedding, embedAndPersistNode, cosineSimilarity } from "./embeddingPipeline.js";
-import { updateNodeStatus, appendEdge, loadUnresolvedContradictionDetails, type UnresolvedContradictionDetail } from "./semanticGraph.js";
+import {
+  getEmbedding,
+  embedAndPersistNode,
+  cosineSimilarity,
+} from "./embeddingPipeline.js";
+import {
+  updateNodeStatus,
+  appendEdge,
+  loadUnresolvedContradictionDetails,
+  type UnresolvedContradictionDetail,
+} from "./semanticGraph.js";
 import { s3PutJson, s3GetText } from "./s3.js";
 import { logger } from "./logger.js";
-import { getChatModelConfig, REASONING_SETTINGS, ResolutionEvalItemSchema } from "./modelConfig.js";
+import {
+  getChatModelConfig,
+  REASONING_SETTINGS,
+  ResolutionEvalItemSchema,
+} from "./modelConfig.js";
 import { z } from "zod";
 
 const SIMILARITY_THRESHOLD = 0.7;
@@ -62,7 +75,13 @@ export interface MarkResolvedByTextParams {
 export interface MarkResolvedByTextResult {
   ok: boolean;
   marked: string[];
-  evaluations: Array<{ node_id: string; resolved: boolean; confidence: number; reason: string; content?: string }>;
+  evaluations: Array<{
+    node_id: string;
+    resolved: boolean;
+    confidence: number;
+    reason: string;
+    content?: string;
+  }>;
   method: string;
 }
 
@@ -75,7 +94,9 @@ export interface ResolutionEvaluation {
 
 // ── Core functions ─────────────────────────────────────────────────────────
 
-export async function getResolutions(scopeId: string): Promise<ResolvedContradiction[]> {
+export async function getResolutions(
+  scopeId: string,
+): Promise<ResolvedContradiction[]> {
   const pool = getPool();
   const result = await pool.query(
     `SELECT node_id, content FROM nodes
@@ -90,7 +111,10 @@ export async function getResolutions(scopeId: string): Promise<ResolvedContradic
   }));
 }
 
-export async function isResolved(text: string, scopeId: string = "default"): Promise<IsResolvedResult> {
+export async function isResolved(
+  text: string,
+  scopeId: string = "default",
+): Promise<IsResolvedResult> {
   const embedding = await getEmbedding(text);
   if (embedding.length === 0) {
     return { resolved: false, reason: "embedding_unavailable" };
@@ -109,7 +133,11 @@ export async function isResolved(text: string, scopeId: string = "default"): Pro
   );
 
   if (result.rowCount && result.rows[0]) {
-    const row = result.rows[0] as { node_id: string; content: string; similarity: number };
+    const row = result.rows[0] as {
+      node_id: string;
+      content: string;
+      similarity: number;
+    };
     const similarity = Number(row.similarity);
     if (similarity >= SIMILARITY_THRESHOLD) {
       return {
@@ -138,7 +166,13 @@ async function markContradictionResolved(
     "SELECT content, metadata, source_ref FROM nodes WHERE node_id = $1",
     [nodeId],
   );
-  const row = nodeRes.rows[0] as { content?: string; metadata?: { claim_source_id?: string; claim_target_id?: string }; source_ref?: Record<string, unknown> } | undefined;
+  const row = nodeRes.rows[0] as
+    | {
+        content?: string;
+        metadata?: { claim_source_id?: string; claim_target_id?: string };
+        source_ref?: Record<string, unknown>;
+      }
+    | undefined;
   const content = row?.content ?? null;
   const metadata = (row?.metadata as Record<string, unknown> | undefined) ?? {};
   const claimSourceId = metadata.claim_source_id as string | undefined;
@@ -177,7 +211,9 @@ async function markContradictionResolved(
         metadata: { source: "resolution-service", judgment, reason },
         created_by: "resolution-service",
       });
-    } catch { /* optional topological edges */ }
+    } catch {
+      /* optional topological edges */
+    }
   }
 
   if (content) {
@@ -186,10 +222,20 @@ async function markContradictionResolved(
 
   if (s3 && content) {
     try {
-      let existing: Array<{ content: string; judgment: string; reason: string }> = [];
+      let existing: Array<{
+        content: string;
+        judgment: string;
+        reason: string;
+      }> = [];
       const raw = await s3GetText(s3, bucket, "resolutions/latest.json");
       if (raw) {
-        const parsed = JSON.parse(raw) as { resolved_contradictions?: Array<{ content: string; judgment: string; reason: string }> };
+        const parsed = JSON.parse(raw) as {
+          resolved_contradictions?: Array<{
+            content: string;
+            judgment: string;
+            reason: string;
+          }>;
+        };
         existing = parsed.resolved_contradictions ?? [];
       }
       if (!existing.some((r) => r.content === content)) {
@@ -199,13 +245,17 @@ async function markContradictionResolved(
         resolved_contradictions: existing,
         updated_at: new Date().toISOString(),
       });
-    } catch { /* S3 write is best-effort */ }
+    } catch {
+      /* S3 write is best-effort */
+    }
   }
 
   return content;
 }
 
-export async function markResolved(params: MarkResolvedParams): Promise<MarkResolvedResult> {
+export async function markResolved(
+  params: MarkResolvedParams,
+): Promise<MarkResolvedResult> {
   const scopeId = params.scope_id ?? "default";
   const judgment = params.judgment ?? "resolved";
   const reason = params.reason ?? "";
@@ -215,10 +265,18 @@ export async function markResolved(params: MarkResolvedParams): Promise<MarkReso
   }
 
   const content = await markContradictionResolved(
-    params.node_id, scopeId, judgment, reason,
-    params.s3Client ?? null, params.bucket ?? "swarm",
+    params.node_id,
+    scopeId,
+    judgment,
+    reason,
+    params.s3Client ?? null,
+    params.bucket ?? "swarm",
   );
-  logger.info("resolution-service: marked resolved", { node_id: params.node_id, judgment, reason: reason.slice(0, 80) });
+  logger.info("resolution-service: marked resolved", {
+    node_id: params.node_id,
+    judgment,
+    reason: reason.slice(0, 80),
+  });
   return { ok: true, node_id: params.node_id, embedded: !!content };
 }
 
@@ -227,18 +285,25 @@ export async function markResolved(params: MarkResolvedParams): Promise<MarkReso
  */
 export async function evaluateResolutionWithLLM(
   resolutionText: string,
-  contradictions: Array<{ node_id: string; content: string; side_a?: string | null; side_b?: string | null }>,
+  contradictions: Array<{
+    node_id: string;
+    content: string;
+    side_a?: string | null;
+    side_b?: string | null;
+  }>,
 ): Promise<ResolutionEvaluation[]> {
   const modelConfig = getChatModelConfig();
   if (!modelConfig) return [];
 
-  const contraList = contradictions.map((c, i) => {
-    const parts = [`[${i + 1}] id=${c.node_id}`];
-    parts.push(`Contradiction: ${c.content}`);
-    if (c.side_a) parts.push(`Side A: ${c.side_a}`);
-    if (c.side_b) parts.push(`Side B: ${c.side_b}`);
-    return parts.join("\n");
-  }).join("\n\n");
+  const contraList = contradictions
+    .map((c, i) => {
+      const parts = [`[${i + 1}] id=${c.node_id}`];
+      parts.push(`Contradiction: ${c.content}`);
+      if (c.side_a) parts.push(`Side A: ${c.side_a}`);
+      if (c.side_b) parts.push(`Side B: ${c.side_b}`);
+      return parts.join("\n");
+    })
+    .join("\n\n");
 
   const systemPrompt = `You are a contradiction resolution evaluator for an M&A due diligence system.
 A human reviewer has provided a resolution statement. This is typically a free-form paragraph written
@@ -288,24 +353,34 @@ Evaluate EACH contradiction independently against the full resolution text. Retu
           { role: "user", content: userPrompt },
         ],
         temperature: REASONING_SETTINGS.temperature,
-        max_tokens: REASONING_SETTINGS.maxTokens,
+        max_tokens: REASONING_SETTINGS.maxOutputTokens,
       }),
       signal: AbortSignal.timeout(45_000),
     });
     if (!resp.ok) {
-      logger.warn("resolution-service: LLM evaluation failed", { status: resp.status });
+      logger.warn("resolution-service: LLM evaluation failed", {
+        status: resp.status,
+      });
       return [];
     }
-    const data = await resp.json() as { choices?: Array<{ message?: { content?: string } }> };
+    const data = (await resp.json()) as {
+      choices?: Array<{ message?: { content?: string } }>;
+    };
     const raw = data.choices?.[0]?.message?.content ?? "";
     const jsonMatch = raw.match(/\[[\s\S]*\]/);
     if (!jsonMatch) {
-      logger.warn("resolution-service: LLM returned no JSON array", { raw: raw.slice(0, 200) });
+      logger.warn("resolution-service: LLM returned no JSON array", {
+        raw: raw.slice(0, 200),
+      });
       return [];
     }
-    const validated = z.array(ResolutionEvalItemSchema).safeParse(JSON.parse(jsonMatch[0]));
+    const validated = z
+      .array(ResolutionEvalItemSchema)
+      .safeParse(JSON.parse(jsonMatch[0]));
     if (!validated.success) {
-      logger.warn("resolution-service: LLM output failed schema validation", { error: validated.error.message });
+      logger.warn("resolution-service: LLM output failed schema validation", {
+        error: validated.error.message,
+      });
       return [];
     }
     return validated.data.map((item, i) => ({
@@ -315,7 +390,9 @@ Evaluate EACH contradiction independently against the full resolution text. Retu
       reason: item.reason ?? "",
     }));
   } catch (e) {
-    logger.warn("resolution-service: LLM evaluation error", { error: String(e) });
+    logger.warn("resolution-service: LLM evaluation error", {
+      error: String(e),
+    });
     return [];
   }
 }
@@ -325,7 +402,12 @@ Evaluate EACH contradiction independently against the full resolution text. Retu
  */
 export async function evaluateResolutionWithEmbeddings(
   resolutionText: string,
-  contradictions: Array<{ node_id: string; content: string; side_a?: string | null; side_b?: string | null }>,
+  contradictions: Array<{
+    node_id: string;
+    content: string;
+    side_a?: string | null;
+    side_b?: string | null;
+  }>,
 ): Promise<ResolutionEvaluation[]> {
   const resEmbedding = await getEmbedding(resolutionText);
   if (resEmbedding.length === 0) return [];
@@ -352,7 +434,9 @@ export async function evaluateResolutionWithEmbeddings(
   return results;
 }
 
-export async function markResolvedByText(params: MarkResolvedByTextParams): Promise<MarkResolvedByTextResult> {
+export async function markResolvedByText(
+  params: MarkResolvedByTextParams,
+): Promise<MarkResolvedByTextResult> {
   const scopeId = params.scope_id ?? "default";
   const resolutionText = params.resolution_text?.trim() ?? "";
   const explicitNodeIds = params.node_ids ?? [];
@@ -366,19 +450,27 @@ export async function markResolvedByText(params: MarkResolvedByTextParams): Prom
   let details: UnresolvedContradictionDetail[];
   if (explicitNodeIds.length > 0) {
     const pool = getPool();
-    const placeholders = explicitNodeIds.map((_: string, i: number) => `$${i + 2}`).join(",");
+    const placeholders = explicitNodeIds
+      .map((_: string, i: number) => `$${i + 2}`)
+      .join(",");
     const rows = await pool.query(
       `SELECT node_id, content, metadata FROM nodes
        WHERE scope_id = $1 AND node_id::text IN (${placeholders}) AND type = 'contradiction'
        AND superseded_at IS NULL LIMIT ${MARK_RESOLVED_BY_TEXT_MAX}`,
       [scopeId, ...explicitNodeIds],
     );
-    details = rows.rows.map((r: { node_id: string; content: string; metadata?: Record<string, unknown> }) => ({
-      node_id: r.node_id,
-      content: r.content,
-      side_a: "",
-      side_b: "",
-    }));
+    details = rows.rows.map(
+      (r: {
+        node_id: string;
+        content: string;
+        metadata?: Record<string, unknown>;
+      }) => ({
+        node_id: r.node_id,
+        content: r.content,
+        side_a: "",
+        side_b: "",
+      }),
+    );
   } else {
     details = await loadUnresolvedContradictionDetails(scopeId);
   }
@@ -392,19 +484,39 @@ export async function markResolvedByText(params: MarkResolvedByTextParams): Prom
   let evaluations = await evaluateResolutionWithLLM(resolutionText, toProcess);
   let method = "llm";
   if (evaluations.length === 0) {
-    evaluations = await evaluateResolutionWithEmbeddings(resolutionText, toProcess);
+    evaluations = await evaluateResolutionWithEmbeddings(
+      resolutionText,
+      toProcess,
+    );
     method = "embedding";
   }
 
   const marked: string[] = [];
   const contentMap = new Map(toProcess.map((d) => [d.node_id, d.content]));
-  const evalResults: Array<{ node_id: string; resolved: boolean; confidence: number; reason: string; content?: string }> = [];
+  const evalResults: Array<{
+    node_id: string;
+    resolved: boolean;
+    confidence: number;
+    reason: string;
+    content?: string;
+  }> = [];
 
   for (const ev of evaluations) {
     evalResults.push({ ...ev, content: contentMap.get(ev.node_id) });
-    if (ev.resolved && ev.confidence >= LLM_RESOLVE_CONFIDENCE_THRESHOLD && ev.node_id) {
+    if (
+      ev.resolved &&
+      ev.confidence >= LLM_RESOLVE_CONFIDENCE_THRESHOLD &&
+      ev.node_id
+    ) {
       const reason = `HITL resolution (${method}, confidence=${(ev.confidence * 100).toFixed(0)}%): ${ev.reason}`;
-      await markContradictionResolved(ev.node_id, scopeId, "resolved", reason, s3, bucket);
+      await markContradictionResolved(
+        ev.node_id,
+        scopeId,
+        "resolved",
+        reason,
+        s3,
+        bucket,
+      );
       marked.push(ev.node_id);
     }
   }
@@ -416,10 +528,17 @@ export async function markResolvedByText(params: MarkResolvedByTextParams): Prom
       resolution_preview: resolutionText.slice(0, 120),
     });
   } else {
-    logger.info("resolution-service: resolution did not address any contradiction above threshold", {
-      method,
-      evaluations: evalResults.map((e) => ({ node_id: e.node_id, confidence: e.confidence, resolved: e.resolved })),
-    });
+    logger.info(
+      "resolution-service: resolution did not address any contradiction above threshold",
+      {
+        method,
+        evaluations: evalResults.map((e) => ({
+          node_id: e.node_id,
+          confidence: e.confidence,
+          resolved: e.resolved,
+        })),
+      },
+    );
   }
 
   return { ok: true, marked, evaluations: evalResults, method };

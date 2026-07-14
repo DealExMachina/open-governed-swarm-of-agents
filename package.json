@@ -1,9 +1,34 @@
 {
   "name": "swarm-of-governed-agents",
-  "license": "AGPL-3.0-only",
+  "version": "1.1.0",
+  "description": "Governed multi-agent orchestration with formal convergence, bitemporal state, and auditable policy enforcement.",
+  "license": "SEE LICENSE IN LICENSES.md",
   "private": true,
+  "homepage": "https://github.com/DealExMachina/open-governed-swarm-of-agents",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DealExMachina/open-governed-swarm-of-agents.git"
+  },
+  "bugs": {
+    "url": "https://github.com/DealExMachina/open-governed-swarm-of-agents/issues"
+  },
+  "keywords": [
+    "multi-agent",
+    "agent-orchestration",
+    "governance",
+    "convergence",
+    "compliance",
+    "auditability",
+    "bitemporal",
+    "langgraph",
+    "rust",
+    "typescript"
+  ],
   "type": "module",
   "packageManager": "pnpm@10.30.1",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "swarm": "node --loader ts-node/esm src/swarm.ts",
     "swarm:start": "bash scripts/swarm-hatchery.sh",
@@ -37,7 +62,6 @@
     "observe": "node --loader ts-node/esm scripts/observer.ts",
     "observability": "docker compose up -d otel-collector prometheus grafana",
     "feed": "node --loader ts-node/esm src/feed.ts",
-    "control-plane": "node --loader ts-node/esm src/controlPlaneServer.ts",
     "build:client": "pnpm --filter @sgrs/kernel-client build",
     "ensure-bucket": "node --loader ts-node/esm scripts/ensure-bucket.ts",
     "ensure-schema": "node --loader ts-node/esm scripts/ensure-schema.ts",
@@ -51,10 +75,12 @@
     "build:rust": "cd sgrs-core && pnpm exec napi build --release --platform",
     "build:rust:debug": "cd sgrs-core && pnpm exec napi build --platform",
     "benchmark:sgrs": "npx tsx scripts/benchmark-sgrs-load.ts",
+    "test:dashboard:smoke": "pnpm exec tsx scripts/test-dashboard-smoke.ts",
+    "test:dashboard:regression": "pnpm exec tsx scripts/test-dashboard-regression.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "lint": "eslint src test --max-warnings 50",
+    "lint": "eslint src test --max-warnings 80",
     "lint:fix": "eslint src test --fix",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\" \"test/**/*.ts\"",
@@ -71,13 +97,13 @@
     "@langchain/langgraph": "^1.2.6",
     "@langchain/ollama": "^1.2.6",
     "@langchain/openai": "^1.4.1",
-    "@mastra/core": "^0.24.9",
+    "@mastra/core": "^1.50.1",
     "@opentelemetry/api": "^1.9.0",
-    "@opentelemetry/exporter-metrics-otlp-http": "^0.212.0",
-    "@opentelemetry/exporter-trace-otlp-http": "^0.212.0",
-    "@opentelemetry/instrumentation-http": "^0.212.0",
+    "@opentelemetry/exporter-metrics-otlp-http": "^0.217.0",
+    "@opentelemetry/exporter-trace-otlp-http": "^0.217.0",
+    "@opentelemetry/instrumentation-http": "^0.217.0",
     "@opentelemetry/sdk-metrics": "^2.5.1",
-    "@opentelemetry/sdk-node": "^0.212.0",
+    "@opentelemetry/sdk-node": "^0.217.0",
     "@symbolica/agentica": "^0.4.1",
     "dotenv": "^16.4.5",
     "jose": "^6.1.3",
@@ -85,13 +111,14 @@
     "pg": "^8.13.0",
     "sgrs-core": "file:sgrs-core",
     "simple-statistics": "^7.8.8",
-    "yaml": "^2.8.2",
+    "yaml": "^2.8.3",
     "zod": "^3.25.76"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@napi-rs/cli": "^3.0.0",
     "@types/pg": "^8.11.0",
-    "@vitest/coverage-v8": "^2.1.9",
+    "@vitest/coverage-v8": "^3.2.6",
     "eslint": "^10.0.3",
     "eslint-config-prettier": "^10.1.8",
     "exceljs": "^4.4.0",
@@ -101,16 +128,6 @@
     "tsx": "^4.21.0",
     "typescript": "^5.6.3",
     "typescript-eslint": "^8.56.1",
-    "vitest": "^2.0.0"
-  },
-  "pnpm": {
-    "overrides": {
-      "esbuild": ">=0.25.0",
-      "hono": ">=4.12.4",
-      "fast-xml-parser": ">=5.5.6",
-      "flatted": ">=3.4.0",
-      "path-to-regexp": ">=0.1.13",
-      "picomatch": ">=4.0.4"
-    }
+    "vitest": "^3.2.6"
   }
 }

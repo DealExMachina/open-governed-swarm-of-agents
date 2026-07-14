@@ -1,5 +1,6 @@
 use nalgebra::DMatrix;
 
+use super::dirichlet::dirichlet_energy_from_laplacian;
 use super::disagreement::compute_disagreement;
 use super::evidence_state::{EvidenceState, EvidenceVector};
 use super::projection::AdmissibleProjection;
@@ -14,6 +15,10 @@ pub struct PropagationStepResult {
     pub contraction_ratio: f64,
     pub perturbation_norm: f64,
     pub contraction_achieved: bool,
+    /// True sheaf Dirichlet energy f(x) = xᵀ L_F x before this step.
+    pub dirichlet_before: f64,
+    /// True sheaf Dirichlet energy f(x) = xᵀ L_F x after this step.
+    pub dirichlet_after: f64,
 }
 
 /// Result of a hybrid propagation step with elimination.
@@ -43,13 +48,16 @@ pub fn propagation_step(
 ) -> PropagationStepResult {
     let omega_before = compute_disagreement(state);
 
-    // Compute the Laplacian
+    // Compute the Laplacian — used for both diffusion and Dirichlet energy.
     let l_f = sheaf.laplacian();
     let n = l_f.nrows();
 
     // Flatten state to vector
     let x = state.to_flat();
     assert_eq!(x.len(), n, "State dimension must match Laplacian dimension");
+
+    // Dirichlet energy before step: reuse l_f already built above.
+    let dirichlet_before = dirichlet_energy_from_laplacian(&l_f, &x);
 
     // Compute (I - αL_F)x
     let identity = DMatrix::identity(n, n);
@@ -75,6 +83,7 @@ pub fn propagation_step(
     let new_state = projection.project(&perturbed);
 
     let omega_after = compute_disagreement(&new_state);
+    let dirichlet_after = dirichlet_energy_from_laplacian(&l_f, &new_state.to_flat());
 
     let contraction_ratio = if omega_before > 1e-15 {
         omega_after / omega_before
@@ -89,6 +98,8 @@ pub fn propagation_step(
         contraction_ratio,
         perturbation_norm,
         contraction_achieved: omega_after <= omega_before + 1e-12,
+        dirichlet_before,
+        dirichlet_after,
     }
 }
 
@@ -121,6 +132,8 @@ pub fn propagation_step_with_elimination(
     let n = l_f.nrows();
     let x = state.to_flat();
     assert_eq!(x.len(), n, "State dimension must match Laplacian dimension");
+
+    let dirichlet_before = dirichlet_energy_from_laplacian(&l_f, &x);
 
     let identity = DMatrix::identity(n, n);
     let diffusion_operator = &identity - alpha * &l_f;
@@ -158,6 +171,7 @@ pub fn propagation_step_with_elimination(
     let new_state = projection.project(&perturbed);
 
     let omega_after = compute_disagreement(&new_state);
+    let dirichlet_after = dirichlet_energy_from_laplacian(&l_f, &new_state.to_flat());
 
     let contraction_ratio = if omega_before > 1e-15 {
         omega_after / omega_before
@@ -173,6 +187,8 @@ pub fn propagation_step_with_elimination(
             contraction_ratio,
             perturbation_norm,
             contraction_achieved: omega_after <= omega_before + 1e-12,
+            dirichlet_before,
+            dirichlet_after,
         },
         disagreement_after_elimination: omega_after_elim,
         eliminations_applied,

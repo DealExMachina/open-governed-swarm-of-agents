@@ -19,7 +19,11 @@ export interface OnboardingPolicy {
   qualified_models: string[];
 }
 
-const DEFAULT_POLICY_PATH = join(process.cwd(), "model_evals", "onboarding-policy.json");
+const DEFAULT_POLICY_PATH = join(
+  process.cwd(),
+  "model_evals",
+  "onboarding-policy.json",
+);
 
 let policyCache: OnboardingPolicy | null | undefined;
 let warnedMissingPolicy = false;
@@ -35,16 +39,23 @@ function isOnboardingEnforced(): boolean {
 }
 
 function isFailClosedEnabled(): boolean {
-  const raw = (process.env.MODEL_ONBOARDING_FAIL_CLOSED ?? "").trim().toLowerCase();
+  const raw = (process.env.MODEL_ONBOARDING_FAIL_CLOSED ?? "")
+    .trim()
+    .toLowerCase();
   if (!raw) return true;
   return raw === "1" || raw === "true" || raw === "yes";
 }
 
 function policyPath(): string {
-  return process.env.MODEL_ONBOARDING_POLICY_PATH?.trim() || DEFAULT_POLICY_PATH;
+  return (
+    process.env.MODEL_ONBOARDING_POLICY_PATH?.trim() || DEFAULT_POLICY_PATH
+  );
 }
 
-function normalizeProviderModel(provider: ModelProvider, model: string): string {
+function normalizeProviderModel(
+  provider: ModelProvider,
+  model: string,
+): string {
   const clean = model.replace(/^openai\//, "").trim();
   return `${provider}/${clean}`;
 }
@@ -74,19 +85,28 @@ export function enforceModelOnboarding(
   const failClosed = isFailClosedEnabled();
   const requested = requestedModel.trim();
   if (!requested) {
-    return { model: fallbackModel, accepted: false, reason: "empty_requested_model" };
+    return {
+      model: fallbackModel,
+      accepted: false,
+      reason: "empty_requested_model",
+    };
   }
   if (!isOnboardingEnforced()) {
-    return { model: requested, accepted: true, reason: "onboarding_not_enforced" };
+    return {
+      model: requested,
+      accepted: true,
+      reason: "onboarding_not_enforced",
+    };
   }
   const policy = loadOnboardingPolicy();
   if (!policy) {
     if (failClosed) {
-      throw new Error("model onboarding policy missing while MODEL_ONBOARDING_ENFORCE is enabled");
+      throw new Error(
+        "model onboarding policy missing while MODEL_ONBOARDING_ENFORCE is enabled",
+      );
     }
     if (!warnedMissingPolicy) {
       warnedMissingPolicy = true;
-      // eslint-disable-next-line no-console
       console.warn("model onboarding policy missing; skipping enforcement");
     }
     return { model: requested, accepted: true, reason: "policy_missing" };
@@ -97,15 +117,22 @@ export function enforceModelOnboarding(
   }
   const fallbackKey = normalizeProviderModel(provider, fallbackModel);
   if (policy.qualified_models.includes(fallbackKey)) {
-    // eslint-disable-next-line no-console
-    console.warn(`model ${requestedKey} rejected by onboarding policy, falling back to ${fallbackKey}`);
+    console.warn(
+      `model ${requestedKey} rejected by onboarding policy, falling back to ${fallbackKey}`,
+    );
     return { model: fallbackModel, accepted: false, reason: "fallback_used" };
   }
   if (failClosed) {
-    throw new Error(`model ${requestedKey} rejected; fallback ${fallbackKey} not qualified`);
+    throw new Error(
+      `model ${requestedKey} rejected; fallback ${fallbackKey} not qualified`,
+    );
   }
-  // eslint-disable-next-line no-console
-  console.warn(`model ${requestedKey} rejected; fallback ${fallbackKey} not qualified, using requested model`);
-  return { model: requested, accepted: false, reason: "fallback_not_qualified" };
+  console.warn(
+    `model ${requestedKey} rejected; fallback ${fallbackKey} not qualified, using requested model`,
+  );
+  return {
+    model: requested,
+    accepted: false,
+    reason: "fallback_not_qualified",
+  };
 }
-

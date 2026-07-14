@@ -46,11 +46,13 @@ describe("db pool", () => {
     const seen = new Promise<void>((res) => {
       resolveSeen = res;
     });
-    const spy = vi.spyOn(console, "error").mockImplementation((first: unknown) => {
-      if (typeof first === "string" && first.includes("pool error")) {
-        resolveSeen();
-      }
-    });
+    const spy = vi
+      .spyOn(console, "error")
+      .mockImplementation((first: unknown) => {
+        if (typeof first === "string" && first.includes("pool error")) {
+          resolveSeen();
+        }
+      });
 
     try {
       const pool = getPool();

@@ -21,7 +21,8 @@ function getFactsWorkerUrl(): string {
 }
 const KEY_FACTS = "facts/latest.json";
 const KEY_DRIFT = "drift/latest.json";
-const KEY_FACTS_HIST = (ts: string) => `facts/history/${ts.replace(/[:.]/g, "-")}.json`;
+const KEY_FACTS_HIST = (ts: string) =>
+  `facts/history/${ts.replace(/[:.]/g, "-")}.json`;
 
 export type LastFactsResult = { wrote: string[]; facts_hash?: string } | null;
 
@@ -32,7 +33,8 @@ function createFactsTools(
 ) {
   const readContextTool = createTool({
     id: "readContext",
-    description: "Read the latest context events from the WAL and previous facts from storage.",
+    description:
+      "Read the latest context events from the WAL and previous facts from storage.",
     inputSchema: z.object({
       limit: z.number().optional().default(200),
     }),
@@ -40,19 +42,22 @@ function createFactsTools(
       context: z.array(z.record(z.unknown())),
       previous_facts: z.record(z.unknown()).nullable(),
     }),
-    execute: async ({ context }) => {
-      const limit = context.limit ?? 200;
+    execute: async (inputData) => {
+      const limit = inputData.limit ?? 200;
       const events = await tailEvents(limit);
       const contextData = events.map((e) => e.data);
       const prevRaw = await s3GetText(s3, bucket, KEY_FACTS);
-      const previous_facts = prevRaw ? (JSON.parse(prevRaw) as Record<string, unknown>) : null;
+      const previous_facts = prevRaw
+        ? (JSON.parse(prevRaw) as Record<string, unknown>)
+        : null;
       return { context: contextData, previous_facts };
     },
   });
 
   const extractFactsTool = createTool({
     id: "extractFacts",
-    description: "Call the facts-worker to extract structured facts and drift from context and previous facts.",
+    description:
+      "Call the facts-worker to extract structured facts and drift from context and previous facts.",
     inputSchema: z.object({
       context: z.array(z.record(z.unknown())),
       previous_facts: z.record(z.unknown()).nullable(),
@@ -61,32 +66,44 @@ function createFactsTools(
       facts: z.record(z.unknown()),
       drift: z.record(z.unknown()),
     }),
-    execute: async ({ context }) => {
+    execute: async (inputData) => {
       // Read resolved contradictions from S3 so facts-worker avoids re-extracting them
       let resolvedContradictions: string[] = [];
       try {
         const resRaw = await s3GetText(s3, bucket, "resolutions/latest.json");
         if (resRaw) {
-          const parsed = JSON.parse(resRaw) as { resolved_contradictions?: Array<{ content: string }> };
-          resolvedContradictions = (parsed.resolved_contradictions ?? []).map((r) => r.content);
+          const parsed = JSON.parse(resRaw) as {
+            resolved_contradictions?: Array<{ content: string }>;
+          };
+          resolvedContradictions = (parsed.resolved_contradictions ?? []).map(
+            (r) => r.content,
+          );
         }
-      } catch { /* no resolutions yet */ }
+      } catch {
+        /* no resolutions yet */
+      }
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), FACTS_WORKER_TIMEOUT_MS);
+      const timeoutId = setTimeout(
+        () => controller.abort(),
+        FACTS_WORKER_TIMEOUT_MS,
+      );
       try {
         const resp = await fetch(`${getFactsWorkerUrl()}/extract`, {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
-            context: context.context,
-            previous_facts: context.previous_facts,
+            context: inputData.context,
+            previous_facts: inputData.previous_facts,
             resolved_contradictions: resolvedContradictions,
           }),
           signal: controller.signal,
         });
         if (!resp.ok) throw new Error(await resp.text());
-        return (await resp.json()) as { facts: Record<string, unknown>; drift: Record<string, unknown> };
+        return (await resp.json()) as {
+          facts: Record<string, unknown>;
+          drift: Record<string, unknown>;
+        };
       } finally {
         clearTimeout(timeoutId);
       }
@@ -95,7 +112,8 @@ function createFactsTools(
 
   const writeFactsTool = createTool({
     id: "writeFacts",
-    description: "Write extracted facts and drift to storage (S3) and sync facts to the semantic graph.",
+    description:
+      "Write extracted facts and drift to storage (S3) and sync facts to the semantic graph.",
     inputSchema: z.object({
       facts: z.record(z.unknown()),
       drift: z.record(z.unknown()),
@@ -104,59 +122,85 @@ function createFactsTools(
       wrote: z.array(z.string()),
       facts_hash: z.string().optional(),
     }),
-    execute: async ({ context }) => {
+    execute: async (inputData) => {
       const ts = new Date().toISOString();
-      await s3PutJson(s3, bucket, KEY_FACTS, context.facts);
-      await s3PutJson(s3, bucket, KEY_DRIFT, context.drift);
-      await s3PutJson(s3, bucket, KEY_FACTS_HIST(ts), context.facts);
+      await s3PutJson(s3, bucket, KEY_FACTS, inputData.facts);
+      await s3PutJson(s3, bucket, KEY_DRIFT, inputData.drift);
+      await s3PutJson(s3, bucket, KEY_FACTS_HIST(ts), inputData.facts);
       const wrote = [KEY_FACTS, KEY_DRIFT, KEY_FACTS_HIST(ts)];
-      const facts_hash = (context.facts as { hash?: string })?.hash;
+      const facts_hash = (inputData.facts as { hash?: string })?.hash;
       lastWriteResult.current = { wrote, facts_hash };
 
       const scopeId = process.env.SCOPE_ID ?? "default";
       // Hoist factsPayload so it's accessible to both semantic graph sync and sgrsSync blocks
-      const factsPayload = JSON.parse(JSON.stringify(context.facts ?? {})) as Record<string, unknown>;
-      let syncResult: { nodesCreated: number; edgesCreated: number; nodesUpdated: number; nodesStaled: number } | null = null;
+      const factsPayload = JSON.parse(
+        JSON.stringify(inputData.facts ?? {}),
+      ) as Record<string, unknown>;
+      const recentEvents = await tailEvents(20);
+      const lastDoc = [...recentEvents]
+        .reverse()
+        .find(
+          (e) => (e.data as Record<string, unknown>)?.type === "context_doc",
+        );
+      const lastDocData = lastDoc?.data as Record<string, unknown> | undefined;
+      const docTitle = String(
+        (lastDocData?.payload as Record<string, unknown>)?.title ??
+          lastDocData?.title ??
+          "document",
+      );
+      let syncResult: {
+        nodesCreated: number;
+        edgesCreated: number;
+        nodesUpdated: number;
+        nodesStaled: number;
+      } | null = null;
       try {
-        const { syncFactsToSemanticGraph } = await import("../factsToSemanticGraph.js");
+        const { syncFactsToSemanticGraph } =
+          await import("../factsToSemanticGraph.js");
         syncResult = await syncFactsToSemanticGraph(scopeId, factsPayload, {
           embedClaims: process.env.FACTS_SYNC_EMBED === "1",
+          docTitle,
         });
       } catch (e) {
-        logger.warn("writeFacts: semantic graph sync failed", { scopeId, error: toErrorString(e) });
+        logger.warn("writeFacts: semantic graph sync failed", {
+          scopeId,
+          error: toErrorString(e),
+        });
       }
 
       // Wire into causal DAG: every facts extraction is a claim contribution
-      await emitContribution("facts-agent", "claim", {
-        facts_hash: facts_hash ?? null,
-        nodes_created: syncResult?.nodesCreated ?? 0,
-        edges_created: syncResult?.edgesCreated ?? 0,
-        nodes_updated: syncResult?.nodesUpdated ?? 0,
-        contradictions_extracted: Array.isArray((context.facts as Record<string, unknown>)?.contradictions)
-          ? ((context.facts as Record<string, unknown>).contradictions as unknown[]).length
-          : 0,
-      }, { scopeId });
+      await emitContribution(
+        "facts-agent",
+        "claim",
+        {
+          facts_hash: facts_hash ?? null,
+          nodes_created: syncResult?.nodesCreated ?? 0,
+          edges_created: syncResult?.edgesCreated ?? 0,
+          nodes_updated: syncResult?.nodesUpdated ?? 0,
+          contradictions_extracted: Array.isArray(
+            (inputData.facts as Record<string, unknown>)?.contradictions,
+          )
+            ? (
+                (inputData.facts as Record<string, unknown>)
+                  .contradictions as unknown[]
+              ).length
+            : 0,
+        },
+        { scopeId },
+      );
 
       // ── Sync governed facts to Studio read model ────────────────────────────
       // Runs after semantic graph sync so the swarm's own state is always primary.
       // Fire-and-forget: Studio unavailability must never block governance.
       try {
         const { syncFactsToSgrs } = await import("../sgrsSync.js");
-        // Recover doc title from the most recent context_doc WAL event
-        const recentEvents = await tailEvents(20);
-        const lastDoc = [...recentEvents].reverse()
-          .find(e => (e.data as Record<string, unknown>)?.type === "context_doc");
-        const lastDocData = lastDoc?.data as Record<string, unknown> | undefined;
-        // WAL structure: { type, payload: { title, ... } }
-        const docTitle = String(
-          (lastDocData?.payload as Record<string, unknown>)?.title
-          ?? lastDocData?.title
-          ?? "document"
-        );
         const r = await syncFactsToSgrs(docTitle, factsPayload ?? {}, 0);
         logger.info("sgrs sync", {
-          scopeId, doc: docTitle,
-          claims: r.claims_synced, contradictions: r.contradictions_synced, risks: r.risks_synced,
+          scopeId,
+          doc: docTitle,
+          claims: r.claims_synced,
+          contradictions: r.contradictions_synced,
+          risks: r.risks_synced,
         });
       } catch (e) {
         logger.warn("sgrs sync skipped", { scopeId, error: toErrorString(e) });
@@ -169,7 +213,11 @@ function createFactsTools(
   return { readContextTool, extractFactsTool, writeFactsTool };
 }
 
-import { getChatModelConfig, DETERMINISTIC_SETTINGS, type ChatModelConfig } from "../modelConfig.js";
+import {
+  getChatModelConfig,
+  DETERMINISTIC_SETTINGS,
+  type ChatModelConfig,
+} from "../modelConfig.js";
 import { composeInstructions } from "../skills/loader.js";
 import { trackAgentTokens } from "../skills/tokenTracker.js";
 
@@ -188,17 +236,21 @@ export function createFactsMastraAgent(
   model?: string | { id: `${string}/${string}`; url?: string; apiKey?: string },
 ): { agent: Agent; getLastResult: () => LastFactsResult } {
   const lastWriteResult: { current: LastFactsResult } = { current: null };
-  const { readContextTool, extractFactsTool, writeFactsTool } = createFactsTools(s3, bucket, lastWriteResult);
+  const { readContextTool, extractFactsTool, writeFactsTool } =
+    createFactsTools(s3, bucket, lastWriteResult);
   const modelConfig = model ?? getFactsModelConfig();
 
   const agent = new Agent({
     id: "facts-agent",
     name: "Facts Agent",
-    instructions: composeInstructions(`You are a facts extraction agent. Your task is to extract structured facts from the current context and persist them.
+    instructions: composeInstructions(
+      `You are a facts extraction agent. Your task is to extract structured facts from the current context and persist them.
 1. Use readContext to get the latest context events and previous facts from storage.
 2. Use extractFacts with that context and previous_facts to get new facts and drift from the worker.
 3. Use writeFacts with the returned facts and drift to persist them.
-Always perform these steps in order: readContext, then extractFacts, then writeFacts.`, "facts"),
+Always perform these steps in order: readContext, then extractFacts, then writeFacts.`,
+      "facts",
+    ),
     model: modelConfig,
     tools: {
       readContext: readContextTool,
@@ -219,12 +271,16 @@ export async function runFactsPipelineDirect(
   bucket: string,
 ): Promise<Record<string, unknown>> {
   const lastWriteResult: { current: LastFactsResult } = { current: null };
-  const { readContextTool, extractFactsTool, writeFactsTool } = createFactsTools(s3, bucket, lastWriteResult);
+  const { readContextTool, extractFactsTool, writeFactsTool } =
+    createFactsTools(s3, bucket, lastWriteResult);
   const opts = {};
-  type ExecTool = { execute?: (ctx: { context: unknown }, o: unknown) => Promise<unknown> };
-  const exec = async (tool: ExecTool, ctx: unknown) => {
+  type ExecTool = {
+    execute?: (inputData: unknown, context: unknown) => Promise<unknown>;
+  };
+  const exec = async (tool: ExecTool, inputData: unknown) => {
     if (!tool.execute) throw new Error("tool has no execute");
-    return tool.execute({ context: ctx }, opts);
+    // Mastra 1.x tool signature: execute(inputData, context).
+    return tool.execute(inputData, opts);
   };
   const r1 = await exec(readContextTool as unknown as ExecTool, { limit: 200 });
   const r2 = await exec(extractFactsTool as unknown as ExecTool, r1);
@@ -232,7 +288,8 @@ export async function runFactsPipelineDirect(
   const last = lastWriteResult.current;
   return {
     wrote: Array.isArray(last?.wrote) ? [...last.wrote] : [],
-    facts_hash: typeof last?.facts_hash === "string" ? last.facts_hash : undefined,
+    facts_hash:
+      typeof last?.facts_hash === "string" ? last.facts_hash : undefined,
   };
 }
 
@@ -268,7 +325,10 @@ export async function runFactsAgent(
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       if (/timeout|ECONNREFUSED|API|fetch failed/i.test(msg)) {
-        logger.warn("Mastra/OpenAI unreachable, falling back to direct pipeline", { error: msg });
+        logger.warn(
+          "Mastra/OpenAI unreachable, falling back to direct pipeline",
+          { error: msg },
+        );
       } else {
         throw err;
       }

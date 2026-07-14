@@ -91,9 +91,7 @@ export function evaluateC2(
   const found: string[] = [];
   for (const falseClaim of injectedFalseClaims) {
     const match = facts.find(
-      (f) =>
-        f.content === falseClaim ||
-        f.content.includes(falseClaim),
+      (f) => f.content === falseClaim || f.content.includes(falseClaim),
     );
     if (match) found.push(falseClaim);
   }

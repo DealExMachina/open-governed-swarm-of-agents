@@ -24,7 +24,9 @@ export function isContributionKind(s: string): s is ContributionKind {
 }
 
 function isGovernanceMode(mode: string): mode is GovernanceMode {
-  return mode === "SYSTEM" || mode === "YOLO" || mode === "MITL" || mode === "MASTER";
+  return (
+    mode === "SYSTEM" || mode === "YOLO" || mode === "MITL" || mode === "MASTER"
+  );
 }
 
 function toAuthorityTier(input: unknown): AuthorityTier {
@@ -82,7 +84,9 @@ export async function createContribution(
   const payloadStr = JSON.stringify(input.payload);
   const hashResult = computeContentHash(input.parents, payloadStr, input.kind);
   if (!hashResult.valid) {
-    throw new Error(`Invalid contribution: ${hashResult.error ?? "content hash failed"}`);
+    throw new Error(
+      `Invalid contribution: ${hashResult.error ?? "content hash failed"}`,
+    );
   }
   const rid = hashResult.hash;
 
@@ -98,7 +102,9 @@ export async function createContribution(
     );
     if (!validation.valid) {
       if (validation.missing_parents.length) {
-        throw new Error(`Missing parents: ${validation.missing_parents.join(", ")}`);
+        throw new Error(
+          `Missing parents: ${validation.missing_parents.join(", ")}`,
+        );
       }
       throw new Error(validation.error ?? "Validation failed");
     }
@@ -132,7 +138,11 @@ export async function createContribution(
   return rid;
 }
 
-async function getKnownRids(pool: pg.Pool, scopeId: string, parents: string[]): Promise<string[]> {
+async function getKnownRids(
+  pool: pg.Pool,
+  scopeId: string,
+  parents: string[],
+): Promise<string[]> {
   if (parents.length === 0) return [];
   const res = await pool.query<{ rid: string }>(
     "SELECT rid FROM causal_contributions WHERE scope_id = $1 AND rid = ANY($2)",
@@ -171,7 +181,10 @@ export async function getContribution(
   return rowToContribution(res.rows[0] as Record<string, unknown>);
 }
 
-export async function getChildren(rid: string, pool?: pg.Pool): Promise<CausalContribution[]> {
+export async function getChildren(
+  rid: string,
+  pool?: pg.Pool,
+): Promise<CausalContribution[]> {
   const p = pool ?? getPool();
   const res = await p.query(
     `SELECT rid, scope_id, parents, payload, kind, role_id, authority_tier, governance_mode, valid_from, valid_to, transaction_time, created_at
@@ -184,7 +197,10 @@ export async function getChildren(rid: string, pool?: pg.Pool): Promise<CausalCo
 /**
  * Causal cone: the contribution and all its ancestors, topologically ordered (roots first).
  */
-export async function getCausalCone(rid: string, pool?: pg.Pool): Promise<CausalContribution[]> {
+export async function getCausalCone(
+  rid: string,
+  pool?: pg.Pool,
+): Promise<CausalContribution[]> {
   const p = pool ?? getPool();
   const seen = new Set<string>();
   const out: CausalContribution[] = [];
@@ -220,7 +236,10 @@ export async function getCausalCone(rid: string, pool?: pg.Pool): Promise<Causal
 /**
  * Frontier: tips with no children (maximal elements in the DAG for this scope).
  */
-export async function getFrontier(scopeId: string, pool?: pg.Pool): Promise<string[]> {
+export async function getFrontier(
+  scopeId: string,
+  pool?: pg.Pool,
+): Promise<string[]> {
   const p = pool ?? getPool();
   const res = await p.query(
     `SELECT c.rid FROM causal_contributions c

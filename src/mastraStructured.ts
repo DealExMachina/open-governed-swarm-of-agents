@@ -6,7 +6,15 @@ import type { z } from "zod";
  */
 export type MastraStructuredResult = {
   object?: unknown;
-  usage?: { promptTokens?: number; completionTokens?: number; totalTokens?: number };
+  usage?: {
+    // AI SDK v5 (Mastra 1.x) usage field names.
+    inputTokens?: number;
+    outputTokens?: number;
+    // AI SDK v4 (Mastra 0.x) usage field names — kept for backward compatibility.
+    promptTokens?: number;
+    completionTokens?: number;
+    totalTokens?: number;
+  };
 };
 
 /**
