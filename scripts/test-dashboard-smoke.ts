@@ -118,6 +118,31 @@ async function run(): Promise<void> {
     );
   }
 
+  // DASH-SMOKE-008
+  try {
+    const catalog = (await checkJson(`${FEED_URL}/studio/scopes`)) as {
+      scopes?: Array<{ id?: string; name?: string }>;
+    };
+    const scopes = catalog.scopes ?? [];
+    const ids = new Set(scopes.map((s) => s.id).filter(Boolean));
+    const required = ["deal-horizon", "green-bond-2026", "default"];
+    const missing = required.filter((id) => !ids.has(id));
+    const ok = scopes.length >= 4 && missing.length === 0;
+    record(
+      "DASH-SMOKE-008",
+      "Studio scope catalog API",
+      ok,
+      `count=${scopes.length}, missing=${missing.join(",") || "none"}`,
+    );
+  } catch (error) {
+    record(
+      "DASH-SMOKE-008",
+      "Studio scope catalog API",
+      false,
+      String(error),
+    );
+  }
+
   // DASH-SMOKE-006
   try {
     const situation = (await checkJson(`${DEMO_URL}/api/situation`)) as {

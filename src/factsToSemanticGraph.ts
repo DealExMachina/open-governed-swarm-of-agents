@@ -81,6 +81,11 @@ function parseNliContradiction(s: string): [string, string] | null {
   );
   if (butWhile) return [butWhile[1].trim(), butWhile[2].trim()];
 
+  const revised = /(.+?)\s+(?:was|were)\s+(?:revised|restated|corrected)\s+(?:to|at)\s+(.+)/i.exec(
+    trimmed,
+  );
+  if (revised) return [revised[1].trim(), revised[2].trim()];
+
   return null;
 }
 
@@ -241,7 +246,7 @@ function matchExistingNode(
 export async function syncFactsToSemanticGraph(
   scopeId: string,
   facts: FactsPayload,
-  opts?: { embedClaims?: boolean },
+  opts?: { embedClaims?: boolean; docTitle?: string },
 ): Promise<{
   nodesCreated: number;
   edgesCreated: number;
@@ -588,6 +593,41 @@ export async function syncFactsToSemanticGraph(
     // and should only be resolved via the resolution flow (HITL, resolver agent, or MCP).
     // Staling contradictions caused them to disappear before the user could address them.
   });
+
+  if (opts?.docTitle && claimContentToNodeId.size > 0) {
+    const docTitle = opts.docTitle.trim();
+    await runInTransaction(async (client) => {
+      const claimIds = [...new Set(claimContentToNodeId.values())];
+      const docNodeId = await appendNode(
+        {
+          scope_id: scopeId,
+          type: "doc",
+          content: docTitle,
+          status: "active",
+          source_ref: { source: "context_doc" },
+          created_by: FACTS_SYNC_SOURCE,
+          metadata: { claim_ids: claimIds },
+        },
+        client,
+      );
+      nodesCreated++;
+      for (const claimId of claimIds) {
+        await appendEdge(
+          {
+            scope_id: scopeId,
+            source_id: docNodeId,
+            target_id: claimId,
+            edge_type: "refers",
+            weight: 1,
+            metadata: { doc: docTitle },
+            created_by: FACTS_SYNC_SOURCE,
+          },
+          client,
+        );
+        edgesCreated++;
+      }
+    });
+  }
 
   if (opts?.embedClaims && nodesCreated > 0) {
     const { embedAndPersistNode } = await import("./embeddingPipeline.js");
