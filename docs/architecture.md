@@ -308,6 +308,24 @@ The convergence tracker implements five mechanisms from the distributed
 consensus literature to detect whether the system is making progress toward
 finality. For the full formal treatment, see [docs/convergence.md](convergence.md).
 
+Finality is lattice-geometric and spans two orthogonal layers. RESOLVED requires
+both to certify at once — the dual-condition (∧) gate:
+
+```
+RESOLVED  ⟺  [ f(x) < ε_prop ]  ∧  F*(t)
+```
+
+- **Semantic layer** — vector finality `F*(t)`: every required dimension
+  independently meets its threshold (non-compensable), on the convergence-rank
+  lattice `M = L × A`. The scalar `V(t)` below is a **diagnostic** certificate
+  (rate, ETA, plateau, pressure), not the admissibility test.
+- **Propagation layer** — the sheaf Dirichlet energy `f(x) = xᵀL_F x` must fall
+  below `ε_prop`, i.e. the evidence state reaches a global section `H⁰(G;F)` (all
+  connected roles agree on shared observations). `f(x)` is the true Lyapunov
+  function for the diffusion `x_{t+1} = Π_A[(I − αL_F)x_t + ε_t]`; the variance
+  proxy `Ω` is retained only as a topology-health signal. See
+  [docs/convergence.md §7–8](convergence.md#7-propagation-layer-sheaf-dirichlet-energy-and-global-sections).
+
 ### Lyapunov disagreement function V(t)
 
 Defined as a weighted quadratic distance to finality targets:

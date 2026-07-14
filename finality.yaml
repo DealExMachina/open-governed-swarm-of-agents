@@ -46,6 +46,15 @@ per_dimension_finality:
     goal_completion: 0.02
     risk_score_inverse: 0.03
 
+# Dual-condition (∧-gate) finality. When enabled, RESOLVED additionally requires
+# the propagation layer to have practically converged: the sheaf Dirichlet energy
+# f(x) = xᵀL_F x (reachable disagreement on shared sheaf edges) must fall below
+# epsilon_prop. RESOLVED ⟺ [f(x) < epsilon_prop] ∧ F*(t). Backward-compatible:
+# falls back to true when no propagation history exists.
+dirichlet_gate:
+  enabled: true
+  epsilon_prop: 0.01
+
 # Gate D: quiescence. Set idle_cycles_min > 0 and/or window_ms > 0 to require stability before RESOLVED.
 quiescence:
   idle_cycles_min: 0         # 0 = not required

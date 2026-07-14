@@ -259,6 +259,8 @@ export async function runPropagationAgent(
     practical_bound: issAnalysis.steady_state_disagreement,
     small_gain_satisfied: issAnalysis.small_gain_satisfied,
     kappa: issAnalysis.contradiction_rate,
+    dirichlet_before: stepResult.dirichlet_before,
+    dirichlet_after: stepResult.dirichlet_after,
   };
   await savePropagationHistory(scopeId, epoch, propagationMetrics);
 

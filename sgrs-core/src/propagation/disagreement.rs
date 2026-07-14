@@ -1,12 +1,18 @@
 use super::evidence_state::EvidenceState;
 
-/// Compute disagreement Ω(x) = Σᵢ ‖xᵢ - x̄‖² for an evidence state.
+/// Compute the variance proxy Ω(x) = Σᵢ ‖xᵢ - x̄‖² for an evidence state.
 ///
-/// This is the standard sum-of-squared-distances-from-mean, applied to the
-/// full 2D-dimensional evidence vectors (support + refutation channels).
+/// This is the sum-of-squared-distances-from-mean, applied to the full
+/// 2D-dimensional evidence vectors (support + refutation channels). It is a
+/// cheap, topology-agnostic health signal — NOT the Lyapunov function for the
+/// diffusion dynamics.
 ///
-/// Ω(x) = 0 iff all roles agree (consensus).
-/// The sheaf diffusion operator contracts Ω at rate ρ² = (1 - αλ₁)².
+/// Relationship to the true sheaf Dirichlet energy f(x) = xᵀL_F x (see
+/// [`super::dirichlet`]): Ω(x) = f(x)/N holds ONLY on the constant complete
+/// sheaf. On projection sheaves (role-specific observation maps), Ω and f(x)
+/// are generally not proportional, and Ω may plateau above zero even when the
+/// reachable disagreement f(x) → 0. Gate finality on f(x), not Ω; retain Ω as a
+/// topology health signal.
 pub fn compute_disagreement(state: &EvidenceState) -> f64 {
     if state.num_roles == 0 {
         return 0.0;

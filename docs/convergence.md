@@ -1,20 +1,39 @@
 # Convergence Theory and Configuration
 
-> Formal convergence tracking for finality gradient descent in governed agent swarms.
+> Lattice-geometric finality for governed agent swarms: two convergence layers, one admissibility order.
 
-Back to [README.md](../README.md). This page documents convergence mechanisms and configuration used by the open snapshot.
+Back to [README.md](../README.md). This page documents the convergence mechanisms and configuration used by the open snapshot.
 
 ---
 
 ## Table of contents
 
+0. [Two-layer convergence model](#0-two-layer-convergence-model)
 1. [Problem statement](#1-problem-statement)
-2. [Five mechanisms](#2-five-mechanisms)
+2. [Semantic-layer diagnostics](#2-semantic-layer-diagnostics)
 3. [Integration with finality evaluator](#3-integration-with-finality-evaluator)
 4. [Configuration reference](#4-configuration-reference)
 5. [Monotonic graph upserts](#5-monotonic-graph-upserts)
 6. [Benchmark scenarios](#6-benchmark-scenarios)
-7. [References](#7-references)
+7. [Propagation layer: sheaf Dirichlet energy and global sections](#7-propagation-layer-sheaf-dirichlet-energy-and-global-sections)
+8. [Dual-condition finality (the ∧-gate)](#8-dual-condition-finality-the-gate)
+9. [References](#9-references)
+
+---
+
+## 0. Two-layer convergence model
+
+Finality in this system is a statement about a **lattice**, not a scalar threshold. Two orthogonal layers must each reach the bottom of their respective order before a scope is RESOLVED:
+
+| | Semantic layer | Propagation layer |
+|---|---|---|
+| State | dimension score vector `μ(t) ∈ [0,1]⁴` | evidence state `x ∈ ℝ^{2D·N}` (support/refutation per role per dimension) |
+| Order | convergence-rank lattice `M = L × A` (meet/join on the dimension vector) | bilattice stalks over the role graph, coupled by a cellular sheaf |
+| Admissibility test | vector finality `F*(t)`: the finality gap vector `(τ − μ)⁺` is zero on every required dimension (non-compensable) | global section: the sheaf Dirichlet energy `f(x) = xᵀL_F x = ‖δx‖²` is below `ε_prop` |
+| "Done" means | every governance dimension independently meets its threshold | all connected roles agree on their shared observations |
+| Lyapunov certificate | `V(t) = Σ w_d (τ_d − μ_d)²` — a **diagnostic** scalar, not the admissibility test | `f(x)` — the **true** Lyapunov function for the diffusion dynamics, contracts at rate `(1 − αλ₂)²` |
+
+The two are independent. `V(t)` and its derived signals (rate, ETA, plateau, pressure) are monitoring instruments that describe *how* the semantic layer is moving; admissibility itself is the vector predicate `F*`. Replacing `F*` with "minimise `V`" would re-expose the compensation attack, where a strong dimension hides a weak one behind a favourable weighted average. See [section 2](#2-semantic-layer-diagnostics) for the diagnostics, [section 7](#7-propagation-layer-sheaf-dirichlet-energy-and-global-sections) for the propagation layer, and [section 8](#8-dual-condition-finality-the-gate) for how the two combine into RESOLVED.
 
 ---
 
@@ -34,7 +53,9 @@ The convergence tracker (`src/convergenceTracker.ts`) transforms finality from a
 
 ---
 
-## 2. Five mechanisms
+## 2. Semantic-layer diagnostics
+
+> These five mechanisms are **diagnostics** on the semantic layer. They decide routing (RESOLVED vs HITL vs ESCALATED) and explainability, but admissibility for RESOLVED is the vector finality predicate `F*` (see [section 8](#8-dual-condition-finality-the-gate)), not the scalar `V(t)`. `V(t)` is retained because a scalar Lyapunov certificate with a convergence rate and ETA is operationally useful — it tells operators whether the semantic layer is converging, stalled, or diverging.
 
 ```mermaid
 flowchart LR
@@ -400,7 +421,71 @@ Each scenario validates a specific failure mode or edge case. Scenarios 1–7 co
 
 ---
 
-## 7. References
+## 7. Propagation layer: sheaf Dirichlet energy and global sections
+
+The semantic layer answers "do the aggregate scores meet their targets?" The propagation layer answers a different, orthogonal question: "do the roles actually agree?" Ten reasoning roles each hold an evidence vector (support and refutation per dimension). They are coupled on a **cellular sheaf** over the role graph, and at each cycle the propagation agent runs one diffusion step
+
+```
+x_{t+1} = Π_A[(I − αL_F) x_t + ε_t]
+```
+
+where `L_F = δᵀδ` is the sheaf Laplacian, `δ` is the coboundary built from per-edge restriction maps (which encode *which dimensions each role observes*), and `Π_A` projects back onto the admissible box.
+
+### 7.1 The right convergence quantity
+
+The exact Lyapunov function for this dynamics is the **sheaf Dirichlet energy**
+
+```
+f(x) = xᵀ L_F x = ‖δx‖² = Σ_edges ‖δ_e x‖²
+```
+
+It contracts at rate `(1 − αλ₂)²` per step, governed by `λ₂(L_F)`, the spectral gap. Its zero set is precisely the **global sections** of the sheaf:
+
+```
+{ x : f(x) = 0 } = ker(δ) = H⁰(G; F)
+```
+
+that is, the states where all connected roles agree on their shared observed subspace. This is the propagation-layer analogue of the semantic-layer finality gap vector returning zero.
+
+### 7.2 Why not the variance proxy Ω
+
+Earlier revisions monitored the variance proxy `Ω(x) = Σᵢ ‖xᵢ − x̄‖²` (distance from the mean). That is only correct on the constant complete sheaf, where `f(x) = N · Ω(x)`. On a **projection sheaf** — the production default, where roles observe different dimensions — `Ω` and `f(x)` are not proportional. `Ω` counts disagreement on dimensions a role never observes and therefore can plateau above zero even when all *reachable* disagreement has vanished. Concretely, with two roles observing disjoint dimensions, `f(x) → 0` (they have nothing to disagree about) while `Ω` stays strictly positive. Gating finality on `Ω` in that regime makes RESOLVED either unreachable or spurious.
+
+The engine therefore computes `f(x)` directly from the Laplacian it already materialises each step (near-zero extra cost), retains `Ω` only as a topology-health signal, and exposes a per-edge decomposition `‖δ_e x‖²` for bottleneck attribution (the highest-energy edge is the most-disagreeing role pair).
+
+Source: [`sgrs-core/src/propagation/dirichlet.rs`](../sgrs-core/src/propagation/dirichlet.rs), surfaced via [`src/sgrsAdapter.ts`](../src/sgrsAdapter.ts) (`dirichletEnergy`, `dirichletEnergyByEdge`) and [`src/propagationEngine.ts`](../src/propagationEngine.ts) (`getDirichletEnergy`). Persisted per step in `propagation_history.dirichlet_after`.
+
+---
+
+## 8. Dual-condition finality (the ∧-gate)
+
+RESOLVED requires **both** layers to certify simultaneously:
+
+```
+RESOLVED  ⟺  [ f(x) < ε_prop ]  ∧  F*(t)
+             └ propagation layer ┘   └ semantic layer ┘
+```
+
+- `F*(t)` — vector finality: every required dimension independently meets its threshold within tolerance, with per-dimension gates and veto dimensions. Non-compensable.
+- `f(x) < ε_prop` — the propagation layer has reached a global section (practical consensus among roles) within tolerance `ε_prop`.
+
+The two conditions defend against two distinct failure modes. `F*` blocks the **compensation attack** (a weak dimension hidden by a strong one). The Dirichlet condition blocks **premature consensus** (declaring done while roles still structurally disagree). Neither subsumes the other.
+
+**Backward compatibility.** The propagation condition is additive and guarded: when `dirichlet_gate.enabled` is false, or when no propagation history exists for the scope, it defaults to `true`, so the gate reduces to the semantic layer alone. When the condition holds up RESOLVED, the evaluator emits a `dirichlet_hold` signal (semantics ready, propagation still converging) for observability.
+
+Configuration in `finality.yaml`:
+
+```yaml
+dirichlet_gate:
+  enabled: true
+  epsilon_prop: 0.01   # practical-stability threshold on f(x)
+```
+
+Source: [`src/finalityEvaluator.ts`](../src/finalityEvaluator.ts) (`propConverged`, `dirichlet_gate`), [`migrations/025_propagation_history_dirichlet.sql`](../migrations/025_propagation_history_dirichlet.sql).
+
+---
+
+## 9. References
 
 1. **Olfati-Saber, R. & Murray, R. M.** (2004). Consensus Problems in Networks of Agents With Switching Topology and Time-Delays. *IEEE Transactions on Automatic Control*, 49(9), 1520--1533. doi:[10.1109/TAC.2004.834113](https://doi.org/10.1109/TAC.2004.834113)
    -- Lyapunov stability framework for multi-agent consensus. Foundation for the disagreement function V(t) and the convergence guarantee: if V is a common Lyapunov function that decreases along system trajectories, the system converges to consensus.

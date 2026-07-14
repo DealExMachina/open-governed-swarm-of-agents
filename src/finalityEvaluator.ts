@@ -128,7 +128,12 @@ export interface QuiescenceConfig {
  * F*(t) = AND_d[e_d <= eps_d AND GA_d AND GC_d] AND GB AND GD AND GE
  */
 export interface PerDimensionFinalityConfig {
-  /** Enable vector finality predicate (default: false for backward compat). */
+  /**
+   * Enable vector (per-dimension, non-compensable) finality predicate. This is
+   * the primary finality model and is enabled by default in the shipped
+   * `finality.yaml`. When disabled, the evaluator falls back to the scalar goal
+   * score threshold (retained only for backward compatibility / degraded mode).
+   */
   enabled: boolean;
   /** Dimensions that must individually pass for RESOLVED. */
   required_dimensions: string[];
@@ -171,6 +176,22 @@ export interface ISSCascadeConfig {
   small_gain_violation_action?: "escalate" | "warn" | "block";
 }
 
+/**
+ * Dual-condition (∧-gate) finality: the propagation layer must also have
+ * practically converged before RESOLVED. RESOLVED requires
+ * [f(x) < epsilon_prop] ∧ F*(t), where f(x) is the sheaf Dirichlet energy
+ * (true propagation-layer Lyapunov function) and F*(t) is vector finality.
+ *
+ * Backward-compatible: when disabled, or when no propagation history is
+ * available, the propagation condition defaults to true (today's behavior).
+ */
+export interface DirichletGateConfig {
+  /** Require f(x) < epsilon_prop before RESOLVED (default false). */
+  enabled?: boolean;
+  /** ε_prop: practical-stability threshold on the sheaf Dirichlet energy. */
+  epsilon_prop?: number;
+}
+
 export interface FinalityConfig {
   goal_gradient?: GoalGradientConfig;
   convergence?: ConvergenceYamlConfig;
@@ -180,6 +201,8 @@ export interface FinalityConfig {
   iss_cascade?: ISSCascadeConfig;
   /** Per-dimension (vector) finality; when enabled replaces scalar threshold. */
   per_dimension_finality?: PerDimensionFinalityConfig;
+  /** Dual-condition (∧-gate): require propagation-layer Dirichlet convergence too. */
+  dirichlet_gate?: DirichletGateConfig;
   finality: Record<CaseStatus, FinalityConditionRule>;
 }
 
@@ -812,6 +835,40 @@ export async function evaluateFinality(
     const perDimConfig = config.per_dimension_finality;
     const vectorEnabled = perDimConfig?.enabled && !gatesDisabled;
 
+    // Dual-condition (∧-gate): the propagation layer must also have practically
+    // converged (sheaf Dirichlet energy f(x) < ε_prop) before RESOLVED.
+    // RESOLVED ⟺ [f(x) < ε_prop] ∧ F*(t). Backward-compatible: disabled by
+    // default, and falls back to true when no propagation history exists.
+    let propConverged = true;
+    const dirichletGate = config.dirichlet_gate;
+    if (dirichletGate?.enabled && !gatesDisabled) {
+      try {
+        const { loadLatestDirichletEnergy } = await import(
+          "./evidenceStateManager.js"
+        );
+        const fx = await loadLatestDirichletEnergy(scopeId);
+        if (fx !== null) {
+          const epsProp = dirichletGate.epsilon_prop ?? 0.01;
+          propConverged = fx < epsProp;
+          if (!propConverged) {
+            try {
+              const { logger } = await import("./logger.js");
+              logger.info("dirichlet_hold", {
+                scopeId,
+                epoch,
+                dirichlet_energy: fx,
+                epsilon_prop: epsProp,
+              });
+            } catch {
+              /* logger unavailable */
+            }
+          }
+        }
+      } catch {
+        // Propagation layer unavailable — do not block finality.
+      }
+    }
+
     if (vectorEnabled && convergenceData) {
       // --- Vector (per-dimension) finality: Issue #18 ---
       // F*(t) = AND_d[e_d <= eps_d AND GA_d AND GC_d] AND GB AND GD AND GE
@@ -851,6 +908,7 @@ export async function evaluateFinality(
 
         if (
           allMet &&
+          propConverged &&
           vectorResult.all_required_passed &&
           vectorResult.global_gates_passed &&
           !vectorResult.veto_triggered
@@ -915,6 +973,7 @@ export async function evaluateFinality(
       }
     } else if (
       allMet &&
+      propConverged &&
       goalScore >= auto &&
       isMonotonic &&
       trajectoryOk &&
