@@ -64,10 +64,8 @@ function createWriteDriftTool(s3: S3Client, bucket: string) {
     outputSchema: z.object({
       wrote: z.array(z.string()),
     }),
-    execute: async (ctx) => {
-      const input =
-        (ctx as unknown as { context?: Record<string, unknown> })?.context ??
-        (ctx as unknown as Record<string, unknown>);
+    execute: async (inputData) => {
+      const input = inputData as Record<string, unknown>;
       const level = String(input.level ?? "none");
       const types = Array.isArray(input.types) ? input.types.map(String) : [];
       const notes = Array.isArray(input.notes) ? input.notes.map(String) : [];
