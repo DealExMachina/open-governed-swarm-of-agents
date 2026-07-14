@@ -1,0 +1,93 @@
+MERIDIAN INSURANCE GROUP AG
+Solvency Capital Requirement (SCR) — Quarterly Calculation Report
+Reference Period: Q4 2025 (as at 31 December 2025)
+Prepared by: Capital Model Analyst — Dr. Katharina Engel
+Classification: CONFIDENTIAL — Board and Supervisory Use Only
+Date of Issue: 18 January 2026
+
+1. EXECUTIVE SUMMARY
+
+This report presents the Solvency Capital Requirement calculation for
+Meridian Insurance Group AG as at 31 December 2025, computed under the
+Solvency II standard formula in accordance with Delegated Regulation
+(EU) 2015/35, as amended.
+
+The Group SCR ratio stands at 142%, indicating a comfortable surplus
+above regulatory minimums. The Board may rely on this figure for
+capital planning and dividend distribution decisions.
+
+2. ELIGIBLE OWN FUNDS
+
+Tier 1 unrestricted own funds:          EUR 712,000,000
+Tier 1 restricted own funds:            EUR  98,000,000
+Tier 2 own funds (subordinated debt):   EUR  80,000,000
+-------------------------------------------------------
+Total eligible own funds:               EUR 890,000,000
+
+Tier 1 own funds constitute 91% of total eligible own funds, well
+above the minimum 50% threshold prescribed by Art. 98 of Directive
+2009/138/EC.
+
+3. SOLVENCY CAPITAL REQUIREMENT BREAKDOWN
+
+Market risk module:                     EUR 289,000,000
+Counterparty default risk module:       EUR  47,000,000
+Life underwriting risk module:          EUR 198,000,000
+Non-life underwriting risk module:      EUR 134,000,000
+Health underwriting risk module:        EUR  62,000,000
+Diversification benefit:               EUR (148,000,000)
+Operational risk:                       EUR  45,000,000
+-------------------------------------------------------
+Basic SCR (BSCR):                       EUR 627,000,000
+
+Adjustment for loss-absorbing capacity
+  of technical provisions:              EUR       0
+Adjustment for loss-absorbing capacity
+  of deferred taxes:                    EUR       0
+-------------------------------------------------------
+Total SCR:                              EUR 627,000,000
+
+4. SCR RATIO
+
+SCR Ratio = 890 / 627 = 142.0%
+
+The minimum regulatory threshold is 100%. The internal target approved
+by the Board on 12 November 2025 is 135%. The current ratio provides a
+buffer of EUR 263,000,000 above the SCR.
+
+5. TRANSITIONAL MEASURES
+
+Meridian applies the transitional measure on technical provisions under
+Art. 308c of Directive 2009/138/EC, as permitted by BaFin approval
+letter Ref. VA 44-I 4000-2024/0031 dated 3 March 2024. The transitional
+adjustment amounts to EUR 45,000,000, which reduces the technical
+provisions accordingly. Without this adjustment, the SCR ratio would
+be approximately 135%.
+
+This transitional measure is subject to annual recalculation and
+supervisory review. The current allowance of EUR 45,000,000 was
+validated by the appointed actuary, Herr Prof. Stefan Bruckner, on
+14 December 2025 and approved by the Supervisory Board on 20 December 2025.
+
+6. LOOK-THROUGH APPROACH
+
+Meridian holds EUR 340,000,000 in collective investment undertakings.
+The look-through approach under Art. 84 of the Delegated Regulation has
+been applied to 78% of fund holdings by value (EUR 265,200,000). For
+the remaining 22% (EUR 74,800,000), Meridian applies the mandate-based
+approach due to insufficient granularity of fund-level data.
+
+7. DATA QUALITY AND LIMITATIONS
+
+Data quality classification: Category A (reliable and appropriate).
+No material data gaps identified. Minor limitation noted regarding
+granularity of reinsurance recoverables by line of business.
+
+8. SIGN-OFF
+
+This report has been reviewed and approved by:
+  Dr. Katharina Engel — Capital Model Analyst
+  Herr Prof. Stefan Bruckner — Chief Actuary
+  Frau Monika Adler — Chief Risk Officer
+
+Next scheduled calculation: Q1 2026 (as at 31 March 2026)

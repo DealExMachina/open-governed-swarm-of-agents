@@ -1,0 +1,25 @@
+PROJECT STATUS UPDATE -- SOLARMED PUGLIA SOLAR PARK
+
+Date: 2025-03-10
+Subject: Construction milestone report
+
+Progress:
+- Piling and mounting structure: 100% complete
+- Panel installation: 78% complete (35 of 45 MW installed)
+- Inverter stations: 4 of 5 installed and tested
+- Grid connection works: Cable laying 90% complete. Terna confirms grid connection date: 2025-06-15
+
+Financial drawdown:
+- First drawdown (Nov 2024): EUR 15,200,000 -- deployed
+- Second drawdown (Feb 2025): EUR 11,400,000 -- deployed
+- Remaining: EUR 11,400,000 (scheduled at COD)
+- Total deployed: EUR 26,600,000 of EUR 38,000,000
+
+Generation forecast revision:
+- Original estimate: 72 GWh/year
+- Updated estimate: 68 GWh/year (revised irradiance model; DNI lower than 2023 baseline due to updated TMY data)
+- Impact on avoided emissions: Reduced from 28,800 to 27,200 tCO2e/year
+
+Issue: No material issues. Minor 2-week delay due to supply chain for DC cabling (resolved). COD remains Q2 2025.
+
+Claim: SolarMed construction on track. 78% of panels installed. Grid connection confirmed for June 2025. Contradiction: Generation forecast revised downward by 5.6% (72 GWh to 68 GWh). Risk: Minor impact on reported impact metrics; no effect on Taxonomy alignment.

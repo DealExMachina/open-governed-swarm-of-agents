@@ -1,0 +1,103 @@
+DATA CORRECTION NOTICE — CRITICAL SAFETY DATA AMENDMENT
+================================================================================
+Protocol:           ONCO-RESOLVE-301
+Site Number:        07
+Site Name:          Cedars-Sinai Medical Center
+Correction ID:      DCN-07-2024-001
+Date Issued:        2024-10-22
+Agent:              Maria Santos, Senior Data Manager, Site 07
+================================================================================
+
+CLASSIFICATION: CRITICAL — Affects safety threshold calculation
+
+SUMMARY OF CORRECTION:
+  During routine source document verification (SDV) at the Site 07 monitoring
+  visit conducted 2024-10-18 by CRA David Park (Meridian Therapeutics), a
+  transcription error was identified in the electronic Case Report Forms (eCRF)
+  for three (3) patients in the ORX-4471 treatment arm.
+
+  Alanine aminotransferase (ALT) values at Cycle 4, Day 1 were entered
+  incorrectly. The source documents (hospital laboratory printouts) show values
+  approximately 2x higher than what was transcribed into the eCRF.
+
+AFFECTED PATIENTS:
+  ┌─────────────┬──────────────┬──────────────┬──────────────┬──────────────┐
+  │ Patient ID  │ Visit        │ eCRF Value   │ Source Value │ CTCAE Grade  │
+  │             │              │ (ORIGINAL)   │ (CORRECTED)  │ Change       │
+  ├─────────────┼──────────────┼──────────────┼──────────────┼──────────────┤
+  │ 07-012      │ C4D1         │ 180 U/L      │ 380 U/L      │ Gr2 -> Gr3   │
+  │ 07-019      │ C4D1         │ 180 U/L      │ 378 U/L      │ Gr2 -> Gr3   │
+  │ 07-024      │ C4D1         │ 180 U/L      │ 384 U/L      │ Gr2 -> Gr3   │
+  └─────────────┴──────────────┴──────────────┴──────────────┴──────────────┘
+
+  ULN for ALT: 40 U/L (per central lab reference, Document 05)
+  Grade 2 threshold: ALT 3-5x ULN (121-200 U/L)
+  Grade 3 threshold: ALT >5x ULN (>200 U/L)
+
+  ORIGINAL values (180 U/L = 4.5x ULN): Grade 2 hepatotoxicity
+  CORRECTED values (378-384 U/L = 9.5-9.6x ULN): Grade 3 hepatotoxicity
+
+ROOT CAUSE ANALYSIS:
+  The Site 07 data entry coordinator (Jennifer Liu) entered laboratory values
+  from a printed laboratory report. Investigation determined that the lab
+  system printed ALT results across a page break. The coordinator read the
+  first visible digits ("18") and appended "0" assuming standard formatting,
+  yielding 180 U/L. The actual values on the subsequent page showed the full
+  three-digit results (380, 378, 384).
+
+  Contributing factors:
+  - Lab report formatting with page break splitting numeric values
+  - Single data entry (no dual-entry verification at site level)
+  - SDV scheduled quarterly (3-month lag between entry and verification)
+
+AUDIT TRAIL (21 CFR Part 11 Compliant):
+  Original Entry:
+    Values entered:    180, 180, 180 U/L
+    Entered by:        Jennifer Liu (Site 07 Data Coordinator)
+    Entry timestamp:   2024-08-14 09:42:18 EDT
+    System:           Medidata Rave EDC v2024.1
+
+  Correction:
+    Values corrected:  380, 378, 384 U/L
+    Corrected by:      Maria Santos (Senior Data Manager, Site 07)
+    Correction timestamp: 2024-10-22 14:18:33 EDT
+    Reason for change: "Transcription error identified during SDV. Source
+      document (hospital lab printout) shows higher values. Page break in
+      source caused partial reading of numeric field."
+    Verification:      David Park (CRA, Meridian Therapeutics)
+    Verification timestamp: 2024-10-22 14:45:02 EDT
+
+IMPACT ASSESSMENT:
+  1. Three patients reclassified from Grade 2 to Grade 3 hepatotoxicity.
+  2. Grade 3+ hepatotoxicity rate changes from 3/54 (5.6%) to 6/54 (11.1%)
+     at the 80-patient safety analysis, or recalculated across full enrollment:
+     Pre-correction:  6/116 = 5.2% (ORX-4471 mITT)
+     Post-correction: 9/116 = 7.8% (ORX-4471 mITT)
+     [NOTE: rates in Document 09 differ slightly due to evaluable population]
+  3. Crosses protocol-specified hepatotoxicity stopping boundary of 8% at
+     the 80-patient landmark (11.1% vs 8% threshold).
+  4. Patient management was NOT affected — all three patients had dose holds
+     initiated based on clinical assessment regardless of recorded grade.
+
+CORRECTIVE AND PREVENTIVE ACTIONS (CAPA):
+  CAPA-07-001 (Immediate):
+    - All Site 07 laboratory data re-verified against source (complete by
+      2024-11-15)
+    - Dual data entry implemented for all safety laboratory values
+  CAPA-07-002 (Systemic):
+    - Cross-site audit of ALT/AST values ordered by sponsor (all 12 sites)
+    - Laboratory interface to EDC system under evaluation to eliminate
+      manual transcription
+
+DOCUMENTS AFFECTED BY THIS CORRECTION:
+  - Document 06 (Interim Safety Review #1): Grade 3+ count requires update
+  - Document 07 (Phase II Efficacy Interim): Safety summary requires note
+  - NEW: Document 09 (Safety Signal Reassessment) to be generated
+  - NEW: Document 10 (Sensitivity Analysis) to be generated
+
+REGULATORY NOTIFICATION:
+  IND Safety Report (21 CFR 312.32) under evaluation. FDA notification
+  may be required if corrected rate triggers stopping boundary.
+
+STATE: EPOCH_2 | CORRECTION: CRITICAL | ORIGINAL: 180_UL | CORRECTED: 380_UL
+AUDIT: ORIGINAL_PRESERVED | CORRECTION_RECORDED | ANALYSES_TRACKED

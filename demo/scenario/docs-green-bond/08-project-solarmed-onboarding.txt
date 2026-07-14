@@ -1,0 +1,31 @@
+PROJECT ONBOARDING -- SOLARMED S.R.L.
+
+Date: 2024-11-05
+Project: SolarMed Puglia Solar Park
+Sponsor: SolarMed S.r.l. (Italy)
+Category: A -- Renewable energy (Solar PV)
+Taxonomy NACE: D35.11
+
+Project description:
+- Location: Puglia region, southern Italy
+- Capacity: 45 MW (single-axis tracking)
+- EPC contractor: Enel Green Power (turnkey)
+- Grid connection: Terna S.p.A., expected Q2 2025
+- Lifetime: 30 years
+- Estimated annual generation: 72 GWh
+- Estimated avoided emissions: 28,800 tCO2e/year (grid emission factor 0.4 tCO2e/MWh)
+
+Financial terms:
+- Total project cost: EUR 42,000,000
+- Bond allocation requested: EUR 38,000,000
+- Drawdown schedule: 40% at financial close (Nov 2024), 30% at mechanical completion (Feb 2025), 30% at COD (Q2 2025)
+- Revenue: 15-year PPA with Italian utility at EUR 58/MWh (fixed, CPI-indexed)
+
+Green Bond Committee assessment:
+- Substantial contribution: Solar PV, life-cycle emissions estimated at 25 gCO2e/kWh (well below 100 gCO2e/kWh threshold).
+- DNSH: Environmental impact assessment (EIA) approved by Puglia Region (2024-06-12). No Natura 2000 sites within 5 km.
+- Social safeguards: EPC contractor subject to Italian labor code. ILO conventions respected.
+
+Decision: APPROVED for allocation. First drawdown: EUR 15,200,000 on 2024-11-15.
+
+Claim: SolarMed project approved for EUR 38M allocation. Taxonomy-aligned (Category A). Goal: Achieve COD by Q2 2025 and full drawdown.

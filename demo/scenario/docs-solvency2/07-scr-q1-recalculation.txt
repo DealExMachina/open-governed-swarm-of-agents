@@ -1,0 +1,131 @@
+MERIDIAN INSURANCE GROUP AG
+Solvency Capital Requirement — Q1 2026 Recalculation
+Under Updated EIOPA Look-Through Guidelines (EIOPA-BoS-26/142)
+Reference Period: Q1 2026 (as at 31 March 2026)
+Prepared by: Capital Model Analyst — Dr. Katharina Engel
+Classification: CONFIDENTIAL — Board and Supervisory Use Only
+Date of Issue: 28 April 2026
+
+1. EXECUTIVE SUMMARY
+
+Following the publication of EIOPA's updated guidelines on the look-
+through approach (EIOPA-BoS-26/142, effective 15 April 2026), Meridian
+has recalculated the SCR as at 31 March 2026 applying the enhanced
+look-through requirements.
+
+The recalculated SCR ratio is 128%, a significant reduction from the
+Q4 2025 ratio of 142%. This report details the drivers of the change.
+
+IMPORTANT — BITEMPORAL NOTE:
+The Q4 2025 SCR ratio of 142% (Report dated 18 January 2026) remains
+the OFFICIAL regulatory figure for the Q4 2025 reporting period. That
+calculation was performed in accordance with the guidelines then in
+force (EIOPA-BoS-14/171). The recalculation herein is performed under
+the NEW guidelines and represents the Q1 2026 position. The Q4 figure
+is NOT restated.
+
+2. RECALCULATED ELIGIBLE OWN FUNDS
+
+Tier 1 unrestricted own funds:          EUR 718,000,000
+Tier 1 restricted own funds:            EUR  98,000,000
+Tier 2 own funds (subordinated debt):   EUR  80,000,000
+-------------------------------------------------------
+Total eligible own funds:               EUR 896,000,000
+
+Change from Q4 2025: +EUR 6,000,000 (retained earnings in Q1)
+
+3. RECALCULATED SCR BREAKDOWN
+
+3.1 Market Risk Module (material change)
+  Previous (Q4 2025, partial look-through):   EUR 289,000,000
+  Current (Q1 2026, full look-through):       EUR 342,000,000
+  Change:                                     EUR +53,000,000
+
+  The increase is driven by:
+  - Full look-through applied to EUR 74,800,000 previously under
+    mandate-based approach
+  - 7 funds now fully disaggregated (see Observation 1, IA-2026-004)
+  - Concentrated equity exposures within funds now visible:
+      Fund MSIG-EQ-14: 28% single-name tech exposure identified
+      Fund MSIG-FI-03: 12% sub-investment-grade holdings revealed
+  - Additional spread risk charge: EUR 31,000,000
+  - Additional equity concentration charge: EUR 22,000,000
+
+3.2 Counterparty Default Risk Module (minor change)
+  Previous (Q4 2025):     EUR  47,000,000
+  Current (Q1 2026):      EUR  49,000,000
+  Change:                 EUR  +2,000,000
+
+3.3 Life Underwriting Risk Module (unchanged)
+  Previous:               EUR 198,000,000
+  Current:                EUR 198,000,000
+
+3.4 Non-Life Underwriting Risk Module (minor change)
+  Previous:               EUR 134,000,000
+  Current:                EUR 138,000,000
+  Change:                 EUR  +4,000,000
+
+3.5 Health Underwriting Risk Module (unchanged)
+  Previous:               EUR  62,000,000
+  Current:                EUR  62,000,000
+
+3.6 Diversification Benefit
+  Previous:               EUR (148,000,000)
+  Current:                EUR (157,000,000)
+  Change:                 EUR  -9,000,000 (increased diversification)
+
+3.7 Operational Risk (unchanged)
+  Previous:               EUR  45,000,000
+  Current:                EUR  45,000,000
+
+  Total SCR:              EUR 677,000,000
+  Change from Q4:         EUR +50,000,000
+
+  Note: EUR 67,000,000 gross additional capital charge from look-
+  through changes, partially offset by EUR 9,000,000 increased
+  diversification benefit and EUR 8,000,000 from other module offsets.
+
+4. RECALCULATED SCR RATIO
+
+SCR Ratio = 896 / 677 = 128.4% (rounded: 128%)
+
+Comparison:
+  Q4 2025 (old guidelines):  142%
+  Q1 2026 (new guidelines):  128%
+  Change:                    -14 percentage points
+
+5. IMPLICATIONS
+
+5.1 Regulatory Threshold Analysis
+  Board minimum:    120%  — NOT breached (8pp buffer)
+  Board target:     135%  — BREACHED by 7 percentage points
+  Supervisory ladder: No supervisory intervention triggered at 128%
+
+5.2 Transitional Measure Impact
+  Per Guideline 4 of EIOPA-BoS-26/142, the change in SCR exceeds
+  10% (actual: 8.0%), but the change in SCR ratio exceeds 10pp
+  (actual: 14pp). Therefore, BaFin MAY require early recalculation
+  of the Art. 308c transitional measure. See separate memo
+  (08-transitional-measure-review.txt).
+
+5.3 Retroactive Assessment
+  As required by Guideline 3, Meridian will submit the retroactive
+  assessment to BaFin by 14 June 2026. This assessment will show
+  the hypothetical Q4 2025 SCR under the new guidelines for
+  informational purposes only.
+
+6. MANAGEMENT ACTIONS UNDER CONSIDERATION
+
+  - Reduction of equity allocation within funds lacking transparency
+  - Renegotiation of fund management agreements to require quarterly
+    look-through data provision
+  - Potential subordinated debt issuance to restore target ratio
+  - Dividend review for FY2025
+
+7. SIGN-OFF
+
+  Dr. Katharina Engel — Capital Model Analyst
+  Herr Prof. Stefan Bruckner — Chief Actuary
+  Frau Monika Adler — Chief Risk Officer
+
+Submitted to BaFin under ad hoc reporting obligations on 30 April 2026.

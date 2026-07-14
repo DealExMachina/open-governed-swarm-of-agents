@@ -1,0 +1,48 @@
+EUROVERT GREEN BOND FRAMEWORK
+
+Version 1.0 -- Published 2024-09-15
+
+1. USE OF PROCEEDS
+
+Net proceeds will be allocated to Eligible Green Projects in three categories:
+
+Category A -- Renewable energy (target 50-60%):
+- Solar PV installations (>10 MW capacity)
+- Onshore wind farms (EU-located, Taxonomy NACE D35.11)
+Screening criteria: Life-cycle GHG emissions below 100 gCO2e/kWh.
+
+Category B -- Energy efficiency (target 25-35%):
+- Building renovation achieving minimum 30% primary energy demand reduction
+- Industrial process efficiency (NACE C10-C32)
+Screening criteria: Primary energy demand at least 30% below national nZEB standard for new buildings; or at least 30% reduction vs baseline for renovations.
+
+Category C -- Clean transportation (target 10-15%):
+- EV charging infrastructure (public and semi-public)
+- Zero-emission public transport vehicles
+Screening criteria: Zero direct tailpipe emissions for vehicles; grid-connected for charging.
+
+2. ALIGNMENT
+
+This framework targets alignment with:
+- ICMA Green Bond Principles (2021 edition)
+- EU Taxonomy Regulation (2020/852), Climate Delegated Act
+- EU Green Bond Standard (Regulation 2023/2631) upon application (December 2024)
+
+At issuance, the framework is ICMA GBP-aligned. After EUGBS application date (21 December 2024), the issuer intends to seek designation as a European Green Bond, subject to external reviewer registration and factsheet requirements.
+
+3. PROJECT EVALUATION
+
+An internal Green Bond Committee (GBC) evaluates and selects projects. The GBC comprises the CIO, Head of ESG, and an independent sustainability advisor. Projects must satisfy:
+- Substantial contribution to climate change mitigation (Taxonomy Art. 10)
+- Do No Significant Harm to other environmental objectives (Art. 17)
+- Minimum social safeguards (Art. 18)
+
+4. MANAGEMENT OF PROCEEDS
+
+Unallocated proceeds held in cash, short-term sovereign bonds (EEA), or green money market instruments. Tracking via internal ledger reconciled quarterly.
+
+5. REPORTING
+
+Annual allocation report (audited) and impact report (estimated avoided emissions, installed capacity). External review: pre-issuance SPO (Sustainalytics), post-allocation verification (to be appointed).
+
+Claim: Framework is ICMA GBP-aligned at issuance. Goal: Achieve EUGBS designation after regulatory application date.

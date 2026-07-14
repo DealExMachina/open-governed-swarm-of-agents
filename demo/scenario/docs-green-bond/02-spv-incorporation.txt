@@ -1,0 +1,25 @@
+SPV INCORPORATION AND STRUCTURING MEMO
+
+Entity: EuroVert Capital S.a r.l.
+Jurisdiction: Grand Duchy of Luxembourg.
+Registration: RCS Luxembourg B-287654.
+Date of incorporation: 2024-08-20.
+Share capital: EUR 12,500.
+Managing partner: EuroVert Asset Management S.A. (Luxembourg).
+Corporate purpose: Issuance of debt instruments for the financing of sustainable infrastructure projects within the European Union.
+
+Structure:
+- The SPV is a bankruptcy-remote entity with no employees.
+- All management functions delegated to the Managing Partner under an Investment Management Agreement (IMA).
+- Proceeds held in a segregated account at Banque Verte S.A.
+- Quarterly compliance reporting to bondholders via the paying agent.
+
+Tax treatment: Luxembourg securitisation law (2004, as amended). Tax-neutral pass-through for qualifying transactions. No withholding on interest payments to EU-resident holders.
+
+Legal opinions obtained:
+- Arendt & Medernach (Luxembourg law capacity opinion): delivered 2024-08-25.
+- Linklaters (English law enforceability opinion): pending.
+
+Risk factor: The SPV has no independent revenue source. Debt service depends entirely on cash flows from underlying Eligible Green Projects. If project cash flows are insufficient, bondholders may not receive scheduled payments.
+
+Claim: SPV incorporated and structurally sound for green bond issuance. Goal: Obtain all legal opinions and complete offering circular.

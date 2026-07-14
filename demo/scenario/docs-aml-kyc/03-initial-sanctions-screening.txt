@@ -1,0 +1,101 @@
+DOCUMENT: INITIAL SANCTIONS AND PEP SCREENING REPORT
+CLASSIFICATION: CONFIDENTIAL — AML/KYC RESTRICTED
+INSTITUTION: EuroBank AG, Frankfurt am Main
+DATE: 2023-03-16
+REFERENCE: SCR-2023-CAST-0001
+SCREENING OFFICER: Jens Mueller, Sanctions Screening Agent (EB-5587)
+SYSTEM: EuroBank WorldCheck Integration (Refinitiv World-Check One v4.2)
+
+1. SCREENING SCOPE
+
+The following individuals and entities were screened against all applicable
+sanctions, PEP, and adverse media databases:
+
+  Individuals:
+    - Viktor Castellan (DOB: 1967-04-11, IT/CH national)
+    - Elena Castellan (DOB: 1975-08-23, IT national)
+    - Marco Castellan (DOB: 1970-03-18, IT national) [family associate]
+
+  Entities:
+    - Castellan Holdings S.a.r.l. (Luxembourg)
+    - CastleTech BVI Ltd (British Virgin Islands)
+    - Castellan Property Cyprus Ltd (Cyprus)
+    - Castellan Trust (Liechtenstein)
+
+2. SANCTIONS LIST SCREENING
+
+  OFAC SDN List:                        NO MATCH
+  OFAC Consolidated Non-SDN List:       NO MATCH
+  EU Consolidated Sanctions List:       NO MATCH
+  UN Security Council Sanctions:        NO MATCH
+  UK HM Treasury Sanctions:            NO MATCH
+  Swiss SECO Sanctions:                NO MATCH
+  BaFin National Sanctions (Germany):   NO MATCH
+  FATF High-Risk Jurisdictions List:    NOTE — BVI formerly on FATF
+                                        monitoring list (removed 2014).
+                                        No current listing.
+
+  Result: ALL CLEAR — No sanctions matches for any screened party.
+
+3. PEP SCREENING
+
+  Viktor Castellan:    NOT a PEP. No government, military, judicial, or
+                       state enterprise roles identified.
+  Elena Castellan:     NOT a PEP. No public function roles identified.
+  Marco Castellan:     PEP — LOW LEVEL
+    Classification:    Domestic PEP (Italy)
+    Role:              Consigliere Comunale (Municipal Councilor),
+                       Milan, Ward 4 (Municipio 4)
+    Elected:           2019-06-12
+    Party:             Partito Democratico (PD)
+    Financial Authority: None identified — municipal advisory role,
+                        no budget control or procurement authority
+    Risk Assessment:   LOW — municipal-level position with no access
+                       to national funds or procurement decisions
+
+  PEP Family Association:
+    Viktor Castellan is the brother of Marco Castellan (PEP).
+    Per FATF Recommendation 12 and 5AMLD Article 20(b), family members
+    of PEPs require enhanced scrutiny. However, given the LOW-level
+    nature of the PEP status, standard CDD is deemed sufficient at
+    this stage per EuroBank Internal Policy 4.3.2.
+
+4. ADVERSE MEDIA SCREENING
+
+  Viktor Castellan:    NO adverse media. Positive mentions in Swiss
+                       technology press (2016-2017, CastleTech exit).
+  Elena Castellan:     NO adverse media. Minor mentions in Italian art
+                       press (gallery exhibitions, 2019-2022).
+  Marco Castellan:     NO adverse media at time of screening. Standard
+                       political coverage of Milan municipal council
+                       proceedings. No allegations, investigations, or
+                       controversies identified.
+  Castellan Holdings:  NO adverse media.
+  CastleTech BVI:     NO adverse media.
+  Castellan Property:  NO adverse media.
+
+5. SCREENING RECOMMENDATION
+
+  Overall Screening Status:    CLEAR (with notations)
+
+  Notations:
+  (a) BVI subsidiary — high-risk jurisdiction, mitigated by ownership
+      transparency (see CDD-2023-CAST-0002)
+  (b) Marco Castellan — low-level PEP family association, no escalation
+      required at this time
+
+  Re-screening Schedule:
+  - Automated daily batch screening (all sanctions lists)
+  - Quarterly PEP refresh
+  - Annual adverse media deep-dive
+  - Event-driven re-screening upon material change
+
+6. SIGN-OFF
+
+Screening completed by:  Jens Mueller, Sanctions Screening Agent (EB-5587)
+Reviewed by:             Claudia Richter, Head of Financial Crime (EB-2201)
+Date:                    2023-03-16
+
+Screening valid until next scheduled review or material change event.
+
+— END OF SANCTIONS SCREENING REPORT —

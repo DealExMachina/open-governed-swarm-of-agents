@@ -1,0 +1,25 @@
+PRICING CONFIRMATION
+
+Date: 2024-10-15
+Bond: EuroVert Capital Green Bond Fund I
+ISIN: XS2987654321
+
+Final terms:
+- Size: EUR 250,000,000
+- Coupon: 4.25% fixed, semi-annual (30/360)
+- Issue price: 99.875%
+- Spread: MS+142bps (tightened from guidance of MS+145bps)
+- Settlement: 2024-10-22
+- Maturity: 2031-10-22
+- Denomination: EUR 100,000 minimum
+- Rating: BBB+ (Fitch, expected)
+
+Book statistics:
+- Orders received: EUR 412M from 47 accounts
+- Oversubscription: 1.65x
+- Geographic distribution: DACH 28%, Nordics 22%, France 18%, Benelux 14%, UK 10%, Other 8%
+- Investor type: Asset managers 42%, Insurance/pension 31%, Banks 15%, Central banks/official institutions 8%, Other 4%
+
+Greenium achieved: approximately 12bps vs comparable conventional curve.
+
+Claim: Bond priced and oversubscribed at 1.65x. Greenium of 12bps. Goal: Settlement on 22 October and commencement of allocation.

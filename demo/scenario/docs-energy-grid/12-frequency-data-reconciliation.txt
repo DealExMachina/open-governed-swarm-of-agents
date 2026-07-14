@@ -1,0 +1,123 @@
+DOCUMENT: NorthGrid Utilities — PMU vs. SCADA Frequency Data Reconciliation
+DATE: March 10, 2026
+CLASSIFICATION: NERC Event Analysis — CONFIDENTIAL
+AUTHOR: Grid Frequency Monitoring Group / Data Governance Office
+REF: NG-FREQ-2026-03-RECON-012
+
+PURPOSE
+
+This document formalizes the reconciliation between PMU and SCADA
+frequency measurements for the February 12 Winter Storm Helios event
+and establishes the authoritative record for NERC compliance reporting.
+
+RECONCILIATION DECISION
+
+After review by the Measurement Accuracy Review Board (MARB) on
+March 7, 2026 (MARB session 2026-04), the following determination
+was reached:
+
+  PMU data is accepted as ground truth for the February 12 event.
+
+  Authoritative frequency nadir: 59.82 Hz (+/- 0.005 Hz)
+  Timestamp: February 12, 2026, 16:48:22.500 UTC
+  Duration below 59.95 Hz: 53 seconds (PMU) vs. 47 seconds (SCADA)
+
+  Previous SCADA-based value: 59.87 Hz — SUPERSEDED
+
+RATIONALE
+
+The MARB determination is based on the following technical analysis:
+
+  1. Measurement resolution: PMU sampling at 30 Hz provides 60x the
+     temporal resolution of SCADA's 0.5 Hz effective scan rate. During
+     sub-second transient events, SCADA's 2-second averaging window
+     introduces systematic measurement error by smoothing the true
+     frequency trajectory.
+
+  2. Consistency: Five independent PMUs at geographically diverse
+     locations agreed within a 0.008 Hz band (59.818 - 59.826 Hz),
+     demonstrating high measurement confidence. SCADA measurements
+     from different locations showed a wider spread of 0.02 Hz,
+     consistent with their lower resolution.
+
+  3. Standards compliance: IEEE C37.118.1-2011 (Synchrophasor
+     Measurement for Power Systems) specifies Total Vector Error (TVE)
+     requirements of less than 1% for PMUs. NorthGrid's PMU fleet
+     was last calibrated in November 2025, all within specification.
+
+  4. Physical consistency: The PMU-recorded frequency trajectory is
+     consistent with the known generation loss (3,200 MW), system
+     inertia constant (H = 4.2 seconds), and governor response
+     characteristics. The SCADA value of 59.87 Hz is NOT consistent
+     with these physical parameters — it implies an unrealistically
+     fast primary frequency response.
+
+DATA MANAGEMENT PROTOCOL
+
+The following data governance actions have been implemented:
+
+  1. ORIGINAL SCADA RECORDS PRESERVED
+     The original SCADA-based event report (NG-EVENT-2026-02-12-006)
+     and January frequency report (NG-FREQ-2026-01-003) are NOT
+     overwritten, deleted, or modified. They remain in the document
+     management system with their original content intact.
+
+  2. ANNOTATION APPLIED
+     Each superseded document has been annotated with the following
+     metadata tag in the NorthGrid Document Control System (DCS):
+
+       STATUS: SUPERSEDED
+       SUPERSEDED BY: NG-FREQ-2026-03-RECON-012
+       REASON: PMU ground truth reconciliation — frequency nadir
+               revised from 59.87 Hz (SCADA) to 59.82 Hz (PMU)
+       DATE: March 10, 2026
+       AUTHORITY: MARB Session 2026-04
+
+  3. FORWARD-LOOKING PROCEDURE CHANGE
+     NorthGrid Procedure NG-OP-301 (Frequency Measurement and Reporting)
+     has been revised (Rev. 4, effective March 15, 2026):
+       - PMU data designated as primary source for frequency compliance
+         reporting during disturbance events (NERC Category 1 and above)
+       - SCADA data remains primary source for routine (non-event)
+         frequency monitoring
+       - Discrepancy threshold of 0.02 Hz triggers automatic PMU review
+
+NERC NOTIFICATION
+
+Corrected OE-417 supplement filed with NERC on March 8, 2026:
+  - Original filing: frequency nadir 59.87 Hz, duration 47 seconds
+  - Corrected filing: frequency nadir 59.82 Hz, duration 53 seconds
+  - Correction reason: PMU ground truth reconciliation
+
+NERC ReliabilityFirst acknowledged receipt on March 9, 2026 and
+confirmed the corrected values will be used for compliance evaluation.
+
+IMPLICATIONS FOR BAL-003 COMPLIANCE
+
+The revised nadir of 59.82 Hz increases the severity of the BAL-003
+exceedance assessment:
+  - SCADA-based margin to UFLS Stage 1 (59.75 Hz): 120 mHz
+  - PMU-based margin to UFLS Stage 1 (59.75 Hz):    70 mHz
+
+The reduced margin (70 mHz vs. 120 mHz) may influence the NERC
+enforcement disposition. NorthGrid's legal team has been briefed.
+
+AUDIT TRAIL
+
+This reconciliation creates a clear audit trail:
+  Original measurement  -->  Discrepancy identified  -->  Root cause
+  (SCADA, 59.87 Hz)         (PMU, 59.82 Hz)              (averaging)
+       |                          |                           |
+       v                          v                           v
+  Preserved with            Accepted as ground          Procedure
+  "superseded" tag          truth by MARB               revised
+
+All underlying data (SCADA historian exports, PMU Comtrade files,
+MARB meeting minutes) archived under litigation hold per legal counsel
+directive (NG-LEGAL-2026-HOLD-003).
+
+PREPARED BY: S. Petrov, Lead Frequency Analyst
+              Dr. H. Ramirez, PMU Analytics Lead
+              G. Foster, Data Governance Officer
+APPROVED BY: R. Vasquez, VP Grid Operations
+              M. Thornton, CISSP, Chief Compliance Officer

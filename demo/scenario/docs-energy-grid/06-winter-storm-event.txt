@@ -1,0 +1,89 @@
+DOCUMENT: NorthGrid Utilities — Winter Storm Helios Event Report
+DATE: February 16, 2026
+CLASSIFICATION: NERC Event Analysis — CONFIDENTIAL
+AUTHOR: System Operations Emergency Response Team
+REF: NG-EVENT-2026-02-12-006
+
+EVENT CLASSIFICATION: NERC Category 2 — Significant Event
+OE-417 REPORT FILED: Yes (February 12, 2026, 19:42 UTC)
+
+TIMELINE OF EVENTS (all times UTC)
+
+February 12, 2026:
+  04:00  NWS issues Winter Storm Warning. NorthGrid activates Cold
+         Weather Preparedness Plan (NG-OP-412). Ambient temperature: -6C.
+  08:00  Temperature drops to -12C. Gas pipeline operator TransCon
+         Energy notifies of reduced pipeline pressure on Line 4200
+         (serving Central area gas units). Reason cited: "operational
+         constraints due to extreme cold."
+  11:30  Temperature reaches -15C. Central area gas units Lakeside CC
+         Units 1-3 (total 1,200 MW) derate to 65% due to reduced gas
+         pressure. Dispatch requests emergency gas from spot market.
+  14:00  Temperature: -17C. Gas supply to South area gas peakers
+         curtailed entirely. Four peaking units (total 800 MW) forced
+         offline: Riverside CT 1-2 (400 MW), Valley Peak CT 1-2 (400 MW).
+  15:22  Millstone Nuclear Unit 2 (850 MW) experiences circulating water
+         intake screen icing. Unit derates to 600 MW.
+  16:45  Total generation lost: 3,200 MW. System load: 10,800 MW.
+         Available generation: 9,100 MW. Operating reserve deficit: 1,900 MW.
+  16:48  SYSTEM FREQUENCY DROPS. SCADA records frequency nadir of
+         59.87 Hz at 16:48:23 UTC. Duration below 59.95 Hz: 47 seconds.
+         Under-frequency load shedding (UFLS) Scheme A armed but not
+         triggered (threshold: 59.75 Hz).
+  16:49  Emergency demand response activated: 1,800 MW of interruptible
+         load shed across all four balancing areas.
+  16:51  MidAtlantic ISO emergency energy import: 1,200 MW via 345kV ties.
+  16:55  Frequency recovered to 59.97 Hz.
+  17:10  Frequency stabilized at 59.99 Hz. Emergency conditions continue.
+
+February 13, 2026:
+  02:00  Temperature: -18C (event minimum). System load drops to 8,200 MW
+         overnight. Emergency imports maintained at 800 MW.
+  09:00  Gas pressure partially restored on Line 4200. Lakeside CC Units
+         1-2 return to full output. Unit 3 remains derated.
+  14:00  Temperature rises to -10C. Valley Peak CT 1 restarted.
+
+February 14, 2026:
+  06:00  All generation units restored to service except Riverside CT 2
+         (frozen instrumentation, requires maintenance).
+  12:00  Emergency conditions terminated. Normal operations resume.
+
+IMPACT SUMMARY
+
+  Metric                          | Value
+  --------------------------------|---------------------------
+  Peak generation loss            | 3,200 MW
+  Frequency nadir (SCADA)         | 59.87 Hz
+  Duration below 59.95 Hz         | 47 seconds
+  Load shed (demand response)     | 1,800 MW
+  Customers affected by DR        | 142,000
+  Emergency imports received      | 1,200 MW (peak)
+  Duration of emergency           | 44 hours
+  Estimated economic cost         | €28.4M
+
+BAL-003 COMPLIANCE NOTE
+
+The frequency excursion to 59.87 Hz (per SCADA) for 47 seconds exceeds
+the NorthGrid Frequency Trigger Limit of 59.90 Hz for events lasting
+more than 30 seconds. This constitutes a reportable BAL-003 exceedance.
+
+A detailed frequency analysis using PMU data is underway and may revise
+the recorded nadir value. See forthcoming document NG-FREQ-2026-02-POST.
+
+IMMEDIATE CORRECTIVE ACTIONS
+
+  1. Emergency gas supply contracts activated with alternate pipeline
+  2. Cold weather readiness audit of all gas-dependent generation
+  3. Nuclear plant winterization inspection (circulating water systems)
+  4. Review of demand response activation procedures and speed
+  5. Coordination call with TransCon Energy re: pipeline reliability
+
+NERC NOTIFICATION
+
+OE-417 report filed within 1 hour of event. NERC ReliabilityFirst
+regional entity notified. Formal event analysis due within 60 days
+per NERC Event Analysis Process (EAP).
+
+PREPARED BY: Emergency Response Team Lead, C. Johansson
+APPROVED BY: R. Vasquez, VP Grid Operations
+              J. Nakamura, General Counsel

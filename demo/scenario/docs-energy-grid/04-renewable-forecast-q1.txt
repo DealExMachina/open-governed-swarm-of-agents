@@ -1,0 +1,87 @@
+DOCUMENT: NorthGrid Utilities — Q1 2026 Renewable Generation Forecast
+DATE: January 8, 2026
+CLASSIFICATION: Market Sensitive — Restricted Distribution
+AUTHOR: Renewable Integration Planning Group
+REF: NG-REN-2026-Q1-FCST-004
+
+FORECAST PERIOD: January 1 — March 31, 2026
+
+WIND GENERATION FORECAST
+
+Installed wind capacity: 2.80 GW across 12 wind farms
+  Onshore (North area):    1.45 GW — 6 farms (Ridgeline I-III, Prairie
+                           Wind, Hilltop, Northern Gale)
+  Onshore (Central area):  0.65 GW — 3 farms (Flatlands, Harvest Wind,
+                           Central Corridor)
+  Offshore (Coastal area): 0.70 GW — 3 farms (Atlantic Breeze I-II,
+                           Coastal Pioneer)
+
+Q1 capacity factor forecast by month:
+  January:   36% (1,008 MW average output)
+  February:  38% (1,064 MW average output) — elevated winter wind season
+  March:     28% (784 MW average output)   — seasonal transition
+  Q1 weighted average: 34% (952 MW average output)
+
+Expected Q1 wind energy production: 2.06 TWh
+
+SOLAR GENERATION FORECAST
+
+Installed solar capacity: 1.20 GW across 8 utility-scale facilities
+  South area:    0.75 GW — 5 facilities (Sunridge, Clearview, Southern
+                 Plains I-II, Valley Solar)
+  Central area:  0.45 GW — 3 facilities (Metro Solar, Eastfield,
+                 Brightside)
+
+Q1 capacity factor forecast by month:
+  January:   14% (168 MW average output) — short daylight, cloud cover
+  February:  17% (204 MW average output)
+  March:     23% (276 MW average output) — improving solar resource
+  Q1 weighted average: 18% (216 MW average output)
+
+Expected Q1 solar energy production: 0.47 TWh
+
+TOTAL RENEWABLE FORECAST
+
+Combined Q1 renewable generation: 2.53 TWh
+Share of total expected Q1 load (26.1 TWh): 9.7%
+Combined with hydro (1.49 GW, 42% CF): total clean energy share 31.2%
+
+CURTAILMENT FORECAST
+
+High-wind/low-demand curtailment events expected: 12-18 days in Q1
+
+Curtailment risk periods identified:
+  - Overnight hours (00:00-06:00) when wind generation exceeds 90% of
+    installed capacity AND system load drops below 5.5 GW
+  - Estimated curtailment volume: 180-260 GWh (7-10% of wind generation)
+  - Primary constraint: North-to-Central transmission corridor (2,400 MW
+    thermal limit on the Ridgeline-Lakeside 345kV path)
+
+Economic impact of forecast curtailment: €8.2M - €12.4M in lost
+production tax credits and renewable energy certificates.
+
+RAMP RATE CONCERNS
+
+Wind ramp events exceeding 500 MW/hour expected: 22-30 events in Q1
+Wind ramp events exceeding 1,000 MW/hour: 4-6 events (severe)
+
+Recommended mitigation:
+  - Maintain 400 MW of fast-ramping gas peaker capacity on standby during
+    high-wind forecast periods
+  - Utilize 150 MW battery storage at Lakeside for ramp smoothing
+  - Coordinate with MidAtlantic ISO for emergency energy exchange during
+    severe down-ramp events
+
+INTERCONNECTION QUEUE
+
+Pending renewable projects in NorthGrid interconnection queue:
+  - 3 wind farms:  total 1,200 MW (expected COD: 2027-2028)
+  - 5 solar farms: total 800 MW (expected COD: 2027)
+  - 2 battery storage: total 300 MW/600 MWh (expected COD: 2027)
+
+Grid impact studies for these projects are underway. Preliminary results
+indicate North-Central corridor reinforcement required before additional
+wind capacity can be reliably integrated.
+
+PREPARED BY: L. Chen, Renewable Integration Manager
+REVIEWED BY: R. Vasquez, VP Grid Operations

@@ -1,0 +1,43 @@
+PROJECT HORIZON -- FINANCIAL DUE DILIGENCE WORKSTREAM REPORT
+
+Prepared by: Financial Advisory Practice
+Date: 2025-10-16
+Classification: CONFIDENTIAL -- PRIVILEGED
+
+EXECUTIVE SUMMARY AND METHODOLOGY
+
+This report presents the findings of the financial due diligence workstream conducted over 14 business days. Our team reviewed management-provided financial statements, revenue contracts, deferred revenue schedules, and accounting policies. We conducted structured interviews with the CFO, VP Finance, and two senior accountants. We were granted access to the ERP system (SAP S/4HANA) but with certain restrictions: historical journal entries prior to Q3 2023 were not available "due to a system migration," and three customer contracts identified as "commercially sensitive" were provided in redacted form only.
+
+It should be noted that the external audit by Ernst & Young remains incomplete as of the date of this report. Management has indicated the audit is expected to conclude by mid-November, but this timeline has already slipped once (originally planned for September completion). The absence of audited financials introduces a non-trivial process risk and limits the degree of assurance we can provide.
+
+REVENUE RECOGNITION -- CORE FINDINGS
+
+The headline ARR figure of EUR 50M as presented by management includes several categories of revenue that require careful treatment:
+
+First, approximately EUR 8M to EUR 12M in multi-year contracts where revenue appears to have been front-loaded into FY 2024 in a manner that is, at minimum, aggressive relative to standard SaaS accounting practices under IFRS 15. Three specific contracts (anonymized as Client A, Client B, and Client C) account for the majority of this discrepancy. Client A signed a 3-year commitment in January 2024 with delivery obligations extending through December 2026, yet the full first-year payment was recognized in FY 2024. The accounting team's explanation -- that "substantially all" platform access was delivered upon contract signing -- is not implausible but would likely be questioned by an auditor applying a stricter interpretation.
+
+Second, approximately EUR 3M in revenue is attributable to pilot programs and proof-of-concept engagements that management considers "highly likely to convert" to full enterprise licenses. While conversion rates for such programs are reportedly above 80% historically, including unconverted revenue inflates the current-year ARR figure. Under a more conservative treatment, adjusted ARR falls in the range of EUR 38M to EUR 42M.
+
+We would note that these findings do not necessarily indicate intentional misrepresentation. Revenue recognition in SaaS is a complex area with legitimate interpretation differences, and management's treatment is not clearly impermissible -- merely aggressive. However, the magnitude of the adjustment (approximately 20-25% of reported ARR) is material and has direct valuation implications. The preliminary overview's stated range of EUR 48-52M should probably be revised to EUR 38-45M pending audit completion.
+
+GROSS MARGIN ANALYSIS
+
+Reported gross margin of 72% includes several adjustments that we have examined in detail. Approximately EUR 2.5M in costs currently classified as R&D (and therefore excluded from COGS) relate to customer-specific customization work that, under a stricter interpretation, could be classified as service delivery costs. Additionally, EUR 1.2M in hosting infrastructure costs are capitalized as development assets rather than expensed. Adjusting for these items, effective gross margin is in the range of 64% to 68%.
+
+This is consistent with -- though at the lower end of -- comparable B2B SaaS companies at similar scale. It does not represent a red flag per se, but the gap between the 72% headline and the adjusted figure is notable and should be disclosed to the investment committee.
+
+INTELLECTUAL PROPERTY -- FINANCIAL IMPLICATIONS
+
+During our review of the patent-related financial records, we identified legal costs totaling EUR 340,000 incurred in 2023 and 2024 related to what internal documents describe as a "co-inventorship dispute" involving Dr. Klaus Haber. This directly relates to the IP co-authorship issue briefly mentioned in the preliminary overview. The legal proceedings appear to be at a preliminary stage, and management's characterization of the matter as "resolved" appears to be premature based on the documentation we reviewed. Two of the seven granted patents (EP3847291 and EP3901445) are specifically named in the dispute filings.
+
+The financial exposure from this dispute is difficult to quantify at this stage. If the co-inventorship claim is upheld, the company may need to either negotiate a licensing arrangement or modify the affected patent claims. In a worst-case scenario, it could affect the company's freedom to operate in certain product areas. We recommend that the legal workstream provide a detailed opinion on this matter before any valuation adjustment.
+
+WORKING CAPITAL AND CASH POSITION
+
+Cash position as of September 2025 is approximately EUR 22M, which provides adequate runway. However, we note that approximately EUR 8M of this represents advance payments from Client A and Client B that have been recognized as revenue but for which delivery obligations remain outstanding. If these contracts were to be restructured or terminated, the cash position would be materially affected.
+
+CONCLUSION
+
+The financial profile is fundamentally sound but materially different from the initial management representation. We estimate the supportable ARR range at EUR 38M to EUR 42M, with gross margins of 64-68% on an adjusted basis. The IP dispute represents a non-trivial contingent liability. These findings suggest a revised valuation range of EUR 285M to EUR 350M, significantly below the initial EUR 400-430M indicative range.
+
+We recommend conditioning any binding offer on completion of the Ernst & Young audit and resolution (or at minimum, detailed legal opinion) of the patent co-inventorship dispute.

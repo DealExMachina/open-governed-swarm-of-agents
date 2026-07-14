@@ -1,0 +1,115 @@
+PRE-BLA MEETING BRIEFING DOCUMENT
+================================================================================
+Protocol:           ONCO-RESOLVE-301
+IND Number:         IND-178432
+Meeting Type:       Type B Pre-BLA Meeting (21 CFR 312.47)
+Proposed Date:      2025-07-15
+Sponsor:            Meridian Therapeutics, Inc.
+Agent:              Dr. Richard Holloway, VP Regulatory Affairs
+================================================================================
+
+EXECUTIVE SUMMARY:
+
+Meridian Therapeutics requests a Type B Pre-BLA meeting with the Division of
+Oncology Products 1 to discuss the regulatory pathway for ORX-4471 in
+previously treated non-small cell lung cancer (NSCLC). Based on Phase II
+results from ONCO-RESOLVE-301, we seek alignment on an accelerated approval
+pathway under 21 CFR 314.500 (Subpart H), with PFS as the surrogate endpoint
+and post-marketing confirmation via the ongoing Phase III portion.
+
+EFFICACY SUMMARY (Phase II Final, Document 15):
+
+  Population:    180 randomized, 174 mITT (116 ORX-4471, 58 docetaxel)
+  Follow-up:     Median 16.2 months
+
+  ┌────────────────────────────┬──────────────┬──────────────┐
+  │ Endpoint                   │ ORX-4471     │ Docetaxel    │
+  ├────────────────────────────┼──────────────┼──────────────┤
+  │ ORR (confirmed)            │ 31.9%        │ 13.8%        │
+  │ CR rate                    │ 5.2%         │ 1.7%         │
+  │ Median PFS                 │ 7.1 months   │ 4.0 months   │
+  │ PFS HR (95% CI)            │ 0.58 (0.42-0.80)           │
+  │ Median OS                  │ 14.8 months  │ 10.2 months  │
+  │ OS HR (95% CI)             │ 0.68 (0.48-0.96)           │
+  │ 18-month OS                │ 61%          │ 29%          │
+  └────────────────────────────┴──────────────┴──────────────┘
+
+  PFS benefit is clinically meaningful and statistically significant across
+  multiple analysis populations (ITT, mITT, PP). Results compare favorably
+  to approved agents in this setting.
+
+SAFETY SUMMARY (Phase II Final, Corrected Data):
+
+  Grade 3+ AE rate:              18.1%
+  Grade 3+ hepatotoxicity:       7.9% (corrected, with expanded monitoring)
+  Grade 3+ pneumonitis:          2.6%
+  Treatment-related death:       0%
+  Discontinuation due to AE:     6.9%
+
+  Safety profile consistent with dual-mechanism checkpoint inhibitor class.
+  Hepatotoxicity rate manageable with enhanced monitoring protocol (Amendment
+  v3.2, Document 13).
+
+DATA INTEGRITY — ALT VALUE CORRECTION:
+
+  The sponsor acknowledges the data integrity issue identified at Site 07
+  (Document 08) and provides the following assurances:
+
+  1. ORIGINAL DATA PRESERVED: All original eCRF entries are maintained in
+     the audit trail per 21 CFR Part 11. The Medidata Rave EDC system
+     records original values, correction values, timestamps, user IDs,
+     and reason-for-change for every modified field.
+
+  2. CORRECTION FULLY DOCUMENTED: Data Correction Notice DCN-07-2024-001
+     details the root cause, affected patients, and impact assessment.
+
+  3. ANALYSES VERSIONED: Every safety analysis specifies which data version
+     was used. The sensitivity analysis (Document 10) demonstrates that
+     efficacy conclusions are unchanged by the correction.
+
+  4. PHASE I DATA IMMUTABLE: The Phase I safety summary (Document 02,
+     Protocol P1-ORX-4471) has NOT been modified. Phase I database was
+     locked 2023-09-28 and remains locked. Phase II findings are documented
+     as new safety information, not corrections to Phase I.
+
+  5. CROSS-SITE AUDIT COMPLETE: All 12 sites audited for laboratory data
+     transcription accuracy. No additional errors meeting the significance
+     threshold of Document 08 were identified. Minor discrepancies (< 10%
+     of recorded value) found at 3 sites, all corrected and documented.
+
+RESPONSE TO FDA INFORMATION REQUEST (Document 12):
+
+  All six FDA requests fully addressed in the sponsor response (submitted
+  2024-12-28, within the 30-day response window). Key points:
+
+  - Request 1 (Audit trail): Complete EDC audit trail screenshots provided
+  - Request 2 (Data integrity): Enhanced procedures documented with CAPA
+  - Request 3 (Hepatic monitoring): Amendment v3.2 submitted and approved
+  - Request 4 (Analysis versioning): Comprehensive version tracking provided
+  - Request 5 (Stopping boundary): Evaluable population defined, DSMB
+    rationale for continuation provided with dissenting opinion included
+  - Request 6 (RECIST discrepancies): Full resolution report (Document 16)
+
+  No clinical hold imposed. FDA accepted the response without further queries.
+
+PROPOSED REGULATORY PATHWAY:
+
+  Accelerated Approval (21 CFR 314.500):
+    Surrogate endpoint: PFS (per FDA Guidance for Industry, 2018)
+    Confirmatory evidence: Phase III portion (270 additional patients, OS primary)
+    Estimated Phase III completion: Q4 2026
+    Estimated BLA submission: Q2 2027
+
+QUESTIONS FOR THE DIVISION:
+
+  1. Does the Division agree that PFS is an acceptable surrogate endpoint for
+     accelerated approval in this indication?
+  2. Is the Phase II dataset (n=180) adequate for the accelerated approval
+     application, or does the Division require additional Phase III data?
+  3. Does the Division have additional concerns regarding the data correction
+     at Site 07 that would affect the review timeline?
+  4. Does the Division agree with the proposed PD-L1 >= 50% enrichment for
+     the initial indication, with broader labeling upon Phase III completion?
+  5. What companion diagnostic requirements apply for PD-L1 testing?
+
+STATE: EPOCH_3 | REGULATORY: PRE_BLA | PATHWAY: ACCELERATED_APPROVAL | DATA_INTEGRITY: RESOLVED

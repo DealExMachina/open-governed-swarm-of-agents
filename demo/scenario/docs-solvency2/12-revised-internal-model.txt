@@ -1,0 +1,152 @@
+MERIDIAN INSURANCE GROUP AG
+Partial Internal Model — Recalibration Report
+Following EIOPA Updated Look-Through Guidelines (EIOPA-BoS-26/142)
+Reference Date: 30 June 2026
+Prepared by: Risk Actuary — Dr. Lukas Feldmann
+              Capital Model Analyst — Dr. Katharina Engel
+Classification: CONFIDENTIAL — Board, BaFin, and Model Validation Only
+Date of Issue: 8 August 2026
+Reference: PIM-2026-002
+
+1. PURPOSE
+
+This report documents the recalibration of Meridian's partial internal
+model (PIM) in response to:
+  (a) BaFin's supervisory letter dated 22 May 2026, Section 2.2;
+  (b) The enhanced look-through data now available for all 47
+      collective investment undertakings; and
+  (c) The need to maintain model appropriateness under Art. 120 of
+      Directive 2009/138/EC.
+
+2. SCOPE OF RECALIBRATION
+
+The PIM covers the life underwriting risk module and market risk module.
+This recalibration focuses on the MARKET RISK MODULE, as the enhanced
+look-through data materially affects equity and spread risk parameters.
+Life underwriting parameters are unchanged from the January 2026 review.
+
+3. RECALIBRATED PARAMETERS — MARKET RISK
+
+3.1 Equity Risk (MATERIAL CHANGE)
+  Previous Type 1 stress: 41% (standard formula: 39%)
+  Revised Type 1 stress:  45%
+
+  Previous Type 2 stress: 52% (standard formula: 49%)
+  Revised Type 2 stress:  56%
+
+  Reason: Full look-through reveals concentration in technology and
+  emerging market equities within funds MSIG-EQ-14 and MSIG-EQ-22.
+  These holdings exhibit higher volatility than the broad indices
+  previously assumed under the mandate-based approach. Backtesting
+  against 2020-2025 data confirms the higher stress is appropriate.
+
+  Revised capital charge:  EUR 118,000,000 (was EUR 94,000,000)
+  Increase:                EUR  24,000,000
+
+3.2 Spread Risk (MATERIAL CHANGE)
+  The migration-based model has been recalibrated to reflect the
+  actual credit quality distribution revealed by look-through:
+  - 8.4% of fixed income within funds is rated BBB or below
+    (previously assumed < 3% under mandate-based approach)
+  - Concentrated exposure to EUR 12,000,000 in high-yield bonds
+    within Fund MSIG-FI-03
+
+  Revised capital charge:  EUR 104,000,000 (was EUR 83,000,000)
+  Increase:                EUR  21,000,000
+
+3.3 Interest Rate Risk (MINOR CHANGE)
+  Revised capital charge:  EUR 115,000,000 (was EUR 112,000,000)
+  Increase:                EUR   3,000,000
+  (Reflects updated duration profile from look-through bond data)
+
+3.4 Currency Risk (NEW SUB-MODULE)
+  Previously immaterial under mandate-based approach. Full look-
+  through reveals EUR 28,000,000 in USD-denominated assets and
+  EUR 15,000,000 in GBP-denominated assets within funds.
+
+  Capital charge:          EUR  11,000,000 (previously EUR 0)
+
+4. REVISED COMPARISON WITH STANDARD FORMULA
+
+                          Internal Model    Standard Formula    Delta
+Life underwriting risk    EUR 191,000,000   EUR 198,000,000   -3.5%
+Market risk               EUR 335,000,000   EUR 342,000,000   -2.0%
+-----------------------------------------------------------------------
+Combined (with diversif.)  EUR 472,000,000   EUR 465,000,000   +1.5%
+
+CRITICAL FINDING:
+
+The recalibrated internal model now produces a HIGHER combined SCR
+than the standard formula by EUR 7,000,000 (1.5%). This REVERSES
+the previous relationship where the internal model produced a LOWER
+SCR by EUR 14,000,000 (3.2%).
+
+Comparison history:
+  January 2026 calibration:  Internal model SCR LOWER by 3.2%
+  August 2026 calibration:   Internal model SCR HIGHER by 1.5%
+  Swing:                     4.7 percentage points
+
+This reversal is primarily driven by:
+  - Equity concentration risk captured by internal model but not by
+    standard formula (EUR +24M vs +22M standard formula)
+  - Currency risk now modeled internally (EUR +11M vs +8M standard)
+  - Spread risk migration approach more sensitive to credit quality
+    deterioration than standard formula factor-based approach
+
+5. IMPLICATIONS
+
+5.1 Regulatory Reporting
+  Under Art. 112 of Directive 2009/138/EC, Meridian must report
+  the SCR using the HIGHER of the internal model and standard
+  formula results. Previously, this distinction was immaterial as
+  both approaches produced similar results.
+
+  Going forward, Meridian will report the PIM SCR for the modules
+  covered by the internal model (market risk and life underwriting),
+  as this is the approved regulatory basis. The standard formula
+  comparison is maintained for validation purposes.
+
+5.2 Capital Remediation Plan Impact
+  The remediation plan (CRP-2026-001) was based on standard formula
+  figures. If internal model figures are used for the Q3 2026
+  calculation, the projected Q3 SCR ratio may be approximately
+  2 percentage points lower than projected.
+
+  Revised Q3 2026 projection: approximately 153% (was 155.3%)
+  This remains within the target range but with less buffer.
+
+5.3 Model Change Notification
+  This recalibration constitutes a MAJOR model change under BaFin's
+  classification framework. A formal model change application must
+  be submitted to BaFin within 30 days (by 7 September 2026) under
+  Art. 115 of Directive 2009/138/EC.
+
+6. VALIDATION RESULTS
+
+6.1 Backtesting (updated)
+  P&L attribution test: 91.8% of variance explained (threshold: 90%)
+  Profit/loss test: 4 exceptions in 250 observations (threshold: 5)
+  Conclusion: PASS (marginal — closer to threshold than January)
+
+6.2 Sensitivity Analysis (updated)
+  Maximum SCR impact from single parameter change: EUR 28,000,000
+  (equity concentration stress factor). This is elevated and will
+  be subject to enhanced monitoring.
+
+6.3 Use Test
+  The recalibrated model is used in:
+  - SCR reporting (Pillar 1)
+  - ORSA projections (updated August 2026)
+  - Investment limit monitoring (daily)
+  - Performance attribution (monthly)
+  Conclusion: Use test requirements under Art. 120 satisfied.
+
+7. SIGN-OFF
+
+  Dr. Lukas Feldmann — Risk Actuary (model owner)
+  Dr. Katharina Engel — Capital Model Analyst
+  Herr Thomas Lange — Head of Investment Operations
+  Frau Monika Adler — CRO
+
+  Model Validation Function sign-off: 5 August 2026
+  (Herr Dr. Peter Winkler — Head of Model Validation)

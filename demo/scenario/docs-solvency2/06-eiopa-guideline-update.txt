@@ -1,0 +1,101 @@
+EUROPEAN INSURANCE AND OCCUPATIONAL PENSIONS AUTHORITY (EIOPA)
+Updated Guidelines on the Application of the Look-Through Approach
+Reference: EIOPA-BoS-26/142
+Date of Publication: 15 April 2026
+Effective Date: Immediate (15 April 2026)
+Applicable to: All insurance and reinsurance undertakings subject to
+  Directive 2009/138/EC
+
+INTRODUCTORY NOTE FROM THE CHAIRPERSON
+
+Following a comprehensive review of supervisory practices across
+Member States and the findings of EIOPA's 2025 thematic review on
+investment risk (Ref. EIOPA-BoS-25/389), EIOPA issues these updated
+guidelines to strengthen the application of the look-through approach
+for collective investment undertakings under Art. 84 of Delegated
+Regulation (EU) 2015/35.
+
+These guidelines replace EIOPA Guidelines EIOPA-BoS-14/171 (Section 7)
+and apply with IMMEDIATE EFFECT.
+
+GUIDELINE 1 — SCOPE OF APPLICATION (replaces former Guideline 12)
+
+1.1 Undertakings shall apply the full look-through approach to ALL
+    collective investment undertakings, funds of funds, and similar
+    investment structures, regardless of the proportion of the
+    undertaking's total assets they represent.
+
+1.2 The mandate-based approach is NO LONGER acceptable as a primary
+    methodology. It may be used only as a TEMPORARY measure (maximum
+    3 months) while look-through data is being obtained, and only if
+    the undertaking can demonstrate active efforts to obtain such data.
+
+1.3 Where look-through data is genuinely unavailable after reasonable
+    efforts, the undertaking shall apply the HIGHEST risk charge
+    applicable to any asset class within the fund's investment mandate.
+
+GUIDELINE 2 — DATA FREQUENCY AND TIMELINESS
+
+2.1 Look-through data shall be refreshed at least QUARTERLY, with a
+    maximum data lag of 30 calendar days from the reporting date.
+
+2.2 Previous guidance permitted semi-annual refresh. This is hereby
+    superseded. Quarterly refresh is the minimum standard.
+
+GUIDELINE 3 — RETROACTIVE REVIEW RECOMMENDATION
+
+3.1 EIOPA RECOMMENDS (comply or explain) that undertakings perform a
+    retroactive assessment of their most recent SCR calculation to
+    quantify the impact of applying these updated guidelines.
+
+3.2 This retroactive assessment shall be communicated to the National
+    Competent Authority (NCA) within 60 calendar days of the effective
+    date of these guidelines (i.e., by 14 June 2026).
+
+3.3 IMPORTANT: The retroactive assessment is for INFORMATIONAL PURPOSES
+    and does NOT invalidate prior SCR calculations that were compliant
+    under the then-applicable guidelines. The prior SCR figures remain
+    the official regulatory figures for the relevant reporting period.
+
+3.4 However, NCAs may, at their discretion, require undertakings to
+    submit a supplementary QRT reflecting the restated position.
+
+GUIDELINE 4 — IMPACT ON TRANSITIONAL MEASURES
+
+4.1 The transitional measure on technical provisions under Art. 308c
+    of Directive 2009/138/EC is NOT directly affected by these
+    guidelines, as the look-through approach pertains to asset-side
+    risk charges rather than technical provisions.
+
+4.2 HOWEVER, where the application of enhanced look-through results in
+    a material change to the undertaking's risk profile, NCAs may
+    require an early recalculation of the transitional measure under
+    Art. 308c(5).
+
+4.3 The threshold for "material change" is defined as a change in the
+    SCR of more than 10% or a change in the SCR ratio of more than
+    10 percentage points.
+
+GUIDELINE 5 — SUPERVISORY REPORTING
+
+5.1 Undertakings shall include a dedicated section in their next
+    Regular Supervisory Report (RSR) describing the implementation of
+    these guidelines and any quantitative impact.
+
+5.2 The Solvency and Financial Condition Report (SFCR) for the current
+    reporting year shall disclose the impact of the look-through
+    changes on the SCR.
+
+COMPLIANCE AND ENFORCEMENT
+
+National Competent Authorities are required to notify EIOPA within
+2 months of whether they comply or intend to comply with these
+guidelines, in accordance with Art. 16(3) of Regulation (EU)
+No 1094/2010.
+
+Undertakings should direct questions to their NCA in the first
+instance. EIOPA will publish an updated Q&A document within 30 days.
+
+Signed:
+  Dr. Petra Hielkema — Chairperson, EIOPA
+  Frankfurt am Main, 15 April 2026

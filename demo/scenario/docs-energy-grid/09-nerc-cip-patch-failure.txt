@@ -1,0 +1,110 @@
+DOCUMENT: NorthGrid Utilities — CIP-007 Patch Management Failure Report
+DATE: February 25, 2026
+CLASSIFICATION: NERC CIP — Confidential / Compliance Sensitive
+AUTHOR: Cybersecurity & Compliance Division
+REF: NG-CIP-2026-02-PATCH-009
+
+SELF-REPORT STATUS: Potential Violation — Self-Reported to NERC
+                    ReliabilityFirst on February 24, 2026
+SELF-REPORT REF:   RF-SR-2026-NG-0042
+
+SUMMARY
+
+NorthGrid Utilities has identified a CIP-007-6 R2 (Security Patch
+Management) compliance failure affecting 34 of 247 BES Cyber Assets
+(BCAs). These assets did not receive the February 2026 security patches
+within the mandatory 35-calendar-day implementation window.
+
+AFFECTED ASSETS
+
+  Category              | Count | Impact Rating | Location
+  ----------------------|-------|---------------|------------------
+  Relay protection IEDs |    3  | High Impact   | Granite Falls,
+                        |       |               | River Bend, Lakeside
+  RTU controllers       |   12  | Medium Impact | North, Central areas
+  SCADA workstations    |    8  | Medium Impact | Central ECC
+  Historian servers     |    4  | Medium Impact | Primary data center
+  Firewall appliances   |    5  | Medium Impact | All areas
+  Comm. routers         |    2  | Low Impact    | South, Coastal
+  ----------------------|-------|---------------|------------------
+  TOTAL                 |   34  |               |
+
+Percentage of BCA inventory affected: 13.8% (34 of 247)
+
+COMPLIANCE TIMELINE
+
+  Date        | Event
+  ------------|-----------------------------------------------------------
+  Jan 20      | Microsoft, Cisco, and SEL release February security
+              | patch bundles. NorthGrid OT Security begins evaluation.
+  Jan 25      | Patch qualification testing begins in OT lab environment.
+  Feb 3       | Lab testing identifies compatibility issue: SEL relay
+              | firmware update conflicts with NorthGrid custom logic on
+              | 3 high-impact relay protection IEDs.
+  Feb 8       | Vendor (SEL) engaged for custom logic compatibility fix.
+  Feb 12-14   | Winter Storm Helios — all non-emergency maintenance
+              | activities suspended per NG-OP-412. Patch deployment frozen.
+  Feb 18      | Maintenance freeze lifted. Patch deployment resumes for
+              | non-relay assets.
+  Feb 22      | SEL delivers revised firmware. Lab re-testing required.
+  Feb 24      | 35-day window expires for January 20 patches. 34 assets
+              | remain unpatched. Self-report filed with ReliabilityFirst.
+  Feb 28      | Patch deployment completed for 31 of 34 assets. 3 relay
+              | IEDs still awaiting outage windows for application.
+
+ROOT CAUSE ANALYSIS
+
+Primary cause: Compounding of two independent factors:
+  1. SEL relay firmware compatibility issue required vendor engagement
+     and extended lab testing (added 14 days to qualification cycle).
+  2. Winter Storm Helios triggered a mandatory maintenance freeze that
+     consumed 6 days of the already-compressed deployment window.
+
+Contributing factors:
+  - Single-threaded patch qualification process (sequential, not parallel)
+  - No pre-positioned contingency patches for critical relay systems
+  - Maintenance freeze procedure (NG-OP-412) does not carve out
+    exceptions for compliance-critical cybersecurity activities
+
+RISK ASSESSMENT
+
+The 3 unpatched high-impact relay protection IEDs represent the most
+significant risk. These relays provide primary protection for:
+  - Granite Falls 345kV bus differential protection
+  - River Bend nuclear unit generator protection
+  - Lakeside Central Hub 345kV line protection
+
+The unpatched vulnerability (CVE-2026-1847) is a remote code execution
+flaw in the relay's web-based configuration interface. Mitigating controls
+in place:
+  - Electronic Security Perimeter (ESP) restricts access to relay network
+  - Web interface disabled on all 3 relays (SSH-only management)
+  - Network intrusion detection monitoring active on relay VLAN
+
+Residual risk with mitigating controls: LOW (but non-compliant)
+
+IMPACT ON COMPLIANCE POSTURE
+
+Prior compliance score (Q4 2025 audit):  94% WCI
+Impact of this finding:
+  - CIP-007 R2 potential violation adds approximately 3 WCI points
+  - Combined with existing CIP-007 findings (F-007-01 through F-007-03),
+    CIP-007 is now the highest-risk standard in NorthGrid's portfolio
+
+Projected Q1 compliance score if no additional findings: ~91% WCI
+(NOTE: This contradicts the Q4 trajectory which was trending toward 96%)
+
+CORRECTIVE ACTION PLAN
+
+  1. Immediate: Complete patching of remaining 3 relay IEDs by March 15
+     (requires scheduled outage windows for each relay).
+  2. Short-term: Implement parallel patch qualification tracks for IT
+     and OT assets (target: April 2026).
+  3. Medium-term: Revise NG-OP-412 to include cybersecurity patch
+     exception process during maintenance freezes.
+  4. Long-term: Deploy automated patch management system for OT
+     environment (RFP issued, target deployment Q4 2026).
+
+PREPARED BY: M. Thornton, CISSP, Chief Compliance Officer
+              T. Andersen, OT Security Manager
+APPROVED BY: J. Nakamura, General Counsel

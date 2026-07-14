@@ -1,0 +1,29 @@
+COMPLIANCE ALERT -- CHARGENET B.V. UTILIZATION DATA
+
+Date: 2025-06-25
+Subject: Underperformance of ChargeNet EV charging network
+
+ChargeNet B.V. was allocated EUR 18M (Category C -- Clean transportation) for 2,500 public EV charging points across the Netherlands.
+
+Deployment status:
+- Installed: 2,180 of 2,500 charging points (87.2%)
+- Operational: 1,950 (89.4% of installed)
+- 230 units pending grid connection (Stedin backlog in Noord-Holland)
+
+Utilization concern:
+- Average utilization: 8.2% across the operational network
+- Industry benchmark (Netherlands): 12-15% for public chargers
+- Revenue per point: EUR 1,840/year (vs business plan of EUR 3,200/year)
+
+Root cause analysis:
+- Deployment concentrated in suburban areas with lower EV density
+- 3 competing networks (Fastned, Allego, Shell Recharge) have higher-traffic locations
+- Grid connection delays have prevented activation in high-demand urban sites
+
+Financial impact:
+- ChargeNet operating at cash flow breakeven (marginal). No immediate default risk as sponsor provides working capital support.
+- Project remains Taxonomy-eligible (zero-emission charging infrastructure). Utilization is not a Taxonomy screening criterion.
+
+Contradiction: ChargeNet deployment is behind schedule (87.2% vs 100%) and utilization is 46% below business plan. However, Taxonomy alignment is unaffected as the activity (EV charging) meets TSC regardless of utilization. The underperformance affects impact metrics (avoided emissions from EV charging) but not green bond compliance.
+
+Claim: ChargeNet faces deployment delays and utilization below projections. Contradiction: Impact metrics will be lower than projected, but Taxonomy alignment and bond compliance are unaffected. Risk: Reputational risk if impact report shows significant underperformance. Goal: Monitor and report transparently.

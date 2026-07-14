@@ -1,0 +1,107 @@
+PROTOCOL AMENDMENT v3.2 — PHASE III EXPANSION
+================================================================================
+Protocol:           ONCO-RESOLVE-301
+Amendment Number:   3 (Version 3.2)
+IND Number:         IND-178432
+Sponsor:            Meridian Therapeutics, Inc.
+Effective Date:     2025-01-28
+Agent:              Dr. Elena Vasquez, Protocol Chair
+================================================================================
+
+SUMMARY OF CHANGES FROM VERSION 3.1:
+
+This amendment incorporates: (A) enhanced hepatic monitoring per DSMB
+recommendation DSMB-002, (B) dose modification criteria for hepatotoxicity,
+(C) PD-L1 stratification for Phase III randomization, (D) transfer-of-care
+imaging SOP, and (E) FDA Information Request responses.
+
+CHANGE 1: ENHANCED HEPATIC MONITORING SCHEDULE (Section 6.4, NEW)
+
+  Pre-amendment monitoring:
+    ALT/AST: Cycles 1, 3, 5, then every 3 cycles (q9w)
+
+  Post-amendment monitoring:
+    ALT/AST: Every cycle (q3w) PLUS Day 8 of Cycles 1 through 6
+    Total Bilirubin: Every cycle (q3w)
+    ALP/GGT: Cycles 1-6, then every 3 cycles
+    INR/Albumin: If ALT >3x ULN
+
+  Applies to: All active patients and all newly enrolled patients.
+  Effective immediately upon IRB approval at each site.
+
+CHANGE 2: DOSE MODIFICATION FOR HEPATOTOXICITY (Section 6.5, REVISED)
+
+  Grade 2 hepatotoxicity (ALT 3-5x ULN):
+    - Hold treatment, monitor ALT weekly
+    - Resume at same dose when ALT < 2x ULN
+    - If recurs: resume at 150mg (dose level -1)
+
+  Grade 3 hepatotoxicity (ALT 5-20x ULN):
+    - Hold treatment, hepatology consultation mandatory within 48 hours
+    - Monitor ALT twice weekly
+    - Consider corticosteroids if immune-mediated hepatitis suspected
+    - Resume at 150mg (dose level -1) when ALT < 2x ULN
+    - If recurs at 150mg: permanent discontinuation
+
+  Grade 4 hepatotoxicity (ALT >20x ULN):
+    - Permanent discontinuation of ORX-4471
+    - Initiate methylprednisolone 2mg/kg/day
+    - Hepatology consultation within 24 hours
+    - Report as SAE within 24 hours
+
+  NEW — Hy's Law monitoring:
+    If ALT >3x ULN AND total bilirubin >2x ULN (in absence of bile duct
+    obstruction or other cause): permanent discontinuation, FDA notification
+    within 15 calendar days per 21 CFR 312.32.
+
+CHANGE 3: PD-L1 STRATIFICATION (Section 5.2, REVISED)
+
+  Phase III randomization now stratified by:
+    - PD-L1 TPS: >= 50% vs. 1-49% vs. < 1%
+    - ECOG PS: 0 vs. 1
+    - Prior lines of therapy: 1 vs. >= 2
+    - Region: North America vs. Ex-North America (for future global expansion)
+
+  Rationale: Phase II subgroup analysis (Document 07) demonstrated differential
+  benefit by PD-L1 status. Stratification ensures balance and enables
+  pre-specified subgroup analyses for regulatory submission.
+
+CHANGE 4: TRANSFER-OF-CARE IMAGING SOP (Section 8.3.5, NEW)
+
+  For patients transferring between sites:
+    a) Receiving site must use ORIGINAL baseline measurements from enrolling site
+    b) Target lesion selection must be maintained as per enrolling site
+    c) Central radiology review (BICR) becomes PRIMARY assessment for all
+       transferred patients
+    d) Receiving site performs local read as secondary assessment only
+    e) Any discrepancy between site and BICR reported within 5 business days
+
+CHANGE 5: UPDATED STOPPING BOUNDARIES (Section 9.3, REVISED)
+
+  Hepatotoxicity stopping boundary:
+    Phase II (n=180):   Grade 3+ hepatotoxicity > 8% (unchanged)
+    Phase III (n=450):  Grade 3+ hepatotoxicity > 10% (revised from 8%)
+
+  Rationale: The 8% boundary was established based on monotherapy checkpoint
+  inhibitor historical data. ORX-4471 dual-mechanism profile warrants comparison
+  to combination checkpoint therapy (ipilimumab + nivolumab: ~9% Grade 3+
+  hepatotoxicity). The revised boundary of 10% for Phase III reflects this
+  updated risk-benefit context while maintaining patient safety.
+
+  NOTE: This revision does NOT retroactively change the Phase II stopping
+  boundary assessment. The Phase II exceedance (11.1% at 80-patient landmark)
+  is documented as occurred. The revised boundary applies only to Phase III.
+
+PHASE III ENROLLMENT TARGETS:
+  Total Phase III:      270 additional patients (450 total with Phase II)
+  ORX-4471 arm:         180
+  Docetaxel arm:        90
+  Enrollment period:    12 months (estimated completion Q1 2026)
+
+REGULATORY STATUS:
+  Amendment submitted to FDA: 2025-01-15
+  FDA 30-day review: No objection received (deemed approved 2025-02-14)
+  IRB approvals: 10 of 12 sites approved as of effective date
+    Pending: Site 08 (Cleveland Clinic), Site 12 (Fred Hutchinson)
+
+STATE: EPOCH_3 | PROTOCOL: v3.2 | PHASE_III: EXPANSION_OPEN | MONITORING: ENHANCED

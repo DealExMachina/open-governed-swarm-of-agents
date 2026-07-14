@@ -1,0 +1,115 @@
+DOCUMENT: NorthGrid Utilities — Gas Pipeline Supply Investigation
+DATE: February 28, 2026
+CLASSIFICATION: CONFIDENTIAL — Legal Privilege / Litigation Hold
+AUTHOR: Fuel Supply & Regulatory Affairs Division
+REF: NG-FUEL-2026-02-INV-010
+
+SUBJECT: TransCon Energy LLC — Pipeline Line 4200 Supply Failure
+         During Winter Storm Helios (February 12-14, 2026)
+
+INVESTIGATION INITIATED: February 15, 2026
+FERC DOCKET: RP26-412-000 (Preliminary Investigation)
+
+BACKGROUND
+
+During Winter Storm Helios, NorthGrid experienced a loss of 3,200 MW of
+gas-fired generation, the primary cause being reduced gas supply pressure
+on TransCon Energy's Pipeline Line 4200, which serves NorthGrid's Central
+and South balancing area gas generation fleet.
+
+TransCon Energy filed a force majeure declaration on February 13, 2026
+(TransCon ref: FM-2026-0087), claiming that "unprecedented cold weather
+conditions caused pipeline pressure drops beyond operational control."
+
+NorthGrid's investigation challenges this characterization.
+
+TRANSCON ENERGY'S STATED POSITION
+
+Per force majeure declaration FM-2026-0087:
+  - "Extreme cold caused compressor station efficiency losses of 15-20%"
+  - "Pipeline demand across all customers exceeded design capacity"
+  - "Gas supply was allocated pro rata to all firm customers"
+  - "NorthGrid received its contractual minimum firm delivery volume"
+  - "Conditions were unforeseeable and beyond TransCon's control"
+
+NORTHGRID'S EVIDENCE (CONTRADICTING FORCE MAJEURE)
+
+NorthGrid's gas nomination and flow monitoring systems recorded the
+following sequence of events on Pipeline Line 4200:
+
+  Date/Time (UTC)   | Flow to NorthGrid | Pipeline Pressure | Note
+  -------------------|-------------------|-------------------|--------
+  Feb 11, 23:00      | 1,850 MMcf/d      | 812 psig          | Normal
+  Feb 12, 02:00      | 1,840 MMcf/d      | 805 psig          | Normal
+  Feb 12, 05:00      | 1,620 MMcf/d      | 748 psig          | REDUCED
+  Feb 12, 08:00      | 1,380 MMcf/d      | 691 psig          | ALERT
+  Feb 12, 11:00      | 1,100 MMcf/d      | 623 psig          | CRITICAL
+  Feb 12, 14:00      |   780 MMcf/d      | 542 psig          | EMERGENCY
+
+Key finding: Gas flow to NorthGrid began declining at 05:00 UTC on
+February 12 — six hours BEFORE the storm reached peak intensity and
+BEFORE ambient temperatures dropped below the -10C threshold that
+TransCon cites as the cause of compressor efficiency losses.
+
+At 05:00 UTC, ambient temperature was -6C, well within normal winter
+operating range for TransCon's compressor stations (rated to -15C).
+
+CONTRADICTORY EVIDENCE: INDUSTRIAL CUSTOMER FLOW DATA
+
+NorthGrid obtained (via FERC discovery request) TransCon's allocation
+records for February 12, 2026. These records show:
+
+  Customer               | Contract  | Feb 12 Actual | Feb 11 Actual
+  -----------------------|-----------|---------------|---------------
+  NorthGrid Utilities    | 1,850 Firm| 1,100 avg     | 1,840
+  ChemCorp Industries    |   600 IT  |   850         |   590
+  SteelWorks National    |   400 IT  |   620         |   410
+  Regional Gas Dist. Co. | 1,200 Firm|   980         | 1,180
+
+NOTE: "IT" = Interruptible Transportation, "Firm" = Firm Transportation
+
+Critical observation: ChemCorp Industries and SteelWorks National, both
+holding INTERRUPTIBLE transportation contracts, received INCREASED gas
+flows on February 12 compared to February 11 — while NorthGrid's FIRM
+transportation was being curtailed.
+
+Total interruptible customer flow increase: +460 MMcf/d
+NorthGrid firm customer flow decrease:     -750 MMcf/d
+
+Under FERC regulations (18 CFR 284.7) and TransCon's FERC Gas Tariff,
+interruptible transportation must be curtailed BEFORE firm transportation
+during capacity constraints.
+
+FINANCIAL ANALYSIS
+
+NorthGrid's estimated damages from the gas supply failure:
+  - Emergency power purchases:           €8.2M
+  - Demand response activation costs:    €4.6M
+  - Gas spot market premium purchases:   €3.1M
+  - Generation equipment damage (CT2):   €1.8M
+  - Customer claims and goodwill:        €2.4M
+  - NERC penalty exposure (BAL-003):     €0.5M - €2.0M (estimated)
+  ----------------------------------------
+  Total estimated damages:               €20.6M - €22.1M
+
+REGULATORY FILINGS
+
+  1. FERC complaint filed February 26, 2026 (Docket RP26-412-000)
+     alleging TransCon violated its tariff by prioritizing interruptible
+     customers over firm customers during a capacity constraint.
+  2. FERC requesting TransCon produce all allocation records,
+     compressor station logs, and customer communications for Feb 10-15.
+  3. NorthGrid has engaged outside counsel (Baker & McKenzie) for
+     potential civil litigation if FERC resolution is insufficient.
+
+INTERIM ACTIONS
+
+  1. NorthGrid has diversified gas supply: new firm contract with
+     PeakGas Pipeline (Line 5500) for 400 MMcf/d backup supply.
+  2. Dual-fuel capability assessment underway for Central area gas units.
+  3. TransCon placed on NorthGrid's Enhanced Supplier Monitoring list.
+
+PREPARED BY: F. Gonzalez, Director of Fuel Supply
+              B. Whitfield, Senior Regulatory Counsel
+APPROVED BY: J. Nakamura, General Counsel
+             R. Vasquez, VP Grid Operations

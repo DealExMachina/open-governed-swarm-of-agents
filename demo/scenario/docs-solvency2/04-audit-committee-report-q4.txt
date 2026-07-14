@@ -1,0 +1,120 @@
+MERIDIAN INSURANCE GROUP AG
+Internal Audit Report to the Audit Committee
+Reference Period: Q4 2025
+Prepared by: Internal Auditor — Frau Sabine Kessler, CIA, CISA
+Classification: CONFIDENTIAL — Audit Committee Only
+Date of Issue: 5 February 2026
+Report Reference: IA-2026-004
+
+1. EXECUTIVE SUMMARY
+
+The Internal Audit Function has completed its planned audit activities
+for Q4 2025, covering three areas: (i) Solvency II reporting processes,
+(ii) investment compliance, and (iii) reinsurance arrangements. This
+report presents three observations, of which one is rated Material.
+
+Overall assessment: PARTIALLY SATISFACTORY — the Material observation
+on the look-through approach requires prompt management attention.
+
+2. AUDIT SCOPE AND METHODOLOGY
+
+Audit period: 1 October 2025 to 31 December 2025
+Standards applied: IIA International Standards for the Professional
+Practice of Internal Auditing (2024 revision)
+Population tested: 47 investment funds (EUR 340,000,000 total),
+12 reinsurance treaties, 8 quarterly reporting deliverables.
+
+3. OBSERVATIONS
+
+OBSERVATION 1 — MATERIAL
+Title: Look-Through Approach for Collective Investment Undertakings
+  Incomplete
+Rating: MATERIAL
+Risk Area: Solvency II Pillar 1 — SCR Calculation
+Reference: Art. 84, Delegated Regulation (EU) 2015/35
+
+Description:
+  Meridian applies the look-through approach to 78% of its fund
+  holdings by value (EUR 265,200,000 of EUR 340,000,000). The
+  remaining 22% (EUR 74,800,000) is treated under the mandate-based
+  approach. Internal Audit identified that for 7 of the 47 funds
+  (15%), the mandate-based approach was applied not due to genuine
+  data unavailability but because the investment operations team had
+  not requested updated fund composition data from asset managers.
+
+  For 3 of these 7 funds (EUR 31,400,000 combined), updated look-
+  through data IS available from the fund manager but had not been
+  incorporated into the SCR calculation as at 31 December 2025.
+
+Impact Assessment:
+  If full look-through were applied to these 3 funds, the market risk
+  sub-module could change by an estimated EUR 5,000,000 to EUR 12,000,000.
+  This would not breach the SCR ratio target of 135% but represents a
+  potential misstatement in the reported figures.
+
+Management Response (Herr Thomas Lange, Head of Investment Operations):
+  Accepted. Remediation plan to request quarterly look-through data
+  from all fund managers by 31 March 2026. Estimated completion: Q2 2026.
+
+OBSERVATION 2 — SIGNIFICANT
+Title: Reinsurance Treaty Documentation Gaps
+Rating: SIGNIFICANT
+Risk Area: Solvency II Pillar 1 — Counterparty Default Risk Module
+
+Description:
+  For 2 of 12 reinsurance treaties reviewed, the signed treaty
+  documentation did not match the parameters entered in the actuarial
+  system (Prophet). Specifically:
+  - Treaty RT-2024-007 (Swiss Re): attachment point recorded as
+    EUR 50,000,000 but treaty states EUR 55,000,000.
+  - Treaty RT-2024-011 (Munich Re): sliding scale commission range
+    recorded as 25-35% but treaty states 27-33%.
+
+Impact Assessment:
+  Potential misstatement in the counterparty default risk module of
+  up to EUR 3,000,000. Within materiality threshold but indicative
+  of a control weakness.
+
+Management Response (Frau Elena Vogt, Head of Reinsurance):
+  Accepted. Immediate correction of the two discrepancies. Full
+  reconciliation of all 12 treaties to be completed by 28 February 2026.
+
+OBSERVATION 3 — MINOR
+Title: QRT Submission Timeline Compliance
+Rating: MINOR
+Risk Area: Solvency II Pillar 3 — Reporting
+
+Description:
+  The Q3 2025 Quantitative Reporting Templates (QRTs) were submitted
+  to BaFin 2 business days before the regulatory deadline. While
+  technically compliant, the Solvency II Reporting Policy (POL-SII-003)
+  requires submission 5 business days before the deadline to allow for
+  supervisory queries.
+
+Impact Assessment:
+  No regulatory breach. Reputational risk only.
+
+Management Response (Herr Klaus Braun, Head of Regulatory Reporting):
+  Accepted. Resource constraints in Q3 noted. Additional FTE approved
+  for the reporting team effective January 2026.
+
+4. FOLLOW-UP ON PRIOR OBSERVATIONS
+
+Two observations from the Q2 2025 audit remain open:
+  IA-2025-009: Data quality controls for mortality assumptions — IN PROGRESS
+  IA-2025-012: Outsourcing register completeness — OVERDUE (original
+    deadline 30 November 2025, revised to 31 March 2026)
+
+5. CONCLUSION AND RECOMMENDATIONS
+
+The Audit Committee is requested to:
+  (a) Note the Material observation on look-through and monitor the
+      remediation timeline closely;
+  (b) Request a special update from Investment Operations at the
+      March 2026 meeting;
+  (c) Approve the revised Internal Audit Plan for H1 2026.
+
+6. SIGN-OFF
+
+  Frau Sabine Kessler — Head of Internal Audit
+  Approved for distribution: Herr Dr. Friedrich Maier — Audit Committee Chair

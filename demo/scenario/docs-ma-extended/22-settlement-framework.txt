@@ -1,0 +1,108 @@
+================================================================================
+CONFIDENTIAL — PROJECT HORIZON
+IP Dispute Settlement Framework: Axion Corp & Dr. Klaus Haber
+Date: 2025-07-01
+Prepared by: Dr. Hans-Jurgen Falk, Falk & Weber IP, Munich
+              Dr. Martina Scholz, VP Legal — NovaTech AG
+================================================================================
+
+1. OVERVIEW
+
+This memorandum outlines the proposed settlement framework for resolving
+the two outstanding IP disputes affecting NovaTech AG: (a) the Axion Corp
+patent infringement lawsuit (Document 19), and (b) the Dr. Klaus Haber
+co-ownership claims on EP3512644 and EP3847291 (Document 12).
+
+2. AXION CORP SETTLEMENT
+
+Following three rounds of mediation at the UPC (Munich Local Division),
+the parties have reached the following settlement framework:
+
+  (a) Financial Terms:
+      - Lump-sum payment: EUR 1.5 - 2.0 million (to be finalized)
+      - Ongoing royalty: 4% of net revenue attributable to the Predictive
+        Risk Scoring module (estimated EUR 240K annually at current volumes)
+      - Royalty term: 7 years or until expiration of EP4102883
+
+  (b) Cross-License:
+      - NovaTech grants Axion a non-exclusive license to EP3847291 for
+        use outside the EU MDR compliance vertical
+      - Axion grants NovaTech freedom-to-operate under EP4102883 for
+        existing and future regulatory compliance products
+
+  (c) Non-Assertion:
+      - Mutual non-assertion covenant covering current product portfolios
+      - 3-year standstill on new patent assertions between parties
+
+  (d) Dismissal:
+      - Axion withdraws infringement claims and injunction request
+      - Each party bears its own legal costs
+
+  Estimated Total Cost (Year 1): EUR 1.74 - 2.24 million
+  Estimated Annual Ongoing Cost: EUR 240K (royalty, subject to growth)
+
+3. DR. KLAUS HABER SETTLEMENT
+
+Parallel negotiations with Dr. Haber's counsel (Rechtsanwalt Peter Lindner)
+have produced the following proposed terms:
+
+  (a) EP3847291 — Assignment Cure:
+      - NovaTech pays the outstanding CHF 150,000 assignment consideration
+        (as identified in Document 12) plus a premium of CHF 50,000 for
+        the delay, totaling CHF 200,000
+      - Dr. Haber executes a definitive, irrevocable assignment of all
+        rights in EP3847291 to NovaTech AG
+
+  (b) EP3512644 — Co-Ownership Resolution:
+      - NovaTech acquires Dr. Haber's claimed co-ownership interest for
+        EUR 600,000 - 800,000
+      - Alternative: perpetual, royalty-free license from Dr. Haber to
+        NovaTech for all applications of EP3512644
+
+  (c) Consulting Engagement Termination:
+      - Dr. Haber agrees to terminate his consulting arrangement with
+        Axion Corp within 30 days of settlement
+      - 24-month non-compete covering regulatory technology patent advisory
+
+  (d) Mutual Release:
+      - Full mutual release of all IP-related claims between NovaTech
+        and Dr. Haber
+      - Confidentiality obligations on settlement terms
+
+  Total Haber Settlement Cost: EUR 800,000 - 1,200,000
+
+4. COMBINED SETTLEMENT BUDGET
+
+  Axion Settlement (lump sum):         EUR 1,500,000 - 2,000,000
+  Axion Royalty (Year 1):              EUR   240,000
+  Haber Assignment Cure:               CHF   200,000 (~EUR 210,000)
+  Haber Co-Ownership Buyout:           EUR   600,000 -   800,000
+  Legal Costs (both matters):          EUR   850,000
+  ---------------------------------------------------------------
+  Total Settlement Cost:               EUR 3,400,000 - 4,100,000
+
+5. TIMELINE
+
+  Haber Settlement:     Target execution by July 31, 2025
+  Axion Settlement:     Target execution by August 31, 2025
+  UPC Case Dismissal:   Within 30 days of Axion settlement
+  Cross-License Effective: Upon Axion settlement execution
+
+6. IMPACT ON ACQUISITION
+
+The settlement framework, if executed, substantially reduces IP risk:
+  - Eliminates the EUR 15M damages claim from Axion
+  - Resolves co-ownership disputes on both affected patents
+  - Provides freedom-to-operate certainty for the Predictive Risk module
+  - Removes Dr. Haber as a competitive threat for 24 months
+
+Residual IP risk post-settlement: LOW (reduced from HIGH)
+
+7. RECOMMENDATION
+
+We recommend proceeding with both settlements as outlined. The combined cost
+of EUR 3.4-4.1M is significantly below the worst-case litigation exposure
+of EUR 15-25M and eliminates the risk of injunctive relief that could
+disable a revenue-generating module used by 31 customers.
+
+Prepared by Dr. Hans-Jurgen Falk & Dr. Martina Scholz
