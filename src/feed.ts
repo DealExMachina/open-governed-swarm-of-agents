@@ -35,6 +35,7 @@ import {
 } from "./convergenceTracker.js";
 import {
   getGraphSummary,
+  getStudioGraphElements,
   appendResolutionGoal,
   loadAllContradictionsWithResolutions,
 } from "./semanticGraph.js";
@@ -809,6 +810,35 @@ const INDEX_HTML = readFileSync(
   join(__feed_dirname, "observability.html"),
   "utf-8",
 );
+const STUDIO_HTML = readFileSync(
+  join(__feed_dirname, "..", "prototype", "studio-preview", "index.html"),
+  "utf-8",
+);
+
+async function handleStudioElements(
+  req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  const scopeId = readScopeIdFromRequest(req);
+  if (!scopeId) {
+    sendJson(res, 400, { error: "scope_required" });
+    return;
+  }
+  const valid = validateScopeId(scopeId);
+  if (!valid.ok) {
+    sendJson(res, valid.status, {
+      error: valid.error,
+      runtime_scope_id: RUNTIME_SCOPE_ID,
+    });
+    return;
+  }
+  try {
+    const elements = await getStudioGraphElements(scopeId);
+    sendJson(res, 200, { scope_id: scopeId, ...elements });
+  } catch (e) {
+    sendJson(res, 500, { error: toErrorString(e) });
+  }
+}
 
 async function main(): Promise<void> {
   const server = createServer(
@@ -818,6 +848,15 @@ async function main(): Promise<void> {
         if (req.method === "GET" && pathname === "/") {
           res.writeHead(200, { "Content-Type": "text/html" });
           res.end(INDEX_HTML);
+          return;
+        }
+        if (req.method === "GET" && pathname === "/studio") {
+          res.writeHead(200, { "Content-Type": "text/html" });
+          res.end(STUDIO_HTML);
+          return;
+        }
+        if (req.method === "GET" && pathname === "/studio/elements") {
+          await handleStudioElements(req, res);
           return;
         }
         if (req.method === "GET" && pathname === "/summary") {
@@ -918,6 +957,7 @@ async function main(): Promise<void> {
         port: FEED_PORT,
         host: FEED_HOST,
         path: "/events",
+        studio: "/studio",
       }) + "\n",
     );
   });
