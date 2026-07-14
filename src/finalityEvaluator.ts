@@ -843,9 +843,8 @@ export async function evaluateFinality(
     const dirichletGate = config.dirichlet_gate;
     if (dirichletGate?.enabled && !gatesDisabled) {
       try {
-        const { loadLatestDirichletEnergy } = await import(
-          "./evidenceStateManager.js"
-        );
+        const { loadLatestDirichletEnergy } =
+          await import("./evidenceStateManager.js");
         const fx = await loadLatestDirichletEnergy(scopeId);
         if (fx !== null) {
           const epsProp = dirichletGate.epsilon_prop ?? 0.01;

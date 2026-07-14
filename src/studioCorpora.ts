@@ -16,7 +16,11 @@ const CORPUS_DIRS: Record<StudioCorpusId, string> = {
   "green-bond": "docs-green-bond",
 };
 
-export function listStudioCorpora(): Array<{ id: StudioCorpusId; dir: string; doc_count: number }> {
+export function listStudioCorpora(): Array<{
+  id: StudioCorpusId;
+  dir: string;
+  doc_count: number;
+}> {
   return (Object.keys(CORPUS_DIRS) as StudioCorpusId[]).map((id) => {
     const dir = join(SCENARIO_ROOT, CORPUS_DIRS[id]);
     let docCount = 0;
