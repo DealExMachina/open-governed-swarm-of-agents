@@ -1,0 +1,25 @@
+name: Apply docker feed fix to dev
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  apply-fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: dev
+          fetch-depth: 0
+
+      - name: Apply fix commit
+        run: |
+          git fetch origin 0513c576aff0cc00fb94bf0be70543e9e6292900
+          git cherry-pick 0513c576aff0cc00fb94bf0be70543e9e6292900
+
+      - name: Push to dev
+        run: git push origin HEAD:dev
