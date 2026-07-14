@@ -41,12 +41,9 @@ function createWriteBriefingTool() {
       seq: z.number(),
       type: z.string(),
     }),
-    execute: async (ctx) => {
-      const input = ctx as unknown as {
-        context?: { summary?: string; type?: string };
-      };
-      const summary = input?.context?.summary ?? "";
-      const type = input?.context?.type ?? "short";
+    execute: async (inputData) => {
+      const summary = inputData.summary ?? "";
+      const type = inputData.type ?? "short";
       const event = createSwarmEvent(
         type === "full" ? "briefing_full" : "briefing_short",
         { summary, ts: new Date().toISOString() },

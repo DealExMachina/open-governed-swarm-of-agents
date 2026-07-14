@@ -42,8 +42,8 @@ function createFactsTools(
       context: z.array(z.record(z.unknown())),
       previous_facts: z.record(z.unknown()).nullable(),
     }),
-    execute: async ({ context }) => {
-      const limit = context.limit ?? 200;
+    execute: async (inputData) => {
+      const limit = inputData.limit ?? 200;
       const events = await tailEvents(limit);
       const contextData = events.map((e) => e.data);
       const prevRaw = await s3GetText(s3, bucket, KEY_FACTS);
@@ -66,7 +66,7 @@ function createFactsTools(
       facts: z.record(z.unknown()),
       drift: z.record(z.unknown()),
     }),
-    execute: async ({ context }) => {
+    execute: async (inputData) => {
       // Read resolved contradictions from S3 so facts-worker avoids re-extracting them
       let resolvedContradictions: string[] = [];
       try {
@@ -93,8 +93,8 @@ function createFactsTools(
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
-            context: context.context,
-            previous_facts: context.previous_facts,
+            context: inputData.context,
+            previous_facts: inputData.previous_facts,
             resolved_contradictions: resolvedContradictions,
           }),
           signal: controller.signal,
@@ -122,19 +122,19 @@ function createFactsTools(
       wrote: z.array(z.string()),
       facts_hash: z.string().optional(),
     }),
-    execute: async ({ context }) => {
+    execute: async (inputData) => {
       const ts = new Date().toISOString();
-      await s3PutJson(s3, bucket, KEY_FACTS, context.facts);
-      await s3PutJson(s3, bucket, KEY_DRIFT, context.drift);
-      await s3PutJson(s3, bucket, KEY_FACTS_HIST(ts), context.facts);
+      await s3PutJson(s3, bucket, KEY_FACTS, inputData.facts);
+      await s3PutJson(s3, bucket, KEY_DRIFT, inputData.drift);
+      await s3PutJson(s3, bucket, KEY_FACTS_HIST(ts), inputData.facts);
       const wrote = [KEY_FACTS, KEY_DRIFT, KEY_FACTS_HIST(ts)];
-      const facts_hash = (context.facts as { hash?: string })?.hash;
+      const facts_hash = (inputData.facts as { hash?: string })?.hash;
       lastWriteResult.current = { wrote, facts_hash };
 
       const scopeId = process.env.SCOPE_ID ?? "default";
       // Hoist factsPayload so it's accessible to both semantic graph sync and sgrsSync blocks
       const factsPayload = JSON.parse(
-        JSON.stringify(context.facts ?? {}),
+        JSON.stringify(inputData.facts ?? {}),
       ) as Record<string, unknown>;
       let syncResult: {
         nodesCreated: number;
@@ -165,10 +165,10 @@ function createFactsTools(
           edges_created: syncResult?.edgesCreated ?? 0,
           nodes_updated: syncResult?.nodesUpdated ?? 0,
           contradictions_extracted: Array.isArray(
-            (context.facts as Record<string, unknown>)?.contradictions,
+            (inputData.facts as Record<string, unknown>)?.contradictions,
           )
             ? (
-                (context.facts as Record<string, unknown>)
+                (inputData.facts as Record<string, unknown>)
                   .contradictions as unknown[]
               ).length
             : 0,
@@ -278,11 +278,12 @@ export async function runFactsPipelineDirect(
     createFactsTools(s3, bucket, lastWriteResult);
   const opts = {};
   type ExecTool = {
-    execute?: (ctx: { context: unknown }, o: unknown) => Promise<unknown>;
+    execute?: (inputData: unknown, context: unknown) => Promise<unknown>;
   };
-  const exec = async (tool: ExecTool, ctx: unknown) => {
+  const exec = async (tool: ExecTool, inputData: unknown) => {
     if (!tool.execute) throw new Error("tool has no execute");
-    return tool.execute({ context: ctx }, opts);
+    // Mastra 1.x tool signature: execute(inputData, context).
+    return tool.execute(inputData, opts);
   };
   const r1 = await exec(readContextTool as unknown as ExecTool, { limit: 200 });
   const r2 = await exec(extractFactsTool as unknown as ExecTool, r1);

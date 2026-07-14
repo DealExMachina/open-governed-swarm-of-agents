@@ -50,15 +50,9 @@ function makeWriteFilterConfigTool(s3: S3Client, bucket: string) {
       version: z.number(),
       snapshotKey: z.string().optional(),
     }),
-    execute: async (ctx) => {
-      const input = ctx as unknown as {
-        context?: {
-          agentRole?: string;
-          params?: Record<string, number | string | boolean>;
-        };
-      };
-      const agentRole = input?.context?.agentRole ?? "";
-      const params = (input?.context?.params ?? {}) as Record<
+    execute: async (inputData) => {
+      const agentRole = inputData.agentRole ?? "";
+      const params = (inputData.params ?? {}) as Record<
         string,
         number | string | boolean
       >;

@@ -353,7 +353,7 @@ Evaluate EACH contradiction independently against the full resolution text. Retu
           { role: "user", content: userPrompt },
         ],
         temperature: REASONING_SETTINGS.temperature,
-        max_tokens: REASONING_SETTINGS.maxTokens,
+        max_tokens: REASONING_SETTINGS.maxOutputTokens,
       }),
       signal: AbortSignal.timeout(45_000),
     });

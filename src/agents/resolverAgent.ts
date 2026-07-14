@@ -135,9 +135,9 @@ export async function runResolverAgent(
       ),
     }),
     outputSchema: z.object({ ok: z.boolean(), count: z.number() }),
-    execute: async ({ context }) => {
+    execute: async (inputData) => {
       const resolutions = (
-        context as {
+        inputData as {
           resolutions: Array<{
             id: string;
             judgment: string;

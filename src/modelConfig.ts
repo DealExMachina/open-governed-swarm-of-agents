@@ -24,17 +24,20 @@ const DEFAULT_OPENAI_BASE = "https://api.openai.com/v1";
 /** Binary decisions, tool orchestration — no creativity needed. */
 export const DETERMINISTIC_SETTINGS = {
   temperature: 0,
-  maxTokens: 1024,
+  maxOutputTokens: 1024,
 } as const;
 
 /** Analytical reasoning — drift causes, action planning, contradiction resolution. */
 export const REASONING_SETTINGS = {
   temperature: 0.2,
-  maxTokens: 1536,
+  maxOutputTokens: 1536,
 } as const;
 
 /** Large text output — full status briefings. */
-export const EXTENDED_SETTINGS = { temperature: 0, maxTokens: 2048 } as const;
+export const EXTENDED_SETTINGS = {
+  temperature: 0,
+  maxOutputTokens: 2048,
+} as const;
 
 // ── Structured output schemas ───────────────────────────────────────────────
 
