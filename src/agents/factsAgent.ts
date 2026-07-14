@@ -136,6 +136,18 @@ function createFactsTools(
       const factsPayload = JSON.parse(
         JSON.stringify(inputData.facts ?? {}),
       ) as Record<string, unknown>;
+      const recentEvents = await tailEvents(20);
+      const lastDoc = [...recentEvents]
+        .reverse()
+        .find(
+          (e) => (e.data as Record<string, unknown>)?.type === "context_doc",
+        );
+      const lastDocData = lastDoc?.data as Record<string, unknown> | undefined;
+      const docTitle = String(
+        (lastDocData?.payload as Record<string, unknown>)?.title ??
+          lastDocData?.title ??
+          "document",
+      );
       let syncResult: {
         nodesCreated: number;
         edgesCreated: number;
@@ -147,6 +159,7 @@ function createFactsTools(
           await import("../factsToSemanticGraph.js");
         syncResult = await syncFactsToSemanticGraph(scopeId, factsPayload, {
           embedClaims: process.env.FACTS_SYNC_EMBED === "1",
+          docTitle,
         });
       } catch (e) {
         logger.warn("writeFacts: semantic graph sync failed", {
@@ -181,22 +194,6 @@ function createFactsTools(
       // Fire-and-forget: Studio unavailability must never block governance.
       try {
         const { syncFactsToSgrs } = await import("../sgrsSync.js");
-        // Recover doc title from the most recent context_doc WAL event
-        const recentEvents = await tailEvents(20);
-        const lastDoc = [...recentEvents]
-          .reverse()
-          .find(
-            (e) => (e.data as Record<string, unknown>)?.type === "context_doc",
-          );
-        const lastDocData = lastDoc?.data as
-          | Record<string, unknown>
-          | undefined;
-        // WAL structure: { type, payload: { title, ... } }
-        const docTitle = String(
-          (lastDocData?.payload as Record<string, unknown>)?.title ??
-            lastDocData?.title ??
-            "document",
-        );
         const r = await syncFactsToSgrs(docTitle, factsPayload ?? {}, 0);
         logger.info("sgrs sync", {
           scopeId,

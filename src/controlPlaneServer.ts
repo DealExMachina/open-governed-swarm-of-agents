@@ -153,7 +153,7 @@ async function loadScopeForTenant(
   slug: string;
 } | null> {
   const r = await getPool().query(
-    `SELECT id, tenant_id::text AS tenant_id, storage_prefix, slug FROM scopes WHERE id = $1 AND tenant_id = $2::uuid`,
+    `SELECT id, tenant_id::text AS tenant_id, storage_prefix, slug FROM cp_scopes WHERE id = $1 AND tenant_id = $2::uuid`,
     [scopeId, tenantId],
   );
   return (
@@ -368,7 +368,7 @@ export async function handleControlRequest(
       const tenantId = await requireTenant(req, res);
       if (!tenantId) return;
       const r = await getPool().query(
-        `SELECT id, slug, display_name, status, storage_prefix, created_at FROM scopes WHERE tenant_id = $1::uuid ORDER BY created_at DESC`,
+        `SELECT id, slug, display_name, status, storage_prefix, created_at FROM cp_scopes WHERE tenant_id = $1::uuid ORDER BY created_at DESC`,
         [tenantId],
       );
       sendJson(res, 200, { scopes: r.rows });
@@ -392,7 +392,7 @@ export async function handleControlRequest(
       const id = newScopeId();
       const storagePrefix = `tenants/${tenantId}/scopes/${id}`;
       await getPool().query(
-        `INSERT INTO scopes (id, tenant_id, slug, display_name, storage_prefix) VALUES ($1, $2::uuid, $3, $4, $5)`,
+        `INSERT INTO cp_scopes (id, tenant_id, slug, display_name, storage_prefix) VALUES ($1, $2::uuid, $3, $4, $5)`,
         [id, tenantId, slug, displayName, storagePrefix],
       );
       sendJson(res, 201, {
@@ -644,7 +644,7 @@ export async function handleControlRequest(
       }
       await updateRuntimeLease(scopeId, tenantId, false);
       await getPool().query(
-        `UPDATE scopes SET status = 'active_processing', updated_at = now() WHERE id = $1`,
+        `UPDATE cp_scopes SET status = 'active_processing', updated_at = now() WHERE id = $1`,
         [scopeId],
       );
       sendJson(res, 200, {

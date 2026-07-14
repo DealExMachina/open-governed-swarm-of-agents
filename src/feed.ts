@@ -40,6 +40,12 @@ import {
   loadAllContradictionsWithResolutions,
 } from "./semanticGraph.js";
 import {
+  listStudioCatalogScopes,
+  createStudioCatalogScope,
+  scopeIsKnown,
+} from "./studioCatalog.js";
+import { loadCorpusDocuments, listStudioCorpora } from "./studioCorpora.js";
+import {
   getLatestFinalityDecision,
   getAllFinalityDecisions,
 } from "./finalityDecisions.js";
@@ -136,14 +142,13 @@ function readScopeIdFromRequest(
   return scopeId;
 }
 
-function validateScopeId(
+async function validateScopeAccess(
   scopeId: string,
-): { ok: true } | { ok: false; status: number; error: string } {
+): Promise<{ ok: true } | { ok: false; status: number; error: string }> {
   if (!scopeId) return { ok: false, status: 400, error: "scope_required" };
-  if (!ACCEPT_ANY_SCOPE && scopeId !== RUNTIME_SCOPE_ID) {
-    return { ok: false, status: 409, error: "unsupported_scope_for_runtime" };
-  }
-  return { ok: true };
+  if (ACCEPT_ANY_SCOPE || scopeId === RUNTIME_SCOPE_ID) return { ok: true };
+  if (await scopeIsKnown(scopeId)) return { ok: true };
+  return { ok: false, status: 409, error: "unsupported_scope_for_runtime" };
 }
 
 export function validateScopedRequest(
@@ -176,7 +181,7 @@ async function handleAddDoc(
       sendJson(res, 400, { error: "scope_required" });
       return;
     }
-    const valid = validateScopeId(scopeId);
+    const valid = await validateScopeAccess(scopeId);
     if (!valid.ok) {
       sendJson(res, valid.status, {
         error: valid.error,
@@ -226,7 +231,7 @@ async function handleAddResolution(
       sendJson(res, 400, { error: "scope_required" });
       return;
     }
-    const valid = validateScopeId(scopeId);
+    const valid = await validateScopeAccess(scopeId);
     if (!valid.ok) {
       sendJson(res, valid.status, {
         error: valid.error,
@@ -335,7 +340,7 @@ async function handleGetPending(
       sendJson(res, 400, { error: "scope_required", pending: [] });
       return;
     }
-    const valid = validateScopeId(scopeId);
+    const valid = await validateScopeAccess(scopeId);
     if (!valid.ok) {
       sendJson(res, valid.status, {
         error: valid.error,
@@ -376,7 +381,7 @@ async function handleFinalityResponse(
       sendJson(res, 400, { ok: false, error: "scope_required" });
       return;
     }
-    const validScope = validateScopeId(scopeId);
+    const validScope = await validateScopeAccess(scopeId);
     if (!validScope.ok) {
       sendJson(res, validScope.status, {
         ok: false,
@@ -698,7 +703,7 @@ async function handleSummary(
       sendJson(res, 400, { error: "scope_required" });
       return;
     }
-    const valid = validateScopeId(scopeId);
+    const valid = await validateScopeAccess(scopeId);
     if (!valid.ok) {
       sendJson(res, valid.status, {
         error: valid.error,
@@ -814,6 +819,10 @@ const STUDIO_HTML = readFileSync(
   join(__feed_dirname, "..", "prototype", "studio-preview", "index.html"),
   "utf-8",
 );
+const STUDIO_APP_JS = readFileSync(
+  join(__feed_dirname, "..", "prototype", "studio-preview", "studio-app.js"),
+  "utf-8",
+);
 
 async function handleStudioElements(
   req: IncomingMessage,
@@ -824,7 +833,7 @@ async function handleStudioElements(
     sendJson(res, 400, { error: "scope_required" });
     return;
   }
-  const valid = validateScopeId(scopeId);
+  const valid = await validateScopeAccess(scopeId);
   if (!valid.ok) {
     sendJson(res, valid.status, {
       error: valid.error,
@@ -835,6 +844,164 @@ async function handleStudioElements(
   try {
     const elements = await getStudioGraphElements(scopeId);
     sendJson(res, 200, { scope_id: scopeId, ...elements });
+  } catch (e) {
+    sendJson(res, 500, { error: toErrorString(e) });
+  }
+}
+
+async function handleStudioScopesList(
+  _req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  try {
+    const scopes = await listStudioCatalogScopes();
+    sendJson(res, 200, { scopes });
+  } catch (e) {
+    sendJson(res, 500, { error: toErrorString(e) });
+  }
+}
+
+async function handleStudioScopeCreate(
+  req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  try {
+    const body = await readJsonBody(req);
+    const name = typeof body.name === "string" ? body.name.trim() : "";
+    const tag = typeof body.tag === "string" ? body.tag.trim() : "custom";
+    let id =
+      typeof body.id === "string"
+        ? body.id.trim().replace(/\s+/g, "-").toLowerCase()
+        : "";
+    if (!name) {
+      sendJson(res, 400, { error: "name_required" });
+      return;
+    }
+    if (!id) {
+      id = name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "")
+        .slice(0, 48);
+    }
+    if (!id) {
+      sendJson(res, 400, { error: "id_required" });
+      return;
+    }
+    const scope = await createStudioCatalogScope({ id, name, tag });
+    sendJson(res, 201, { scope });
+  } catch (e) {
+    sendJson(res, 500, { error: toErrorString(e) });
+  }
+}
+
+async function ingestContextDoc(
+  scopeId: string,
+  title: string,
+  text: string,
+): Promise<number> {
+  const event = createSwarmEvent(
+    "context_doc",
+    { title, text, source: "studio", scope_id: scopeId },
+    { source: "feed" },
+  );
+  const seq = await appendEvent(event as unknown as Record<string, unknown>);
+  const bus = await getFeedBus();
+  await bus.publishEvent(event);
+  return seq;
+}
+
+async function handleStudioLoadCorpus(
+  req: IncomingMessage,
+  res: ServerResponse,
+  scopeId: string,
+): Promise<void> {
+  const valid = await validateScopeAccess(scopeId);
+  if (!valid.ok) {
+    sendJson(res, valid.status, {
+      error: valid.error,
+      runtime_scope_id: RUNTIME_SCOPE_ID,
+    });
+    return;
+  }
+  try {
+    const body = await readJsonBody(req);
+    const corpus =
+      typeof body.corpus === "string"
+        ? body.corpus
+        : getQuery(req.url ?? "").corpus ?? "";
+    if (!corpus) {
+      sendJson(res, 400, {
+        error: "corpus_required",
+        corpora: listStudioCorpora(),
+      });
+      return;
+    }
+    const docs = loadCorpusDocuments(corpus);
+    if (docs.length === 0) {
+      sendJson(res, 404, { error: "corpus_not_found", corpus });
+      return;
+    }
+    const fed: Array<{ title: string; seq: number }> = [];
+    for (const doc of docs) {
+      const seq = await ingestContextDoc(scopeId, doc.title, doc.body);
+      fed.push({ title: doc.title, seq });
+    }
+    const hatchery = getHatcheryInstance();
+    if (hatchery) {
+      await hatchery.rebindActiveScope(scopeId, null);
+    }
+    sendJson(res, 200, {
+      ok: true,
+      scope_id: scopeId,
+      corpus,
+      fed: fed.length,
+      documents: fed,
+    });
+  } catch (e) {
+    sendJson(res, 500, { error: toErrorString(e) });
+  }
+}
+
+async function handleStudioUploadDocs(
+  req: IncomingMessage,
+  res: ServerResponse,
+  scopeId: string,
+): Promise<void> {
+  const valid = await validateScopeAccess(scopeId);
+  if (!valid.ok) {
+    sendJson(res, valid.status, {
+      error: valid.error,
+      runtime_scope_id: RUNTIME_SCOPE_ID,
+    });
+    return;
+  }
+  try {
+    const body = await readJsonBody(req);
+    const docs = Array.isArray(body.documents) ? body.documents : [];
+    if (docs.length === 0) {
+      sendJson(res, 400, { error: "documents_required" });
+      return;
+    }
+    const fed: Array<{ title: string; seq: number }> = [];
+    for (const raw of docs) {
+      const row = raw as Record<string, unknown>;
+      const title = typeof row.title === "string" ? row.title : "doc";
+      const text =
+        typeof row.body === "string"
+          ? row.body
+          : typeof row.text === "string"
+            ? row.text
+            : "";
+      if (!text.trim()) continue;
+      const seq = await ingestContextDoc(scopeId, title, text);
+      fed.push({ title, seq });
+    }
+    const hatchery = getHatcheryInstance();
+    if (hatchery) {
+      await hatchery.rebindActiveScope(scopeId, null);
+    }
+    sendJson(res, 200, { ok: true, scope_id: scopeId, fed: fed.length, documents: fed });
   } catch (e) {
     sendJson(res, 500, { error: toErrorString(e) });
   }
@@ -854,6 +1021,39 @@ async function main(): Promise<void> {
           res.writeHead(200, { "Content-Type": "text/html" });
           res.end(STUDIO_HTML);
           return;
+        }
+        if (req.method === "GET" && pathname === "/studio/app.js") {
+          res.writeHead(200, { "Content-Type": "application/javascript" });
+          res.end(STUDIO_APP_JS);
+          return;
+        }
+        if (req.method === "GET" && pathname === "/studio/scopes") {
+          await handleStudioScopesList(req, res);
+          return;
+        }
+        if (req.method === "POST" && pathname === "/studio/scopes") {
+          await handleStudioScopeCreate(req, res);
+          return;
+        }
+        if (req.method === "GET" && pathname === "/studio/corpora") {
+          sendJson(res, 200, { corpora: listStudioCorpora() });
+          return;
+        }
+        if (pathname.startsWith("/studio/scopes/") && pathname.endsWith("/load-corpus")) {
+          const parts = pathname.split("/").filter(Boolean);
+          const scopeId = parts[2] ?? "";
+          if (req.method === "POST") {
+            await handleStudioLoadCorpus(req, res, scopeId);
+            return;
+          }
+        }
+        if (pathname.startsWith("/studio/scopes/") && pathname.endsWith("/documents")) {
+          const parts = pathname.split("/").filter(Boolean);
+          const scopeId = parts[2] ?? "";
+          if (req.method === "POST") {
+            await handleStudioUploadDocs(req, res, scopeId);
+            return;
+          }
         }
         if (req.method === "GET" && pathname === "/studio/elements") {
           await handleStudioElements(req, res);
@@ -904,7 +1104,7 @@ async function main(): Promise<void> {
             sendJson(res, 400, { error: "scope_required" });
             return;
           }
-          const valid = validateScopeId(scopeId);
+          const valid = await validateScopeAccess(scopeId);
           if (!valid.ok) {
             sendJson(res, valid.status, {
               error: valid.error,

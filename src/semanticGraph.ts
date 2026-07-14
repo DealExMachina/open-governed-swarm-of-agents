@@ -1745,5 +1745,57 @@ export async function getStudioGraphElements(scopeId: string): Promise<{
     }),
   );
 
+  const edgeKeys = new Set(
+    edges.map((e) => `${e.data.source}|${e.data.target}|${e.data.type}`),
+  );
+  const pushEdge = (
+    source: string,
+    target: string,
+    type: string,
+  ): void => {
+    const key = `${source}|${target}|${type}`;
+    if (!source || !target || edgeKeys.has(key)) return;
+    edgeKeys.add(key);
+    edges.push({ data: { source, target, type } });
+  };
+
+  // Synthetic edges from node metadata when DB edges table is sparse.
+  const nodeMetaRes = await p.query(
+    `SELECT node_id, type, metadata, source_ref FROM nodes
+     WHERE scope_id = $1 AND (${CURRENT_VIEW_NODES})`,
+    [scopeId],
+  );
+  for (const row of nodeMetaRes.rows as Array<{
+    node_id: string;
+    type: string;
+    metadata: Record<string, unknown> | null;
+    source_ref: Record<string, unknown> | null;
+  }>) {
+    const meta = row.metadata ?? {};
+    const srcRef = row.source_ref ?? {};
+    if (row.type === "contradiction") {
+      const a = String(meta.claim_source_id ?? "");
+      const b = String(meta.claim_target_id ?? "");
+      if (a && b) {
+        pushEdge(String(row.node_id), a, "contradicts");
+        pushEdge(String(row.node_id), b, "contradicts");
+      }
+    }
+    if (row.type === "resolution") {
+      const target = String(
+        meta.targetsContradiction ?? srcRef.contradiction_id ?? "",
+      );
+      if (target) pushEdge(String(row.node_id), target, "resolves");
+    }
+    if (row.type === "doc") {
+      const claimIds = meta.claim_ids;
+      if (Array.isArray(claimIds)) {
+        for (const cid of claimIds) {
+          if (typeof cid === "string") pushEdge(String(row.node_id), cid, "refers");
+        }
+      }
+    }
+  }
+
   return { nodes, edges };
 }
