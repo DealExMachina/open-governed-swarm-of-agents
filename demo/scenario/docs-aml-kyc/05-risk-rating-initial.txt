@@ -1,0 +1,123 @@
+DOCUMENT: CLIENT RISK RATING — INITIAL ASSESSMENT
+CLASSIFICATION: CONFIDENTIAL — AML/KYC RESTRICTED
+INSTITUTION: EuroBank AG, Frankfurt am Main
+DATE: 2023-03-20
+REFERENCE: RSK-2023-CAST-0001
+RISK ANALYST: Anna Berger, KYC Analyst (EB-4412)
+METHODOLOGY: EuroBank Risk Scoring Matrix v3.1 (5AMLD-aligned)
+
+1. RISK SCORING SUMMARY
+
+  Client:              Castellan Holdings S.a.r.l.
+  Overall Risk Rating: MEDIUM
+  Composite Score:     54 / 100 (MEDIUM range: 40-64)
+  CDD Level Required:  Standard CDD (with enhanced monitoring notations)
+
+2. RISK FACTOR BREAKDOWN
+
+  Factor                          Weight   Score   Weighted
+  ──────────────────────────────────────────────────────────
+  Client Type (complex structure)  15%      65      9.75
+  Geographic Risk                  20%      70     14.00
+  Product/Service Risk             10%      30      3.00
+  Transaction Risk                 15%      40      6.00
+  PEP Proximity                   15%      35      5.25
+  Source of Wealth Transparency    10%      25      2.50
+  Industry/Sector Risk            10%      45      4.50
+  Adverse Media                    5%      10      0.50
+  ──────────────────────────────────────────────────────────
+  TOTAL                          100%      —      45.50
+  Adjusted Score (+8.5 complexity): —       —      54.00
+
+3. FACTOR ANALYSIS
+
+3.1 Client Type (Score: 65 — ELEVATED)
+  Multi-entity family office structure with 4 entities across 4
+  jurisdictions. Discretionary trust with undisclosed beneficiaries adds
+  complexity. However, single family control and cooperative disclosure
+  mitigate the structural opacity concern.
+
+3.2 Geographic Risk (Score: 70 — HIGH)
+  BVI subsidiary (HIGH risk), Cyprus entity (MEDIUM risk), Liechtenstein
+  trust (MEDIUM risk). Luxembourg holding (LOW risk). The BVI entity is
+  the primary risk driver. Score would be lower without the BVI presence.
+
+3.3 Product/Service Risk (Score: 30 — LOW)
+  Standard corporate banking — current account, wire transfers. No
+  lending, trade finance, correspondent banking, or private banking
+  products (investment management separate from banking relationship).
+
+3.4 Transaction Risk (Score: 40 — LOW-MEDIUM)
+  Predictable transaction patterns aligned with declared business. No
+  cash transactions, no third-party payments, no complex layering.
+  Quarterly BVI dividends are the primary monitoring focus.
+
+3.5 PEP Proximity (Score: 35 — LOW)
+  Brother Marco Castellan is a municipal councilor in Milan. LOW-level
+  PEP per FATF classification. No direct financial decision-making
+  authority. Viktor Castellan is not himself a PEP. No close business
+  ties between brothers declared.
+
+3.6 Source of Wealth (Score: 25 — LOW)
+  Fully documented: real estate portfolio with independent valuation,
+  technology company exit with verifiable transaction history. Bank
+  reference from UBS confirms longstanding relationship. Source of
+  funds for account inflows directly traceable to declared activities.
+
+3.7 Industry/Sector Risk (Score: 45 — MEDIUM)
+  Real estate (MEDIUM risk — known money laundering vector per FATF).
+  Technology IP licensing (LOW risk). The real estate component in
+  Cyprus elevates this factor.
+
+3.8 Adverse Media (Score: 10 — MINIMAL)
+  No adverse media for any screened individual or entity. Clean media
+  profile across all jurisdictions.
+
+4. RISK RATING DECISION
+
+  MEDIUM RISK — Standard CDD applies with the following notations:
+
+  Monitoring Enhancements (below EDD threshold):
+  (a) Quarterly review of BVI transaction flows
+  (b) Annual re-screening of Marco Castellan PEP status
+  (c) Follow-up on Liechtenstein trust beneficiary disclosure
+  (d) Annual CDD refresh (standard for MEDIUM risk)
+
+  EDD NOT triggered because:
+  - No direct PEP status for account holder or UBOs
+  - Full source of wealth documentation provided
+  - Transparent ownership despite multi-jurisdictional presence
+  - Clean sanctions and adverse media screening
+  - Cooperative client with complete documentation
+
+5. RISK RATING THRESHOLDS FOR ESCALATION
+
+  The following events would trigger immediate risk re-assessment:
+  - Any sanctions list match
+  - PEP status change for Viktor or Elena Castellan
+  - Adverse media involving criminal investigation
+  - Significant unexplained transaction (>150% of baseline)
+  - Change in beneficial ownership structure
+  - Regulatory inquiry or information request
+  - Failure to provide requested documentation within 30 days
+
+6. CONTEMPORANEOUS JUDGMENT NOTE
+
+  This risk assessment reflects the information available as of
+  2023-03-20. The MEDIUM rating is the professional judgment of the
+  KYC analyst based on the complete CDD file at the time of assessment.
+  This rating shall be preserved as the contemporaneous record even if
+  subsequent information alters the risk profile. Any change in risk
+  rating shall be documented as a separate, dated record.
+
+  Per EuroBank Record Retention Policy (Section 8.2) and 5AMLD Article
+  40, this record shall be retained for a minimum of 5 years after
+  the end of the business relationship or the date of the last
+  transaction, whichever is later.
+
+Assessed by:   Anna Berger, KYC Analyst (EB-4412)
+Approved by:   Dr. Thomas Hartmann, Head of Client Onboarding
+Date:          2023-03-20
+Next Review:   2024-03-20
+
+— END OF INITIAL RISK RATING —

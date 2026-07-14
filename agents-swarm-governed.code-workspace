@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"path": "../agents-swarm-governed"
+		},
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"postman.settings.dotenv-detection-notification-visibility": false
+	}
+}

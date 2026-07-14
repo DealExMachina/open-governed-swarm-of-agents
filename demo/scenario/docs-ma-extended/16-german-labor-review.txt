@@ -1,0 +1,97 @@
+================================================================================
+CONFIDENTIAL — PROJECT HORIZON
+NovaTech GmbH (Munich): German Employment Law & Labor Review
+Date: 2025-03-28
+Prepared by: Dr. Claudia Neumann, Employment Partner — Hengeler Mueller, Munich
+Engagement Reference: HM-2025-LAB-0312
+================================================================================
+
+1. SCOPE
+
+Hengeler Mueller was engaged to review employment law compliance and labor
+liabilities for NovaTech GmbH, the German subsidiary of NovaTech AG, in
+connection with the proposed acquisition by Meridian Capital Partners.
+
+2. WORKFORCE PROFILE — MUNICH OFFICE
+
+  Total Employees:                   64
+  Permanent Contracts (unbefristet): 52
+  Fixed-Term Contracts (befristet):  12
+  Average Tenure:                    3.1 years
+  Employees with >2 years tenure:    41 (64%)
+  Employees with >5 years tenure:    14 (22%)
+
+3. WORKS COUNCIL (BETRIEBSRAT) STATUS
+
+NovaTech GmbH does not currently have a works council (Betriebsrat). Under
+the Betriebsverfassungsgesetz (BetrVG), establishments with five or more
+permanent employees have the right to form a works council. While formation
+is employee-initiated, the employer cannot obstruct the process.
+
+RISK: In a change-of-control transaction, employees are significantly more
+likely to exercise their right to form a Betriebsrat. Once established, the
+works council must be consulted on:
+  - Any workforce restructuring or layoffs (Section 111 BetrVG)
+  - Changes to working conditions, hours, or compensation
+  - Transfer of undertaking matters (Section 613a BGB)
+  - Social plan negotiations (potentially mandatory)
+
+The acquisition will likely trigger Section 613a BGB (Transfer of Undertaking)
+obligations, requiring written notification to all employees at least one
+month before closing. Employees have the right to object to the transfer
+within one month of notification.
+
+4. SEVERANCE LIABILITY ANALYSIS
+
+Management has estimated severance liabilities at EUR 1.8 million for the
+Munich office. Our independent analysis yields a significantly higher figure:
+
+  Statutory severance (KSchG, Section 1a):
+    41 employees x average 3.1 years x average monthly salary EUR 7,200
+    x 0.5 factor = EUR 456,000 (statutory minimum)
+
+  Negotiated severance (social plan scenario):
+    Historical German tech sector social plans average 1.0-1.5 monthly
+    salaries per year of service:
+    41 employees x 3.1 years x EUR 7,200 x 1.25 = EUR 1,139,400
+
+  Executive / senior management enhanced severance:
+    4 senior managers with contractual severance of 6-12 months:
+    Estimated EUR 860,000 - EUR 1,200,000
+
+  Fixed-term contract acceleration:
+    12 employees with average 14 months remaining:
+    Estimated EUR 750,000 - EUR 900,000
+
+  TOTAL ESTIMATED SEVERANCE LIABILITY: EUR 3.2M - EUR 4.1M
+  MANAGEMENT ESTIMATE: EUR 1.8M
+  UNDERSTATEMENT: EUR 1.4M - EUR 2.3M
+
+5. CHANGE-OF-CONTROL PROVISIONS
+
+Four (4) Munich-based senior employees have change-of-control clauses in their
+employment contracts that trigger enhanced severance (12 months base salary)
+and accelerated equity vesting upon acquisition. These provisions were not
+disclosed in the management-prepared documents.
+
+6. NON-COMPETE AGREEMENTS
+
+  - 8 Munich engineers have non-compete clauses with EUR 50K+ annual
+    Karenzentschaedigung (post-contractual non-compete compensation)
+  - Total annual non-compete compensation obligation: EUR 520,000
+  - These obligations transfer to the acquirer under Section 613a BGB
+
+7. PENSION / RETIREMENT OBLIGATIONS
+
+NovaTech GmbH participates in a direct insurance (Direktversicherung) scheme.
+No defined benefit pension obligations exist. Annual employer contributions
+total EUR 384,000 (EUR 6,000 per eligible employee x 64 employees).
+
+8. RECOMMENDATIONS
+
+  (a) Budget EUR 4.1M for severance (worst case), not EUR 1.8M as reported
+  (b) Prepare Section 613a notification letters in advance of signing
+  (c) Engage labor counsel for potential works council formation support
+  (d) Review all change-of-control employment clauses before SPA finalization
+
+Prepared by Dr. Claudia Neumann, Hengeler Mueller, Munich

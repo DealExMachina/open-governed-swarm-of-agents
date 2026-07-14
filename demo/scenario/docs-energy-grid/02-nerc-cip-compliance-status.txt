@@ -1,0 +1,79 @@
+DOCUMENT: NorthGrid Utilities — NERC CIP Compliance Status Report
+DATE: January 10, 2026
+CLASSIFICATION: NERC CIP — Confidential / Audit Sensitive
+AUTHOR: Cybersecurity & Compliance Division
+REF: NG-CIP-2026-Q1-STATUS-002
+
+OVERALL COMPLIANCE POSTURE
+
+NorthGrid Utilities maintains compliance programs for NERC CIP standards
+CIP-002 through CIP-014. The current aggregate compliance score, based
+on the internal weighted compliance index (WCI), stands at 94.0%.
+
+This report summarizes the status following the Q4 2025 internal audit
+conducted by Deloitte & Touche LLP (engagement ref: DT-NG-2025-CIP-04).
+
+BES CYBER ASSET INVENTORY (CIP-002-5.1a)
+
+Total BES Cyber Assets (BCAs) identified:    247
+  High Impact BCAs:                           18
+  Medium Impact BCAs:                        112
+  Low Impact BCAs:                           117
+
+Associated Electronic Access Points (EAPs):   84
+Physical Security Perimeters (PSPs):           23
+
+STANDARD-BY-STANDARD STATUS
+
+  Standard   | Status       | Findings | Risk Level
+  -----------|------------- |----------|----------
+  CIP-002    | Compliant    |    0     | --
+  CIP-003    | Compliant    |    0     | --
+  CIP-004    | Compliant    |    0     | --
+  CIP-005    | Compliant    |    1     | Low
+  CIP-006    | Compliant    |    0     | --
+  CIP-007    | Non-Conform  |    3     | Medium
+  CIP-008    | Compliant    |    0     | --
+  CIP-009    | Compliant    |    0     | --
+  CIP-010    | Non-Conform  |    2     | Medium
+  CIP-011    | Compliant    |    0     | --
+  CIP-012    | Compliant    |    0     | --
+  CIP-013    | Compliant    |    0     | --
+  CIP-014    | Compliant    |    1     | Low
+
+MEDIUM-RISK FINDINGS (6 total)
+
+CIP-007 — Systems Security Management (3 findings):
+  F-007-01: Patch management cycle exceeds 35-day window for 12 relay
+            protection devices in South balancing area. Root cause:
+            vendor delayed patch qualification testing.
+  F-007-02: Two SCADA workstations at Lakeside Central Hub found with
+            disabled antivirus agents (discovered during spot check).
+  F-007-03: Security event log forwarding failure on 8 BCAs in Coastal
+            area EMS segment. Logs not reaching SIEM for 72 hours.
+
+CIP-010 — Configuration Change Management (2 findings):
+  F-010-01: 14 firewall rule changes in Central area implemented without
+            completed change request documentation.
+  F-010-02: Baseline configuration deviation detected on 6 RTUs at
+            Granite Falls — firmware version mismatch vs. approved baseline.
+
+CIP-014 — Physical Security (1 finding):
+  F-014-01: Perimeter intrusion detection sensor at Harborview station
+            intermittently offline (3 occurrences in Q4, total 18 hours).
+
+REMEDIATION PLAN
+
+All 6 findings assigned to remediation owners with target closure dates:
+  - CIP-007 findings: remediation due by March 31, 2026
+  - CIP-010 findings: remediation due by February 28, 2026
+  - CIP-014 finding:  remediation due by January 31, 2026
+
+Quarterly compliance filing to NERC ReliabilityFirst due April 15, 2026.
+
+NOTE: Current 94% WCI score represents a 2-point improvement from Q3 2025
+(92%). The compliance team considers this trajectory acceptable, but flags
+CIP-007 patch management as a systemic risk requiring process overhaul.
+
+PREPARED BY: M. Thornton, CISSP, Chief Compliance Officer
+APPROVED BY: J. Nakamura, General Counsel

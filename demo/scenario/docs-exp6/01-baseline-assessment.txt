@@ -1,0 +1,36 @@
+PROJECT ATLAS — INITIAL ASSESSMENT
+
+Prepared by: Strategic Analysis Unit
+Date: 2025-09-15
+Classification: INTERNAL
+
+EXECUTIVE SUMMARY
+
+MedCore Systems is a digital health platform serving 120 hospital networks across Europe. The company reports annual revenue of EUR 85M with a growth rate of 38% year-over-year. Gross margins are stated at 68%.
+
+KEY CLAIMS
+
+- Revenue: EUR 85M (FY 2024, audited)
+- Revenue growth: 38% YoY
+- Gross margin: 68%
+- Client count: 120 hospital networks
+- Employee headcount: 340 FTE
+- Platform uptime: 99.95% SLA achieved
+- Regulatory status: CE marked, ISO 13485 certified
+
+GOALS
+
+- Validate revenue figures through independent audit trail
+- Confirm regulatory certifications are current
+- Assess cybersecurity posture and incident history
+- Evaluate competitive position in the digital health market
+
+RISKS IDENTIFIED
+
+- Revenue concentration: top 5 clients represent 45% of ARR
+- Regulatory risk: CE marking renewal due in Q2 2026
+- Key person dependency: CTO holds critical system architecture knowledge
+
+RECOMMENDATION
+
+Proceed with detailed due diligence. Risk profile is moderate. Initial valuation range: EUR 650M-700M.

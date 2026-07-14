@@ -1,0 +1,31 @@
+COMPLIANCE ESCALATION NOTICE — Project Horizon
+Date: Week 4
+
+This notice flags a compliance concern that requires governance review before
+the acquisition proposal can advance.
+
+Background: Two materially contradictory risk assessments exist for the same entity
+(Week 1: LOW risk, exposure €2.1M; Week 2 audit: MEDIUM risk, exposure €10.3M).
+A partial resolution (Week 3) has not resolved the IP ownership question or the
+regulatory penalty claim. The contradiction remains open.
+
+Compliance position: Under our standard acquisition protocol, any unresolved
+material contradiction in financial risk assessment must be escalated for
+human-in-the-loop review before a binding governance decision is issued.
+The current state — where the risk score range spans 0.08 to 0.41 — falls
+precisely in the ambiguous middle zone that deterministic rules cannot adjudicate.
+
+Specific concerns:
+1. IP title for the core software module is not confirmed. If the title is
+   disputed at closing, the deal could be voided post-completion.
+2. Regulatory penalty (Claim B) is unresolved. The range €0–€2.3M materially
+   affects the deal price.
+3. The initial due diligence failure (omitting three claims) raises a process
+   concern that is independent of the claims themselves.
+
+Recommendation: Do not advance to "EvidencePropagated" state until (a) IP counsel
+opinion is received, or (b) the governance agent explicitly decides to proceed
+under acknowledged uncertainty. This decision should not be taken by deterministic
+rules alone — it requires contextual judgment.
+
+Risk score: 0.38 (medium). Drift type: contradiction. Drift level: medium.

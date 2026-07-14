@@ -1,0 +1,105 @@
+================================================================================
+CONFIDENTIAL — PROJECT HORIZON
+NovaTech AG: EU MDR Transition Plan & Compliance Investment
+Date: 2025-07-10
+Prepared by: Dr. Martina Scholz, VP Legal — NovaTech AG
+External Advisor: TUV SUD Product Service GmbH
+================================================================================
+
+1. BACKGROUND
+
+The initial regulatory assessment (Document 07) concluded that NovaTech's
+RegAssure platform is "out-of-scope" under EU MDR 2017/745, with caveats
+regarding the Predictive Risk Scoring module under Annex VIII Rule 11.
+
+Following the Axion patent dispute (Document 19) and deeper regulatory
+analysis during Phase 2 diligence, TUV SUD has revised its assessment.
+
+2. REVISED MDR CLASSIFICATION
+
+TUV SUD now classifies the following RegAssure modules as potentially within
+scope of EU MDR 2017/745:
+
+  (a) Predictive Risk Scoring Module — Class IIa medical device software
+      Rationale: The module generates risk scores that directly influence
+      regulatory submission prioritization decisions for medical devices.
+      When used in combination with clinical data, this constitutes
+      "software intended to provide information used to take decisions
+      with diagnosis or therapeutic purposes" per Rule 11.
+
+  (b) Post-Market Surveillance Analytics — Class I medical device software
+      Rationale: The automated trend detection features generate signals
+      that may constitute "monitoring of physiological processes" when
+      processing vigilance data per MDR Article 83.
+
+  (c) Regulatory Submission Drafting (AI-Generated) — Requires assessment
+      Rationale: If AI-generated regulatory submissions are relied upon
+      without material human review, the software may be classified as
+      providing "information that constitutes a diagnosis" per MDCG 2019-11.
+
+3. COMPLIANCE REQUIREMENTS
+
+To achieve full EU MDR compliance for the affected modules, NovaTech must:
+
+  Phase 1 — Quality Management System (Months 1-6):
+    - Implement ISO 13485:2016 quality management system
+    - Establish clinical evaluation process per MDR Article 61
+    - Appoint Person Responsible for Regulatory Compliance (PRRC)
+    - Develop technical documentation per MDR Annex II and III
+    Estimated Cost: EUR 1.2 million
+
+  Phase 2 — Conformity Assessment (Months 6-12):
+    - Engage Notified Body for conformity assessment (TUV SUD nominated)
+    - Conduct clinical evaluation and performance testing
+    - Prepare risk management documentation per ISO 14971
+    - Implement post-market surveillance system per MDR Article 83-86
+    Estimated Cost: EUR 1.8 million
+
+  Phase 3 — Certification & Market Access (Months 12-18):
+    - Obtain CE marking under MDR
+    - Register in EUDAMED database
+    - Implement Unique Device Identification (UDI) system
+    - Establish vigilance reporting capability
+    Estimated Cost: EUR 1.5 million
+
+4. TOTAL INVESTMENT
+
+  QMS Implementation:           EUR 1.2 million
+  Conformity Assessment:        EUR 1.8 million
+  Certification & Registration: EUR 1.5 million
+  ----------------------------------------
+  Total:                        EUR 4.5 million over 18 months
+
+  Annual Recurring Compliance Cost (post-certification): EUR 600K
+
+5. TIMELINE
+
+  Start Date:          August 2025 (post-acquisition signing)
+  Phase 1 Complete:    January 2026
+  Phase 2 Complete:    July 2026
+  Phase 3 Complete:    January 2027
+  Full MDR Compliance: Q1 2027
+
+6. RISK OF NON-COMPLIANCE
+
+If NovaTech does not pursue MDR compliance:
+  - Risk of enforcement action by competent authorities (BfArM in Germany,
+    Swissmedic in Switzerland)
+  - Customers using affected modules in clinical contexts may face their own
+    regulatory non-compliance
+  - Potential market access restrictions in EU member states
+  - Reputational damage and loss of customer trust
+
+The revised MDR classification contradicts Document 07's conclusion that
+RegAssure is entirely "out-of-scope." This change in classification is a
+material finding that impacts both operational costs and competitive
+positioning.
+
+7. STRATEGIC CONSIDERATION
+
+Achieving MDR compliance, while costly, would differentiate NovaTech from
+competitors (Veeva, Rimsys) that do not hold medical device software
+certification. This could become a significant competitive advantage for
+customers requiring MDR-compliant tooling in clinical-adjacent use cases.
+
+Prepared by Dr. Martina Scholz & TUV SUD Product Service GmbH

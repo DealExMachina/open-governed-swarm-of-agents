@@ -1,0 +1,34 @@
+PROJECT ONBOARDING -- STORAGEPLUS GMBH
+
+Date: 2025-09-01
+Project: StoragePlus Schleswig-Holstein Battery Storage
+Sponsor: StoragePlus GmbH (Germany)
+Category: A -- Energy storage (newly Taxonomy-eligible)
+Taxonomy NACE: E38.12 (as classified under amended Complementary CDA)
+
+Project description:
+- Location: Schleswig-Holstein, Germany (co-located with existing wind farm)
+- Capacity: 20 MWh (10 MW / 2h duration), lithium iron phosphate (LFP) chemistry
+- Purpose: Grid balancing and wind integration (arbitrage + FCR)
+- Contractor: Fluence Energy (turnkey EPC)
+- Expected COD: Q1 2026
+
+Technical screening criteria compliance:
+- Life-cycle GHG: 45 gCO2e/kWh (below 100 threshold)
+- Cycle life: 4,000 full cycles (above 2,000 minimum)
+- DNSH: Battery end-of-life management plan per Batteries Regulation (EU) 2023/1542. Take-back agreement with Li-Cycle (recycling).
+
+Financial terms:
+- Total project cost: EUR 14,000,000
+- Bond allocation requested: EUR 12,000,000
+- Single drawdown at financial close
+- Revenue: FCR + arbitrage, estimated EUR 95/kW/year
+
+Green Bond Committee assessment:
+- Substantial contribution: Grid-connected battery storage meets new TSC. ALIGNED.
+- Previous classification under flexibility pocket: SUPERSEDED by new TSC.
+- DNSH: Batteries Regulation compliance confirmed. No PFAS in battery chemistry.
+
+Decision: APPROVED. Drawdown: EUR 12,000,000 on 2025-09-10.
+
+Claim: StoragePlus approved under newly applicable TSC. EUR 12M allocated. Total allocated now EUR 236,100,000 (94.6%). Taxonomy alignment: 89.1%. Goal: Complete deployment and achieve post-allocation review threshold.

@@ -1,0 +1,53 @@
+# Env and secrets – never commit
+.env
+.env.local
+.env.*.local
+*.pem
+
+# Dependencies and build
+node_modules/
+dist/
+.pnpm-store/
+packages/**/pnpm-lock.yaml
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# Playwright MCP snapshots (local debugging)
+.playwright-mcp/
+
+# IDE and OS
+.idea/
+.vscode/
+*.code-workspace
+.cursor/
+.claude/
+.DS_Store
+*.log
+
+# LaTeX build artifacts
+publications/publication_1/*.aux
+publications/publication_1/*.bbl
+publications/publication_1/*.blg
+publications/publication_1/*.log
+publications/publication_1/*.out
+publications/publication_1/*.synctex.gz
+
+# Test coverage (generated)
+coverage/
+
+# Experiment results (generated)
+docs/experiments/*/results/
+
+# Business documents (local only)
+docs/business/
+
+# Rust / sgrs-core build artifacts
+sgrs-core/target/
+sgrs-core/*.node
+sgrs-core/index.js
+sgrs-core/index.d.ts
+sgrs-core/node_modules/
+sgrs-core/package-lock.json

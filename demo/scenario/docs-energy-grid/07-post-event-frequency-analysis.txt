@@ -1,0 +1,101 @@
+DOCUMENT: NorthGrid Utilities — Post-Event Frequency Analysis (Storm Helios)
+DATE: February 22, 2026
+CLASSIFICATION: NERC Event Analysis — CONFIDENTIAL
+AUTHOR: Grid Frequency Monitoring Group / PMU Analytics Team
+REF: NG-FREQ-2026-02-POST-007
+
+PURPOSE
+
+This document presents the detailed frequency analysis of the February 12
+grid disturbance using high-resolution Phasor Measurement Unit (PMU) data
+and compares findings against the SCADA-based readings reported in the
+initial event report (NG-EVENT-2026-02-12-006).
+
+MEASUREMENT COMPARISON
+
+The initial event report cited a SCADA-recorded frequency nadir of
+59.87 Hz at 16:48:23 UTC. PMU data analysis reveals a significantly
+different picture of the sub-second transient behavior.
+
+  Source  | Sample Rate | Nadir (Hz) | Nadir Time (UTC)     | Duration <59.95
+  --------|-------------|------------|----------------------|-----------------
+  SCADA   | 0.5 Hz      | 59.87      | 16:48:23             | 47 sec
+  PMU-01  | 30 Hz       | 59.823     | 16:48:22.467         | 53 sec
+  PMU-02  | 30 Hz       | 59.818     | 16:48:22.500         | 54 sec
+  PMU-03  | 30 Hz       | 59.826     | 16:48:22.433         | 52 sec
+  PMU-04  | 30 Hz       | 59.821     | 16:48:22.500         | 54 sec
+  PMU-05  | 30 Hz       | 59.819     | 16:48:22.467         | 53 sec
+
+PMU consensus nadir: 59.82 Hz (+/- 0.004 Hz across 5 PMUs)
+SCADA reported nadir: 59.87 Hz
+
+DISCREPANCY: 0.05 Hz (50 mHz)
+
+ROOT CAUSE OF MEASUREMENT DISCREPANCY
+
+The 50 mHz discrepancy between SCADA and PMU readings is attributable to
+SCADA's 2-second averaging window. During the frequency transient:
+
+  1. The actual frequency trajectory showed a sharp decline over
+     approximately 1.2 seconds, reaching a nadir of 59.82 Hz that
+     persisted for only 0.8 seconds before primary frequency response
+     began restoring frequency.
+
+  2. SCADA's 2-second scan captured an averaged value across the entire
+     decline-and-partial-recovery cycle, reporting 59.87 Hz — which
+     represents neither the true nadir nor the post-response value.
+
+  3. The 5 PMUs, sampling at 30 Hz (33ms intervals), captured the full
+     transient waveform with sub-cycle resolution. All 5 PMUs agree
+     within a 0.008 Hz band (59.818 to 59.826 Hz).
+
+FREQUENCY TRAJECTORY RECONSTRUCTION (PMU-02, selected as reference)
+
+  Time (UTC)          | Frequency (Hz) | Event
+  --------------------|----------------|----------------------------------
+  16:48:20.000        | 59.987         | Pre-event steady state
+  16:48:21.000        | 59.963         | Initial decline detected
+  16:48:21.500        | 59.941         | Rate of change: -0.048 Hz/sec
+  16:48:22.000        | 59.897         | Accelerating decline
+  16:48:22.300        | 59.852         | Governor response initiating
+  16:48:22.500        | 59.818         | NADIR — minimum frequency
+  16:48:23.000        | 59.841         | Primary response arresting
+  16:48:24.000        | 59.876         | Recovery underway
+  16:48:25.000        | 59.912         | Demand response load shed effect
+  16:48:30.000        | 59.948         | Approaching recovery
+  16:48:35.000        | 59.967         | Near-nominal
+  16:49:00.000        | 59.978         | Stabilizing
+  16:55:00.000        | 59.992         | Fully recovered
+
+Rate of Change of Frequency (RoCoF) at nadir: -0.12 Hz/sec
+This RoCoF is within NorthGrid's inertia adequacy threshold of
+-0.50 Hz/sec but significantly above the 0.05 Hz/sec warning level.
+
+IMPLICATIONS FOR COMPLIANCE REPORTING
+
+The revised nadir of 59.82 Hz is materially different from the
+SCADA-based 59.87 Hz reported initially:
+
+  1. BAL-003 exceedance severity increases — the event penetrated
+     deeper into the under-frequency range than initially reported.
+  2. The 59.82 Hz nadir was only 0.07 Hz above the UFLS Stage 1
+     trip setting of 59.75 Hz — a margin of 70 mHz rather than the
+     120 mHz margin implied by the SCADA reading.
+  3. NERC must be notified of the corrected nadir value.
+
+RECOMMENDATION
+
+  1. Accept PMU data as ground truth for this event. PMU measurement
+     uncertainty (+/-0.005 Hz) is an order of magnitude better than
+     SCADA's effective resolution during transients.
+  2. File corrected OE-417 supplement with revised nadir of 59.82 Hz.
+  3. Revise NorthGrid Procedure NG-OP-301 to designate PMU data as
+     the primary source for frequency compliance reporting during
+     disturbance events, superseding SCADA.
+  4. Do NOT overwrite original SCADA-based reports. Annotate them
+     as "superseded" with reference to PMU-corrected values.
+
+PREPARED BY: S. Petrov, Lead Frequency Analyst
+              Dr. H. Ramirez, PMU Analytics Lead
+REVIEWED BY: D. Okonkwo, P.E., Senior Transmission Planning Engineer
+APPROVED BY: R. Vasquez, VP Grid Operations

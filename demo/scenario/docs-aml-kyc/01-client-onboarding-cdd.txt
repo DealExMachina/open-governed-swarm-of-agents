@@ -1,0 +1,78 @@
+DOCUMENT: CLIENT ONBOARDING — CUSTOMER DUE DILIGENCE (CDD)
+CLASSIFICATION: CONFIDENTIAL — AML/KYC RESTRICTED
+INSTITUTION: EuroBank AG, Frankfurt am Main
+DATE: 2023-03-15
+REFERENCE: CDD-2023-CAST-0001
+FATF RISK CATEGORY: Standard CDD (Article 13, 5AMLD)
+STATUS: APPROVED
+
+1. CLIENT IDENTIFICATION
+
+Legal Name:          Castellan Holdings S.a.r.l.
+Jurisdiction:        Grand Duchy of Luxembourg
+Registration No.:    B-247831 (RCS Luxembourg)
+Date of Incorporation: 2018-06-22
+Registered Address:  14 Boulevard Royal, L-2449 Luxembourg
+Business Activity:   Family office — real estate investment, technology
+                     venture capital, wealth management
+Annual Turnover:     Declared EUR 5.2 million (FY 2022)
+
+2. ULTIMATE BENEFICIAL OWNERS (UBOs)
+
+UBO 1 — Viktor Castellan
+  Nationality:       Italian / Swiss dual citizen
+  Date of Birth:     1967-04-11
+  Passport:          IT-YR4827163 (valid to 2028-09-30)
+  Swiss Permit:      C-Permit, Canton Zug (since 2014)
+  Beneficial Ownership: 78% (direct and indirect)
+  Tax Residency:     Switzerland (Zug)
+  Source of Wealth:   Real estate portfolio (Northern Italy, est. EUR 40M)
+                     Technology exits: CastleTech Solutions sold 2017
+                     (proceeds EUR 22M post-tax)
+  Verification:      Passport copy, Swiss tax certificate, notarized
+                     wealth declaration, bank reference (UBS Zurich)
+
+UBO 2 — Elena Castellan (nee Morozova)
+  Nationality:       Italian
+  Date of Birth:     1975-08-23
+  Passport:          IT-YZ9184552 (valid to 2027-03-15)
+  Beneficial Ownership: 22% (direct shareholding)
+  Tax Residency:     Italy (Milan)
+  Source of Wealth:   Matrimonial property, independent art consultancy
+  Verification:      Passport copy, Italian tax return (Modello 730),
+                     marriage certificate, shareholding confirmation
+
+3. PEP SCREENING
+
+Neither UBO is a Politically Exposed Person under FATF or 5AMLD definitions.
+No direct PEP status identified.
+
+Note: Viktor Castellan's brother, Marco Castellan (DOB 1970-03-18), serves
+as a municipal councilor (Consigliere Comunale) in Milan, Ward 4. This
+constitutes a low-level PEP family association under EuroBank internal
+policy (Section 4.3.2 — Extended PEP Family Ties). Risk impact assessed
+as MINIMAL given the municipal-level scope and absence of financial
+decision-making authority.
+
+4. CDD DOCUMENTATION COLLECTED
+
+  [x] Certified copy of Articles of Association
+  [x] RCS Luxembourg extract (dated 2023-02-28)
+  [x] UBO register declaration (Luxembourg)
+  [x] Passport copies — both UBOs
+  [x] Proof of address — both UBOs
+  [x] Source of wealth documentation
+  [x] Tax residency certificates
+  [x] Bank reference letter (UBS AG, Zurich — dated 2023-01-10)
+  [x] Signed EuroBank Terms of Business
+  [x] W-8BEN-E (US tax withholding — not applicable, filed for record)
+
+5. APPROVAL
+
+CDD Review completed by:  Anna Berger, KYC Analyst (Employee ID: EB-4412)
+Approved by:               Dr. Thomas Hartmann, Head of Client Onboarding
+Date of Approval:          2023-03-15
+Next Review Due:           2024-03-15 (annual review cycle)
+Relationship Manager:      Stefan Koenig (Private Banking, Luxembourg Desk)
+
+— END OF CDD RECORD —

@@ -1,0 +1,118 @@
+CROSS-SITE RECIST HARMONIZATION AND ADJUDICATION REPORT
+================================================================================
+Protocol:           ONCO-RESOLVE-301
+Report Date:        2025-05-22
+Central Imaging:    ICON Medical Imaging (Warminster, PA)
+Agent:              Dr. Anika Patel, Central Radiology Reviewer
+================================================================================
+
+BACKGROUND:
+  Per Document 11 (Cross-Site Discrepancy Report, 2024-11-28) and Protocol
+  Amendment v3.2 (Document 13), a comprehensive RECIST v1.1 harmonization
+  process was initiated across all 12 sites. This report documents the
+  resolution of imaging discrepancies and the adjudication outcomes.
+
+SCOPE OF REVIEW:
+  Total imaging assessments in study:            892
+  Assessments reviewed by BICR:                  892 (100%)
+  Site-BICR concordant:                          848 (95.1%)
+  Site-BICR discordant:                          44 (4.9%)
+  Clinically significant discordance:            17 (1.9%)
+  Discordance involving transferred patients:     6 (0.7%)
+
+RESOLUTION OF 6 TRANSFERRED-PATIENT DISCREPANCIES (from Document 11):
+
+  CASE 1: Patient 01-022 (PR vs SD)
+    BICR determination: PARTIAL RESPONSE
+    Rationale: Baseline measurement verified at 68mm (Site 01 correct).
+    Site 07 re-measurement of 62mm inconsistent with protocol requirement
+    to maintain original baseline. Sum at Cycle 6: 44mm (-35.3% from 68mm).
+    RESOLVED: PR confirmed. Site 07 measurement overridden.
+
+  CASE 2: Patient 01-034 (SD vs PD — new lesion dispute)
+    BICR determination: PROGRESSIVE DISEASE
+    Rationale: Retrospective review of Site 01 Cycle 4 scan by two
+    independent radiologists: 8mm adrenal abnormality present but below
+    RECIST measurability threshold (10mm). By Cycle 8 scan, lesion measured
+    14mm and meets new lesion criteria per RECIST v1.1 Section 4.4.5.
+    RESOLVED: PD confirmed. New lesion identified at Cycle 8.
+    NOTE: PFS event date adjusted from Cycle 8 to Cycle 6 (when lesion
+    first became unequivocally new, per retrospective BICR assessment).
+
+  CASE 3: Patient 07-008 (PR vs PR — measurement discordance)
+    BICR determination: PARTIAL RESPONSE
+    BICR measurement: Target lesion sum 40mm (-37.5% from baseline 64mm)
+    Rationale: Both sites correctly identified PR. Measurement difference
+    (38mm vs 44mm) within known inter-reader variability. BICR measurement
+    used as definitive value.
+    RESOLVED: PR confirmed. No change in response category.
+
+  CASE 4: Patient 01-041 (target lesion selection discrepancy)
+    BICR determination: PARTIAL RESPONSE (using original 2-lesion set)
+    Rationale: Per RECIST v1.1 Section 4.4.4, target lesions must be
+    consistent from baseline. Site 01 original 2-lesion selection is
+    definitive. Addition of third lesion by Site 07 is a protocol violation.
+    RESOLVED: PR confirmed using Site 01 target lesion selection.
+    CAPA: Site 07 radiologist retrained on RECIST transfer-of-care SOP.
+
+  CASE 5: Patient 07-031 (SD vs PD — non-target progression)
+    BICR determination: STABLE DISEASE
+    Rationale: Non-target lesion assessment reviewed by 3 independent
+    radiologists. Consensus (2 of 3): progression NOT unequivocal per
+    RECIST v1.1. Pleural effusion increase noted but within physiologic
+    variation. Site 01 PD call was premature.
+    RESOLVED: SD confirmed. PFS event NOT recorded at this timepoint.
+    Patient subsequently confirmed PD at Cycle 10 (new hepatic lesion).
+
+  CASE 6: Patient 01-039 (NE vs SD — scan quality dispute)
+    BICR determination: STABLE DISEASE
+    Rationale: Scan quality assessed as adequate by 2 of 3 central
+    reviewers. Motion artifact present but does not preclude measurement
+    of target lesions. Site 01 NE call overly conservative.
+    RESOLVED: SD confirmed. Patient evaluable for response.
+
+SUMMARY OF TRANSFERRED-PATIENT RESOLUTIONS:
+  ┌─────────────┬──────────────┬──────────────┬──────────────┐
+  │ Case        │ Site 01 Call │ Site 07 Call │ BICR Final   │
+  ├─────────────┼──────────────┼──────────────┼──────────────┤
+  │ 01-022      │ PR           │ SD           │ PR           │
+  │ 01-034      │ SD           │ PD           │ PD           │
+  │ 07-008      │ PR           │ PR           │ PR           │
+  │ 01-041      │ PR           │ PR (3 TL)    │ PR (2 TL)    │
+  │ 07-031      │ SD (07 orig) │ PD (01 recv) │ SD           │
+  │ 01-039      │ NE           │ SD           │ SD           │
+  └─────────────┴──────────────┴──────────────┴──────────────┘
+
+RESOLUTION OF REMAINING 11 DISCREPANT ASSESSMENTS:
+
+  Non-transferred patients with site-BICR discordance:
+    Response upgrade (BICR higher than site):      3 cases
+    Response downgrade (BICR lower than site):     5 cases
+    Measurement discordance only (same category):  3 cases
+
+  All 11 resolved by standard BICR adjudication process (2 independent
+  readers + tie-breaker if needed). No adjudication committee required.
+
+ADJUDICATION COMMITTEE CASES (n=3):
+
+  Three cases from the original 17 discrepancies required formal adjudication
+  committee review (per Protocol Section 8.3.4):
+
+  ADJ-001: Patient 03-018 — Mixed response (some targets shrinking, one growing).
+    Committee decision: Progressive Disease (new measurable lesion in liver).
+  ADJ-002: Patient 06-027 — Pseudoprogression pattern suspected (initial
+    increase followed by decrease). Committee decision: defer PD call,
+    continue treatment with confirmatory scan at 6 weeks. Confirmed PR.
+  ADJ-003: Patient 11-014 — Bone-only disease, non-measurable per RECIST.
+    Committee decision: clinical benefit, non-CR/non-PD per RECIST guidance.
+
+  Total resolved: 14 of 17 by standard BICR
+  Total requiring adjudication committee: 3 of 17
+  All 17 now resolved.
+
+IMPACT ON PRIMARY ENDPOINT:
+  PFS events reclassified by BICR harmonization:    4 patients
+  PFS HR impact: 0.58 (pre-harmonization) -> 0.57 (post-harmonization)
+  Change is not clinically or statistically meaningful.
+
+STATE: EPOCH_3 | RECIST: HARMONIZED | DISCREPANCIES_RESOLVED: 17_OF_17 | BICR: COMPLETE

@@ -1,0 +1,70 @@
+================================================================================
+CONFIDENTIAL — PROJECT HORIZON
+NovaTech AG: Financial Overview (Management-Prepared)
+Date: 2025-01-18
+Prepared by: Stefan Gruber, CFO — NovaTech AG
+Reviewed by: Dr. Lukas Meier, CEO — NovaTech AG
+================================================================================
+
+1. REVENUE SUMMARY
+
+NovaTech AG reports the following unaudited revenue figures for the trailing
+twelve months ending Q3 2025:
+
+  Annual Recurring Revenue (ARR):     EUR 50.0 million
+  Total Revenue (TTM):                EUR 52.3 million (incl. professional services)
+  Quarterly Revenue (Q3 2025):        EUR 13.8 million
+  Quarterly Revenue (Q2 2025):        EUR 12.6 million
+  Quarterly Revenue (Q1 2025):        EUR 11.4 million
+  Quarterly Revenue (Q4 2024):        EUR 10.2 million
+
+Revenue is recognized on a subscription basis over the contract term. Multi-year
+contracts are invoiced annually in advance. Professional services revenue (EUR
+2.3M TTM) is recognized on a percentage-of-completion basis.
+
+2. REVENUE COMPOSITION
+
+  Subscription License Revenue:       EUR 42.0 million  (80.3%)
+  Platform Usage Fees:                EUR  8.0 million  (15.3%)
+  Professional Services:              EUR  2.3 million  ( 4.4%)
+
+3. KEY OPERATING METRICS
+
+  Gross Margin:                       72%
+  EBITDA Margin:                      -8% (pre-profitability investment phase)
+  Net Revenue Retention (NRR):        118%
+  Gross Revenue Retention:            94%
+  Customer Acquisition Cost (CAC):    EUR 85,000
+  LTV/CAC Ratio:                      5.2x
+  Payback Period:                     14 months
+
+4. COST STRUCTURE (Annualized)
+
+  Cost of Revenue:                    EUR 14.6 million  (28%)
+  Research & Development:             EUR 18.5 million  (35%)
+  Sales & Marketing:                  EUR 12.1 million  (23%)
+  General & Administrative:           EUR  7.1 million  (14%)
+  Total Operating Expenses:           EUR 52.3 million
+  Operating Loss:                     EUR -4.3 million
+
+5. BALANCE SHEET HIGHLIGHTS (as of September 30, 2025)
+
+  Cash & Equivalents:                 EUR 14.5 million
+  Accounts Receivable:                EUR  8.7 million
+  Deferred Revenue (Current):         EUR 15.2 million
+  Deferred Revenue (Non-Current):     EUR  6.8 million
+  Total Debt:                         EUR  0 (debt-free)
+  Total Equity:                       EUR 22.4 million
+
+6. THREE-YEAR REVENUE CAGR
+
+  FY2022 ARR:    EUR 16.4 million
+  FY2023 ARR:    EUR 28.1 million
+  FY2024 ARR:    EUR 41.7 million
+  FY2025 ARR:    EUR 50.0 million (projected full year)
+  3-Year CAGR:   ~45%
+
+Note: All figures are management-prepared and have not been subject to external
+audit. An independent financial review will be conducted in Phase 2 diligence.
+
+Prepared by Stefan Gruber, CFO — NovaTech AG

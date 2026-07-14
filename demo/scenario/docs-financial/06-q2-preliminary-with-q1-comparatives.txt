@@ -1,0 +1,58 @@
+MERIDIAN HOLDINGS -- Q2 2025 PRELIMINARY RESULTS WITH Q1 COMPARATIVES
+
+Prepared by: Group CFO Office
+Date: 2025-07-21
+Valid period: Q2 2025 (April 1 -- June 30, 2025) with Q1 2025 comparatives
+Classification: INTERNAL -- BOARD MATERIALS (DRAFT)
+
+CONSOLIDATED Q2 OVERVIEW
+
+Meridian Holdings reports preliminary consolidated revenue of EUR 134.1M for Q2 2025, representing a 5.3% sequential increase from Q1. Full-year run rate is tracking above guidance.
+
+QUARTER-ON-QUARTER COMPARISON
+
+                            Q2 2025     Q1 2025     Q/Q Change
+                            (Prelim)    (Restated)
+Total consolidated revenue  EUR 134.1M  EUR 125.8M  +6.6%
+Inter-company eliminations  EUR (5.1M)  EUR (4.0M)
+Net external revenue        EUR 129.0M  EUR 121.8M  +5.9%
+Gross profit                EUR 55.2M   EUR 49.5M   +11.5%
+Gross margin                42.8%       40.6%
+EBITDA                      EUR 18.7M   EUR 15.3M   +22.2%
+
+Note: The Q1 2025 "Restated" column reflects adjustments from Alpha Industrials' May 22 restatement and the resolution of the inter-company Project Catalyst dispute. These Q1 comparatives differ from the figures in the original April 18 consolidated summary (EUR 127.4M total, EUR 122.6M net external, EUR 51.1M gross profit, 41.7% margin) in several respects.
+
+Q1 RESTATED RECONCILIATION
+
+Original consolidated revenue (April 18 report): EUR 127.4M
+Alpha Industrials revenue reduction: EUR (0.8M)
+Nordstern provision impact on gross profit: EUR (1.2M)
+Revised inter-company eliminations: EUR 0.8M (net of Alpha adjustment)
+Beta Services COGS reclassification: EUR (0.6M)
+Gamma Digital revenue methodology alignment: EUR (1.0M)
+Restated Q1 consolidated revenue: EUR 125.8M
+
+We acknowledge that this restated figure (EUR 125.8M) differs from the sum of restated subsidiary revenues due to rounding and the timing of certain inter-company elimination adjustments. A precise line-by-line reconciliation is being prepared for the Ernst & Young interim review.
+
+Q2 SUBSIDIARY PERFORMANCE
+
+Alpha Industrials: EUR 63.8M (Q2) vs EUR 60.5M (Q1 restated). The Nordstern Q2 milestone was partially delivered; EUR 0.6M of the EUR 1.2M provision has been released. Remaining provision: EUR 0.6M.
+
+Beta Services: EUR 44.7M (Q2) vs EUR 43.9M (Q1). The BfS change orders from Q1 have now been signed (EUR 1.9M). The Berlin restructuring is complete; no further restructuring charges expected.
+
+Gamma Digital: EUR 30.7M (Q2) vs EUR 27.0M (Q1, group methodology). ARR grew to EUR 106.2M. Daimler Truck AG renewed for 2 years but at a 12% discount to the previous rate, reducing ARR contribution from EUR 9.2M to EUR 8.1M. Management characterizes this as "in line with enterprise renewal norms" but the discount was not anticipated in our Q1 outlook.
+
+HEADCOUNT
+
+Group FTEs as of June 30: 1,298 (was 1,247 at March 31 per the original Q1 report; however, restated Q1 headcount using the revised contractor methodology is 1,271, making the Q/Q increase 27 FTEs rather than 51).
+
+CASH POSITION
+
+Group cash: EUR 38.7M (was EUR 42.3M at Q1-end). The decrease primarily reflects the Augsburg line capex and the Gamma Digital capital injection, partially offset by operating cash flow. We note that the Gamma Digital EUR 5.0M injection is classified as equity at the subsidiary level but as an inter-company loan at group level. This discrepancy has been flagged for the interim review.
+
+OPEN ITEMS
+
+- Ernst & Young interim review: scheduled to begin July 28, 2025
+- Q1 precise reconciliation: in progress, expected by August 5
+- Gamma Digital equity vs. loan classification: pending group accounting policy decision
+- Contractor headcount methodology: being standardized across subsidiaries for Q3

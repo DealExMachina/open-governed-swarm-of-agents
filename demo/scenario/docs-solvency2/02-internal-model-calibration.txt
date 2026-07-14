@@ -1,0 +1,98 @@
+MERIDIAN INSURANCE GROUP AG
+Internal Model Calibration Report — Annual Review
+Reference Date: 31 December 2025
+Prepared by: Risk Actuary — Dr. Lukas Feldmann
+Classification: CONFIDENTIAL — Internal Use Only
+Date of Issue: 24 January 2026
+
+1. PURPOSE AND SCOPE
+
+This report documents the annual calibration review of Meridian's
+partial internal model (PIM) as approved by BaFin under Decision
+Ref. VA 44-I 4000-2023/0189 dated 15 September 2023. The PIM covers
+the life underwriting risk module and market risk module. All other
+modules use the standard formula.
+
+2. MODEL PARAMETERS — LIFE UNDERWRITING RISK
+
+2.1 Mortality Risk
+  Base mortality table: DAV 2004 T (modified)
+  Stress factor (1-in-200 year): 18.5% (standard formula: 15%)
+  Pandemic loading: additional 3.2% applied post-COVID recalibration
+  Resulting capital charge: EUR 67,000,000
+
+2.2 Lapse Risk
+  Mass lapse stress: 42% of in-force (standard formula: 40%)
+  Lapse-up stress: 55% increase (standard formula: 50%)
+  Lapse-down stress: 67% decrease (standard formula: 65%)
+  Resulting capital charge: EUR 89,000,000
+  Note: Lapse risk is the dominant sub-module within life underwriting.
+
+2.3 Catastrophe Risk (Life)
+  Absolute stress: 1.8 per mille of sum at risk
+  (standard formula: 1.5 per mille)
+  Resulting capital charge: EUR 42,000,000
+
+3. MODEL PARAMETERS — MARKET RISK
+
+3.1 Interest Rate Risk
+  Calibration method: principal component analysis on EUR swap curve
+  Stress scenarios: parallel shift +/- 150bps, twist, inversion
+  Resulting capital charge: EUR 112,000,000
+
+3.2 Equity Risk
+  Type 1 equities stress: 41% (standard formula: 39% + symmetric adj.)
+  Type 2 equities stress: 52% (standard formula: 49% + symmetric adj.)
+  Resulting capital charge: EUR 94,000,000
+
+3.3 Spread Risk
+  Internal model uses migration-based approach
+  Calibration period: 2005-2025 (20 years, includes GFC and COVID)
+  Resulting capital charge: EUR 83,000,000
+
+4. COMPARISON WITH STANDARD FORMULA
+
+                          Internal Model    Standard Formula    Delta
+Life underwriting risk    EUR 191,000,000   EUR 198,000,000   -3.5%
+Market risk               EUR 281,000,000   EUR 289,000,000   -2.8%
+-----------------------------------------------------------------------
+Combined (with diversif.)  EUR 418,000,000   EUR 432,000,000   -3.2%
+
+The internal model produces a LOWER overall SCR than the standard
+formula by EUR 14,000,000 (3.2%). This is within the expected range
+and reflects Meridian's conservative investment strategy and well-
+diversified life portfolio.
+
+5. VALIDATION RESULTS
+
+5.1 Backtesting
+  P&L attribution test: 94.2% of variance explained (threshold: 90%)
+  Profit/loss test: 3 exceptions in 250 observations (threshold: 5)
+  Conclusion: PASS
+
+5.2 Sensitivity Analysis
+  10 key parameters tested with +/- 10% perturbation.
+  Maximum SCR impact: EUR 23,000,000 (mortality stress factor).
+  No cliff effects identified.
+
+5.3 Expert Judgment Review
+  Three expert judgments documented per Art. 230 of Delegated Regulation:
+  - Pandemic loading calibration (reviewed by Prof. Bruckner)
+  - Mass lapse assumption for unit-linked portfolio (reviewed by Dr. Feldmann)
+  - Spread risk correlation matrix (reviewed by external consultant PwC)
+
+6. MODEL CHANGE LOG
+
+No material model changes since last annual review. Minor recalibration
+of equity volatility parameters following 2025 market data update.
+
+7. SIGN-OFF
+
+This report has been reviewed by the Model Validation Function (second
+line of defense) on 20 January 2026 and approved by:
+  Dr. Lukas Feldmann — Risk Actuary
+  Dr. Katharina Engel — Capital Model Analyst
+  Frau Monika Adler — Chief Risk Officer
+
+Filed with BaFin under annual model change notification requirements
+(Art. 115 of Directive 2009/138/EC).

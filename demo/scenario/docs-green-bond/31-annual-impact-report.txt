@@ -1,0 +1,38 @@
+ANNUAL IMPACT REPORT -- YEAR 1
+
+Date: 2025-10-22
+Bond: EuroVert Capital Green Bond Fund I (European Green Bond)
+Methodology: ICMA Harmonized Framework for Impact Reporting (2024 edition)
+
+PORTFOLIO IMPACT SUMMARY
+
+Renewable energy (Cat A):
+- Installed capacity: 150 MW (SolarMed 45, WindNorth 80, AgriVolt 25)
+- Under construction: 80 MW (EolienSud 60, StoragePlus 10 MW discharge)
+- Annual generation (operational): 344 GWh
+- Annual avoided emissions (operational): 67,560 tCO2e
+- Methodology: Grid emission factor per country (IT 0.4, DK 0.14, FR 0.28 tCO2e/MWh)
+
+Energy efficiency (Cat B):
+- Buildings renovated: 11 of 12 (Alexanderplatz completion expected Q3 2025)
+- Average energy demand reduction: 38% (above 30% framework threshold)
+- Estimated annual energy savings: 4.2 GWh
+- Estimated annual avoided emissions: 1,680 tCO2e
+
+Clean transportation (Cat C):
+- EV charging points operational: 1,950 of 2,500
+- Estimated sessions per year: 285,000
+- Estimated annual avoided emissions: 2,400 tCO2e (vs ICE baseline)
+
+TOTAL PORTFOLIO:
+- Annual avoided emissions: 71,640 tCO2e
+- Emission intensity: 287 tCO2e avoided per EUR 1M invested
+
+Limitation: Impact estimates use standard emission factors and are subject to uncertainty. Actual avoided emissions depend on grid mix evolution and counterfactual assumptions. ChargeNet impact is below initial projections due to utilization underperformance.
+
+ALIGNMENT WITH UN SDGS:
+- SDG 7 (Affordable and Clean Energy): Direct contribution (renewable energy, building efficiency)
+- SDG 11 (Sustainable Cities): EV charging infrastructure
+- SDG 13 (Climate Action): 71,640 tCO2e avoided
+
+Claim: Portfolio avoids 71,640 tCO2e annually. 150 MW operational renewable capacity. Impact intensity 287 tCO2e/EUR M. Goal: Publish report, maintain reporting cadence, and improve ChargeNet utilization.
