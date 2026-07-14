@@ -2,14 +2,18 @@
 
 Static HTML prototype (`index.html`): graph shell and Cytoscape visualization with embedded demo data.
 
-**Run locally:** serve this directory only, for example:
+**Run locally (recommended):** with the feed server up:
 
 ```bash
-npx --yes serve .
-# open the URL printed in the terminal (e.g. http://localhost:3000)
+pnpm run feed
+# http://localhost:3002/studio?scope_id=default
 ```
 
-Not wired into root `package.json`. For the full governed demo pipeline, see [`../../demo/DEMO.md`](../../demo/DEMO.md).
+The page loads live graph elements from `GET /studio/elements?scope_id=…` on the same host. Without seeded graph data it falls back to the embedded Horizon demo graph.
+
+**Static-only:** `npx --yes serve .` (mock graph + manual `window.STUDIO_CONTROL`).
+
+For the full governed demo pipeline, see [`../../demo/DEMO.md`](../../demo/DEMO.md).
 
 ## Graph readability — avoid confusing overlaps
 

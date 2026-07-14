@@ -82,15 +82,40 @@ async function run(): Promise<void> {
     };
     assertTruthy(summary.state, "missing state");
     assertTruthy(summary.finality, "missing finality");
-    assertTruthy(summary.drift, "missing drift");
+    if (!Object.prototype.hasOwnProperty.call(summary, "drift")) {
+      throw new Error("missing drift key");
+    }
     record(
       "DASH-SMOKE-005",
       "Feed summary API shape",
       true,
-      "state/finality/drift fields present",
+      `state/finality/drift keys present (drift=${summary.drift === null ? "null" : "set"})`,
     );
   } catch (error) {
     record("DASH-SMOKE-005", "Feed summary API shape", false, String(error));
+  }
+
+  // DASH-SMOKE-007
+  try {
+    const studioStatus = await checkHttpStatus(`${FEED_URL}/studio`);
+    const elements = (await checkJson(
+      `${FEED_URL}/studio/elements?scope_id=${encodeURIComponent(SCOPE_ID)}`,
+    )) as { nodes?: unknown[] };
+    const ok =
+      studioStatus === 200 && Array.isArray(elements.nodes);
+    record(
+      "DASH-SMOKE-007",
+      "Studio served from feed + graph elements API",
+      ok,
+      `studio=${studioStatus}, nodes=${elements.nodes?.length ?? 0}`,
+    );
+  } catch (error) {
+    record(
+      "DASH-SMOKE-007",
+      "Studio served from feed + graph elements API",
+      false,
+      String(error),
+    );
   }
 
   // DASH-SMOKE-006
@@ -123,7 +148,7 @@ async function run(): Promise<void> {
     try {
       await page.goto(`${FEED_URL}/`, { waitUntil: "domcontentloaded", timeout: 30000 });
       await page.waitForTimeout(1000);
-      const text = await page.locator("body").innerText();
+      const text = (await page.locator("body").innerText()).toUpperCase();
       const required = ["STATE", "GOAL SCORE", "DRIFT", "SERVICE HEALTH", "LIVE EVENTS"];
       const missing = required.filter((token) => !text.includes(token));
       const ok = missing.length === 0;

@@ -1086,7 +1086,26 @@
   </head>
   <body data-mode="business">
     <script>
-      window.STUDIO_CONTROL = window.STUDIO_CONTROL || {};
+      (function () {
+        const p = new URLSearchParams(location.search);
+        const scopeId =
+          p.get("scope_id") ||
+          localStorage.getItem("studio_scope_id") ||
+          "default";
+        localStorage.setItem("studio_scope_id", scopeId);
+        const baseUrl =
+          p.get("feed") ||
+          (location.port === "3002"
+            ? location.origin
+            : "http://127.0.0.1:3002");
+        const apiKey =
+          p.get("api_key") || localStorage.getItem("studio_api_key") || "";
+        if (apiKey) localStorage.setItem("studio_api_key", apiKey);
+        window.STUDIO_CONTROL = Object.assign(
+          { baseUrl: baseUrl, scopeId: scopeId, apiKey: apiKey },
+          window.STUDIO_CONTROL || {},
+        );
+      })();
     </script>
     <div class="app">
       <!-- ═════════════ Top bar ═════════════ -->
@@ -1584,8 +1603,11 @@
         });
       });
 
-      /* ═══════════════ Mock data: Project Horizon ═══════════════ */
-      const nodes = [
+      let cy, cyDbg;
+
+      /* ═══════════════ Graph: live feed or demo fallback ═══════════════ */
+      (async function initStudioGraph() {
+      const MOCK_NODES = [
         { data: { id: "doc-1", label: "Analyst Briefing", type: "doc", info: { subtitle: "doc · 2026-03-01 · 3 claims", desc: "Initial profile · ARR €50M · CAGR 45% · 7 patents" } } },
         { data: { id: "doc-2", label: "Financial DD", type: "doc", info: { subtitle: "doc · 2026-03-18 · 5 claims", desc: "ARR €38M · 2 patents disputed · drift high vs doc-1" } } },
         { data: { id: "doc-3", label: "Technical", type: "doc", info: { subtitle: "doc · 2026-03-26 · 4 claims", desc: "Core tech solid · CTO + 2 seniors departing" } } },
@@ -1616,7 +1638,7 @@
         { data: { id: "g-signoff", label: "Legal sign-off", type: "goal", info: { subtitle: "goal · 81% complete", desc: "Legal recommendation · refs c-ip-ok, r-ip" } } },
       ];
 
-      const edges = [
+      const MOCK_EDGES = [
         { data: { source: "doc-1", target: "c-arr-50", type: "refers" } },
         { data: { source: "doc-1", target: "c-cagr", type: "refers" } },
         { data: { source: "doc-1", target: "c-patents-7", type: "refers" } },
@@ -1644,6 +1666,31 @@
         { data: { source: "c-arr-38", target: "g-price", type: "supports" } },
       ];
 
+      let nodes = MOCK_NODES;
+      let edges = MOCK_EDGES;
+      const studioCfg = window.STUDIO_CONTROL || {};
+      const studioScope = studioCfg.scopeId || "default";
+      const studioBase = String(
+        studioCfg.baseUrl || "http://127.0.0.1:3002",
+      ).replace(/\/$/, "");
+      try {
+        const liveUrl =
+          studioBase +
+          "/studio/elements?scope_id=" +
+          encodeURIComponent(studioScope);
+        const liveRes = await fetch(liveUrl);
+        if (liveRes.ok) {
+          const live = await liveRes.json();
+          if (live.nodes && live.nodes.length > 0) {
+            nodes = live.nodes;
+            edges = live.edges || [];
+            document.body.dataset.graphSource = "live";
+          }
+        }
+      } catch (_err) {
+        document.body.dataset.graphSource = "mock";
+      }
+
       /* ═══════════════ Deterministic layered positions (no overlap) ═══════════════ */
       function layeredPositions(nodesArr) {
         const byId = {};
@@ -1667,8 +1714,10 @@
           byId[n.data.id] = { x: left + 18 + i * cs, y: claimY };
         });
 
-        byId["x-arr"] = { x: left + 210, y: contraY };
-        byId["x-risk"] = { x: left + 560, y: contraY };
+        const contras = nodesArr.filter((n) => n.data.type === "contradiction");
+        contras.forEach((n, i) => {
+          byId[n.data.id] = { x: left + 80 + i * 180, y: contraY };
+        });
 
         nodesArr
           .filter((n) => n.data.type === "resolution")
@@ -1894,7 +1943,7 @@
       };
 
       /* ═══════════════ Init cy (Business) ═══════════════ */
-      const cy = cytoscape({
+      cy = cytoscape({
         container: document.getElementById("cy"),
         elements: elementsPayload,
         minZoom: 0.35,
@@ -1905,7 +1954,7 @@
       });
 
       /* ═══════════════ Init cy (Debug — same positions) ═══════════════ */
-      const cyDbg = cytoscape({
+      cyDbg = cytoscape({
         container: document.getElementById("cyDbg"),
         elements: JSON.parse(JSON.stringify(elementsPayload)),
         minZoom: 0.35,
@@ -2172,57 +2221,69 @@
         const pre = document.getElementById("studio-cp-json");
         if (!msg || !pre) return;
 
-        function go() {
-          var base = (cfg.baseUrl || "http://127.0.0.1:3004").replace(/\/$/, "");
-          var key = cfg.apiKey || "";
-          var scope = cfg.scopeId || "";
-          if (!key || !scope) {
-            msg.textContent =
-              "Configure window.STUDIO_CONTROL.apiKey and .scopeId for live data.";
-            return;
-          }
-          var auth = { Authorization: "Bearer " + key };
-          fetch(
-            base + "/v1/scopes/" + encodeURIComponent(scope) + "/metrics",
-            { headers: auth },
-          )
-            .then(function (r) {
-              return r.json();
-            })
-            .then(function (m) {
-              pre.textContent = JSON.stringify(m, null, 2);
-              msg.textContent = "Metrics OK · tokens in period shown below.";
-              var fc = document.querySelector(".mode-pane.business .prg-compact .score");
-              if (fc && m.tokens)
-                fc.textContent = String(
-                  (m.tokens.input_tokens || 0) + (m.tokens.output_tokens || 0),
-                );
-            })
-            .catch(function () {
-              msg.textContent =
-                "Control plane unreachable or 401 — check baseUrl and apiKey.";
-            });
+        function applySummary(s) {
+          var el = document.querySelector(
+            ".mode-pane.business .prg-compact .state",
+          );
+          if (el && s.finality && s.finality.status)
+            el.textContent = String(s.finality.status);
+          var sc = document.querySelector(
+            ".mode-pane.business .prg-compact .score",
+          );
+          if (sc && s.finality && typeof s.finality.goal_score === "number")
+            sc.textContent = String(s.finality.goal_score);
+        }
 
-          fetch(
-            base + "/v1/scopes/" + encodeURIComponent(scope) + "/summary",
-            { headers: auth },
-          )
+        function go() {
+          var base = (cfg.baseUrl || "http://127.0.0.1:3002").replace(
+            /\/$/,
+            "",
+          );
+          var key = cfg.apiKey || "";
+          var scope = cfg.scopeId || "default";
+          var summaryUrl = key
+            ? base + "/v1/scopes/" + encodeURIComponent(scope) + "/summary"
+            : base +
+              "/summary?raw=1&scope_id=" +
+              encodeURIComponent(scope);
+          var headers = key ? { Authorization: "Bearer " + key } : {};
+
+          fetch(summaryUrl, { headers: headers })
             .then(function (r) {
               return r.json();
             })
             .then(function (s) {
-              var el = document.querySelector(".mode-pane.business .prg-compact .state");
-              if (el && s.finality && s.finality.status)
-                el.textContent = String(s.finality.status);
-              var sc = document.querySelector(".mode-pane.business .prg-compact .score");
-              if (sc && s.finality && typeof s.finality.goal_score === "number")
-                sc.textContent = String(s.finality.goal_score);
+              pre.textContent = JSON.stringify(s, null, 2);
+              msg.textContent = key
+                ? "Live /v1 summary (authenticated)."
+                : "Live feed /summary (local, no API key).";
+              applySummary(s);
             })
-            .catch(function () {});
+            .catch(function () {
+              msg.textContent =
+                "Feed unreachable — start pnpm run feed on port 3002.";
+            });
+
+          if (key) {
+            fetch(
+              base + "/v1/scopes/" + encodeURIComponent(scope) + "/metrics",
+              { headers: headers },
+            )
+              .then(function (r) {
+                return r.json();
+              })
+              .then(function (m) {
+                if (m.tokens) {
+                  msg.textContent += " Metrics loaded.";
+                }
+              })
+              .catch(function () {});
+          }
         }
 
         go();
         setInterval(go, 30000);
+      })();
       })();
     </script>
   </body>
