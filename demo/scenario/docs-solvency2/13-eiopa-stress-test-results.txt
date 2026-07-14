@@ -1,0 +1,171 @@
+MERIDIAN INSURANCE GROUP AG
+EIOPA 2026 Insurance Stress Test — Meridian Results Summary
+Reference Date: 31 March 2026
+Prepared by: Capital Model Analyst — Dr. Katharina Engel
+              Risk Actuary — Dr. Lukas Feldmann
+Classification: CONFIDENTIAL — Board Use Only (until EIOPA publication)
+Date of Issue: 1 September 2026
+Reference: ST-2026-001
+
+1. BACKGROUND
+
+EIOPA conducted its biennial insurance stress test in H1 2026, with
+results communicated to participating undertakings on 25 August 2026.
+Aggregate results will be published by EIOPA on 15 October 2026.
+
+Meridian was included in the sample of 43 European insurance groups
+(representing 75% of European insurance assets). Participation is
+mandatory for groups with total assets exceeding EUR 10 billion.
+
+Reference date: 31 March 2026 (coincides with Meridian's Q1 2026
+reporting date).
+
+2. SCENARIO DESCRIPTIONS
+
+EIOPA prescribed three scenarios:
+
+  BASE SCENARIO:
+    Economic conditions broadly unchanged from Q1 2026.
+    Interest rates: current forward curve.
+    Equity markets: no shock.
+    Credit spreads: no shock.
+    Insurance-specific: no additional stresses.
+
+  ADVERSE SCENARIO (Prolonged Stagflation):
+    GDP: -2.5% (Eurozone), -3.8% (UK)
+    Inflation: +4.2% above baseline for 24 months
+    Interest rates: +350bps (short end), +150bps (long end) — inversion
+    Equity markets: -45% (Type 1), -55% (Type 2)
+    Credit spreads: +180bps (IG), +450bps (HY)
+    Sovereign spreads: +120bps (peripheral), +30bps (core)
+    Lapse shock: +15% mass lapse in unit-linked
+    Expense inflation: +3.5% above baseline
+    Natural catastrophe: 1-in-30 year European windstorm
+
+  CLIMATE SCENARIO (Transition Risk):
+    Carbon price: EUR 250/tonne by 2030 (accelerated transition)
+    Fossil fuel equity write-down: -60%
+    Real estate revaluation: -15% (energy-inefficient buildings)
+    Green bond spread tightening: -40bps
+    Stranded asset provisions: 5% of relevant exposures
+
+3. MERIDIAN RESULTS — BASE SCENARIO
+
+Starting position (as at 31 March 2026):
+  Eligible own funds:    EUR 896,000,000
+  SCR:                   EUR 677,000,000
+  SCR ratio:             132.4%
+
+  Note: EIOPA used a slightly different methodology for the starting
+  position than Meridian's internal calculation (128%). The difference
+  of 4.4pp is attributable to EIOPA's treatment of the transitional
+  measure and its prescribed look-through methodology, which differs
+  in some technical details from EIOPA-BoS-26/142.
+
+Post-stress position (Base):
+  Eligible own funds:    EUR 901,000,000
+  SCR:                   EUR 682,000,000
+  SCR ratio:             132.1%
+  Change:                -0.3 percentage points
+
+  RESULT: PASS (ratio remains above 100%)
+
+4. MERIDIAN RESULTS — ADVERSE SCENARIO
+
+Post-stress position (Adverse):
+  Eligible own funds:    EUR 558,000,000
+  SCR:                   EUR 572,000,000
+  SCR ratio:             97.6%
+  Change from starting:  -34.8 percentage points
+
+  RESULT: FAIL (ratio falls below 100%)
+
+Key loss drivers:
+  Market risk losses:                EUR -218,000,000
+    of which equity:                 EUR  -81,000,000
+    of which spread widening:        EUR  -98,000,000
+    of which interest rate:          EUR  -39,000,000
+  Life underwriting losses:          EUR  -67,000,000
+    of which lapse:                  EUR  -42,000,000
+    of which expense inflation:      EUR  -25,000,000
+  Non-life underwriting losses:      EUR  -38,000,000
+    of which windstorm:              EUR  -28,000,000
+    of which inflation on reserves:  EUR  -10,000,000
+  Tax offset:                        EUR  +22,000,000
+  Diversification offset:            EUR  +31,000,000
+  Loss-absorbing capacity of TP:     EUR  +17,000,000
+  Management actions (prescribed):   EUR  +15,000,000
+  -------------------------------------------------------
+  Total own funds impact:            EUR -338,000,000
+
+  SCR increase (due to changed risk profile): EUR +95,000,000
+  (primarily from increased spread and interest rate sensitivity)
+
+5. MERIDIAN RESULTS — CLIMATE SCENARIO
+
+Post-stress position (Climate):
+  Eligible own funds:    EUR 842,000,000
+  SCR:                   EUR 695,000,000
+  SCR ratio:             121.2%
+  Change from starting:  -11.2 percentage points
+
+  RESULT: PASS (but below internal target)
+
+Key loss drivers:
+  Fossil fuel equity write-down:     EUR  -14,000,000
+  Real estate revaluation:           EUR  -22,000,000
+  Stranded asset provisions:         EUR   -8,000,000
+  Green bond gains:                  EUR   +4,000,000
+  Other transition effects:          EUR  -14,000,000
+  -------------------------------------------------------
+  Total own funds impact:            EUR  -54,000,000
+
+6. PEER COMPARISON (PRELIMINARY, CONFIDENTIAL)
+
+EIOPA provided Meridian with anonymized percentile rankings:
+
+                    Base Ratio   Adverse Ratio   Climate Ratio
+Meridian            132.1%       97.6%           121.2%
+Industry median     148.3%       112.5%          134.8%
+25th percentile     129.7%       98.2%           118.4%
+10th percentile     118.1%       89.6%           105.3%
+
+Meridian is positioned:
+  Base: 28th percentile (below median)
+  Adverse: 23rd percentile (near bottom quartile)
+  Climate: 22nd percentile (near bottom quartile)
+
+This is a cause for concern. Meridian's relative positioning has
+deteriorated compared to the 2024 stress test (where it was at the
+45th percentile for the adverse scenario).
+
+7. IMPLICATIONS AND REQUIRED ACTIONS
+
+7.1 Supervisory Dialogue
+  EIOPA guidelines state that undertakings failing the adverse scenario
+  must engage in enhanced supervisory dialogue with their NCA. BaFin
+  will likely request:
+  - A detailed action plan addressing adverse scenario vulnerabilities
+  - Enhanced reporting on market risk exposures (quarterly)
+  - Board-level attestation that management actions are actionable
+
+7.2 Capital Remediation Plan Update
+  The existing CRP (CRP-2026-001) targets 155% by Q4 2026. The stress
+  test results suggest this target may be insufficient given the
+  adverse scenario impact of -34.8pp. The Board should consider
+  whether a higher target is appropriate.
+
+7.3 Public Disclosure
+  When EIOPA publishes aggregate results on 15 October 2026, Meridian
+  will be identifiable due to sample size. External Communications
+  Monitor Herr Baumann is preparing a press statement and investor
+  Q&A document.
+
+8. SIGN-OFF
+
+  Dr. Katharina Engel — Capital Model Analyst
+  Dr. Lukas Feldmann — Risk Actuary
+  Frau Monika Adler — CRO
+
+  Presented to Management Board: 5 September 2026
+  Presented to Supervisory Board Risk Committee: 12 September 2026

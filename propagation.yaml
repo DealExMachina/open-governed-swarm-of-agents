@@ -1,0 +1,88 @@
+# Sheaf-based evidence propagation and ISS cascade configuration.
+
+propagation:
+  framework: sheaf_laplacian
+
+  roles:
+    - name: facts
+      stalk_dim: 8
+      primary_dims: [claim_confidence]
+    - name: drift
+      stalk_dim: 8
+      primary_dims: [contradiction_resolution]
+    - name: resolver
+      stalk_dim: 8
+      primary_dims: [contradiction_resolution, goal_completion]
+    - name: planner
+      stalk_dim: 8
+      primary_dims: [goal_completion]
+    - name: status
+      stalk_dim: 8
+      primary_dims: [risk_score_inverse]
+    - name: governance
+      stalk_dim: 8
+      primary_dims: all
+    - name: tuner
+      stalk_dim: 8
+      primary_dims: all
+
+  dimensions:
+    - claim_confidence
+    - contradiction_resolution
+    - goal_completion
+    - risk_score_inverse
+  evidence_channels:
+    - support
+    - refutation
+
+  sheaf:
+    edges:
+      - from: facts
+        to: drift
+        edge_dim: 4
+      - from: drift
+        to: resolver
+        edge_dim: 4
+      - from: resolver
+        to: planner
+        edge_dim: 4
+      - from: planner
+        to: status
+        edge_dim: 4
+      - from: status
+        to: governance
+        edge_dim: 8
+      - from: governance
+        to: facts
+        edge_dim: 4
+      - from: governance
+        to: drift
+        edge_dim: 4
+      - from: governance
+        to: tuner
+        edge_dim: 8
+      - from: tuner
+        to: facts
+        edge_dim: 4
+
+  diffusion:
+    alpha: auto
+    max_alpha_ratio: 0.95
+    sheaf_mode: projection   # "constant" for identity maps (backward-compat), "projection" for observation-based maps
+
+  admissible_set:
+    type: convex_box
+    support_range: [0.0, 1.0]
+    refutation_range: [0.0, 1.0]
+
+  noise:
+    epsilon_max_initial: 0.15
+    log_perturbation_norms: true
+
+  iss:
+    max_contradiction_rate: 0.3
+    alert_on_violation: true
+
+  topology_constraints:
+    min_spectral_gap: 0.1
+    max_degree: 4

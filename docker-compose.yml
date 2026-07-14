@@ -1,0 +1,153 @@
+services:
+  s3:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:-minioadmin}
+    volumes:
+      - minio_data:/data
+
+  postgres:
+    image: pgvector/pgvector:pg15
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-swarm}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-swarm}
+      POSTGRES_DB: ${POSTGRES_DB:-swarm}
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  nats:
+    image: nats:2-alpine
+    command: ["--jetstream", "--store_dir", "/data", "-m", "8222"]
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+    volumes:
+      - nats_data:/data
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8222/healthz"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Optional: OPA server for policy bundle API (Phase 1 may use OPA-WASM in-process instead).
+  # opa:
+  #   image: openpolicyagent/opa:latest
+  #   command: run --server --log-level=info
+  #   ports:
+  #     - "8181:8181"
+
+  openfga:
+    image: openfga/openfga:latest
+    command: run
+    ports:
+      - "8080:8080"
+      - "3000:3000"
+    # Use image default: grpc_health_probe on 8081 (no wget/curl in minimal image)
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    command: ["--config=/etc/otel-collector.yaml"]
+    volumes:
+      - ./otel-collector.yaml:/etc/otel-collector.yaml
+    ports:
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
+      - "8889:8889"   # Prometheus scrape endpoint
+
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    depends_on:
+      - otel-collector
+
+  grafana:
+    image: grafana/grafana:latest
+    volumes:
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning
+      - ./observability/grafana/dashboards:/var/lib/grafana/dashboards
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "3004:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-swarm}
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      # Default home dashboard set in UI or after first login (avoids startup datasource resolution)
+    depends_on:
+      - prometheus
+
+  facts-worker:
+    image: python:3.11-slim
+    working_dir: /app
+    volumes:
+      - ./workers/facts-worker:/app
+    command: sh -c "pip install -q -r requirements.txt && uvicorn app:app --host 0.0.0.0 --port 8010"
+    ports:
+      - "8010:8010"
+    environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
+      # Ollama opt-in: set FACTS_WORKER_OLLAMA=1 in .env to route extraction through local Ollama.
+      # When empty (default), the worker uses the OpenAI API.
+      OLLAMA_BASE_URL: ${FACTS_WORKER_OLLAMA:+http://host.docker.internal:11434}
+      EXTRACTION_MODEL: ${EXTRACTION_MODEL:-qwen3:8b}
+      EXTRACTION_TIMEOUT_SEC: ${EXTRACTION_TIMEOUT_SEC:-180}
+      # NER/NLI disabled by default (slim image has no torch). Install requirements-full.txt and set models to enable.
+      SKIP_GLINER: ${SKIP_GLINER:-1}
+      SKIP_NLI: ${SKIP_NLI:-1}
+      GLINER_MODEL: ${GLINER_MODEL:-}
+      NLI_MODEL: ${NLI_MODEL:-}
+
+  feed:
+    build:
+      context: .
+      dockerfile: Dockerfile.feed
+    image: swarm-feed
+    working_dir: /app
+    volumes:
+      - .:/app
+      - feed_node_modules:/app/node_modules
+    # CMD in Dockerfile.feed: install + build:rust (sgrs-core for linux-musl) + feed
+    environment:
+      NATS_URL: nats://nats:4222
+      NATS_STREAM: ${NATS_STREAM:-SWARM_JOBS}
+      FEED_PORT: "3002"
+      FEED_HOST: "0.0.0.0"
+      DATABASE_URL: postgresql://${POSTGRES_USER:-swarm}:${POSTGRES_PASSWORD:-swarm}@postgres:5432/${POSTGRES_DB:-swarm}
+      S3_ENDPOINT: http://s3:9000
+      S3_REGION: ${S3_REGION:-us-east-1}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-minioadmin}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-minioadmin}
+      S3_BUCKET: ${S3_BUCKET:-swarm}
+      ACCEPT_ANY_SCOPE: "1"
+    depends_on:
+      nats:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+
+volumes:
+  minio_data:
+  postgres_data:
+  nats_data:
+  feed_node_modules:
+  prometheus_data:
+  grafana_data:

@@ -1,0 +1,75 @@
+DATA SAFETY MONITORING BOARD — INTERIM SAFETY REVIEW #1
+================================================================================
+Protocol:           ONCO-RESOLVE-301
+DSMB Meeting:       Teleconference, 2024-06-14
+Meeting Number:     DSMB-001
+Classification:     CONFIDENTIAL — DSMB Members Only
+Agent:              Dr. Margaret Sullivan, DSMB Chair
+================================================================================
+
+ATTENDEES:
+  Dr. Margaret Sullivan (Chair, Bioethicist, Georgetown University)
+  Dr. Robert Tanaka (Medical Oncologist, Stanford University)
+  Dr. Lisa Chen (Biostatistician, Harvard T.H. Chan School)
+  Dr. William Osei (Pulmonologist, Emory University)
+  Dr. Francesca Moretti (Pharmacologist, University of Pittsburgh)
+  Unblinded statistician: Dr. Amy Richardson (Meridian Therapeutics)
+
+EVALUABLE PATIENTS:
+  Safety population:      80 patients (ORX-4471: 54, Docetaxel: 26)
+  Minimum follow-up:      6 weeks (2 treatment cycles)
+  Median follow-up:       12 weeks (4 treatment cycles)
+
+OVERALL SAFETY (ORX-4471 arm, n=54):
+  Any adverse event:                      52/54 (96.3%)
+  Grade 3+ adverse event:                  7/54 (13.0%)
+  Serious adverse event (SAE):             4/54 (7.4%)
+  Treatment-related death:                 0/54 (0%)
+  Discontinuation due to AE:               2/54 (3.7%)
+
+GRADE 3+ ADVERSE EVENTS BY CATEGORY (ORX-4471 arm):
+  Hepatotoxicity (ALT/AST elevation):      3/54 (5.6%)
+    Patient 01-008: ALT 248 U/L (Grade 3), resolved with dose hold
+    Patient 04-019: ALT 212 U/L (Grade 3), resolved with dose hold
+    Patient 07-012: ALT 180 U/L — RECORDED AS Grade 2 at time of entry
+      [NOTE: This value later subject to correction; see Document 08]
+  Pneumonitis:                              1/54 (1.9%)
+  Colitis:                                  1/54 (1.9%)
+  Infusion reaction:                        1/54 (1.9%)
+  Fatigue:                                  1/54 (1.9%)
+
+HEPATOTOXICITY DETAIL (ORX-4471 arm, n=54):
+  Any grade:               8/54 (14.8%)
+  Grade 1 (ALT 1-3x ULN):  4/54 (7.4%)
+  Grade 2 (ALT 3-5x ULN):  1/54 (1.9%)
+  Grade 3 (ALT >5x ULN):   3/54 (5.6%)  [NOTE: pre-correction rate]
+  Grade 4:                  0/54 (0%)
+
+  ** Reported Grade 3+ hepatotoxicity rate: 5.6% **
+  Protocol-specified stopping boundary for hepatotoxicity: 8%
+  Current rate is BELOW stopping boundary.
+
+COMPARATIVE SAFETY (Docetaxel arm, n=26):
+  Grade 3+ AE:            5/26 (19.2%)
+  Neutropenia Grade 3+:   3/26 (11.5%)
+  Febrile neutropenia:     1/26 (3.8%)
+
+DSMB ASSESSMENT:
+  1. Overall safety profile consistent with known checkpoint inhibitor class
+     effects and Phase I data (Document 02).
+  2. Grade 3+ AE rate of 13.0% within expected range (protocol specified
+     acceptable range: 10-20%).
+  3. Hepatotoxicity rate of 5.6% below stopping boundary of 8%.
+  4. No unexpected safety signals identified.
+  5. No imbalance in mortality between arms.
+
+DSMB RECOMMENDATION:
+  ** CONTINUE ENROLLMENT WITHOUT MODIFICATION **
+  Next scheduled review: after 180 patients evaluable (estimated Q4 2024).
+
+VOTE: Unanimous (5-0) to continue.
+
+DISSEMINATION: Per DSMB Charter Section 7.2, this recommendation communicated
+to Sponsor, IRBs, and FDA (IND Safety Report not required for this review).
+
+STATE: EPOCH_1 | DSMB_REVIEW: PASSED | RECOMMENDATION: CONTINUE

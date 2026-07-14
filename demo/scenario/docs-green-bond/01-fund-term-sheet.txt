@@ -1,0 +1,24 @@
+TERM SHEET -- EuroVert Capital Green Bond Fund I
+
+Issuer: EuroVert Capital S.a r.l., a Luxembourg-domiciled special purpose vehicle.
+Bond type: Senior unsecured green bond.
+Target size: EUR 250,000,000.
+Coupon: Fixed 4.25% per annum, payable semi-annually.
+Maturity: 7 years from issuance date.
+Use of proceeds: Financing and refinancing of Eligible Green Projects per the EuroVert Green Bond Framework aligned with ICMA Green Bond Principles 2021.
+Eligible categories: Renewable energy (solar PV, onshore wind), energy efficiency (building retrofits, industrial process), clean transportation (EV charging infrastructure).
+Taxonomy alignment target: Minimum 85% of net proceeds allocated to EU Taxonomy-aligned activities.
+Listing: Luxembourg Stock Exchange, Green Bond segment.
+Governing law: Luxembourg law.
+Arranger: Banque Verte S.A.
+External reviewer: Sustainalytics (Second Party Opinion, pre-issuance).
+
+Key dates:
+- Framework publication: 2024-09-15
+- SPO delivery: 2024-10-01 (expected)
+- Pricing: 2024-10-15 (expected)
+- Settlement: 2024-10-22 (expected)
+- First allocation report: 2025-04-30
+- EUGBS application date: 2024-12-21
+
+Claim: EUR 250M green bond under ICMA GBP framework, targeting 85% EU Taxonomy alignment. Goal: Issue and fully allocate proceeds within 24 months.

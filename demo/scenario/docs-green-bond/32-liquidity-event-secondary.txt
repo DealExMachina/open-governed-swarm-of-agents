@@ -1,0 +1,31 @@
+LIQUIDITY AND SECONDARY MARKET UPDATE
+
+Date: 2025-11-15
+Subject: Secondary market performance and investor relations
+
+Secondary market:
+- Current price: 101.25 (yield 4.05%)
+- Spread: MS+128bps (tightened from MS+142bps at issuance)
+- Greenium: Estimated 15bps vs comparable conventional bonds (expanded from 12bps at issuance)
+- Bid-ask spread: 15-20 cents (liquid for EUR IG green bonds)
+
+Investor composition evolution:
+- Original holders: 72% retained
+- Secondary buyers: Predominantly ESG-focused funds and Article 9 SFDR products
+- 3 new investors added since EUGBS designation (Nordic Article 9 funds)
+
+Rating update:
+- Fitch affirmed BBB+ (stable outlook) on 2025-09-30
+- Fitch green bond assessment: GBA2 (good alignment with green bond principles)
+
+Coupon payment:
+- First coupon (H1 2025): EUR 5,312,500 paid on 2025-04-22. No payment delay.
+- Second coupon (H2 2025): EUR 5,312,500 due 2025-10-22. Paid on schedule.
+
+Cash flow coverage:
+- Project revenue (operational assets): EUR 18.4M (annualized H2 2025 data)
+- Debt service (annual coupon): EUR 10,625,000
+- Coverage ratio: 1.73x
+- Reserve account: EUR 5.3M (50% of annual coupon)
+
+Claim: Bond trading at premium (101.25). Greenium widened to 15bps post-EUGBS designation. Cash flow coverage at 1.73x. Goal: Maintain market confidence and investor base through transparent reporting.

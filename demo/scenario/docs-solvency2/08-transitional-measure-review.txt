@@ -1,0 +1,135 @@
+MERIDIAN INSURANCE GROUP AG
+Review of Art. 308c Transitional Measure on Technical Provisions
+Following EIOPA Updated Look-Through Guidelines (EIOPA-BoS-26/142)
+Prepared by: Regulatory Interpreter — Dr. Anna-Lena Richter
+              Risk Actuary — Dr. Lukas Feldmann
+Classification: CONFIDENTIAL — Board and BaFin Submission
+Date of Issue: 5 May 2026
+Reference: TM-2026-002
+
+1. PURPOSE
+
+This memorandum reviews the impact of EIOPA's updated look-through
+guidelines on Meridian's Art. 308c transitional measure and determines
+whether an early recalculation is required.
+
+CRITICAL BITEMPORAL COMPLIANCE NOTE:
+
+The Q4 2025 transitional deduction of EUR 45,000,000 (calculated as at
+31 December 2025 and approved by the Supervisory Board on 20 December
+2025) was CORRECTLY calculated under the regulatory framework then in
+force. Specifically:
+
+  Transaction time:  20 December 2025 (date of approval and recording)
+  Valid time:        1 January 2025 to 31 December 2025 (applicable period)
+  Regulatory basis:  EIOPA-BoS-14/171, BaFin Circular 2/2016 (VA)
+
+This figure SHALL NOT be overwritten or restated. It represents the
+legitimate regulatory position for the Q4 2025 period. Any subsequent
+recalculation creates a NEW record with its own transaction time and
+valid time, coexisting with the original.
+
+2. TRIGGER ANALYSIS
+
+Guideline 4.3 of EIOPA-BoS-26/142 defines materiality thresholds for
+early recalculation of the transitional measure:
+  - Change in SCR > 10%: Actual change = 8.0% (EUR 50M / EUR 627M)
+    THRESHOLD NOT MET
+  - Change in SCR ratio > 10pp: Actual change = 14pp (142% -> 128%)
+    THRESHOLD MET
+
+Since one of the two thresholds is met, BaFin has DISCRETION (but is
+not obligated) to require early recalculation under Art. 308c(5).
+
+3. PROACTIVE RECALCULATION
+
+Meridian has elected to proactively perform the recalculation to
+demonstrate cooperative supervisory engagement. The revised calculation
+under the updated framework is as follows:
+
+3.1 Solvency II Technical Provisions (updated for Q1 2026)
+  Gross technical provisions:            EUR 4,320,000,000
+  Change from Q4 2025:                   EUR   +40,000,000
+  (due to new business and assumption updates)
+
+3.2 Solvency I Proxy Technical Provisions (recalculated)
+  Proxy provisions:                      EUR 4,248,000,000
+  Change from Q4 2025:                   EUR   +58,000,000
+  (look-through changes affect asset valuations used in proxy)
+
+3.3 Revised Transitional Deduction
+  Difference:                            EUR    72,000,000
+  Linear reduction factor (9.75/16):            39.1%
+  Revised transitional deduction:        EUR    28,000,000
+
+  Previous deduction (Q4 2025):          EUR    45,000,000
+  Reduction:                             EUR    17,000,000
+  Percentage reduction:                          37.8%
+
+4. IMPACT ON SCR RATIO
+
+The reduction in transitional deduction of EUR 17,000,000 increases
+effective technical provisions, which flows through to the SCR via
+increased risk charges on the best estimate liabilities.
+
+  Impact on SCR: approximately EUR +5,000,000
+  Impact on own funds: approximately EUR -12,000,000 (higher TP
+    reduces excess of assets over liabilities)
+
+  Adjusted SCR (including transitional impact):  EUR 682,000,000
+  Adjusted own funds:                            EUR 884,000,000
+  Adjusted SCR ratio:                            129.6%
+
+  Note: The small improvement from 128% to ~130% after accounting for
+  transitional changes reflects the interaction effects. The net
+  position remains materially below the 135% target.
+
+5. RECONCILIATION OF TRANSITIONAL FIGURES
+
+For the avoidance of doubt, the following table records both the
+original and revised transitional deductions with their temporal
+attributes:
+
+  Record 1 (PRESERVED — not overwritten):
+    Transaction time:  20 December 2025
+    Valid time:        Q4 2025 (1 Oct 2025 — 31 Dec 2025)
+    Amount:            EUR 45,000,000
+    Regulatory basis:  EIOPA-BoS-14/171, BaFin Circular 2/2016
+    Status:            VALID for its period
+
+  Record 2 (NEW):
+    Transaction time:  5 May 2026
+    Valid time:        Q1 2026 onwards (1 Jan 2026 — until next review)
+    Amount:            EUR 28,000,000
+    Regulatory basis:  EIOPA-BoS-26/142, BaFin Circular 2/2016 as
+                       supplemented
+    Status:            CURRENT
+
+6. LEGAL ANALYSIS
+
+Dr. Richter confirms that this approach is consistent with:
+  - Art. 308c(4): Prior calculations remain valid until superseded
+  - EIOPA Guideline 3.3: Retroactive assessment is informational only
+  - BaFin administrative practice: No precedent for retrospective
+    invalidation of previously approved transitional figures
+
+However, there is a residual risk that BaFin may adopt a more
+conservative stance given the magnitude of the change. The probability
+of retrospective invalidation is assessed as LOW (< 10%).
+
+7. RECOMMENDATIONS
+
+7.1 Submit this recalculation to BaFin proactively with a covering
+    letter emphasizing Meridian's cooperative approach.
+7.2 Request formal confirmation from BaFin that the Q4 2025 figures
+    are not subject to restatement.
+7.3 Update the ORSA to reflect the revised transitional position.
+7.4 Engage the Appointed Actuary to formally sign off on the revised
+    EUR 28,000,000 figure.
+
+8. SIGN-OFF
+
+  Dr. Anna-Lena Richter — Head of Regulatory Interpretation
+  Dr. Lukas Feldmann — Risk Actuary
+  Herr Jens Hofmann — General Counsel
+  Frau Monika Adler — Chief Risk Officer

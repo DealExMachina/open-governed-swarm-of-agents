@@ -1,0 +1,73 @@
+PROTOCOL SYNOPSIS
+================================================================================
+Protocol Number:    ONCO-RESOLVE-301
+IND Number:         IND-178432
+Sponsor:            Meridian Therapeutics, Inc.
+Version:            1.0 (Original)
+Date:               2024-01-15
+Agent:              Dr. Elena Vasquez, Principal Investigator / Protocol Chair
+================================================================================
+
+TITLE: A Randomized, Open-Label, Phase II/III Study of ORX-4471 (Anti-PD-L1/CTLA-4
+Bispecific Checkpoint Inhibitor) versus Standard-of-Care Docetaxel in Patients with
+Previously Treated Locally Advanced or Metastatic Non-Small Cell Lung Cancer (NSCLC)
+
+STUDY DESIGN:
+  - Phase:              II/III (seamless adaptive design per FDA Guidance 2019)
+  - Randomization:      2:1 (ORX-4471 : Docetaxel)
+  - Blinding:           Open-label with blinded independent central review (BICR)
+  - Planned enrollment: 450 patients across 12 investigative sites
+  - Duration:           36 months (enrollment 12 months, follow-up 24 months)
+
+PRIMARY ENDPOINT (Phase III):
+  Progression-Free Survival (PFS) per RECIST v1.1 by BICR
+
+SECONDARY ENDPOINTS:
+  - Overall Response Rate (ORR) per RECIST v1.1
+  - Overall Survival (OS)
+  - Duration of Response (DOR)
+  - Disease Control Rate (DCR)
+  - Safety and tolerability per CTCAE v5.0
+
+STUDY DRUG:
+  ORX-4471 200mg IV q3w (dose established in Phase I, IND-178432-P1)
+  Maximum Treatment Duration (MTD): 200mg q3w as established in Protocol P1-ORX-4471
+
+STATISTICAL CONSIDERATIONS:
+  Phase II:  Simon two-stage design, H0: ORR <= 20%, H1: ORR >= 35%
+             Stage 1: n=80, >= 20 responses to proceed
+             Stage 2: n=180 total, >= 54 responses to declare success
+  Phase III: Log-rank test, HR = 0.65, alpha = 0.025 (one-sided)
+             Power: 90%, estimated events: 302
+             One interim analysis at 60% information fraction (Lan-DeMets alpha spending)
+
+PARTICIPATING SITES:
+  Site 01 - Memorial Sloan Kettering Cancer Center (New York, NY)
+  Site 02 - Dana-Farber Cancer Institute (Boston, MA)
+  Site 03 - Johns Hopkins Sidney Kimmel Cancer Center (Baltimore, MD)
+  Site 04 - MD Anderson Cancer Center (Houston, TX)
+  Site 05 - Mayo Clinic (Rochester, MN)
+  Site 06 - UCLA Jonsson Comprehensive Cancer Center (Los Angeles, CA)
+  Site 07 - Cedars-Sinai Medical Center (Los Angeles, CA)
+  Site 08 - Cleveland Clinic Taussig Cancer Center (Cleveland, OH)
+  Site 09 - UCSF Helen Diller Family Cancer Center (San Francisco, CA)
+  Site 10 - Massachusetts General Hospital (Boston, MA)
+  Site 11 - University of Chicago Medicine (Chicago, IL)
+  Site 12 - Fred Hutchinson Cancer Center (Seattle, WA)
+
+DATA SAFETY MONITORING BOARD (DSMB):
+  Independent DSMB with 5 members, charter per ICH E9(R1).
+  Planned reviews: after 80, 180, and 300 patients evaluable for safety.
+
+REGULATORY COMPLIANCE:
+  This study is conducted in accordance with ICH-GCP E6(R2), 21 CFR Parts 11,
+  50, 56, and 312, and applicable local regulations. All electronic records
+  comply with 21 CFR Part 11 requirements for audit trails, electronic
+  signatures, and data integrity.
+
+INVARIANT: Phase I dose-finding data (Protocol P1-ORX-4471) constitutes the
+foundational safety baseline. Phase II/III findings SHALL NOT retroactively
+modify Phase I measurements or conclusions. Any Phase III hypothesis revision
+constitutes a NEW knowledge state and must be documented as such.
+
+STATE: EPOCH_1 | STATUS: ACTIVE | ENROLLMENT: OPEN

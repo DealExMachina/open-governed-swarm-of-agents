@@ -1,0 +1,30 @@
+PROJECT ONBOARDING -- EOLIENSUD SAS
+
+Date: 2025-08-20
+Project: EolienSud Occitanie Wind Farm
+Sponsor: EolienSud SAS (France)
+Category: A -- Renewable energy (Onshore wind)
+Taxonomy NACE: D35.11
+
+Project description:
+- Location: Occitanie region, southern France
+- Capacity: 60 MW (15 x Siemens Gamesa SG5.0-145 turbines)
+- Status: Under construction (foundations complete, tower erection Q4 2025)
+- Grid connection: RTE, expected Q1 2026
+- Estimated annual generation: 150 GWh
+- Estimated avoided emissions: 42,000 tCO2e/year
+
+Financial terms:
+- Total project cost: EUR 72,000,000
+- Bond allocation requested: EUR 48,000,000
+- Drawdown schedule: 30% at financial close (Sep 2025), 40% at turbine delivery (Dec 2025), 30% at COD (Q1 2026)
+- Revenue: 20-year CfD (Contrat complementaire de remuneration) at EUR 55/MWh
+
+Green Bond Committee assessment:
+- Substantial contribution: Onshore wind, estimated 9 gCO2e/kWh. Aligned.
+- DNSH: French ICPE authorization obtained (2024-09). Avian study completed (no identified conflict).
+- Social safeguards: French labor code, community benefit scheme (EUR 5,000/MW/year).
+
+Decision: APPROVED. First drawdown: EUR 14,400,000 on 2025-09-05.
+
+Claim: EolienSud approved for EUR 48M allocation (Category A). Taxonomy-aligned. With this allocation, total allocated reaches EUR 224,100,000 (89.8% of net proceeds). Goal: Achieve COD Q1 2026 and reach 85% overall allocation for post-allocation review.

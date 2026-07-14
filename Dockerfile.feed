@@ -1,0 +1,21 @@
+# Feed service: Node + Rust so sgrs-core native addon can be built for container platform (linux-musl).
+# At container start, run: pnpm install && pnpm run build:rust && pnpm run feed.
+# build:rust produces the correct .node for this image (e.g. sgrs-core.linux-arm64-musl.node).
+FROM node:20-alpine
+
+# Rust toolchain for building sgrs-core (napi-rs) at container start
+RUN apk add --no-cache curl build-base musl-dev \
+  && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable --profile minimal
+
+ENV PATH="/root/.cargo/bin:${PATH}"
+# Alpine has gcc (musl); Rust expects aarch64-linux-musl-gcc. Force linker for musl targets.
+ENV CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER=gcc
+ENV CARGO_TARGET_X86_64_UNKNOWN_LINUX_MUSL_LINKER=gcc
+
+WORKDIR /app
+
+EXPOSE 3002
+ENV FEED_PORT=3002
+
+# App is mounted; startup runs: pnpm install && pnpm run build:rust && pnpm run feed
+CMD ["sh", "-c", "corepack enable && pnpm install --frozen-lockfile && pnpm run build:rust && pnpm run feed"]

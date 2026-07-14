@@ -1,0 +1,23 @@
+{
+  "name": "sgrs-core",
+  "version": "0.2.0",
+  "license": "Elastic-2.0",
+  "private": true,
+  "main": "index.js",
+  "types": "index.d.ts",
+  "napi": {
+    "name": "sgrs-core",
+    "triples": {
+      "defaults": false,
+      "additional": []
+    }
+  },
+  "scripts": {
+    "build": "napi build --release --platform",
+    "build:debug": "napi build --platform",
+    "postbuild": "node verify-build.cjs"
+  },
+  "devDependencies": {
+    "@napi-rs/cli": "^3.0.0"
+  }
+}

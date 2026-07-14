@@ -1,0 +1,106 @@
+MERIDIAN INSURANCE GROUP AG
+Regulatory Interpretation Memorandum
+Subject: Application of Art. 308c Transitional Measures on Technical Provisions
+Prepared by: Regulatory Interpreter — Dr. Anna-Lena Richter (Legal & Compliance)
+Classification: CONFIDENTIAL — Restricted Distribution
+Date of Issue: 28 January 2026
+Validity: This interpretation is effective as at 31 December 2025
+
+1. BACKGROUND
+
+Article 308c of Directive 2009/138/EC (Solvency II) permits insurance
+and reinsurance undertakings to apply a transitional deduction to
+technical provisions, subject to supervisory approval. The transitional
+measure is designed to ensure an orderly transition from the Solvency I
+regime by allowing a gradual phase-in of the Solvency II technical
+provisions over a 16-year period ending 1 January 2032.
+
+2. CURRENT REGULATORY POSITION
+
+2.1 Delegated Regulation (EU) 2015/35
+  Art. 308c(2): The transitional deduction shall be calculated as the
+  difference between Solvency II technical provisions and Solvency I
+  technical provisions, reduced linearly over the 16-year period.
+
+2.2 BaFin Circular 2/2016 (VA)
+  Paragraphs 18-24 provide guidance on the calculation methodology.
+  Key requirement: recalculation every 24 months or upon material
+  change in risk profile.
+
+2.3 EIOPA Guidelines on Transitional Measures (EIOPA-BoS-15/116)
+  Guideline 5: The transitional deduction applies at the level of
+  individual homogeneous risk groups.
+  Guideline 7: Changes in interest rates since 1 January 2016 shall
+  be reflected in the Solvency I proxy calculation.
+
+3. MERIDIAN'S APPLICATION
+
+Meridian received BaFin approval for the transitional measure on
+3 March 2024 (Ref. VA 44-I 4000-2024/0031). The current transitional
+deduction is calculated as follows:
+
+  Solvency II technical provisions (gross):  EUR 4,280,000,000
+  Solvency I proxy technical provisions:     EUR 4,190,000,000
+  Difference:                                EUR    90,000,000
+  Linear reduction factor (10/16 remaining):          50.0%
+  Transitional deduction:                    EUR    45,000,000
+
+This EUR 45,000,000 deduction reduces Meridian's technical provisions
+for SCR calculation purposes.
+
+4. INTERPRETATION ISSUES
+
+4.1 Look-Through and Transitional Interaction
+  QUESTION: Should the look-through approach for collective investment
+  undertakings (Art. 84, Delegated Regulation) interact with the
+  transitional calculation?
+
+  INTERPRETATION: Based on current BaFin guidance and EIOPA Q&A
+  ID 1621 (published 14 July 2024), the look-through approach does
+  NOT affect the transitional deduction calculation. The transitional
+  is computed at the aggregate technical provisions level, whereas
+  look-through affects asset-side risk charges. These are independent.
+
+  CONFIDENCE: HIGH — supported by explicit EIOPA Q&A.
+
+4.2 Counterparty Downgrade and Transitional
+  QUESTION: If a reinsurance counterparty is downgraded, does this
+  affect the transitional deduction?
+
+  INTERPRETATION: No. The transitional measure relates solely to the
+  difference between Solvency I and Solvency II technical provisions.
+  Counterparty credit quality affects the counterparty default risk
+  module, not the technical provisions calculation that underpins
+  the transitional.
+
+  CONFIDENCE: HIGH — no ambiguity in the regulation.
+
+4.3 Retroactive Application of Future Guideline Changes
+  QUESTION: If EIOPA issues updated guidelines affecting the look-
+  through approach, would prior SCR calculations need to be restated?
+
+  INTERPRETATION: Under Art. 308c(4), prior approved calculations
+  remain valid until the next scheduled recalculation date unless
+  BaFin specifically requires an earlier recalculation. A change in
+  EIOPA guidelines does not automatically invalidate previously
+  approved figures. However, the NEXT recalculation must incorporate
+  any new requirements.
+
+  CONFIDENCE: MEDIUM — while legally sound, supervisory practice
+  may differ. BaFin has discretion under Art. 308c(5) to require
+  earlier recalculation.
+
+5. RECORD-KEEPING REQUIREMENT
+
+Per Art. 308c(6) and BaFin Circular 2/2016 para. 23, Meridian must
+retain complete documentation of each transitional calculation,
+including the Solvency I proxy methodology, for a minimum of 5 years
+after the transitional period ends (i.e., until 1 January 2037).
+
+This memorandum serves as part of that documentation.
+
+6. SIGN-OFF
+
+  Dr. Anna-Lena Richter — Head of Regulatory Interpretation
+  Frau Monika Adler — Chief Risk Officer
+  Herr Jens Hofmann — General Counsel

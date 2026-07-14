@@ -1,0 +1,47 @@
+DRAFT -- EUROPEAN GREEN BOND FACTSHEET (ANNEX I FORMAT)
+
+Date: 2025-03-20
+Issuer: EuroVert Capital S.a r.l.
+Bond: EuroVert Capital Green Bond Fund I (XS2987654321)
+
+This factsheet is prepared in accordance with Regulation (EU) 2023/2631, Annex I.
+
+SECTION 1: ISSUER INFORMATION
+Legal name: EuroVert Capital S.a r.l.
+LEI: 549300ABCDEFGHIJ1234
+Registered office: Luxembourg
+Competent authority: CSSF (Commission de Surveillance du Secteur Financier)
+
+SECTION 2: BOND INFORMATION
+ISIN: XS2987654321
+Total nominal amount: EUR 250,000,000
+Issue date: 2024-10-22
+Maturity date: 2031-10-22
+Coupon: 4.25% fixed, semi-annual
+
+SECTION 3: USE OF PROCEEDS
+Percentage of net proceeds to be allocated to Taxonomy-aligned activities: Target 85% (current allocation 87.2%).
+
+Breakdown by environmental objective:
+- Climate change mitigation (Art. 9(a)): 100% of allocated proceeds
+- Climate change adaptation: 0%
+- Other objectives: 0%
+
+Breakdown by economic activity:
+- D35.11 Production of electricity (solar, wind): 72.9%
+- F41/F43 Building renovation: 14.3%
+- H49.32/H49.39 Clean transport infrastructure: 12.8%
+
+SECTION 4: GREEN BOND STRATEGY
+The issuer will allocate all net proceeds within 5 years of issuance to eligible green projects as defined in the EuroVert Green Bond Framework v1.1.
+
+SECTION 5: FLEXIBILITY POCKET
+Up to 15% of net proceeds may be allocated to activities for which no EU Taxonomy technical screening criteria exist, provided DNSH compliance is ensured.
+
+SECTION 6: EXTERNAL REVIEWER
+Pre-issuance reviewer: Sustainalytics (notified to ESMA under transitional provisions).
+Post-allocation reviewer: To be appointed from ESMA-registered reviewers by Q3 2025.
+
+STATUS: DRAFT. Pending external reviewer review before EUGBS designation application.
+
+Claim: EuGB factsheet prepared per Annex I template. Goal: Submit for external review and apply for EuGB designation.

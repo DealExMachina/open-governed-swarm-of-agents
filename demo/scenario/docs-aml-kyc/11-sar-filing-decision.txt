@@ -1,0 +1,135 @@
+DOCUMENT: SUSPICIOUS ACTIVITY REPORT (SAR) — FILING DECISION
+CLASSIFICATION: STRICTLY CONFIDENTIAL — TIPPING-OFF PROHIBITION APPLIES
+INSTITUTION: EuroBank AG, Frankfurt am Main
+DATE: 2024-10-03
+REFERENCE: SAR-2024-CAST-0001
+COMPLIANCE COMMITTEE DECISION
+CHAIR: Dr. Heinrich Fischer, General Counsel (EB-0042)
+
+*** TIPPING-OFF PROHIBITION — GwG SECTION 47 ***
+THIS DOCUMENT AND THE FACT OF SAR FILING MUST NOT BE DISCLOSED TO THE
+CLIENT, ANY CONNECTED PARTY, OR ANY UNAUTHORIZED PERSON. VIOLATION
+CONSTITUTES A CRIMINAL OFFENSE UNDER GERMAN LAW.
+
+1. COMPLIANCE COMMITTEE CONVENED
+
+Date:        2024-10-01
+Attendees:
+  - Dr. Heinrich Fischer, General Counsel (Chair)
+  - Claudia Richter, Head of Financial Crime
+  - Klaus Brandt, Head of Transaction Monitoring
+  - Dr. Markus Lehmann, Data Protection Officer
+  - Stefan Koenig, Relationship Manager (excused from SAR vote due
+    to client-facing role — informed of general compliance concerns only)
+  - Anna Berger, KYC Analyst (presenting officer)
+
+2. MATTERS CONSIDERED
+
+The Committee reviewed the following accumulated evidence:
+
+  (a) CDD-2024-CAST-0006: Undisclosed PEP trust beneficiary (Marco
+      Castellan), 190-day notification breach
+  (b) TXN-ALERT-2024-0287: EUR 3.3M in payments to Cerberus Consulting
+      AG, a newly incorporated shell-like entity
+  (c) EDD-2024-CAST-0001: EDD findings — weak commercial rationale,
+      undisclosed prior relationship with counterparty director
+  (d) MED-2024-CAST-0001: Adverse media — Marco Castellan under
+      investigation by Guardia di Finanza for municipal contract
+      irregularities
+  (e) Pattern of non-disclosure by client across multiple CDD dimensions
+
+3. SUSPICIOUS ACTIVITY INDICATORS
+
+The Committee identified the following indicators from the FATF/Egmont
+Group typology and BaFin guidance (Auslegungs- und Anwendungshinweise):
+
+  [x] Complex corporate structure with no apparent legitimate economic
+      purpose for certain elements (Cerberus Consulting AG)
+  [x] Transactions inconsistent with customer's known business profile
+  [x] Payments to newly established entities with no operating history
+  [x] Undisclosed relationships between transaction parties
+  [x] PEP connection with concurrent criminal investigation
+  [x] Failure to disclose material changes in beneficial ownership
+  [x] Client-provided documentation inconsistent with independent findings
+  [x] Layered payment structure (initial large payment + structured
+      follow-on payments)
+
+  Total indicators triggered: 8 of 24 assessed (SAR threshold: 3+)
+
+4. SAR FILING DECISION
+
+  DECISION: FILE SUSPICIOUS ACTIVITY REPORT
+
+  Vote: UNANIMOUS (4-0, Koenig excused, Lehmann advisory/non-voting)
+
+  Rationale: The cumulative pattern of undisclosed ownership changes,
+  unexplained large-value transactions to a potentially shell entity,
+  and the concurrent PEP criminal investigation collectively give rise
+  to a reasonable suspicion that the transactions may involve the
+  proceeds of criminal activity or may be connected to money laundering.
+
+  The Committee specifically notes that no single factor alone would
+  have triggered SAR filing. It is the ACCUMULATION and PATTERN that
+  crosses the reasonable suspicion threshold.
+
+5. SAR CONTENT SUMMARY
+
+  Reporting Entity:    EuroBank AG (BaFin ID: 10045127)
+  Filed With:          FIU Germany (Financial Intelligence Unit —
+                       Zentralstelle fuer Finanztransaktionsuntersuchungen)
+  Filing Method:       goAML electronic submission
+  Filing Date:         2024-10-03
+
+  Subjects of Report:
+    Primary:   Castellan Holdings S.a.r.l. (Luxembourg)
+    Connected: Viktor Castellan (UBO, Italian/Swiss)
+    Connected: Cerberus Consulting AG (Switzerland)
+    Connected: Luca Ferretti (Director, Cerberus)
+    Referenced: Marco Castellan (PEP, trust beneficiary)
+
+  Suspicious Transactions:
+    - EUR 1,800,000 — 2024-05-03 — Castellan to Cerberus
+    - EUR 500,000 — 2024-05-22 — Castellan to Cerberus
+    - EUR 500,000 — 2024-06-05 — Castellan to Cerberus
+    - EUR 500,000 — 2024-06-12 — Castellan to Cerberus
+    Total: EUR 3,300,000
+
+  Narrative: See attached SAR narrative (SAR-2024-CAST-0001-NAR)
+
+6. TIPPING-OFF CONTROLS
+
+Per GwG Section 47 and 5AMLD Article 39:
+
+  (a) Viktor Castellan must NOT be informed of the SAR filing
+  (b) Stefan Koenig (RM) informed only that "enhanced compliance review
+      is ongoing" — NOT informed of SAR decision
+  (c) Document distribution restricted to Committee attendees + BaFin/FIU
+  (d) All communications with the client to proceed as normal to avoid
+      alerting the client to the investigation
+  (e) Any request by the client for information about internal reviews
+      must be referred to General Counsel before response
+  (f) This document stored in restricted access compliance vault
+      (access log enabled, minimum 2-person authorization for retrieval)
+
+7. POST-FILING OBLIGATIONS
+
+  [x] SAR filed via goAML (confirmation ref: FIU-DE-2024-10-03-48271)
+  [x] Internal SAR register updated
+  [ ] Monitor for FIU feedback or information requests
+  [ ] Continue enhanced monitoring of Castellan accounts
+  [ ] Any further suspicious transactions to be filed as supplementary SAR
+  [ ] 90-day post-SAR review scheduled: 2025-01-03
+  [ ] Preserve all supporting documentation (indefinite retention once
+      SAR filed — retention period now extends beyond standard 5-year rule)
+
+8. RELATIONSHIP CONTINUATION
+
+  The Committee decided to CONTINUE the banking relationship at this time.
+  Rationale: Immediate termination could constitute tipping-off. The
+  relationship will remain under enhanced monitoring. Termination to be
+  reconsidered at 90-day review or upon FIU/BaFin instruction.
+
+Decision recorded by: Dr. Heinrich Fischer, General Counsel (EB-0042)
+Date:                  2024-10-03
+
+— END OF SAR FILING DECISION — STRICTLY CONFIDENTIAL —

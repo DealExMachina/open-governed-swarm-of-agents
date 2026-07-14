@@ -1,0 +1,50 @@
+PROJECT HORIZON -- PRELIMINARY TARGET OVERVIEW
+
+Prepared by: Corporate Development (Initial Screening)
+Date: 2025-09-28
+Classification: CONFIDENTIAL -- DRAFT
+
+Note: This document is based on management representations and publicly available information. No independent verification has been performed. All figures are preliminary and subject to change pending formal due diligence.
+
+COMPANY BACKGROUND AND MARKET POSITIONING
+
+NovaTech AG was founded in 2021 by a team of former SAP and Siemens engineers who identified a gap in the pharmaceutical supply chain compliance market. The company operates primarily in the DACH region (Germany, Austria, Switzerland) with what management describes as a "growing presence" in the Benelux countries, though the extent of this presence has not been independently confirmed. According to the materials provided by the sell-side advisor, the company serves approximately 45 to 50 enterprise clients, with management claiming the count is "closer to 50 when including pilot engagements and proof-of-concept agreements that are expected to convert."
+
+The primary product, PharmaChain Optimizer (PCO), provides supply chain traceability and cold-chain logistics compliance for pharmaceutical manufacturers. Management asserts that the platform handles what they describe as "millions of compliance events daily across all client deployments," though the exact volume appears to be in the range of 1.5 to 3 million depending on reporting period and what is counted as a distinct event. The technical team mentioned during an introductory call that peak loads can reach 4 million events during end-of-quarter reconciliation periods, but this has not been verified against actual infrastructure metrics.
+
+FINANCIAL OVERVIEW (MANAGEMENT-PROVIDED, UNAUDITED)
+
+The sell-side materials indicate ARR of approximately EUR 48 to 52 million for fiscal year 2024. The precise figure depends on whether certain multi-year contracts are recognized on a straight-line basis or front-loaded per the company's current accounting treatment. Management's preferred presentation shows EUR 50M ARR, but our preliminary analysis suggests the range could be as wide as EUR 38M to EUR 52M depending on revenue recognition methodology applied. The external audit engagement with Ernst & Young has been initiated but, as of the date of this document, is not yet complete. Management attributes the delay to "standard scheduling constraints" but acknowledges that the audit timeline creates a process risk for the acquisition.
+
+Gross margins are reported at 72% on an adjusted basis. However, the adjustments include the exclusion of certain R&D costs that management has classified as product development rather than cost of goods sold. Under a more conservative classification consistent with industry peers, gross margins would likely fall in the 65% to 70% range. This is still healthy for a B2B SaaS company at this stage, but represents a material difference from the headline figure.
+
+The company reports a 3-year compound annual growth rate of approximately 40-45% in ARR, depending on the base year calculation. The 2021 base appears to include a large initial contract with a founding client that may not be representative of organic growth.
+
+INTELLECTUAL PROPERTY
+
+NovaTech AG claims a portfolio of 7 granted patents and 2 pending applications with the European Patent Office. The patents cover supply chain traceability algorithms and cold-chain monitoring protocols. We note that the patent portfolio has not been independently assessed for strength, enforceability, or freedom-to-operate. Management did mention, somewhat obliquely during our initial meeting, that "there have been some discussions with a former advisor regarding co-authorship of certain patent filings," but characterized this as "resolved" without providing documentation.
+
+STRATEGIC RATIONALE
+
+The acquisition would provide access to NovaTech's regulatory compliance capabilities, which management believes would accelerate our own compliance roadmap by "12 to 18 months." The integration synergies are estimated at EUR 15M annually, though this figure is based on management's projections and has not been independently validated. The cross-sell opportunity into our existing client base is potentially significant but depends on the compatibility of the PCO platform with our existing tech stack -- a question that requires technical due diligence to answer.
+
+PRELIMINARY VALUATION
+
+Based on management-provided financials (EUR 50M ARR at 72% gross margin), the indicative valuation range is EUR 400M to EUR 430M, implying a multiple of approximately 8x to 8.6x ARR. However, if the more conservative revenue and margin figures prove accurate (EUR 38-45M ARR at 66-70% gross margin), the supportable valuation range could be materially lower, potentially EUR 280M to EUR 360M. We recommend reserving judgment on valuation until the financial due diligence workstream is complete.
+
+GOALS FOR PHASE 2
+
+Management expects the following workstreams to be completed by end of Q4 2025:
+- Independent validation of ARR and revenue recognition methodology
+- Patent portfolio assessment and freedom-to-operate opinion
+- Technical team depth assessment and succession planning review
+- Regulatory compliance posture evaluation (SOC 2, GDPR, EU MDR)
+- Customer reference calls with at least 5 top-10 clients
+
+INITIAL RISK ASSESSMENT
+
+At this preliminary stage, risks appear manageable but not negligible. The revenue recognition uncertainty is the most significant open question, followed by the IP co-authorship issue that management mentioned but did not fully explain. We would rate the overall risk profile as moderate, subject to downgrade if the financial due diligence reveals material discrepancies.
+
+RECOMMENDATION
+
+Proceed to Phase 2 due diligence with appropriate caution. The strategic fit is potentially strong, but the valuation must be anchored to independently verified financials rather than management representations.

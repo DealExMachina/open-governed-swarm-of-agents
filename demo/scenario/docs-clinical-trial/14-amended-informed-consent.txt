@@ -1,0 +1,117 @@
+AMENDED INFORMED CONSENT FORM (ICF) — Version 4.0
+================================================================================
+Protocol:           ONCO-RESOLVE-301
+Amendment:          Protocol v3.2
+ICF Version:        4.0
+IRB Reference:      IRB-2024-ONCO-301-AMD3
+Effective Date:     2025-02-10
+Agent:              Dr. Richard Holloway, VP Regulatory Affairs, Meridian Therapeutics
+================================================================================
+
+STUDY TITLE: A Randomized, Open-Label, Phase II/III Study of ORX-4471 versus
+Standard-of-Care Docetaxel in Patients with Previously Treated Non-Small Cell
+Lung Cancer
+
+SPONSOR: Meridian Therapeutics, Inc.
+
+REASON FOR THIS AMENDED CONSENT:
+  New safety information has become available since you signed the original
+  consent form. This updated consent form describes changes to the risk
+  information and monitoring procedures for ORX-4471.
+
+SECTION 5: RISKS AND SIDE EFFECTS (REVISED)
+
+  5.3 Liver-Related Side Effects (Hepatotoxicity)
+
+  PREVIOUS LANGUAGE (ICF Version 3.0):
+    "Liver enzyme elevations (hepatotoxicity) are UNCOMMON with ORX-4471.
+    In the Phase I study, 1 of 18 patients (5.6%) experienced a serious liver
+    enzyme elevation that required a pause in treatment. Your liver function
+    will be monitored with blood tests during the study."
+
+  REVISED LANGUAGE (ICF Version 4.0):
+    "Liver enzyme elevations (hepatotoxicity) are a COMMON side effect of
+    ORX-4471. In the Phase II study, approximately 8 out of 100 patients
+    (7.8%) experienced serious liver enzyme elevations (Grade 3 or higher)
+    that required a pause or change in treatment. One patient discontinued
+    ORX-4471 due to liver problems.
+
+    Serious liver enzyme elevations can occur at any time during treatment
+    but most commonly occur within the first 4 months (Cycles 1-6).
+
+    To monitor your liver function, you will have blood tests:
+      - Before each treatment cycle (every 3 weeks)
+      - On Day 8 (one week after treatment) during your first 6 cycles
+      - Additional blood tests if your liver enzymes become elevated
+      - You may be referred to a liver specialist (hepatologist) if your
+        liver enzymes rise significantly
+
+    If your liver enzymes become elevated:
+      - Your treatment may be paused until your levels return to normal
+      - Your dose may be reduced from 200mg to 150mg
+      - If the problem recurs, your treatment with ORX-4471 will be stopped
+      - You may be given steroids to help your liver recover
+
+    In rare cases, severe liver injury can be life-threatening. You should
+    contact your study doctor immediately if you experience: yellowing of
+    your skin or eyes, dark urine, severe fatigue, nausea, or abdominal pain."
+
+  5.4 Lung-Related Side Effects (Pneumonitis) — UNCHANGED from Version 3.0
+
+  5.5 Other Immune-Related Side Effects — UNCHANGED from Version 3.0
+
+SECTION 7: MONITORING PROCEDURES (REVISED)
+
+  7.1 Blood Tests
+
+  PREVIOUS SCHEDULE:
+    - Before treatment: Every 3 weeks
+    - Liver function: Every 3rd cycle (every 9 weeks)
+
+  REVISED SCHEDULE:
+    - Before treatment: Every 3 weeks
+    - Liver function: Every cycle (every 3 weeks) PLUS Day 8 of Cycles 1-6
+    - Additional tests if liver enzymes are elevated
+
+  This means you will have approximately 6 additional blood draws during
+  the first 18 weeks of treatment compared to the original schedule.
+
+SECTION 9: NEW INFORMATION DISCLOSURE
+
+  We will tell you about any new information that may affect your willingness
+  to continue in this study. The safety information in this consent form was
+  updated because:
+    - Additional patients have been treated since you first enrolled
+    - A review of safety data identified that liver enzyme elevations are
+      more common than initially reported
+    - The Data Safety Monitoring Board recommended enhanced liver monitoring
+
+  The study doctors and the Data Safety Monitoring Board continue to believe
+  that the potential benefits of ORX-4471 outweigh the risks for patients
+  with your type of cancer, provided that enhanced monitoring is in place.
+
+RE-CONSENT REQUIREMENTS:
+  Per 21 CFR 50.25 and ICH E6(R2) Section 4.8.2:
+  - All currently active patients must be re-consented with this amended ICF
+  - Re-consent must occur within 30 days of IRB approval at each site
+  - Patients who decline re-consent will be discontinued from study treatment
+    and followed for survival per protocol Section 10.2
+  - Re-consent is documented via electronic signature (21 CFR Part 11 compliant)
+
+RE-CONSENT STATUS (as of 2025-03-01):
+  Total active patients requiring re-consent:  148
+  Re-consented:                                 141 (95.3%)
+  Pending:                                       5 (3.4%)
+  Declined:                                      2 (1.4%)
+    Patient 04-022: Declined re-consent, transitioned to follow-up
+    Patient 09-011: Declined re-consent, transitioned to follow-up
+
+REGULATORY NOTES:
+  - This ICF amendment was reviewed and approved by all 12 site IRBs
+  - FDA was notified of the amended ICF per IND requirements
+  - The change from "uncommon" to "common" reflects the updated safety data
+    and is consistent with ICH E2A frequency categories (>= 1% and < 10%)
+  - Phase I safety data (Document 02) was NOT modified; the ICF update
+    reflects Phase II safety experience as NEW information
+
+STATE: EPOCH_3 | ICF: v4.0 | RECONSENT: 95.3_PCT_COMPLETE | RISK_UPGRADE: HEPATOTOX

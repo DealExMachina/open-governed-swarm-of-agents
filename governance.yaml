@@ -1,0 +1,47 @@
+# Approval mode: YOLO | MITL | MASTER (default for all scopes)
+mode: YOLO
+
+# Optional per-scope overrides (scope_id -> { mode: ... })
+# scopes:
+#   financial_dd:
+#     mode: MITL
+#   other:
+#     mode: YOLO
+
+rules:
+  - when:
+      drift_level: [medium, high]
+      drift_type: contradiction
+    action: open_investigation
+
+  - when:
+      drift_level: [medium, high]
+      drift_type: goal
+    action: request_goal_refresh
+
+  - when:
+      drift_level: [high]
+      drift_type: factual
+    action: request_source_refresh
+
+  - when:
+      drift_level: [high]
+      drift_type: entropy
+    action: halt_and_review
+
+transition_rules:
+  - from: DriftChecked
+    to: EvidencePropagated
+    block_when:
+      drift_level: [high, critical]
+    reason: "High/critical drift blocks leaving DriftChecked — requires human override or LLM review"
+  - from: EvidencePropagated
+    to: DeltasExtracted
+    block_when:
+      drift_level: [high, critical]
+    reason: "High/critical drift blocks evidence propagation advancement"
+  - from: DriftChecked
+    to: ContextIngested
+    block_when:
+      drift_level: [high, critical]
+    reason: "High/critical drift blocks cycle reset — requires human override or LLM review"

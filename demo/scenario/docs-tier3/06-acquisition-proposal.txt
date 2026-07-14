@@ -1,0 +1,35 @@
+ACQUISITION GOVERNANCE PROPOSAL — Project Horizon
+Date: Week 6
+
+Proposing agent: Legal Agent
+Proposed state transition: DriftChecked → EvidencePropagated
+Expected epoch: current
+
+Proposal summary: Advance the due diligence state to EvidencePropagated,
+clearing the acquisition for deal structuring.
+
+Rationale: The primary financial contradictions have been partially addressed.
+Two of three disputed claims have received preliminary assessments. IP counsel
+has provided a probabilistic opinion. The team recommends proceeding under
+acknowledged residual uncertainty, with appropriate contractual protections
+(escrow, indemnity, representation and warranty insurance).
+
+Risk position as of Week 6:
+- Financial exposure: €1.5M–€3.8M (updated range after partial resolution)
+- IP risk: MEDIUM (65% clean, 30% remediable, 5% material defect)
+- Overall risk score: 0.34 (medium)
+- Drift type: contradiction (two contradictory assessments remain on record,
+  neither fully resolved)
+- Drift level: medium (exposure range reduced but not zero)
+- Outstanding contradictions: 2 (Claim B regulatory, IP title probability)
+
+Obligations expected from policy engine:
+- open_investigation (medium drift + contradiction type): EXPECTED
+- Transition should NOT be blocked (drift is medium, not high/critical)
+
+This proposal deliberately sits in the zone where deterministic rules say
+"allowed, but investigate further." The question is whether to proceed under
+uncertainty or escalate to LLM governance for deeper contextual reasoning.
+
+Business stakes: €45M deal. Decision to proceed has material financial consequences.
+Delay cost: €80K/week in advisor fees. Both over-caution and under-caution carry risk.

@@ -1,0 +1,84 @@
+CENTRAL LABORATORY BASELINE BIOMARKER REPORT
+================================================================================
+Protocol:           ONCO-RESOLVE-301
+Central Lab:        Quest Diagnostics Clinical Trials (Chantilly, VA)
+Lab Director:       Dr. Patricia Huang, FCAP
+Report Date:        2024-05-10
+Agent:              Dr. Patricia Huang, Central Lab Director
+================================================================================
+
+SCOPE: Centralized biomarker analysis for first 180 randomized patients across
+all 12 investigative sites. Specimens received 2024-01-29 through 2024-05-01.
+
+PD-L1 EXPRESSION (Immunohistochemistry, 22C3 pharmDx assay):
+  Evaluable specimens:      174/180 (96.7%)
+  Non-evaluable:            6 (insufficient tissue 3, fixation artifact 2,
+                            necrotic specimen 1)
+
+  PD-L1 TPS Distribution:
+    >= 50% (high):          110/174 (63.2%)
+    1-49% (low positive):   46/174 (26.4%)
+    < 1% (negative):        18/174 (10.3%)
+
+  Median H-score:           145 (IQR 62-218)
+  Mean TPS:                 52.8% (SD 31.4)
+
+CIRCULATING TUMOR DNA (ctDNA) — Guardant360 CDx Panel:
+  Evaluable samples:        176/180 (97.8%)
+  ctDNA detected:           158/176 (89.8%)
+  Median VAF (highest):     4.2% (IQR 1.1-12.8%)
+
+  Baseline ctDNA levels by variant allele frequency (VAF):
+    < 1%:                   38/176 (21.6%)
+    1-5%:                   62/176 (35.2%)
+    5-15%:                  48/176 (27.3%)
+    > 15%:                  28/176 (15.9%)
+
+  Most frequent alterations:
+    TP53 mutation:           89/176 (50.6%)
+    KRAS mutation:           54/176 (30.7%)
+      KRAS G12C:            24/176 (13.6%)
+      KRAS G12V:            14/176 (8.0%)
+      KRAS G12D:            10/176 (5.7%)
+      Other KRAS:           6/176 (3.4%)
+    STK11 mutation:          28/176 (15.9%)
+    KEAP1 mutation:          18/176 (10.2%)
+    PIK3CA mutation:         12/176 (6.8%)
+
+TUMOR MUTATION BURDEN (TMB) — FoundationOne CDx:
+  Evaluable:                168/180 (93.3%)
+  Median TMB:              8.2 mut/Mb (IQR 4.1-14.6)
+  TMB >= 10 mut/Mb:        64/168 (38.1%)
+  TMB >= 16 mut/Mb:        28/168 (16.7%)
+  TMB >= 20 mut/Mb:        14/168 (8.3%)
+
+  TMB by histology:
+    Adenocarcinoma (n=124):  Median 7.4 mut/Mb
+    Squamous (n=36):         Median 11.2 mut/Mb
+    Large Cell (n=8):        Median 9.8 mut/Mb
+
+BASELINE HEPATIC FUNCTION (Central Lab Reference Ranges):
+  ALT ULN:                  40 U/L
+  AST ULN:                  35 U/L
+  Total Bilirubin ULN:     1.2 mg/dL
+  ALP ULN:                 120 U/L
+
+  Patients with elevated baseline ALT (> ULN):  22/180 (12.2%)
+    Grade 1 (1-3x ULN):    20/180 (11.1%)
+    Grade 2 (3-5x ULN):    2/180 (1.1%)
+    Grade 3+ (>5x ULN):    0/180 (0%)
+
+SPECIMEN QUALITY METRICS:
+  Formalin-fixed specimens within 6-72hr fixation window: 162/174 (93.1%)
+  Blood samples received within 48hr of collection: 178/180 (98.9%)
+  Temperature excursion events: 2 (both within acceptable range per SOP)
+
+CROSS-REFERENCE NOTE:
+  All biomarker values in this report are linked to individual patient CRFs
+  via specimen accession numbers. Any future corrections to individual patient
+  laboratory values must follow 21 CFR Part 11 audit trail requirements and
+  must NOT alter aggregate statistics in this report without a formal
+  addendum specifying: (i) original value, (ii) corrected value, (iii)
+  impact on aggregate calculations, (iv) authorizing agent and timestamp.
+
+STATE: EPOCH_1 | CENTRAL_LAB: BASELINE_COMPLETE | SPECIMENS: 180

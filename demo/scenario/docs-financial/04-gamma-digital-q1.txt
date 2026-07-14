@@ -1,0 +1,38 @@
+GAMMA DIGITAL -- Q1 2025 OPERATING METRICS AND FINANCIAL REPORT
+
+Prepared by: Gamma Digital VP Finance
+Date: 2025-04-12
+Valid period: Q1 2025 (January 1 -- March 31, 2025)
+Classification: CONFIDENTIAL -- SUBSIDIARY REPORTING
+
+SaaS METRICS
+
+Annual Recurring Revenue (ARR) as of March 31, 2025: EUR 98.4M
+Net Revenue Retention (NRR): 118%
+Q1 2025 subscription revenue recognized: EUR 24.6M
+Q1 2025 professional services revenue: EUR 5.2M
+Total Q1 revenue: EUR 29.8M
+
+We note a discrepancy between our reported total (EUR 29.8M) and the figure that may appear in the consolidated summary. The Group CFO office typically uses a different cut-off methodology for professional services revenue that recognizes certain milestone-based contracts on delivery rather than percentage-of-completion. Under the group methodology, our Q1 revenue would be approximately EUR 27.0M to EUR 28.2M. We have reported under our local accounting policy as agreed with our local auditors.
+
+INTER-COMPANY
+
+We confirm receipt of EUR 2.3M in data migration services from Beta Services (Vanguard platform). This is recorded as CAPEX (capitalized development costs) in our accounts, not operating expense. The group consolidation should eliminate this from revenue but the CAPEX vs. OPEX classification may create a margin discrepancy at the consolidated level.
+
+GROSS MARGIN
+
+SaaS gross margin: 76.2% (subscription revenue only, excluding professional services)
+Blended gross margin including professional services: 62.8%
+The consolidated report likely uses blended margin; we flag that the headline SaaS margin of 76.2% is the strategically relevant metric for valuation purposes.
+
+CUSTOMER CONCENTRATION
+
+Top 5 clients represent 38% of ARR. Our largest client, Daimler Truck AG, is currently in procurement review for FY 2026. While we consider renewal "highly likely" based on operational dependency and switching costs, the formal renewal has not been signed and represents EUR 9.2M ARR (9.4% of total). If this renewal were to be delayed or reduced, Q2 and Q3 reported ARR would be materially affected.
+
+CASH AND RUNWAY
+
+Gamma Digital cash position: EUR 12.1M. We received a EUR 5.0M capital injection from Meridian Holdings on March 15, 2025 to fund the Vanguard platform re-architecture. This is recorded as equity in our books. We understand the group treats this as an inter-company loan; the accounting treatment should be aligned before the interim review.
+
+HEADCOUNT
+
+Total FTEs: 346, of which 212 are engineering and product roles.
