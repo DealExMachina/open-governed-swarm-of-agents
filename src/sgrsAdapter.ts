@@ -33,6 +33,8 @@ import {
   analyzeSpectrumSheafBridge as rustAnalyzeSpectrumSheaf,
   propagationStepSheafBridge as rustPropagationStepSheaf,
   perDimensionDisagreementBridge as rustPerDimensionDisagreement,
+  dirichletEnergyBridge as rustDirichletEnergy,
+  dirichletEnergyByEdgeBridge as rustDirichletEnergyByEdge,
 } from "../sgrs-core/index.js";
 import type {
   FinalitySnapshotDto,
@@ -679,6 +681,10 @@ export interface PropagationStepResult {
   contraction_ratio: number;
   perturbation_norm: number;
   contraction_achieved: boolean;
+  /** True sheaf Dirichlet energy f(x) = xᵀL_F x before this step. */
+  dirichlet_before: number;
+  /** True sheaf Dirichlet energy f(x) = xᵀL_F x after this step. */
+  dirichlet_after: number;
   /** Flattened new state for chaining steps (same layout as input). */
   flat_new_state: number[];
 }
@@ -713,6 +719,8 @@ export function propagationStep(
     contraction_ratio: dto.contractionRatio ?? 0,
     perturbation_norm: dto.perturbationNorm ?? 0,
     contraction_achieved: dto.contractionAchieved ?? false,
+    dirichlet_before: dto.dirichletBefore ?? 0,
+    dirichlet_after: dto.dirichletAfter ?? 0,
     flat_new_state: dto.flatNewState ?? [],
   };
 }
@@ -738,6 +746,50 @@ export function perDimensionDisagreement(
 ): number[] {
   return timedSgrs("per_dimension_disagreement", () =>
     rustPerDimensionDisagreement(flatState, numRoles, numDims),
+  );
+}
+
+/**
+ * True sheaf Dirichlet energy f(x) = xᵀL_F x on a projection sheaf.
+ *
+ * This is the propagation-layer Lyapunov function and the correct convergence
+ * quantity to gate finality on. f(x) = 0 iff x is a global section (all connected
+ * roles agree on their shared observed dimensions). Prefer this over
+ * {@link computeDisagreement} (the Ω variance proxy), which only equals f(x)/N on
+ * the constant complete sheaf and can plateau above zero on projection sheaves.
+ */
+export function dirichletEnergy(
+  flatState: number[],
+  numRoles: number,
+  numDims: number,
+  roleObservedDims: number[][],
+  edges: number[],
+): number {
+  return timedSgrs("dirichlet_energy", () =>
+    rustDirichletEnergy(flatState, numRoles, numDims, roleObservedDims, edges),
+  );
+}
+
+/**
+ * Per-edge Dirichlet energy ‖δ_e x‖² for bottleneck attribution. The sum equals
+ * the total f(x); the highest-energy entry identifies the most-disagreeing role
+ * pair on their shared observations. Returns one value per edge (edge-list order).
+ */
+export function dirichletEnergyByEdge(
+  flatState: number[],
+  numRoles: number,
+  numDims: number,
+  roleObservedDims: number[][],
+  edges: number[],
+): number[] {
+  return timedSgrs("dirichlet_energy_by_edge", () =>
+    rustDirichletEnergyByEdge(
+      flatState,
+      numRoles,
+      numDims,
+      roleObservedDims,
+      edges,
+    ),
   );
 }
 
@@ -917,6 +969,8 @@ export function propagationStepTopology(
     contraction_ratio: dto.contractionRatio ?? 0,
     perturbation_norm: dto.perturbationNorm ?? 0,
     contraction_achieved: dto.contractionAchieved ?? false,
+    dirichlet_before: dto.dirichletBefore ?? 0,
+    dirichlet_after: dto.dirichletAfter ?? 0,
     flat_new_state: dto.flatNewState ?? [],
   };
 }
@@ -979,6 +1033,8 @@ export function propagationStepSheaf(
     contraction_ratio: dto.contractionRatio ?? 0,
     perturbation_norm: dto.perturbationNorm ?? 0,
     contraction_achieved: dto.contractionAchieved ?? false,
+    dirichlet_before: dto.dirichletBefore ?? 0,
+    dirichlet_after: dto.dirichletAfter ?? 0,
     flat_new_state: dto.flatNewState ?? [],
   };
 }

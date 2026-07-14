@@ -119,6 +119,10 @@ export interface PropagationMetrics {
   practical_bound?: number;
   small_gain_satisfied?: boolean;
   kappa?: number;
+  /** True sheaf Dirichlet energy f(x) = xᵀL_F x before the step (propagation-layer Lyapunov). */
+  dirichlet_before?: number;
+  /** True sheaf Dirichlet energy f(x) = xᵀL_F x after the step. */
+  dirichlet_after?: number;
 }
 
 /**
@@ -135,8 +139,9 @@ export async function savePropagationHistory(
     `INSERT INTO propagation_history (
       scope_id, epoch, disagreement_before, disagreement_after,
       contraction_ratio, perturbation_norm, spectral_gap, rho,
-      practical_bound, small_gain_satisfied, kappa
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+      practical_bound, small_gain_satisfied, kappa,
+      dirichlet_before, dirichlet_after
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
     [
       scopeId,
       epoch,
@@ -149,6 +154,8 @@ export async function savePropagationHistory(
       metrics.practical_bound ?? null,
       metrics.small_gain_satisfied ?? null,
       metrics.kappa ?? null,
+      metrics.dirichlet_before ?? null,
+      metrics.dirichlet_after ?? null,
     ],
   );
 }
@@ -157,6 +164,8 @@ export interface PropagationHistoryRow {
   perturbation_norm: number;
   kappa: number;
   disagreement_after: number;
+  /** True sheaf Dirichlet energy f(x) after the step. Falls back to Ω (disagreement_after) for legacy rows. */
+  dirichlet_after: number;
 }
 
 export interface E17ModelMetadata {
@@ -216,7 +225,8 @@ export async function loadPropagationHistory(
 ): Promise<PropagationHistoryRow[]> {
   const p = pool ?? getPool();
   const res = await p.query<PropagationHistoryRow>(
-    `SELECT perturbation_norm, COALESCE(kappa, 0) AS kappa, disagreement_after
+    `SELECT perturbation_norm, COALESCE(kappa, 0) AS kappa, disagreement_after,
+            COALESCE(dirichlet_after, disagreement_after) AS dirichlet_after
      FROM propagation_history
      WHERE scope_id = $1
      ORDER BY epoch ASC
@@ -227,7 +237,32 @@ export async function loadPropagationHistory(
     perturbation_norm: Number(r.perturbation_norm),
     kappa: Number(r.kappa),
     disagreement_after: Number(r.disagreement_after),
+    dirichlet_after: Number(r.dirichlet_after),
   }));
+}
+
+/**
+ * Load the most recent sheaf Dirichlet energy f(x) for a scope, or null if no
+ * propagation history exists. Falls back to the Ω proxy (disagreement_after) for
+ * legacy rows written before the Dirichlet columns existed.
+ *
+ * Used by the dual-condition (∧-gate) finality check to test [f(x) < ε_prop].
+ */
+export async function loadLatestDirichletEnergy(
+  scopeId: string,
+  pool?: pg.Pool,
+): Promise<number | null> {
+  const p = pool ?? getPool();
+  const res = await p.query<{ dirichlet_after: number }>(
+    `SELECT COALESCE(dirichlet_after, disagreement_after) AS dirichlet_after
+     FROM propagation_history
+     WHERE scope_id = $1
+     ORDER BY epoch DESC
+     LIMIT 1`,
+    [scopeId],
+  );
+  if (res.rows.length === 0) return null;
+  return Number(res.rows[0].dirichlet_after);
 }
 
 /**

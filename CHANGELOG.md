@@ -6,6 +6,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 for the Node/workspace package version in `package.json` (the swarm is not published to npm).
 
+## [Unreleased]
+
+Kernel crate `sgrs-core` bumped **0.1.0 -> 0.2.0** (propagation-layer Lyapunov + dual-condition finality). Workspace `package.json` version unchanged; the Rust crate tracks its own semver.
+
+### Added
+
+- **Sheaf Dirichlet energy** `f(x) = xᵀL_F x = ‖δx‖²` in `sgrs-core` (`propagation/dirichlet.rs`): the true propagation-layer Lyapunov function, its per-edge decomposition, and the global-section characterization `{x : f(x) = 0} = ker(δ) = H⁰(G;F)`. Contracts at rate `(1 - αλ₂)²`.
+- Propagation steps now report `dirichlet_before` / `dirichlet_after` (NAPI DTO + TS `PropagationStepResult`), plus direct `dirichletEnergy` / `dirichletEnergyByEdge` bridges and `PropagationEngine.getDirichletEnergy`.
+- **Dual-condition (∧) finality gate**: RESOLVED requires `[f(x) < ε_prop] ∧ F*(t)` — propagation-layer consensus (global section) AND semantic-layer vector finality (non-compensable). Configured via `finality.yaml: dirichlet_gate`. Additive and backward-compatible: falls back to the semantic layer alone when disabled or when no propagation history exists. Emits a `dirichlet_hold` signal when semantics are ready but propagation is still converging.
+- Migration `025_propagation_history_dirichlet.sql`: nullable `dirichlet_before` / `dirichlet_after` columns (legacy rows fall back to the Ω proxy).
+
+### Changed
+
+- **Convergence model is now explicitly two-layer and lattice-geometric.** The scalar Lyapunov `V(t)` is documented and retained as a **diagnostic** (rate, ETA, plateau, pressure), not the admissibility test; admissibility is vector finality `F*` plus the Dirichlet gate. `docs/convergence.md` and `docs/architecture.md` rewritten accordingly.
+- The variance proxy `Ω(x)` is now clearly labelled a topology-health signal (it equals `f(x)/N` only on the constant complete sheaf; on projection sheaves it can plateau above zero while `f(x) -> 0`). Finality gates on `f(x)`.
+
+### Notes
+
+- **Scope boundary (open product vs. research):** this snapshot ships the ∧-gate, Dirichlet energy, and global sections — the powerful, teachable core of the lattice-geometry model. The `κ_max = γ·λ₂(L_F)` ISS tightness bound and the Lean4 proofs remain in the research repository and are intentionally not included here.
+
 ## [1.1.0] - 2026-05-12
 
 Workspace **package.json** version (orchestration / Node monolith). The **Rust crate** `sgrs-core` keeps its own semver in `sgrs-core/Cargo.toml` (unchanged in this release unless a kernel change ships).

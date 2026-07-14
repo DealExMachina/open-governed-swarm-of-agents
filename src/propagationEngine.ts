@@ -22,6 +22,8 @@ import {
   propagationStepSheaf,
   computeDisagreement,
   perDimensionDisagreement,
+  dirichletEnergy,
+  getTopologyInfo,
   analyzeISS,
   extractContradictions as rawExtractContradictions,
   type SpectralAnalysis,
@@ -294,6 +296,38 @@ export class PropagationEngine {
       return this.getSharedDisagreement(state);
     }
     return this.getDisagreement(state);
+  }
+
+  /**
+   * True sheaf Dirichlet energy f(x) = xᵀL_F x for the current sheaf.
+   *
+   * This is the propagation-layer Lyapunov function and the correct convergence
+   * quantity for the dual-condition finality gate: f(x) = 0 iff x is a global
+   * section (all connected roles agree on their shared observed dimensions).
+   * Prefer this over {@link getModeAwareDisagreement} — the Ω variance proxy can
+   * plateau above zero on projection sheaves even when reachable disagreement → 0.
+   */
+  getDirichletEnergy(state: EvidenceStateFlat): number {
+    const observedDims = this.usesProjectionSheaf
+      ? this.buildObservedDims()
+      : Array.from({ length: this.numRoles }, () =>
+          this.dimensions.map((_, i) => i),
+        );
+    const edges = this.usesTopologyBridge
+      ? getTopologyInfo(
+          this.topology!.preset,
+          this.numRoles,
+          this.topology!.degree,
+          this.topology!.seed,
+        ).edge_list
+      : this.buildEdgeList();
+    return dirichletEnergy(
+      state,
+      this.numRoles,
+      this.numDims,
+      observedDims,
+      edges,
+    );
   }
 
   /**

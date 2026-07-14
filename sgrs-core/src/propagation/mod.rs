@@ -1,4 +1,5 @@
 pub mod contradiction;
+pub mod dirichlet;
 pub mod disagreement;
 pub mod dynamics;
 pub mod evidence_state;
@@ -15,6 +16,9 @@ mod tests;
 
 pub use contradiction::{
     contradiction_count, extract_contradictions, ContradictionChannel, DetectedContradiction,
+};
+pub use dirichlet::{
+    dirichlet_energy, dirichlet_energy_by_edge, dirichlet_energy_from_laplacian,
 };
 pub use disagreement::{compute_disagreement, per_dimension_disagreement};
 pub use dynamics::{
