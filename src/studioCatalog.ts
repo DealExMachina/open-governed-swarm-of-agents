@@ -1,5 +1,5 @@
 /**
- * Studio scope catalog (legacy `scopes` table) and scope-id resolution for feed/studio routes.
+ * Studio scope catalog (`studio_catalog_scopes` table) and scope-id resolution for feed/studio routes.
  */
 import { getPool } from "./db.js";
 
@@ -18,7 +18,7 @@ const ARCHIVED_STATES = new Set(["archived"]);
 export async function listStudioCatalogScopes(): Promise<StudioCatalogScope[]> {
   const r = await getPool().query(
     `SELECT id, name, tag, state, score, cycles
-     FROM scopes
+     FROM studio_catalog_scopes
      ORDER BY
        CASE WHEN state = 'archived' THEN 1 ELSE 0 END,
        name ASC`,
@@ -47,7 +47,7 @@ export async function getStudioCatalogScope(
   scopeId: string,
 ): Promise<StudioCatalogScope | null> {
   const r = await getPool().query(
-    `SELECT id, name, tag, state, score, cycles FROM scopes WHERE id = $1`,
+    `SELECT id, name, tag, state, score, cycles FROM studio_catalog_scopes WHERE id = $1`,
     [scopeId],
   );
   const row = r.rows[0] as
@@ -84,8 +84,8 @@ export async function createStudioCatalogScope(input: {
     throw new Error("id_and_name_required");
   }
   await getPool().query(
-    `INSERT INTO scopes (id, tenant_id, name, tag, state, score, cycles)
-     VALUES ($1, 'studio', $2, $3, 'active', 0, 0)
+    `INSERT INTO studio_catalog_scopes (id, name, tag, state, score, cycles)
+     VALUES ($1, $2, $3, 'active', 0, 0)
      ON CONFLICT (id) DO UPDATE SET
        name = EXCLUDED.name,
        tag = EXCLUDED.tag,
