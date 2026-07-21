@@ -125,6 +125,7 @@ Agents --> shared bitemporal state --> governance kernel --> finality certificat
 | Understand the terminology | [Beginner Tutorial: Lattice-State Graph](docs/tutorials/lattice-state-graph-beginner.md) |
 | Missing files, E2E caveats, prototypes | [Codebase hygiene](docs/codebase-hygiene.md) |
 | Cleanup backlog and refactor phases | [Cleanup and refactor](docs/cleanup-and-refactor.md) |
+| Comparative benchmark manifests (s1–s5) | [Benchmark scenarios](docs/benchmarks/README.md) |
 | Run the M&A demo (5 docs, contradictions, HITL) | [Demo Guide](demo/DEMO.md) |
 | Static SGRS Studio (graph UI prototype) | [`prototype/studio-preview/`](prototype/studio-preview/index.html) — serve as static files |
 | Read the paper | [publications/publication_1/swarm-governed-agents.pdf](publications/publication_1/swarm-governed-agents.pdf) |
