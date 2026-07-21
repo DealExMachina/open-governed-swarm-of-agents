@@ -23,6 +23,7 @@ The repo is a healthy research + product monorepo with clear license/package bou
 | Fixed | `agents-swarm-governed.code-workspace` | Removed broken `../agents-swarm-governed` folder entry |
 | Added | `migrations/README.md`, `sgrs-core/migrations/README.md` | Clarify parallel migration trees |
 | Added | `demo/scenario/README.md` | Corpus wiring status matrix |
+| Taxonomized | `scripts/{ops,checks,demo,experiments,benchmarks}/` | Role-based layout; `package.json` + callers updated; see `scripts/README.md` |
 
 ---
 
@@ -41,7 +42,7 @@ The repo is a healthy research + product monorepo with clear license/package bou
 | `test/unit/mastra-migration.test.ts` | Guards current `@mastra/core` / AI SDK token shapes |
 | `test/unit/accrualPrefilter.test.ts` | Frozen legacy path still optionally enabled |
 | Root + `sgrs-core` `019`–`021` SQL | Documented parallel trees |
-| `scripts/benchmark-*.ts`, `drive-exp*.ts`, `analyze-*.ts` | Research tooling; referenced by experiments docs |
+| `scripts/benchmarks/*`, `scripts/experiments/drive-exp*`, `scripts/experiments/analyze-*` | Research tooling; referenced by experiments docs |
 
 ### Soft cleanup candidates
 
@@ -66,7 +67,7 @@ The repo is a healthy research + product monorepo with clear license/package bou
 ├── workers/facts-worker # Python extraction / NLI
 ├── demo/                # Demo UI server + scenario corpora
 ├── prototype/           # Misnamed: active Studio static assets
-├── scripts/             # Ops + experiments + benchmarks mixed ← primary smell
+├── scripts/             # Taxonomized: ops / checks / demo / experiments / benchmarks / lib
 ├── migrations/          # App Postgres
 ├── seed-docs/           # Default WAL seed (≠ demo corpora)
 ├── docs/                # Architecture, experiments, demos, hygiene
@@ -84,7 +85,7 @@ The repo is a healthy research + product monorepo with clear license/package bou
 ### What does not
 
 1. **`src/` is a junk drawer** — feed HTTP, semantic graph SQL, finality, Studio helpers, billing, hatchery, and agents share one flat namespace.
-2. **`scripts/` mixes production ops with one-off research** (~65 top-level files).
+2. ~~**`scripts/` mixes production ops with one-off research**~~ — **done**: files live under `ops/`, `checks/`, `demo/`, `experiments/`, `benchmarks/` (see [`scripts/README.md`](../scripts/README.md)).
 3. **`prototype/` naming lies** — Studio is production-served UI, not a disposable sketch.
 4. **Scenario corpora lack manifests** — wiring is hardcoded across `demo-server.ts`, `studioCorpora.ts`, and `drive-experiment.ts`.
 5. **Static HTML lives beside TS** — `observability.html` in `src/`; Studio under `prototype/`.
@@ -101,7 +102,7 @@ src/
   governance/      # policy, resolution, obligations
   agents/          # (already exists)
 scripts/
-  ops/ checks/ demo/ experiments/ benchmarks/ dev/
+  ops/ checks/ demo/ experiments/ benchmarks/ lib/   # taxonomized
 public/ or assets/
   studio/ observability.html
 demo/
@@ -138,7 +139,7 @@ demo/
 | **P1 — Split demo server** | Extract `demo/server/` + `demo/ui/`; leave public API stable | High file move, low runtime change if routes preserved | Medium |
 | **P2 — Static assets** | Move Studio + observability HTML to `public/`; update feed + `Dockerfile.feed.dist` | Medium | Low–medium (image/regression) |
 | **P3 — Split `semanticGraph.ts` / `feed.ts`** | Module boundaries by concern; re-export barrels for compatibility | High | Medium–high (import churn) |
-| **P4 — Scripts taxonomy** | Move files into `scripts/{ops,experiments,...}`; update `package.json` scripts | Medium | Low if npm script paths updated atomically |
+| **P4 — Scripts taxonomy** | ~~Move files into `scripts/{ops,experiments,...}`; update `package.json` scripts~~ **done** | — | — |
 | **P5 — Rust test classes** | Fast invariants vs publication `exp_*` harness (ignore/feature-gate heavy tests) | Medium in `sgrs-core/tests` | Low for product path |
 
 ### Explicit non-goals for cleanup PRs
@@ -157,4 +158,4 @@ demo/
 3. Add root `skills/` markdown or remove dead loader path from docs/DEMO claims.
 4. Include Studio assets in `Dockerfile.feed.dist` (or document Studio as compose-dev-only).
 5. Split `demo-server.ts` (largest maintainability win for product UX).
-6. Organize `scripts/` into role-based subdirectories with updated npm entries.
+6. ~~Organize `scripts/` into role-based subdirectories with updated npm entries.~~ **done**

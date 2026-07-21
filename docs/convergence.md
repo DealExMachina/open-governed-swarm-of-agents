@@ -391,14 +391,14 @@ This design follows the CRDT principle that merge operations must be commutative
 
 ## 6. Benchmark scenarios
 
-The benchmark harness (`scripts/benchmark-convergence.ts`) runs eleven pure-math scenarios with no external dependencies (no Docker, no Postgres, no NATS, no LLM). Each scenario generates a sequence of `FinalitySnapshot` values, converts them to `ConvergencePoint` records, and runs `analyzeConvergence()` to verify the outcome. Scenarios 1–7 cover core convergence mechanics; scenarios A–D (8–11) verify additional order and monotonicity properties of M = L × A added in the v2 retrofit.
+The benchmark harness (`scripts/benchmarks/benchmark-convergence.ts`) runs eleven pure-math scenarios with no external dependencies (no Docker, no Postgres, no NATS, no LLM). Each scenario generates a sequence of `FinalitySnapshot` values, converts them to `ConvergencePoint` records, and runs `analyzeConvergence()` to verify the outcome. Scenarios 1–7 cover core convergence mechanics; scenarios A–D (8–11) verify additional order and monotonicity properties of M = L × A added in the v2 retrofit.
 
 Run with:
 
 ```bash
-pnpm tsx scripts/benchmark-convergence.ts
+pnpm tsx scripts/benchmarks/benchmark-convergence.ts
 # Multi-run consistency: run each scenario N times and assert identical outcomes
-pnpm tsx scripts/benchmark-convergence.ts --runs=5
+pnpm tsx scripts/benchmarks/benchmark-convergence.ts --runs=5
 ```
 
 With `--runs=N` (N ≥ 2), each of the eleven scenarios is executed N times. The harness compares outcomes (pass/fail, convergence_rate, is_plateaued, is_monotonic, trajectory_quality, etc.). If any run differs from the first, the run fails and reports which scenario and which field differed. Use this to verify determinism and regression-proof the tracker.
@@ -504,4 +504,4 @@ Source: [`src/finalityEvaluator.ts`](../src/finalityEvaluator.ts) (`propConverge
 
 ---
 
-*Source files: [`src/convergenceTracker.ts`](../src/convergenceTracker.ts), [`src/finalityEvaluator.ts`](../src/finalityEvaluator.ts), [`src/hitlFinalityRequest.ts`](../src/hitlFinalityRequest.ts), [`finality.yaml`](../finality.yaml), [`scripts/benchmark-convergence.ts`](../scripts/benchmark-convergence.ts), [`test/unit/convergenceTracker.test.ts`](../test/unit/convergenceTracker.test.ts).*
+*Source files: [`src/convergenceTracker.ts`](../src/convergenceTracker.ts), [`src/finalityEvaluator.ts`](../src/finalityEvaluator.ts), [`src/hitlFinalityRequest.ts`](../src/hitlFinalityRequest.ts), [`finality.yaml`](../finality.yaml), [`scripts/benchmarks/benchmark-convergence.ts`](../scripts/benchmarks/benchmark-convergence.ts), [`test/unit/convergenceTracker.test.ts`](../test/unit/convergenceTracker.test.ts).*

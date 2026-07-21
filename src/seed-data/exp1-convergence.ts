@@ -1,6 +1,6 @@
 /**
  * Exp 1 seed data: controlled contradiction injection for convergence dynamics.
- * Used by scripts/seed-exp1.ts.
+ * Used by scripts/experiments/seed-exp1.ts.
  *
  * For c ∈ {0,1,3,5} contradictions, we create 2*c claims (or 2 extra for c=0)
  * and c unresolved contradiction edges.

@@ -1,0 +1,165 @@
+/**
+ * Reset DB, S3, NATS, and optionally telemetry to a clean state for E2E.
+ * - Stops any running swarm processes (caller may run pkill before)
+ * - Truncates Postgres: graph (edges, nodes), context, state, finality/decision tables, etc.
+ *   Includes scope_finality_decisions so the next run can trigger HITL again.
+ * - Empties S3 bucket (all objects)
+ * - Deletes NATS JetStream stream so it is recreated fresh
+ * - If RESET_TELEMETRY=1: wipes Prometheus TSDB (Grafana dashboards start fresh)
+ *
+ * Run: node --loader ts-node/esm scripts/ops/reset-e2e.ts
+ *      RESET_TELEMETRY=1 node --loader ts-node/esm scripts/ops/reset-e2e.ts
+ */
+import "dotenv/config";
+import { execSync } from "child_process";
+import { dirname } from "path";
+import { fileURLToPath } from "url";
+import pg from "pg";
+import { connect } from "nats";
+import { makeS3 } from "../../src/s3.js";
+import { ListObjectsV2Command, DeleteObjectsCommand } from "@aws-sdk/client-s3";
+import type { S3Client } from "@aws-sdk/client-s3";
+
+const { Pool } = pg;
+
+const STREAM = process.env.NATS_STREAM ?? "SWARM_JOBS";
+const BUCKET = process.env.S3_BUCKET ?? "swarm";
+
+const TRUNCATE_TABLES = [
+  "context_events",
+  "swarm_state",
+  "edges",
+  "nodes",
+  "convergence_history",
+  "decision_records",
+  "finality_certificates",
+  "mitl_pending",
+  "scope_finality_decisions",
+  "processed_messages",
+  "agent_memory",
+  "filter_configs",
+  "causal_contributions",
+  "evidence_states",
+  "propagation_history",
+];
+
+async function truncateDb(): Promise<void> {
+  const url = process.env.DATABASE_URL;
+  if (!url) {
+    console.log("DATABASE_URL not set, skipping DB reset");
+    return;
+  }
+  const pool = new Pool({ connectionString: url, max: 1 });
+  try {
+    const truncated: string[] = [];
+    for (const table of TRUNCATE_TABLES) {
+      try {
+        await pool.query(`TRUNCATE TABLE ${table} RESTART IDENTITY CASCADE`);
+        truncated.push(table);
+      } catch {
+        // table may not exist if only a subset of migrations was run
+      }
+    }
+    console.log("Postgres: truncated", truncated.length, "tables:", truncated.join(", "));
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (msg.includes("does not exist")) {
+      console.log("Postgres: some tables missing (run migrations first), truncated existing");
+    } else {
+      throw e;
+    }
+  } finally {
+    await pool.end();
+  }
+}
+
+async function emptyS3(s3: S3Client): Promise<void> {
+  let continuationToken: string | undefined;
+  let total = 0;
+  do {
+    const list = await s3.send(
+      new ListObjectsV2Command({ Bucket: BUCKET, MaxKeys: 1000, ContinuationToken: continuationToken }),
+    );
+    const keys = (list.Contents ?? []).map((c) => c.Key!).filter(Boolean);
+    if (keys.length === 0) break;
+    await s3.send(
+      new DeleteObjectsCommand({
+        Bucket: BUCKET,
+        Delete: { Objects: keys.map((Key) => ({ Key })), Quiet: true },
+      }),
+    );
+    total += keys.length;
+    continuationToken = list.NextContinuationToken;
+  } while (continuationToken);
+  console.log("S3: deleted", total, "objects from bucket", BUCKET);
+}
+
+async function deleteNatsStream(): Promise<void> {
+  const url = process.env.NATS_URL ?? "nats://localhost:4222";
+  try {
+    const nc = await connect({ servers: url, timeout: 5000 });
+    const jsm = await nc.jetstreamManager();
+    try {
+      await jsm.streams.delete(STREAM);
+      console.log("NATS: deleted stream", STREAM);
+    } catch {
+      console.log("NATS: stream", STREAM, "did not exist");
+    }
+    await nc.close();
+  } catch (e) {
+    console.warn("NATS: could not connect or delete stream:", (e as Error).message);
+  }
+}
+
+function killSwarm(): void {
+  try {
+    execSync("pkill -f 'ts-node/esm src/swarm.ts' 2>/dev/null || true", { stdio: "inherit" });
+    console.log("Stopped any running swarm processes");
+  } catch {
+    // ignore
+  }
+}
+
+function resetTelemetry(): void {
+  if (process.env.RESET_TELEMETRY !== "1") return;
+  try {
+    const repoRoot = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
+    execSync("bash scripts/ops/reset-telemetry.sh", {
+      cwd: repoRoot,
+      stdio: "inherit",
+    });
+  } catch {
+    console.warn("Telemetry reset failed (is docker compose running?)");
+  }
+}
+
+async function main(): Promise<void> {
+  const withTelemetry = process.env.RESET_TELEMETRY === "1";
+  console.log("Reset E2E: clean DB, S3, NATS" + (withTelemetry ? ", Prometheus" : "") + "...");
+  killSwarm();
+  await new Promise((r) => setTimeout(r, 1500));
+
+  await truncateDb();
+
+  if (process.env.S3_ENDPOINT && process.env.S3_ACCESS_KEY) {
+    try {
+      const s3 = makeS3();
+      await emptyS3(s3);
+    } catch (e) {
+      console.warn("S3 unreachable, skipping bucket empty:", (e as Error).message);
+    }
+  } else {
+    console.log("S3 env not set, skipping bucket empty");
+  }
+
+  await deleteNatsStream();
+
+  resetTelemetry();
+
+  console.log("Done. Run migrations and seed:all then swarm for a fresh E2E.");
+}
+
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});

@@ -18,6 +18,7 @@ Kernel crate `sgrs-core` bumped **0.1.0 -> 0.2.0** (propagation-layer Lyapunov +
 - Migration `025_propagation_history_dirichlet.sql`: nullable `dirichlet_before` / `dirichlet_after` columns (legacy rows fall back to the Ω proxy).
 - `docs/cleanup-and-refactor.md`: cleanup backlog, subdirectory review, and phased refactor assessment.
 - `demo/scenario/README.md` corpus wiring matrix; READMEs for root and `sgrs-core` migration trees.
+- `scripts/README.md` documenting the scripts taxonomy.
 
 ### Changed
 
@@ -25,6 +26,7 @@ Kernel crate `sgrs-core` bumped **0.1.0 -> 0.2.0** (propagation-layer Lyapunov +
 - The variance proxy `Ω(x)` is now clearly labelled a topology-health signal (it equals `f(x)/N` only on the constant complete sheaf; on projection sheaves it can plateau above zero while `f(x) -> 0`). Finality gates on `f(x)`.
 - Moved `workers/facts-worker/test_nli.py` into `workers/facts-worker/tests/unit/` for consistent pytest layout.
 - Fixed `agents-swarm-governed.code-workspace` to open only this repo (removed broken sibling path).
+- Taxonomized `scripts/` into `ops/`, `checks/`, `demo/`, `experiments/`, `benchmarks/` (+ `lib/`); updated `package.json`, shell entrypoints, and docs accordingly.
 
 ### Removed
 

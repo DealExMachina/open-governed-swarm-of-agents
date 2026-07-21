@@ -23,22 +23,22 @@ For the full cleanup backlog, corpus wiring matrix, and refactor phases, see **[
 | Item | Notes |
 |------|--------|
 | **`prototype/studio-preview/index.html`** | **SGRS Studio** UI (Cytoscape). Served by the feed at **`http://localhost:3002/studio`** when `pnpm run feed` is running; loads graph from **`GET /studio/elements?scope_id=`** (falls back to embedded demo graph if empty). Optional static serve: `npx serve prototype/studio-preview`. |
-| **`scripts/benchmark-*-agents.ts`** (LangChain, Mastra, Agentica, Gateway) | Comparative / baseline drivers; not listed in the main README script table. Safe to treat as **optional research tooling**. |
-| **`scripts/test-dashboard-*.ts`** | Dashboard quality checks exposed through `pnpm run test:dashboard:smoke` and `pnpm run test:dashboard:regression`. Useful for UI/ops regression guardrails; optional for core kernel development. |
+| **`scripts/benchmarks/benchmark-*-agents.ts`** (LangChain, Mastra, Agentica, Gateway) | Comparative / baseline drivers; not listed in the main README script table. Safe to treat as **optional research tooling**. See [`scripts/README.md`](../scripts/README.md). |
+| **`scripts/checks/test-dashboard-*.ts`** | Dashboard quality checks exposed through `pnpm run test:dashboard:smoke` and `pnpm run test:dashboard:regression`. Useful for UI/ops regression guardrails; optional for core kernel development. |
 
 ---
 
 ## E2E vs. normal schema path
 
 - **Day-to-day:** `pnpm run ensure-schema` applies **all** SQL files under `migrations/` in order.
-- **`scripts/run-e2e.sh`** applies only **002, 003, 005, 006** by hand. Features that need later migrations may **not** be covered by E2E unless the script is updated. Prefer `ensure-schema` for a full DB.
+- **`scripts/ops/run-e2e.sh`** applies only **002, 003, 005, 006** by hand. Features that need later migrations may **not** be covered by E2E unless the script is updated. Prefer `ensure-schema` for a full DB.
 
 ---
 
 ## Experiments and gitignored output
 
 - **`docs/experiments/*/results/`** is gitignored (see `.gitignore`). Protocol text may reference result paths that are empty in a fresh clone.
-- **`exp-skills`** in `scripts/run-experiment.sh` writes under `docs/experiments/exp-skills/results/` — there is **no** shipped `docs/experiments/exp-skills/README.md`; treat the experiment as **script-only** unless you add docs locally.
+- **`exp-skills`** in `scripts/experiments/run-experiment.sh` writes under `docs/experiments/exp-skills/results/` — there is **no** shipped `docs/experiments/exp-skills/README.md`; treat the experiment as **script-only** unless you add docs locally.
 
 ---
 

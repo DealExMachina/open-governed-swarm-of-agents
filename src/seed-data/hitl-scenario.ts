@@ -1,5 +1,5 @@
 /**
- * Canonical HITL seed scenario data. Used by scripts/seed-hitl-scenario.ts and
+ * Canonical HITL seed scenario data. Used by scripts/demo/seed-hitl-scenario.ts and
  * unit tests to validate fixture shape.
  *
  * Node counts: 5 claims + 5 goals + 2 risks = 12 nodes.

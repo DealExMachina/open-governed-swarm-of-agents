@@ -1,6 +1,6 @@
 /**
  * Exp 2 seed data: synthetic graph for scalability experiments.
- * Used by scripts/seed-exp2-graph.ts.
+ * Used by scripts/experiments/seed-exp2-graph.ts.
  *
  * Vary |N| (claim count) and rho (contradiction rate 0.1, 0.3, 0.5).
  * Contradiction count = floor(rho * N); pairs use claims (0,1), (2,3), ...

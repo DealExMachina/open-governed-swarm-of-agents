@@ -1,5 +1,5 @@
 /**
- * Reinit Studio scenario scopes (same behavior as scripts/reinit-scenario-scopes.ts).
+ * Reinit Studio scenario scopes (same behavior as scripts/ops/reinit-scenario-scopes.ts).
  */
 import type { Pool } from "pg";
 import type { S3Client } from "@aws-sdk/client-s3";

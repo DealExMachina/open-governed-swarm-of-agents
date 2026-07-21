@@ -4,7 +4,7 @@
 
 This page documents the demo scenarios shipped with the public snapshot and the load/convergence benchmarks used to validate the reference implementation. For the formal experimental protocols that accompany the paper, refer to the publication and its companion research surface.
 
-All demo scenarios are **designed to be reproducible** with the reference implementation via `./scripts/run-experiment.sh <name>` or `./scripts/run-experiment-batch.sh`. They run under **per-dimension (vector) finality** when `per_dimension_finality.enabled: true` in `finality.yaml`.
+All demo scenarios are **designed to be reproducible** with the reference implementation via `./scripts/experiments/run-experiment.sh <name>` or `./scripts/experiments/run-experiment-batch.sh`. They run under **per-dimension (vector) finality** when `per_dimension_finality.enabled: true` in `finality.yaml`.
 
 ---
 
@@ -13,9 +13,9 @@ All demo scenarios are **designed to be reproducible** with the reference implem
 | Demo | Documents | What it exercises | Command |
 |------|-----------|-------------------|---------|
 | **M&A** (Project Horizon) | 5 | ARR contradiction, HITL escalation, approval modes | `pnpm run demo` |
-| **Financial consolidation** | 8 | Bitemporal restatements, dual temporality | `./scripts/run-experiment.sh financial --rounds=8` |
-| **Insurance onboarding** | 22 | Long-horizon convergence, iterative resolution | `./scripts/run-experiment.sh insurance` |
-| **European Green Bond (EUGBS)** | 38 | Full bond lifecycle, regulatory transition, allocation | `./scripts/run-experiment.sh green-bond` |
+| **Financial consolidation** | 8 | Bitemporal restatements, dual temporality | `./scripts/experiments/run-experiment.sh financial --rounds=8` |
+| **Insurance onboarding** | 22 | Long-horizon convergence, iterative resolution | `./scripts/experiments/run-experiment.sh insurance` |
+| **European Green Bond (EUGBS)** | 38 | Full bond lifecycle, regulatory transition, allocation | `./scripts/experiments/run-experiment.sh green-bond` |
 | **Clinical trial** | 18 | Phase progression, protocol drift | `demo/scenario/docs-clinical-trial/` |
 | **Solvency II** | -- | Regulatory stress testing | `demo/scenario/docs-solvency2/` |
 
@@ -25,7 +25,7 @@ Detailed protocols per demo: [docs/demos/](demos/README.md).
 
 A 38-document corpus simulating the full lifecycle of a EUR 250M European Green Bond (EuroVert Capital Green Bond Fund I): SPV incorporation, framework publication, SPO, investor roadshow, pricing, project onboarding (solar, wind, agrivoltaic, building retrofit, EV charging, battery storage), EUGBS regulatory transition, factsheet, CSSF designation, annual reporting, performance issues, and full allocation.
 
-Run: `./scripts/run-experiment.sh green-bond`. Results in `docs/experiments/green-bond/results/`.
+Run: `./scripts/experiments/run-experiment.sh green-bond`. Results in `docs/experiments/green-bond/results/`.
 
 **Drain phase.** The driver uses `--drain=300` (5 minutes). After all 38 documents are injected, it keeps polling `swarm_state` until the target epoch is reached or the drain timeout fires. This allows the pipeline to finish backlog processing before the run terminates.
 
@@ -38,7 +38,7 @@ Run: `./scripts/run-experiment.sh green-bond`. Results in `docs/experiments/gree
 The pipeline advances only when agents successfully process events and the executor applies approved transitions. If you see **Final state: epoch=0, lastNode=ContextIngested** after a run:
 
 1. **Facts agent cannot reach the facts-worker.**
-   The facts agent is the first step: it consumes `context_doc` events, calls `FACTS_WORKER_URL/extract`, and on success proposes `ContextIngested -> FactsExtracted`. If `FACTS_WORKER_URL` is unset or the worker is unreachable (e.g. wrong host/port when hatchery runs on host and worker in Docker), the agent throws, NAKs the message, and the cycle never advances. **Fix:** Set `FACTS_WORKER_URL` (e.g. `http://127.0.0.1:8010`) in `.env` and ensure the facts-worker container (or process) is running. `./scripts/run-experiment.sh` runs `check-services` before the driver; if it fails, fix the reported service before re-running.
+   The facts agent is the first step: it consumes `context_doc` events, calls `FACTS_WORKER_URL/extract`, and on success proposes `ContextIngested -> FactsExtracted`. If `FACTS_WORKER_URL` is unset or the worker is unreachable (e.g. wrong host/port when hatchery runs on host and worker in Docker), the agent throws, NAKs the message, and the cycle never advances. **Fix:** Set `FACTS_WORKER_URL` (e.g. `http://127.0.0.1:8010`) in `.env` and ensure the facts-worker container (or process) is running. `./scripts/experiments/run-experiment.sh` runs `check-services` before the driver; if it fails, fix the reported service before re-running.
 
 2. **Facts-worker returns 5xx or times out.**
    If the worker responds with 500 or the request times out, the facts agent NAKs the message. After `max_deliver` (3) redeliveries NATS discards the message and the pipeline stalls. **Fix:** Check facts-worker logs and LLM config (OpenAI/Ollama); increase `FACTS_WORKER_TIMEOUT_MS` if needed.
@@ -50,14 +50,14 @@ The pipeline advances only when agents successfully process events and the execu
 
 ## Noisy corpus, Financial
 
-- **noisy:** Ambiguous/hedging documents; `./scripts/run-experiment.sh noisy`.
-- **financial:** Bitemporal reconciliation, restatements; `./scripts/run-experiment.sh financial --rounds=8`. See [demos/financial/README.md](demos/financial/README.md).
+- **noisy:** Ambiguous/hedging documents; `./scripts/experiments/run-experiment.sh noisy`.
+- **financial:** Bitemporal reconciliation, restatements; `./scripts/experiments/run-experiment.sh financial --rounds=8`. See [demos/financial/README.md](demos/financial/README.md).
 
 ---
 
 ## Convergence benchmarks
 
-The **convergence benchmark scenarios** in `scripts/benchmark-convergence.ts` validate the tracker with pure math (no Docker, no LLM):
+The **convergence benchmark scenarios** in `scripts/benchmarks/benchmark-convergence.ts` validate the tracker with pure math (no Docker, no LLM):
 
 | Scenario | Outcome |
 |----------|---------|
@@ -69,7 +69,7 @@ The **convergence benchmark scenarios** in `scripts/benchmark-convergence.ts` va
 | Fast convergence | No false plateau |
 | Empty graph | Safe defaults |
 
-Run: `pnpm tsx scripts/benchmark-convergence.ts`. Use `--runs=N` (N >= 2) to verify determinism across identical inputs.
+Run: `pnpm tsx scripts/benchmarks/benchmark-convergence.ts`. Use `--runs=N` (N >= 2) to verify determinism across identical inputs.
 
 ### sgrs load benchmark (unified governance)
 
@@ -84,9 +84,9 @@ Run: `pnpm tsx scripts/benchmark-convergence.ts`. Use `--runs=N` (N >= 2) to ver
 **Run:**
 
 ```bash
-npx tsx scripts/benchmark-sgrs-load.ts
-npx tsx scripts/benchmark-sgrs-load.ts --instances=8 --duration=10 --mix=both
-npx tsx scripts/benchmark-sgrs-load.ts --instances=4 --ops=50000
+npx tsx scripts/benchmarks/benchmark-sgrs-load.ts
+npx tsx scripts/benchmarks/benchmark-sgrs-load.ts --instances=8 --duration=10 --mix=both
+npx tsx scripts/benchmarks/benchmark-sgrs-load.ts --instances=4 --ops=50000
 ```
 
 **Options:** `--instances=N`, `--duration=N`, `--ops=N`, `--mix=governance|finality|both`.
@@ -106,4 +106,4 @@ npx tsx scripts/benchmark-sgrs-load.ts --instances=4 --ops=50000
 - Vary agent scaling: default vs scaled (2x workers).
 - Measure: CAS rejections, state transitions/min, bootstrap-to-first-transition, V(t) monotonicity.
 
-**Scripts:** `scripts/loadgen-inject.ts`, `scripts/run-load-experiment.sh`. See [docs/experiments/exp-load/README.md](experiments/exp-load/README.md).
+**Scripts:** `scripts/experiments/loadgen-inject.ts`, `scripts/experiments/run-load-experiment.sh`. See [docs/experiments/exp-load/README.md](experiments/exp-load/README.md).

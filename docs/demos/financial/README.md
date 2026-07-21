@@ -28,9 +28,9 @@ Meridian Holdings consolidates three subsidiaries: Alpha Industrials (manufactur
 ## Running
 
 ```bash
-bash scripts/run-experiment.sh financial --rounds=8
+bash scripts/experiments/run-experiment.sh financial --rounds=8
 # With resolution injection: --resolve-at=7,8
-# Batch: bash scripts/run-experiment-batch.sh financial 3 --rounds=8
+# Batch: bash scripts/experiments/run-experiment-batch.sh financial 3 --rounds=8
 ```
 
 ## Results

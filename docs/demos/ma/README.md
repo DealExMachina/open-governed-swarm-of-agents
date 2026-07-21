@@ -13,7 +13,7 @@ pnpm run demo
 ./demo/run-demo.sh --fast
 
 # Experiment-style run (no auto-approve; baseline for comparison)
-bash scripts/run-experiment.sh demo-baseline
+bash scripts/experiments/run-experiment.sh demo-baseline
 ```
 
 Archived overview: [docs/archive/demo.md](../archive/demo.md). Step-by-step guide: [demo/DEMO.md](../../demo/DEMO.md).
