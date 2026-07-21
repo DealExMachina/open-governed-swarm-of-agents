@@ -10,6 +10,7 @@ import {
 } from "../modelConfig.js";
 import { logger } from "../logger.js";
 import { s3GetText } from "../s3.js";
+import { scopeDriftKey, scopeFactsKey } from "../scopeStorage.js";
 import { loadUnresolvedContradictionDetails } from "../semanticGraph.js";
 import { markResolved } from "../resolutionService.js";
 import { addPending } from "../mitlServer.js";
@@ -69,9 +70,9 @@ export async function runResolverAgent(
     return { resolved: 0, confirmed: 0, noise: 0 };
   }
 
-  const factsRaw = await s3GetText(s3, bucket, "facts/latest.json");
+  const factsRaw = await s3GetText(s3, bucket, scopeFactsKey(scopeId));
   const facts = factsRaw ? JSON.parse(factsRaw) : {};
-  const driftRaw = await s3GetText(s3, bucket, "drift/latest.json");
+  const driftRaw = await s3GetText(s3, bucket, scopeDriftKey(scopeId));
   const drift = driftRaw ? JSON.parse(driftRaw) : {};
 
   const resolutionResults: Array<{

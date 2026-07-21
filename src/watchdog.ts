@@ -14,9 +14,13 @@ import {
 } from "./finalityEvaluator.js";
 import { submitFinalityReviewForScope } from "./hitlFinalityRequest.js";
 import { getPool } from "./db.js";
+import { getActiveScopeId } from "./billingContext.js";
 import type { EventBus } from "./eventBus.js";
 
-const SCOPE_ID = process.env.SCOPE_ID ?? "default";
+/** Prefer live hatchery binding over process boot SCOPE_ID. */
+function watchdogScopeId(): string {
+  return getActiveScopeId() || process.env.SCOPE_ID || "default";
+}
 const WATCHDOG_INTERVAL_MS = Number(process.env.WATCHDOG_INTERVAL_MS) || 15000;
 const QUIESCENCE_THRESHOLD_MS =
   Number(process.env.WATCHDOG_QUIESCENCE_MS) || 30000;
@@ -269,11 +273,12 @@ export function startWatchdog(
       try {
         const { hasPendingFinalityReviewForScope } =
           await import("./mitlServer.js");
-        const stillPending = await hasPendingFinalityReviewForScope(SCOPE_ID);
+        const scopeId = watchdogScopeId();
+        const stillPending = await hasPendingFinalityReviewForScope(scopeId);
         if (!stillPending) {
           state.hitlTriggered = false;
           logger.info("watchdog: previous HITL resolved, re-armed", {
-            scope_id: SCOPE_ID,
+            scope_id: scopeId,
           });
         }
       } catch {
@@ -286,30 +291,31 @@ export function startWatchdog(
     if (sinceLast < QUIESCENCE_THRESHOLD_MS) return;
 
     state.lastFinalityCheckAt = Date.now();
+    const scopeId = watchdogScopeId();
     logger.info("watchdog: quiescence detected, re-evaluating finality", {
       idle_ms: idleMs,
-      scope_id: SCOPE_ID,
+      scope_id: scopeId,
     });
 
     try {
-      const result = await evaluateFinality(SCOPE_ID);
+      const result = await evaluateFinality(scopeId);
       if (!result) return;
 
       if (result.kind === "review") {
-        const situation = await buildSituationSummary(SCOPE_ID);
+        const situation = await buildSituationSummary(scopeId);
         logger.info("watchdog: HITL review needed", {
-          scope_id: SCOPE_ID,
+          scope_id: scopeId,
           goal_score: situation.goal_score,
           questions: situation.questions.length,
           top_blocker: situation.questions[0]?.dimension,
         });
 
-        const submitted = await submitFinalityReviewForScope(SCOPE_ID, result);
+        const submitted = await submitFinalityReviewForScope(scopeId, result);
         if (submitted) {
           state.hitlTriggered = true;
           await bus.publish("swarm.events.watchdog_hitl", {
             type: "watchdog_hitl",
-            scope_id: SCOPE_ID,
+            scope_id: scopeId,
             goal_score: String(situation.goal_score),
             questions_count: String(situation.questions.length),
             summary: situation.summary,
@@ -317,7 +323,7 @@ export function startWatchdog(
         }
       } else if (result.kind === "status") {
         logger.info("watchdog: finality status", {
-          scope_id: SCOPE_ID,
+          scope_id: scopeId,
           status: result.status,
         });
       }

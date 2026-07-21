@@ -69,6 +69,48 @@ export async function tailEvents(
     .reverse();
 }
 
+/** Extract scope_id from a WAL event envelope or its payload. */
+export function scopeIdFromEventData(data: unknown): string | null {
+  if (!data || typeof data !== "object") return null;
+  const rec = data as Record<string, unknown>;
+  const payload = rec.payload as Record<string, unknown> | undefined;
+  const sid = payload?.scope_id ?? rec.scope_id;
+  if (typeof sid === "string" && sid.trim()) return sid.trim();
+  return null;
+}
+
+export function eventBelongsToScope(data: unknown, scopeId: string): boolean {
+  const sid = scopeIdFromEventData(data);
+  return sid === scopeId;
+}
+
+/** Recent WAL events for one scope only (oldest → newest). */
+export async function tailEventsForScope(
+  scopeId: string,
+  limit: number = 200,
+  pool?: pg.Pool,
+): Promise<ContextEvent[]> {
+  const p = pool ?? getPool();
+  await ensureContextTable(p);
+  const res = await p.query(
+    `SELECT seq, ts, data FROM context_events
+     WHERE COALESCE(data->'payload'->>'scope_id', data->>'scope_id') = $1
+     ORDER BY seq DESC
+     LIMIT $2`,
+    [scopeId, limit],
+  );
+  return res.rows
+    .map((r: ContextEventRow) => {
+      const dataRaw = typeof r.data === "string" ? JSON.parse(r.data) : r.data;
+      return {
+        seq: parseInt(String(r.seq), 10),
+        ts: r.ts instanceof Date ? r.ts.toISOString() : String(r.ts),
+        data: dataRaw as Record<string, unknown>,
+      };
+    })
+    .reverse();
+}
+
 export async function eventsSince(
   afterSeq: number,
   limit: number = 1000,

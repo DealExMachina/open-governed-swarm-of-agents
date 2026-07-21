@@ -7,6 +7,7 @@ import {
   evaluateOne as rustEvaluateOne,
 } from "./sgrsAdapter.js";
 import { emitContribution } from "./causalEmit.js";
+import { scopeDriftKey } from "./scopeStorage.js";
 
 /** Severity/materiality for contradiction mass (Gate B). */
 export type ContradictionSeverity = "low" | "medium" | "high" | "material";
@@ -266,13 +267,38 @@ export function computeGoalScore(
 
 /**
  * Compute goal score for a scope (loads snapshot and config).
+ * Returns 0 when Gate E content is absent (empty / vacuous graph).
  */
 export async function computeGoalScoreForScope(
   scopeId: string,
 ): Promise<number> {
   const snapshot = await loadFinalitySnapshot(scopeId);
+  const hasContent = await scopeHasFinalityContent(scopeId, snapshot);
+  if (!hasContent) return 0;
   const config = loadFinalityConfig();
   return computeGoalScore(snapshot, config.goal_gradient);
+}
+
+/** Gate E: scope has enough graph content for meaningful finality scoring. */
+export async function scopeHasFinalityContent(
+  scopeId: string,
+  snapshot?: FinalitySnapshot,
+): Promise<boolean> {
+  const snap = snapshot ?? (await loadFinalitySnapshot(scopeId));
+  let epoch = 0;
+  try {
+    const { loadState } = await import("./stateGraph.js");
+    const st = await loadState(scopeId);
+    epoch = st?.epoch ?? 0;
+  } catch {
+    /* state table may not exist */
+  }
+  return (
+    snap.claims_active_count >= 3 &&
+    (snap.contradictions_total_count > 0 ||
+      snap.claims_active_count >= 5 ||
+      epoch >= 2)
+  );
 }
 
 /** Normalize condition to "key: op value" string (YAML may give object). */
@@ -392,8 +418,14 @@ export async function loadFinalityInput(
     /* state table may not exist */
   }
 
+  // Gate E: reject vacuous graphs (e.g. 1 resolution-claim + 0 contradictions
+  // scoring as "perfect"). Require enough claims and either prior contradictions
+  // or a matured pipeline epoch.
   const hasContent =
-    snapshot.claims_active_count > 0 || snapshot.goals_completion_ratio < 1;
+    snapshot.claims_active_count >= 3 &&
+    (snapshot.contradictions_total_count > 0 ||
+      snapshot.claims_active_count >= 5 ||
+      epoch >= 2);
 
   let convergenceData: ConvergenceData | undefined;
   let divergenceDetected = false;
@@ -523,6 +555,13 @@ async function emitSessionFinalized(scopeId: string): Promise<void> {
   } catch {
     // WAL may be unavailable
   }
+  try {
+    const score = await computeGoalScoreForScope(scopeId);
+    const { markStudioCatalogResolved } = await import("./finalizationReport.js");
+    await markStudioCatalogResolved(scopeId, score);
+  } catch {
+    /* catalog optional */
+  }
   await emitContribution(
     "finality-evaluator",
     "assessment",
@@ -566,7 +605,10 @@ async function recordGateStateIfAvailable(
       gate_c_trajectory_ok: convergence.trajectory_quality >= 0.7,
       gate_d_quiescent: isQuiescent(snapshot, config.quiescence),
       gate_e_has_content:
-        snapshot.claims_active_count > 0 || snapshot.goals_completion_ratio < 1,
+        snapshot.claims_active_count >= 3 &&
+        (snapshot.contradictions_total_count > 0 ||
+          snapshot.claims_active_count >= 5 ||
+          epoch >= 2),
       finality_state: finalityState,
       unresolved_contradictions: snapshot.contradictions_unresolved_count,
       trajectory_quality: convergence.trajectory_quality,
@@ -647,7 +689,7 @@ export async function evaluateFinality(
     ) {
       const bucket = process.env.S3_BUCKET ?? "swarm-facts";
       const s3 = makeS3();
-      const driftRaw = await s3GetText(s3, bucket, "drift/latest.json");
+      const driftRaw = await s3GetText(s3, bucket, scopeDriftKey(scopeId));
       const drift = driftRaw
         ? (JSON.parse(driftRaw) as {
             level?: string;

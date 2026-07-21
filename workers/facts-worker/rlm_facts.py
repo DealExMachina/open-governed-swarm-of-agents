@@ -28,10 +28,105 @@ def _call_llm(
     resolved_contradictions: Optional[List[str]] = None,
     human_resolutions: Optional[List[str]] = None,
 ) -> str:
-    """Call an OpenAI-compatible chat/completions endpoint. Uses Ollama when OLLAMA_BASE_URL is set."""
-    from openai import OpenAI
+    """Call LLM for extraction. Uses Ollama native /api/chat with JSON schema when configured."""
+    from extraction_schema import (
+        build_extraction_format_schema,
+        load_dimension_schema,
+        normalize_structured_claims,
+        parse_allowed_dimensions,
+        schema_constrained_enabled,
+    )
 
     ollama_base = os.getenv("OLLAMA_BASE_URL", "").strip()
+    use_schema = schema_constrained_enabled() and bool(ollama_base)
+
+    resolved_section = ""
+    if resolved_contradictions:
+        resolved_list = "\n".join(f"  - {c}" for c in resolved_contradictions[:20])
+        resolved_section = f"""
+
+Previously resolved contradictions (DO NOT re-extract these; they have been addressed):
+{resolved_list}
+"""
+
+    resolutions_section = ""
+    if human_resolutions:
+        res_list = "\n".join(f"  - {r}" for r in human_resolutions[:20])
+        resolutions_section = f"""
+
+Human resolutions (AUTHORITATIVE — include these EXACTLY as claims; they override any prior conflicting extraction):
+{res_list}
+"""
+
+    if use_schema:
+        allowed = parse_allowed_dimensions()
+        schema_map = load_dimension_schema()
+        dims = ", ".join(f'"{d}"' for d in allowed)
+        user_content = f"""Context (recent events as JSON):
+{prompt_context}
+
+Previous facts (JSON):
+{prompt_previous}
+{resolved_section}{resolutions_section}
+Extract dimension-keyed claims as a JSON array. Each item: {{"dimension": "<one of {dims}>", "content": <typed object>, "confidence": 0-1}}.
+Only use listed dimensions. Typed content shapes: currency {{"amount", "currency"}}, percentage {{"value"}}, integer {{"value"}}, free_text {{"value"}}.
+Also detect contradictions between new and previous facts when figures differ for the same metric and period."""
+        import urllib.error
+        import urllib.request
+
+        model = os.getenv("EXTRACTION_MODEL", "qwen3:8b")
+        body = {
+            "model": model,
+            "stream": False,
+            "messages": [{"role": "user", "content": user_content}],
+            "options": {"temperature": 0, "num_predict": 4096},
+            "format": build_extraction_format_schema(allowed, schema_map),
+        }
+        req = urllib.request.Request(
+            f"{ollama_base.rstrip('/')}/api/chat",
+            data=json.dumps(body).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=EXTRACTION_TIMEOUT_SEC) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+        except urllib.error.URLError as e:
+            raise RuntimeError(f"Ollama schema extraction failed: {e}") from e
+        text = (data.get("message") or {}).get("content") or "[]"
+        # Wrap as facts envelope for downstream parse
+        try:
+            arr = json.loads(text.strip())
+            if isinstance(arr, list):
+                structured, legacy = normalize_structured_claims(arr, schema_map)
+                envelope = {
+                    "entities": [],
+                    "structured_claims": structured,
+                    "claims": legacy,
+                    "risks": [],
+                    "assumptions": [],
+                    "contradictions": [],
+                    "goals": [],
+                    "confidence": 0.85,
+                }
+                return json.dumps(envelope)
+        except json.JSONDecodeError:
+            pass
+        return json.dumps(
+            {
+                "entities": [],
+                "claims": [text[:200]],
+                "structured_claims": [],
+                "risks": [],
+                "assumptions": [],
+                "contradictions": [],
+                "goals": [],
+                "confidence": 0.5,
+            }
+        )
+
+    from openai import OpenAI
+
     if ollama_base:
         client = OpenAI(
             api_key="ollama",
@@ -99,11 +194,17 @@ When new information CORRECTS or UPDATES a previous claim (e.g. a revised figure
 # -----------------------------
 
 
+class StructuredClaim(BaseModel):
+    dimension: str
+    content: str
+
+
 class Facts(BaseModel):
     version: int = 2
     updated_at: str = ""
     entities: List[str] = Field(default_factory=list)
     claims: List[str] = Field(default_factory=list)
+    structured_claims: List[StructuredClaim] = Field(default_factory=list)
     risks: List[str] = Field(default_factory=list)
     assumptions: List[str] = Field(default_factory=list)
     contradictions: List[str] = Field(default_factory=list)
@@ -269,6 +370,78 @@ def _detect_contradictions_nli(claims: List[str], max_pairs: int = 20) -> List[s
         return out
     except Exception:
         return []
+
+
+def _softmax3(vals: List[float]) -> List[float]:
+    import math
+
+    m = max(vals)
+    exps = [math.exp(v - m) for v in vals]
+    tot = sum(exps) or 1.0
+    return [e / tot for e in exps]
+
+
+def _row_to_probs(row: Any) -> List[float]:
+    """Normalise a CrossEncoder prediction row to [contradiction, entailment, neutral] probabilities.
+
+    Handles numpy arrays, logits (needs softmax) and already-normalised rows.
+    Binary/relatedness models (single score) are mapped to an entailment probability.
+    """
+    if hasattr(row, "tolist"):
+        row = row.tolist()
+    if not isinstance(row, (list, tuple)):
+        row = [float(row)]
+    row = [float(x) for x in row]
+    if len(row) < 3:
+        p = max(0.0, min(1.0, row[0]))
+        return [1.0 - p, p, 0.0]
+    head = row[:3]
+    s = sum(head)
+    if 0.99 <= s <= 1.01 and all(0.0 <= x <= 1.0 for x in head):
+        return head
+    return _softmax3(head)
+
+
+def nli_entailment(a: str, b: str) -> Optional[Dict[str, Any]]:
+    """Bidirectional NLI entailment between two claims.
+
+    Returns ``None`` when NLI is unavailable (SKIP_NLI, no NLI_MODEL, or import
+    error) so callers can fall back conservatively. Otherwise a dict with:
+      - ``label``: "equivalent" | "contradiction" | "neutral"
+      - ``confidence``: float in [0, 1]
+      - ``forward`` / ``backward``: [contradiction, entailment, neutral] probs
+
+    "equivalent" requires *mutual* entailment (A=>B and B=>A). Contradiction in
+    either direction takes priority (safety-first). Label order matches
+    cross-encoder/nli-deberta-v3-* : index 0 contradiction, 1 entailment, 2 neutral.
+    """
+    model = _get_nli()
+    if model is None or not (a or "").strip() or not (b or "").strip():
+        return None
+    try:
+        raw = model.predict([(a, b), (b, a)])
+    except Exception:
+        return None
+
+    fwd = _row_to_probs(raw[0])
+    bwd = _row_to_probs(raw[1])
+    contradiction = max(fwd[0], bwd[0])
+    entail = min(fwd[1], bwd[1])  # mutual entailment => equivalent
+    neutral = max(fwd[2], bwd[2])
+
+    if contradiction > 0.5 and contradiction >= fwd[1] and contradiction >= bwd[1]:
+        label, confidence = "contradiction", contradiction
+    elif entail > 0.5 and entail >= fwd[0] and entail >= bwd[0]:
+        label, confidence = "equivalent", entail
+    else:
+        label, confidence = "neutral", neutral
+
+    return {
+        "label": label,
+        "confidence": round(float(confidence), 4),
+        "forward": [round(x, 4) for x in fwd],
+        "backward": [round(x, 4) for x in bwd],
+    }
 
 
 # -----------------------------
@@ -441,6 +614,20 @@ def extract_facts_and_drift(
 
     for key in ("entities", "claims", "risks", "assumptions", "contradictions", "goals"):
         facts_dict[key] = _to_string_list(facts_dict.get(key))
+
+    if "structured_claims" in facts_dict and isinstance(facts_dict["structured_claims"], list):
+        normalized_sc: List[Dict[str, str]] = []
+        for item in facts_dict["structured_claims"]:
+            if isinstance(item, dict) and item.get("dimension") and item.get("content"):
+                normalized_sc.append(
+                    {
+                        "dimension": str(item["dimension"]).strip(),
+                        "content": str(item["content"]).strip(),
+                    }
+                )
+        facts_dict["structured_claims"] = normalized_sc
+    else:
+        facts_dict["structured_claims"] = []
 
     # LLM may return "confidence": null — remove so Pydantic default (1.0) applies
     if facts_dict.get("confidence") is None:

@@ -6,6 +6,7 @@ import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
 import { Agent } from "@mastra/core/agent";
 import { s3GetText } from "../s3.js";
+import { scopeDriftKey } from "../scopeStorage.js";
 import { loadState } from "../stateGraph.js";
 import { loadPolicies, getGovernanceForScope } from "../governance.js";
 import { evaluateKernel } from "../sgrsAdapter.js";
@@ -34,6 +35,12 @@ import {
   GovernanceOutputSchema,
 } from "../modelConfig.js";
 import type { Proposal, Action } from "../events.js";
+import {
+  EQUIVALENCE_ACTION,
+  decideEquivalence,
+  buildEquivalenceDecisionRecord,
+  type EquivalencePayload,
+} from "../equivalenceGate.js";
 import { makeReadGovernanceRulesTool } from "./sharedTools.js";
 import { composeInstructions } from "../skills/loader.js";
 import { generateWithStructuredOutput } from "../mastraStructured.js";
@@ -331,7 +338,11 @@ function createGovernanceTools(proposal: Proposal, env: GovernanceAgentEnv) {
       }),
     }),
     execute: async () => {
-      const raw = await s3GetText(env.s3, env.bucket, "drift/latest.json");
+      const raw = await s3GetText(
+        env.s3,
+        env.bucket,
+        scopeDriftKey(getActiveScopeId()),
+      );
       const drift = raw
         ? (JSON.parse(raw) as { level: string; types: string[] })
         : { level: "none", types: [] as string[] };
@@ -349,7 +360,11 @@ function createGovernanceTools(proposal: Proposal, env: GovernanceAgentEnv) {
       reason: z.string(),
     }),
     execute: async () => {
-      const raw = await s3GetText(env.s3, env.bucket, "drift/latest.json");
+      const raw = await s3GetText(
+        env.s3,
+        env.bucket,
+        scopeDriftKey(getActiveScopeId()),
+      );
       const drift = raw
         ? (JSON.parse(raw) as { level: string; types: string[] })
         : { level: "none", types: [] as string[] };
@@ -427,7 +442,11 @@ function createGovernanceTools(proposal: Proposal, env: GovernanceAgentEnv) {
       if (!state || state.epoch !== expectedEpoch) {
         return { ok: false, error: "state_epoch_mismatch" };
       }
-      const driftRaw = await s3GetText(env.s3, env.bucket, "drift/latest.json");
+      const driftRaw = await s3GetText(
+        env.s3,
+        env.bucket,
+        scopeDriftKey(getActiveScopeId()),
+      );
       const drift = driftRaw
         ? (JSON.parse(driftRaw) as { level: string; types: string[] })
         : { level: "none", types: [] as string[] };
@@ -678,7 +697,11 @@ export async function evaluateProposalDeterministic(
     return { outcome: "reject", reason: "state_epoch_mismatch" };
   }
 
-  const driftRaw = await s3GetText(env.s3, env.bucket, "drift/latest.json");
+  const driftRaw = await s3GetText(
+    env.s3,
+    env.bucket,
+    scopeDriftKey(getActiveScopeId()),
+  );
   const drift = driftRaw
     ? (JSON.parse(driftRaw) as { level: string; types: string[] })
     : { level: "none", types: [] as string[] };
@@ -927,6 +950,89 @@ export async function processProposal(
 }
 
 /**
+ * Validate an `assert_equivalence` proposition deterministically (NLI-gate binding).
+ *
+ * The proposition "A ≡ B" is approved only on high-confidence mutual entailment;
+ * otherwise it is rejected (the pair is treated as a genuine change). Every
+ * decision is persisted as a DecisionRecord (policy_version + obligations) for
+ * audit. On approval an `assert_equivalence` action is published so the executor
+ * traces the equivalence edge in the semantic graph.
+ */
+export async function processEquivalenceProposal(
+  proposal: Proposal,
+  env: GovernanceAgentEnv,
+): Promise<void> {
+  const scopeId = getActiveScopeId();
+  const payload = proposal.payload as unknown as EquivalencePayload;
+  const govPath = process.env.GOVERNANCE_PATH ?? join(process.cwd(), "governance.yaml");
+  const scopeMode = getGovernanceForScope(scopeId, loadPolicies(govPath)).mode ?? "YOLO";
+  const policyVersion = getGovernancePolicyVersion(govPath);
+  const decision = decideEquivalence(payload);
+  const record = buildEquivalenceDecisionRecord(decision, policyVersion);
+  recordGovernanceMode(scopeId, scopeMode);
+
+  try {
+    await persistDecisionRecord(record, {
+      governance_path: "processProposal",
+      scope_id: scopeId,
+      scope_mode: scopeMode,
+    });
+  } catch (err) {
+    logger.warn("persistDecisionRecord failed (equivalence)", { error: String(err) });
+  }
+
+  if (decision.outcome === "approve") {
+    recordProposal(EQUIVALENCE_ACTION, "approved");
+    const action: Action = {
+      proposal_id: proposal.proposal_id,
+      approved_by: "auto",
+      result: "approved",
+      reason: decision.reason,
+      action_type: EQUIVALENCE_ACTION,
+      payload: {
+        ...payload,
+        decision_id: record.decision_id,
+        policy_version: policyVersion,
+        scope_id: scopeId,
+      },
+    };
+    await env.getPublishAction()(
+      `swarm.actions.${EQUIVALENCE_ACTION}`,
+      action as unknown as Record<string, unknown>,
+    );
+    await appendEvent({
+      type: "equivalence_approved",
+      proposal_id: proposal.proposal_id,
+      decision_id: record.decision_id,
+      reason: decision.reason,
+      scope_id: scopeId,
+    });
+    await emitContribution("governance-agent", "assessment", {
+      type: "equivalence_approved",
+      proposal_id: proposal.proposal_id,
+      reason: decision.reason,
+    }, { authorityTier: 2, governanceMode: proposal.mode });
+    logger.info("equivalence approved", { proposal_id: proposal.proposal_id, reason: decision.reason });
+    return;
+  }
+
+  recordProposal(EQUIVALENCE_ACTION, "rejected");
+  await appendEvent({
+    type: "equivalence_rejected",
+    proposal_id: proposal.proposal_id,
+    decision_id: record.decision_id,
+    reason: decision.reason,
+    scope_id: scopeId,
+  });
+  await emitContribution("governance-agent", "assessment", {
+    type: "equivalence_rejected",
+    proposal_id: proposal.proposal_id,
+    reason: decision.reason,
+  }, { authorityTier: 2, governanceMode: proposal.mode });
+  logger.info("equivalence rejected", { proposal_id: proposal.proposal_id, reason: decision.reason });
+}
+
+/**
  * Run finality evaluation for the scope; if in near-finality band, submit HITL review.
  * Fire-and-forget: callers should .catch() to log errors without failing the message ack.
  */
@@ -1119,7 +1225,9 @@ export async function runGovernanceAgentLoop(
           mode: (data.mode as "YOLO" | "MITL" | "MASTER") ?? "YOLO",
         };
         const govLoopStart = Date.now();
-        if (proposal.mode === "MASTER" || proposal.mode === "MITL") {
+        if (proposal.proposed_action === EQUIVALENCE_ACTION) {
+          await processEquivalenceProposal(proposal, env);
+        } else if (proposal.mode === "MASTER" || proposal.mode === "MITL") {
           await processProposal(proposal, env);
         } else {
           const deterministicResult = await evaluateProposalDeterministic(

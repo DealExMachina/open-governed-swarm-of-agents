@@ -2,9 +2,11 @@
  * Delete all persisted data for one scope (Postgres + optional S3 prefix).
  * Does not truncate other scopes or global tables like processed_messages.
  */
+import { randomUUID } from "crypto";
 import type { S3Client } from "@aws-sdk/client-s3";
 import { DeleteObjectsCommand, ListObjectsV2Command } from "@aws-sdk/client-s3";
 import type { Pool, PoolClient } from "pg";
+import { resetCatalogScopeState } from "./studioCatalog.js";
 
 const DELETE_SQL: string[] = [
   `DELETE FROM edges WHERE scope_id = $1`,
@@ -22,7 +24,11 @@ const DELETE_SQL: string[] = [
   `DELETE FROM usage_rollups WHERE scope_id = $1`,
   `DELETE FROM context_events WHERE COALESCE(data->>'scope_id', data->'payload'->>'scope_id') = $1`,
   `DELETE FROM demo_sessions WHERE scope_id = $1`,
-  `DELETE FROM mitl_pending WHERE proposal->>'scope_id' = $1 OR action_payload->>'scope_id' = $1`,
+  // MITL stores scope on proposal.payload (and sometimes action_payload); match getPending().
+  `DELETE FROM mitl_pending WHERE
+     proposal->'payload'->>'scope_id' = $1
+     OR action_payload->>'scope_id' = $1
+     OR proposal->>'scope_id' = $1`,
 ];
 
 async function tryExec(
@@ -85,4 +91,24 @@ export async function resetScopeData(
       token = list.IsTruncated ? list.NextContinuationToken : undefined;
     } while (token);
   }
+}
+
+/** Wipe graph/WAL for a scope and reinit catalog badge + swarm_state row. */
+export async function resetScopeAndReinit(
+  pool: Pool,
+  scopeId: string,
+  opts?: { s3?: S3Client; bucket?: string; storagePrefix?: string },
+): Promise<void> {
+  await resetScopeData(pool, scopeId, opts);
+  await resetCatalogScopeState(scopeId);
+  await pool.query(
+    `INSERT INTO swarm_state (scope_id, run_id, last_node, epoch, updated_at)
+     VALUES ($1, $2, 'ContextIngested', 0, now())
+     ON CONFLICT (scope_id) DO UPDATE SET
+       run_id = $2,
+       last_node = 'ContextIngested',
+       epoch = 0,
+       updated_at = now()`,
+    [scopeId, randomUUID()],
+  );
 }

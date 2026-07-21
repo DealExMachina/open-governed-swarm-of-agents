@@ -4,42 +4,54 @@ import { z } from "zod";
 import { s3GetText, s3ListKeys } from "../s3.js";
 import { tailEvents } from "../contextWal.js";
 import { loadPolicies, getGovernanceForScope } from "../governance.js";
+import {
+  resolveStorageScopeId,
+  scopeDriftKey,
+  scopeFactsHistoryPrefix,
+  scopeFactsKey,
+} from "../scopeStorage.js";
 import { join } from "path";
-
-const KEY_FACTS = "facts/latest.json";
-const KEY_DRIFT = "drift/latest.json";
-const KEY_FACTS_HIST_PREFIX = "facts/history/";
 const GOVERNANCE_PATH =
   process.env.GOVERNANCE_PATH ?? join(process.cwd(), "governance.yaml");
 
-export function makeReadFactsTool(s3: S3Client, bucket: string) {
+export function makeReadFactsTool(
+  s3: S3Client,
+  bucket: string,
+  scopeId?: string,
+) {
   return createTool({
     id: "readFacts",
     description:
-      "Read the current structured facts from storage (facts/latest.json).",
+      "Read the current structured facts from storage (scope facts/latest.json).",
     inputSchema: z.object({}),
     outputSchema: z.object({
       facts: z.record(z.unknown()).nullable(),
     }),
     execute: async () => {
-      const raw = await s3GetText(s3, bucket, KEY_FACTS);
+      const sid = resolveStorageScopeId(scopeId);
+      const raw = await s3GetText(s3, bucket, scopeFactsKey(sid));
       const facts = raw ? (JSON.parse(raw) as Record<string, unknown>) : null;
       return { facts };
     },
   });
 }
 
-export function makeReadDriftTool(s3: S3Client, bucket: string) {
+export function makeReadDriftTool(
+  s3: S3Client,
+  bucket: string,
+  scopeId?: string,
+) {
   return createTool({
     id: "readDrift",
     description:
-      "Read the current drift analysis from storage (drift/latest.json).",
+      "Read the current drift analysis from storage (scope drift/latest.json).",
     inputSchema: z.object({}),
     outputSchema: z.object({
       drift: z.record(z.unknown()).nullable(),
     }),
     execute: async () => {
-      const raw = await s3GetText(s3, bucket, KEY_DRIFT);
+      const sid = resolveStorageScopeId(scopeId);
+      const raw = await s3GetText(s3, bucket, scopeDriftKey(sid));
       const drift = raw ? (JSON.parse(raw) as Record<string, unknown>) : null;
       return { drift };
     },
@@ -70,11 +82,12 @@ export function makeReadFactsHistoryTool(
   s3: S3Client,
   bucket: string,
   maxKeys: number = 5,
+  scopeId?: string,
 ) {
   return createTool({
     id: "readFactsHistory",
     description:
-      "Read recent facts snapshots from history for comparison (facts/history/*.json).",
+      "Read recent facts snapshots from history for comparison (scope facts/history/*.json).",
     inputSchema: z.object({
       maxKeys: z.number().optional().default(maxKeys),
     }),
@@ -83,7 +96,13 @@ export function makeReadFactsHistoryTool(
     }),
     execute: async (input) => {
       const n = (input as { maxKeys?: number })?.maxKeys ?? maxKeys;
-      const keys = await s3ListKeys(s3, bucket, KEY_FACTS_HIST_PREFIX, n);
+      const sid = resolveStorageScopeId(scopeId);
+      const keys = await s3ListKeys(
+        s3,
+        bucket,
+        scopeFactsHistoryPrefix(sid),
+        n,
+      );
       const sorted = keys.sort().reverse().slice(0, n);
       const history: Record<string, unknown>[] = [];
       for (const key of sorted) {

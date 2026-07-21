@@ -1,0 +1,50 @@
+# Held-out NLI pairs — never used to design routing heuristics.
+# Scenarios s2 (solvency) and s5 (energy) only.
+
+schemaVersion: "1"
+minConfidenceDefault: 0.7
+purpose: held_out_pipeline_validation
+
+pairs:
+  - id: held-s2-scr-paraphrase-01
+    scenario: s2
+    dimension: scr_ratio
+    category: paraphrase
+    prior: "SCR ratio 151% (comfortable vs 100% threshold)"
+    next: "Solvency coverage ratio at one hundred fifty-one percent"
+
+  - id: held-s2-scr-contradiction-01
+    scenario: s2
+    dimension: scr_ratio
+    category: contradiction
+    prior: "SCR ratio 151%"
+    next: "SCR ratio 92% after stress scenario"
+
+  - id: held-s2-ownfunds-hitl-01
+    scenario: s2
+    dimension: own_funds
+    category: ambiguous_hitl
+    hitlSubtype: refinement
+    prior: "Own Funds EUR 1,240M"
+    next: "Own Funds EUR 1,240M including restricted tier 2 instruments"
+
+  - id: held-s5-patch-paraphrase-01
+    scenario: s5
+    dimension: patch_status
+    category: paraphrase
+    prior: "Critical patches applied within SLA"
+    next: "All critical security patches deployed within agreed SLA window"
+
+  - id: held-s5-frequency-fp-trap-01
+    scenario: s5
+    dimension: frequency_stability
+    category: false_positive_trap
+    prior: "Grid frequency within normal band"
+    next: "Frequency deviation 49.7 Hz within operational tolerance"
+
+  - id: held-s5-settlement-refutation-01
+    scenario: s5
+    dimension: settlement_exposure
+    category: refutation
+    prior: "No settlement exposure identified"
+    next: "Settlement exposure exceeds budget by $4.2M after curtailment event"

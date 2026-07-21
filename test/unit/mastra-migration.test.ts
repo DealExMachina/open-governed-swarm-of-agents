@@ -21,6 +21,7 @@ import { createTool } from "@mastra/core/tools";
 import { Agent } from "@mastra/core/agent";
 
 import { generateWithStructuredOutput } from "../../src/mastraStructured.js";
+import { scopeDriftKey, scopeFactsKey } from "../../src/scopeStorage.js";
 
 // ── metrics + usage events are mocked so token accounting can be asserted ─────
 const recordLLMTokens = vi.fn();
@@ -48,6 +49,8 @@ const syncFactsToSemanticGraph = vi.fn(async () => ({
   edgesCreated: 0,
   nodesUpdated: 0,
   nodesStaled: 0,
+  claimNodeIds: [],
+  equivalenceCandidates: [],
 }));
 const syncFactsToSgrs = vi.fn(async () => ({
   claims_synced: 0,
@@ -311,9 +314,11 @@ describe("facts agent tool pipeline (runFactsPipelineDirect)", () => {
     expect(fetchMock.mock.calls[0][0]).toBe("http://facts-worker.test/extract");
 
     // writeFacts persisted facts, drift, and a history snapshot.
+    const factsKey = scopeFactsKey("default");
+    const driftKey = scopeDriftKey("default");
     const persistedKeys = s3PutJson.mock.calls.map((c) => c[2]);
-    expect(persistedKeys).toContain("facts/latest.json");
-    expect(persistedKeys).toContain("drift/latest.json");
+    expect(persistedKeys).toContain(factsKey);
+    expect(persistedKeys).toContain(driftKey);
 
     // Downstream propagation (semantic graph + causal DAG) ran.
     expect(syncFactsToSemanticGraph).toHaveBeenCalledTimes(1);
@@ -321,7 +326,7 @@ describe("facts agent tool pipeline (runFactsPipelineDirect)", () => {
 
     // Pipeline surfaces the write result + facts hash.
     expect(result.wrote).toEqual(
-      expect.arrayContaining(["facts/latest.json", "drift/latest.json"]),
+      expect.arrayContaining([factsKey, driftKey]),
     );
     expect(result.facts_hash).toBe("abc123");
   });

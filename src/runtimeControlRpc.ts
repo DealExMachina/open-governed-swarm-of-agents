@@ -11,6 +11,11 @@ const REQUEST_TIMEOUT_MS = parseInt(
   process.env.SWARM_RUNTIME_CONTROL_TIMEOUT_MS ?? "5000",
   10,
 );
+/** Rebind/pause/stop drain agents; allow longer than snapshot polls. */
+const REBIND_TIMEOUT_MS = parseInt(
+  process.env.SWARM_RUNTIME_CONTROL_REBIND_TIMEOUT_MS ?? "120000",
+  10,
+);
 const REQUEST_RETRIES = Math.max(
   0,
   parseInt(process.env.SWARM_RUNTIME_CONTROL_RETRIES ?? "1", 10),
@@ -32,21 +37,35 @@ type RuntimeControlRequest = {
 
 type RuntimeControlResponse = {
   ok: boolean;
+  accepted?: boolean;
   hatchery?: Record<string, unknown> | null;
   error?: string;
 };
 
+function timeoutForAction(action: RuntimeAction): number {
+  if (
+    action === "start" ||
+    action === "restart" ||
+    action === "pause" ||
+    action === "stop"
+  ) {
+    return REBIND_TIMEOUT_MS;
+  }
+  return REQUEST_TIMEOUT_MS;
+}
+
 export async function requestRuntimeControl(
   req: RuntimeControlRequest,
 ): Promise<RuntimeControlResponse> {
+  const timeoutMs = timeoutForAction(req.action);
   for (let attempt = 0; attempt <= REQUEST_RETRIES; attempt++) {
     let nc: Awaited<ReturnType<typeof connect>> | null = null;
     try {
-      nc = await connect({ servers: NATS_URL, timeout: REQUEST_TIMEOUT_MS });
+      nc = await connect({ servers: NATS_URL, timeout: timeoutMs });
       const msg = await nc.request(
         RUNTIME_CONTROL_SUBJECT,
         sc.encode(JSON.stringify(req)),
-        { timeout: REQUEST_TIMEOUT_MS },
+        { timeout: timeoutMs },
       );
       return JSON.parse(sc.decode(msg.data)) as RuntimeControlResponse;
     } catch (err) {
@@ -111,9 +130,12 @@ async function handleRuntimeRequest(
   switch (req.action) {
     case "start": {
       if (!req.scope_id) return { ok: false, error: "scope_required" };
-      await hatchery.rebindActiveScope(req.scope_id, req.tenant_id ?? null);
+      // Scope switches synchronously; worker recycle continues in background so
+      // feed load-corpus is not blocked on drain grace periods.
+      hatchery.scheduleRebindActiveScope(req.scope_id, req.tenant_id ?? null);
       return {
         ok: true,
+        accepted: true,
         hatchery: hatchery.getSnapshot() as unknown as Record<string, unknown>,
       };
     }
@@ -134,10 +156,11 @@ async function handleRuntimeRequest(
       return { ok: true, hatchery: null };
     case "restart": {
       if (!req.scope_id) return { ok: false, error: "scope_required" };
-      await hatchery.rebindActiveScope(req.scope_id, req.tenant_id ?? null);
+      hatchery.scheduleRebindActiveScope(req.scope_id, req.tenant_id ?? null);
       await hatchery.resume();
       return {
         ok: true,
+        accepted: true,
         hatchery: hatchery.getSnapshot() as unknown as Record<string, unknown>,
       };
     }

@@ -1,0 +1,35 @@
+# Default dimension schema for schema-constrained extraction (Couche 0).
+# Mirrors src/dimensionSchemaRegistry.ts defaults. Override via DIMENSION_SCHEMA_PATH.
+
+arr:
+  type: currency_amount
+  tolerance: 0.03
+arr_growth:
+  type: percentage
+gross_margin:
+  type: percentage
+valuation:
+  type: currency_range
+customer_concentration:
+  type: free_text
+patents:
+  type: free_text
+ip_dispute:
+  type: free_text
+patent_litigation:
+  type: free_text
+ip_resolution:
+  type: free_text
+key_person_risk:
+  type: free_text
+code_concentration:
+  type: percentage
+clients:
+  type: integer_count
+enrollment_stats:
+  type: integer_count
+scr_ratio:
+  type: percentage
+own_funds:
+  type: currency_amount
+  tolerance: 0.03

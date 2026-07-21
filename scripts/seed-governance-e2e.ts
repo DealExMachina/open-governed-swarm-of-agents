@@ -7,7 +7,7 @@
  *
  * Sets up:
  * - swarm_state: DriftChecked, epoch 5, runId "seed-governance-e2e"
- * - S3 drift/latest.json: high (so YOLO DriftChecked->ContextIngested is blocked by transition rules)
+ * - S3 scopes/{scopeId}/drift/latest.json: high (so YOLO DriftChecked->ContextIngested is blocked by transition rules)
  *
  * Publishes three proposals (same transition, same epoch) so each takes a different path:
  * 1. MASTER -> processProposal -> approved (policy_passed)
@@ -21,6 +21,7 @@ import "dotenv/config";
 import { randomUUID } from "crypto";
 import pg from "pg";
 import { makeS3, s3PutJson } from "../src/s3.js";
+import { scopeDriftKey } from "../src/scopeStorage.js";
 import { ensureStateTable, loadState } from "../src/stateGraph.js";
 import { makeEventBus } from "../src/eventBus.js";
 import { waitForNatsAndStream } from "../src/readiness.js";
@@ -59,7 +60,10 @@ async function ensureState(pool: pg.Pool): Promise<void> {
 
 async function ensureDrift(s3: Awaited<ReturnType<typeof makeS3>>): Promise<void> {
   const driftLevel = process.env.SEED_DRIFT_LEVEL ?? "high";
-  await s3PutJson(s3, BUCKET, "drift/latest.json", { level: driftLevel, types: ["contradiction"] });
+  await s3PutJson(s3, BUCKET, scopeDriftKey(SCOPE_ID), {
+    level: driftLevel,
+    types: ["contradiction"],
+  });
   console.log(`Drift set to ${driftLevel} (${driftLevel === "high" ? "blocks" : "flags"} DriftChecked -> ContextIngested per governance.yaml)`);
 }
 

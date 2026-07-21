@@ -220,9 +220,10 @@ async function injectAdversarialMutations(
   if (mode === "collude") {
     try {
       const { makeS3, s3PutJson } = await import("../src/s3.js");
+      const { scopeDriftKey } = await import("../src/scopeStorage.js");
       const s3 = makeS3();
       const bucket = process.env.S3_BUCKET ?? "swarm";
-      await s3PutJson(s3, bucket, "drift/latest.json", {
+      await s3PutJson(s3, bucket, scopeDriftKey(scopeId), {
         level: "none",
         types: [],
         hash: `adversarial-collude-round-${round}-${Date.now()}`,

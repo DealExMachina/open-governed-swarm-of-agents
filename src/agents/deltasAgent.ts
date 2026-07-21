@@ -11,8 +11,7 @@ import {
 import { s3PutJson } from "../s3.js";
 import { logger } from "../logger.js";
 import { loadPropagationConfig } from "../config/propagation.js";
-
-const KEY_DELTAS = "deltas/latest.json";
+import { scopeDeltasKey } from "../scopeStorage.js";
 const MATERIAL_THRESHOLD = 0.05;
 
 export interface TimeInterval {
@@ -184,12 +183,12 @@ export async function runDeltasAgent(
     timestamp: new Date().toISOString(),
   };
 
-  await s3PutJson(s3, bucket, KEY_DELTAS, summary);
+  await s3PutJson(s3, bucket, scopeDeltasKey(scopeId), summary);
 
   logger.info("deltas extracted", {
     epoch: latest.epoch,
     delta_count: deltas.length,
   });
 
-  return { deltas, wrote: [KEY_DELTAS] };
+  return { deltas, wrote: [scopeDeltasKey(scopeId)] };
 }
