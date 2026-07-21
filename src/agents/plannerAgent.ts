@@ -9,10 +9,7 @@ import {
 } from "../modelConfig.js";
 import { logger } from "../logger.js";
 import { s3GetText } from "../s3.js";
-import {
-  resolveStorageScopeId,
-  scopeDriftKey,
-} from "../scopeStorage.js";
+import { resolveStorageScopeId, scopeDriftKey } from "../scopeStorage.js";
 import {
   loadPolicies,
   getGovernanceForScope,

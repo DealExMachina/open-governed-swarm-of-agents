@@ -15,17 +15,28 @@ describe("accrualPrefilter (frozen legacy)", () => {
 
   it("disabled by default", () => {
     expect(accrualPrefilterEnabled()).toBe(false);
-    expect(classifyAccrualPrefilter("CTO departing", "CTO and 2 engineers departing")).toBeNull();
+    expect(
+      classifyAccrualPrefilter(
+        "CTO departing",
+        "CTO and 2 engineers departing",
+      ),
+    ).toBeNull();
   });
 
   it("detects token-superset when EQUIVAL_ACCRUAL_PREFILTER=1", () => {
     vi.stubEnv("EQUIVAL_ACCRUAL_PREFILTER", "1");
-    expect(detectContentAccrual("CTO departing", "CTO and 2 senior engineers departing Q4/Q1")).toBe(
-      true,
-    );
-    expect(classifyAccrualPrefilter("CTO departing", "CTO and 2 engineers departing")).toBe(
-      "accrual",
-    );
+    expect(
+      detectContentAccrual(
+        "CTO departing",
+        "CTO and 2 senior engineers departing Q4/Q1",
+      ),
+    ).toBe(true);
+    expect(
+      classifyAccrualPrefilter(
+        "CTO departing",
+        "CTO and 2 engineers departing",
+      ),
+    ).toBe("accrual");
   });
 });
 

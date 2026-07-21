@@ -32,7 +32,11 @@ export interface NliGateOptions {
   timeoutMs?: number;
 }
 
-const NEUTRAL_UNAVAILABLE: NliVerdict = { label: "neutral", confidence: 0, available: false };
+const NEUTRAL_UNAVAILABLE: NliVerdict = {
+  label: "neutral",
+  confidence: 0,
+  available: false,
+};
 
 function resolveWorkerUrl(explicit?: string): string | null {
   const url = explicit ?? process.env.FACTS_WORKER_URL;
@@ -40,7 +44,9 @@ function resolveWorkerUrl(explicit?: string): string | null {
 }
 
 function coerceLabel(value: unknown): NliLabel {
-  return value === "equivalent" || value === "contradiction" ? value : "neutral";
+  return value === "equivalent" || value === "contradiction"
+    ? value
+    : "neutral";
 }
 
 /**
@@ -56,7 +62,10 @@ export async function nliEntailment(
   if (!url || !a?.trim() || !b?.trim()) return NEUTRAL_UNAVAILABLE;
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), options.timeoutMs ?? 15000);
+  const timeout = setTimeout(
+    () => controller.abort(),
+    options.timeoutMs ?? 15000,
+  );
   try {
     const resp = await fetch(`${url}/nli`, {
       method: "POST",
@@ -74,12 +83,15 @@ export async function nliEntailment(
       confidence?: unknown;
     };
     if (data.available === false) return NEUTRAL_UNAVAILABLE;
-    const confidence = typeof data.confidence === "number" && Number.isFinite(data.confidence)
-      ? Math.max(0, Math.min(1, data.confidence))
-      : 0;
+    const confidence =
+      typeof data.confidence === "number" && Number.isFinite(data.confidence)
+        ? Math.max(0, Math.min(1, data.confidence))
+        : 0;
     return { label: coerceLabel(data.label), confidence, available: true };
   } catch (e) {
-    logger.debug("nli-gate: request failed, falling back to neutral", { error: String(e) });
+    logger.debug("nli-gate: request failed, falling back to neutral", {
+      error: String(e),
+    });
     return NEUTRAL_UNAVAILABLE;
   } finally {
     clearTimeout(timeout);

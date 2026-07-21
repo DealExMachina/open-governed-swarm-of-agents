@@ -25,7 +25,9 @@ describe("studioDocumentProgress", () => {
       pending: 1,
       stalled: 0,
     });
-    const byTitle = Object.fromEntries(documents.map((d) => [d.title, d.status]));
+    const byTitle = Object.fromEntries(
+      documents.map((d) => [d.title, d.status]),
+    );
     expect(byTitle.A).toBe("processed");
     expect(byTitle.B).toBe("processing");
     expect(byTitle.C).toBe("pending");
@@ -57,9 +59,9 @@ describe("studioDocumentProgress", () => {
       },
     );
     expect(progress.stalled).toBe(1);
-    expect(documents.find((d) => d.title === "01-analyst-briefing")?.status).toBe(
-      "stalled",
-    );
+    expect(
+      documents.find((d) => d.title === "01-analyst-briefing")?.status,
+    ).toBe("stalled");
     expect(documents.find((d) => d.title === "02-risk-memo")?.status).toBe(
       "pending",
     );

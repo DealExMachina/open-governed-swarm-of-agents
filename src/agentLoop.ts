@@ -10,7 +10,13 @@ import type { EventBus, DrainedMessage } from "./eventBus.js";
 import type { EquivalenceCandidate } from "./equivalenceGate.js";
 import { loadState, transitions } from "./stateGraph.js";
 import { getSpec } from "./agentRegistry.js";
-import { loadFilterConfig, loadAgentMemory, saveAgentMemory, checkFilter, recordActivation } from "./activationFilters.js";
+import {
+  loadFilterConfig,
+  loadAgentMemory,
+  saveAgentMemory,
+  checkFilter,
+  recordActivation,
+} from "./activationFilters.js";
 import { checkPermission } from "./policy.js";
 import { loadPolicies, getGovernanceForScope } from "./governance.js";
 import { join } from "path";
@@ -28,7 +34,12 @@ import { runPropagationAgent } from "./agents/propagationAgent.js";
 import { runDeltasAgent } from "./agents/deltasAgent.js";
 import type { AgentSpec } from "./agentRegistry.js";
 
-type AgentRunner = (s3: S3Client, bucket: string, payload: Record<string, unknown>, bus?: EventBus) => Promise<unknown>;
+type AgentRunner = (
+  s3: S3Client,
+  bucket: string,
+  payload: Record<string, unknown>,
+  bus?: EventBus,
+) => Promise<unknown>;
 
 const JOB_RUNNERS: Record<string, AgentRunner> = {
   extract_facts: runFactsAgent,
@@ -44,9 +55,14 @@ function getRunner(spec: AgentSpec): AgentRunner | null {
   return JOB_RUNNERS[spec.jobType] ?? null;
 }
 
-function memoryUpdateFromContext(_role: string, context: Record<string, unknown>): Partial<import("./activationFilters.js").AgentMemory> {
+function memoryUpdateFromContext(
+  _role: string,
+  context: Record<string, unknown>,
+): Partial<import("./activationFilters.js").AgentMemory> {
   const now = Date.now();
-  const update: Partial<import("./activationFilters.js").AgentMemory> = { lastActivatedAt: now };
+  const update: Partial<import("./activationFilters.js").AgentMemory> = {
+    lastActivatedAt: now,
+  };
   if (typeof context.latestSeq === "number") {
     update.lastProcessedSeq = context.latestSeq;
   }
@@ -118,7 +134,10 @@ export async function runAgentLoop(opts: AgentLoopOptions): Promise<void> {
 
   while (!signal?.aborted) {
     // 1. Drain all pending messages at once
-    const batch = await bus.drainBatch(stream, subject, consumer, { timeoutMs: 5000, maxMessages: 50 });
+    const batch = await bus.drainBatch(stream, subject, consumer, {
+      timeoutMs: 5000,
+      maxMessages: 50,
+    });
     opts.onHeartbeat?.(batch.length);
 
     if (batch.length === 0) {
@@ -166,30 +185,49 @@ export async function runAgentLoop(opts: AgentLoopOptions): Promise<void> {
       const filterCtx = { s3, bucket, scopeId };
       const activation = await checkFilter(config, memory, filterCtx);
       if (!activation.shouldActivate) {
-        logger.info("filter rejected (batch)", { role, reason: activation.reason, batchSize: relevant.length });
+        logger.info("filter rejected (batch)", {
+          role,
+          reason: activation.reason,
+          batchSize: relevant.length,
+        });
         // ACK all — filter checks global state, not individual messages.
         // Re-delivering these same messages would produce the same result.
         ackAll(relevant);
         continue;
       }
-      logger.info("filter activated (batch)", { role, reason: activation.reason, batchSize: relevant.length });
+      logger.info("filter activated (batch)", {
+        role,
+        reason: activation.reason,
+        batchSize: relevant.length,
+      });
 
       const permitted = await checkPermission(agentId, "writer", s.targetNode);
       if (!permitted.allowed) {
-        logger.info("permission denied, skipping", { role, targetNode: s.targetNode });
+        logger.info("permission denied, skipping", {
+          role,
+          targetNode: s.targetNode,
+        });
         ackAll(relevant);
         continue;
       }
 
       // 5. Single agent run
-      const result = await r(s3, bucket, activation.context as Record<string, unknown>, bus);
+      const result = await r(
+        s3,
+        bucket,
+        activation.context as Record<string, unknown>,
+        bus,
+      );
       const latencyMs = Date.now() - startMs;
       recordAgentLatency(role, latencyMs);
       await recordActivation(role, true, latencyMs);
 
       let payload: Record<string, unknown>;
       try {
-        payload = JSON.parse(JSON.stringify(result ?? {})) as Record<string, unknown>;
+        payload = JSON.parse(JSON.stringify(result ?? {})) as Record<
+          string,
+          unknown
+        >;
       } catch {
         payload = { wrote: [], facts_hash: undefined };
       }
@@ -201,25 +239,27 @@ export async function runAgentLoop(opts: AgentLoopOptions): Promise<void> {
       // value differs become governed `assert_equivalence` propositions. The gate
       // only fires when the value differs (candidates) and NLI confirms a
       // non-contradiction verdict; governance validates and traces the merge.
-      const equivalenceCandidates = (payload as { equivalence_candidates?: EquivalenceCandidate[] })
-        .equivalence_candidates;
-      if (Array.isArray(equivalenceCandidates) && equivalenceCandidates.length > 0) {
+      const equivalenceCandidates = (
+        payload as { equivalence_candidates?: EquivalenceCandidate[] }
+      ).equivalence_candidates;
+      if (
+        Array.isArray(equivalenceCandidates) &&
+        equivalenceCandidates.length > 0
+      ) {
         try {
           const { nliEntailment } = await import("./nliGate.js");
-          const {
-            buildEquivalenceProposal,
-            EQUIVALENCE_ACTION,
-          } = await import("./equivalenceGate.js");
-          const { resolveGenericEquivalenceRouting } = await import(
-            "./equivalenceRoutingPolicy.js"
-          );
-          const { loadDimensionSchemaMap } = await import("./dimensionSchemaRegistry.js");
+          const { buildEquivalenceProposal, EQUIVALENCE_ACTION } =
+            await import("./equivalenceGate.js");
+          const { resolveGenericEquivalenceRouting } =
+            await import("./equivalenceRoutingPolicy.js");
+          const { loadDimensionSchemaMap } =
+            await import("./dimensionSchemaRegistry.js");
           const schemaMap = loadDimensionSchemaMap();
-          const govPath = process.env.GOVERNANCE_PATH ?? join(process.cwd(), "governance.yaml");
-          const mode = (getGovernanceForScope(scopeId, loadPolicies(govPath)).mode ?? "YOLO") as
-            | "YOLO"
-            | "MITL"
-            | "MASTER";
+          const govPath =
+            process.env.GOVERNANCE_PATH ??
+            join(process.cwd(), "governance.yaml");
+          const mode = (getGovernanceForScope(scopeId, loadPolicies(govPath))
+            .mode ?? "YOLO") as "YOLO" | "MITL" | "MASTER";
           for (const cand of equivalenceCandidates) {
             const routingCtx = { dimension: cand.dimension, schemaMap };
             const pre = resolveGenericEquivalenceRouting(
@@ -240,11 +280,16 @@ export async function runAgentLoop(opts: AgentLoopOptions): Promise<void> {
               routingCtx,
             );
             if (!routing.propose) continue;
-            const proposal = buildEquivalenceProposal(cand, routing.verdict, {
-              scopeId,
-              agent: agentId,
-              mode,
-            }, { prefilter: routing.prefilter });
+            const proposal = buildEquivalenceProposal(
+              cand,
+              routing.verdict,
+              {
+                scopeId,
+                agent: agentId,
+                mode,
+              },
+              { prefilter: routing.prefilter },
+            );
             await bus.publish(
               `swarm.proposals.${EQUIVALENCE_ACTION}`,
               proposal as unknown as Record<string, string>,
@@ -259,7 +304,10 @@ export async function runAgentLoop(opts: AgentLoopOptions): Promise<void> {
             });
           }
         } catch (e) {
-          logger.warn("equivalence gate emission failed", { role, error: String(e) });
+          logger.warn("equivalence gate emission failed", {
+            role,
+            error: String(e),
+          });
         }
       }
 
@@ -268,15 +316,23 @@ export async function runAgentLoop(opts: AgentLoopOptions): Promise<void> {
 
       if (s.proposesAdvance && s.advancesTo) {
         const stateBefore = await loadState(scopeId);
-        const allowedNode =
-          s.requiresNodeList?.length
-            ? stateBefore && s.requiresNodeList.includes(stateBefore.lastNode)
-            : s.requiresNode == null || (stateBefore && stateBefore.lastNode === s.requiresNode);
+        const allowedNode = s.requiresNodeList?.length
+          ? stateBefore && s.requiresNodeList.includes(stateBefore.lastNode)
+          : s.requiresNode == null ||
+            (stateBefore && stateBefore.lastNode === s.requiresNode);
         if (stateBefore && allowedNode) {
           const to = transitions[stateBefore.lastNode];
-          const govPath = process.env.GOVERNANCE_PATH ?? join(process.cwd(), "governance.yaml");
-          const govConfig = getGovernanceForScope(scopeId, loadPolicies(govPath));
-          const effectiveMode = (govConfig.mode ?? "YOLO") as "YOLO" | "MITL" | "MASTER";
+          const govPath =
+            process.env.GOVERNANCE_PATH ??
+            join(process.cwd(), "governance.yaml");
+          const govConfig = getGovernanceForScope(
+            scopeId,
+            loadPolicies(govPath),
+          );
+          const effectiveMode = (govConfig.mode ?? "YOLO") as
+            | "YOLO"
+            | "MITL"
+            | "MASTER";
           const proposal = {
             proposal_id: randomUUID(),
             agent: agentId,
@@ -290,8 +346,15 @@ export async function runAgentLoop(opts: AgentLoopOptions): Promise<void> {
             },
             mode: effectiveMode,
           };
-          await bus.publish(`swarm.proposals.${s.jobType}`, proposal as unknown as Record<string, string>);
-          logger.info("proposal emitted", { proposal_id: proposal.proposal_id, job_type: s.jobType, mode: effectiveMode });
+          await bus.publish(
+            `swarm.proposals.${s.jobType}`,
+            proposal as unknown as Record<string, string>,
+          );
+          logger.info("proposal emitted", {
+            proposal_id: proposal.proposal_id,
+            job_type: s.jobType,
+            mode: effectiveMode,
+          });
         }
       }
 
@@ -304,17 +367,24 @@ export async function runAgentLoop(opts: AgentLoopOptions): Promise<void> {
       recordAgentError(role);
       const errMsg = toErrorString(err);
       const isTimeoutOrConnect =
-        /timeout|TIMEOUT|abort|AbortError|The operation was aborted|fetch failed|ECONNREFUSED/i.test(errMsg) ||
-        (err instanceof Error && (err as Error & { name?: string }).name === "AbortError");
+        /timeout|TIMEOUT|abort|AbortError|The operation was aborted|fetch failed|ECONNREFUSED/i.test(
+          errMsg,
+        ) ||
+        (err instanceof Error &&
+          (err as Error & { name?: string }).name === "AbortError");
       const isPermanent =
-        /400|401|403|404|422|bad request|validation|unauthorized|forbidden|not found/i.test(errMsg);
+        /400|401|403|404|422|bad request|validation|unauthorized|forbidden|not found/i.test(
+          errMsg,
+        );
       logger.error("agent loop error", {
         role,
         error: errMsg,
         retry: isTimeoutOrConnect && !isPermanent,
         batchSize: relevant.length,
         ...(isTimeoutOrConnect && !isPermanent
-          ? { hint: "Worker/LLM timeout or unreachable. Set FACTS_WORKER_TIMEOUT_MS for heavy steps." }
+          ? {
+              hint: "Worker/LLM timeout or unreachable. Set FACTS_WORKER_TIMEOUT_MS for heavy steps.",
+            }
           : {}),
       });
       if (isTimeoutOrConnect && !isPermanent) {

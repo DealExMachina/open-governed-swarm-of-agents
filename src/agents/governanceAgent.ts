@@ -964,8 +964,10 @@ export async function processEquivalenceProposal(
 ): Promise<void> {
   const scopeId = getActiveScopeId();
   const payload = proposal.payload as unknown as EquivalencePayload;
-  const govPath = process.env.GOVERNANCE_PATH ?? join(process.cwd(), "governance.yaml");
-  const scopeMode = getGovernanceForScope(scopeId, loadPolicies(govPath)).mode ?? "YOLO";
+  const govPath =
+    process.env.GOVERNANCE_PATH ?? join(process.cwd(), "governance.yaml");
+  const scopeMode =
+    getGovernanceForScope(scopeId, loadPolicies(govPath)).mode ?? "YOLO";
   const policyVersion = getGovernancePolicyVersion(govPath);
   const decision = decideEquivalence(payload);
   const record = buildEquivalenceDecisionRecord(decision, policyVersion);
@@ -978,7 +980,9 @@ export async function processEquivalenceProposal(
       scope_mode: scopeMode,
     });
   } catch (err) {
-    logger.warn("persistDecisionRecord failed (equivalence)", { error: String(err) });
+    logger.warn("persistDecisionRecord failed (equivalence)", {
+      error: String(err),
+    });
   }
 
   if (decision.outcome === "approve") {
@@ -1007,12 +1011,20 @@ export async function processEquivalenceProposal(
       reason: decision.reason,
       scope_id: scopeId,
     });
-    await emitContribution("governance-agent", "assessment", {
-      type: "equivalence_approved",
+    await emitContribution(
+      "governance-agent",
+      "assessment",
+      {
+        type: "equivalence_approved",
+        proposal_id: proposal.proposal_id,
+        reason: decision.reason,
+      },
+      { authorityTier: 2, governanceMode: proposal.mode },
+    );
+    logger.info("equivalence approved", {
       proposal_id: proposal.proposal_id,
       reason: decision.reason,
-    }, { authorityTier: 2, governanceMode: proposal.mode });
-    logger.info("equivalence approved", { proposal_id: proposal.proposal_id, reason: decision.reason });
+    });
     return;
   }
 
@@ -1024,12 +1036,20 @@ export async function processEquivalenceProposal(
     reason: decision.reason,
     scope_id: scopeId,
   });
-  await emitContribution("governance-agent", "assessment", {
-    type: "equivalence_rejected",
+  await emitContribution(
+    "governance-agent",
+    "assessment",
+    {
+      type: "equivalence_rejected",
+      proposal_id: proposal.proposal_id,
+      reason: decision.reason,
+    },
+    { authorityTier: 2, governanceMode: proposal.mode },
+  );
+  logger.info("equivalence rejected", {
     proposal_id: proposal.proposal_id,
     reason: decision.reason,
-  }, { authorityTier: 2, governanceMode: proposal.mode });
-  logger.info("equivalence rejected", { proposal_id: proposal.proposal_id, reason: decision.reason });
+  });
 }
 
 /**

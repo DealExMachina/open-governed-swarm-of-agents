@@ -19,8 +19,15 @@ describe("nliGate.nliEntailment", () => {
 
   it("maps an equivalent verdict from the worker", async () => {
     stubFetch({ available: true, label: "equivalent", confidence: 0.88 });
-    const v = await nliEntailment("ARR is €50M", "annual recurring revenue of fifty million euros");
-    expect(v).toEqual({ label: "equivalent", confidence: 0.88, available: true });
+    const v = await nliEntailment(
+      "ARR is €50M",
+      "annual recurring revenue of fifty million euros",
+    );
+    expect(v).toEqual({
+      label: "equivalent",
+      confidence: 0.88,
+      available: true,
+    });
   });
 
   it("maps a contradiction verdict", async () => {
@@ -44,7 +51,10 @@ describe("nliGate.nliEntailment", () => {
   });
 
   it("returns conservative neutral on network error", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("ECONNREFUSED")));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockRejectedValue(new Error("ECONNREFUSED")),
+    );
     const v = await nliEntailment("a", "b");
     expect(v.available).toBe(false);
   });

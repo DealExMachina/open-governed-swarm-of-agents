@@ -49,7 +49,9 @@ export function detectContentAccrual(prior: string, next: string): boolean {
   if (!prior?.trim() || !next?.trim()) return false;
   const priorTokens = tokenSet(prior);
   const nextTokens = tokenSet(next);
-  return isTokenSubset(priorTokens, nextTokens) && nextTokens.size > priorTokens.size;
+  return (
+    isTokenSubset(priorTokens, nextTokens) && nextTokens.size > priorTokens.size
+  );
 }
 
 export function accrualPrefilterEnabled(): boolean {

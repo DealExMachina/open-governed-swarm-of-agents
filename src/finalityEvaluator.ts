@@ -557,7 +557,8 @@ async function emitSessionFinalized(scopeId: string): Promise<void> {
   }
   try {
     const score = await computeGoalScoreForScope(scopeId);
-    const { markStudioCatalogResolved } = await import("./finalizationReport.js");
+    const { markStudioCatalogResolved } =
+      await import("./finalizationReport.js");
     await markStudioCatalogResolved(scopeId, score);
   } catch {
     /* catalog optional */

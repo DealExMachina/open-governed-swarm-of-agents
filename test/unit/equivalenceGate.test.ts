@@ -17,7 +17,10 @@ const candidate: EquivalenceCandidate = {
   new_content: "annual recurring revenue of fifty million euros",
 };
 
-function payload(label: EquivalencePayload["nli_label"], conf: number): EquivalencePayload {
+function payload(
+  label: EquivalencePayload["nli_label"],
+  conf: number,
+): EquivalencePayload {
   return {
     scope_id: "s1",
     node_type: "claim",
@@ -31,14 +34,38 @@ function payload(label: EquivalencePayload["nli_label"], conf: number): Equivale
 
 describe("equivalenceGate.shouldProposeEquivalence", () => {
   it("proposes equivalent and neutral available verdicts", () => {
-    expect(shouldProposeEquivalence({ label: "equivalent", confidence: 0.9, available: true })).toBe(true);
-    expect(shouldProposeEquivalence({ label: "neutral", confidence: 0.4, available: true })).toBe(true);
+    expect(
+      shouldProposeEquivalence({
+        label: "equivalent",
+        confidence: 0.9,
+        available: true,
+      }),
+    ).toBe(true);
+    expect(
+      shouldProposeEquivalence({
+        label: "neutral",
+        confidence: 0.4,
+        available: true,
+      }),
+    ).toBe(true);
   });
   it("skips contradictions (handled by the contradiction channel)", () => {
-    expect(shouldProposeEquivalence({ label: "contradiction", confidence: 0.8, available: true })).toBe(false);
+    expect(
+      shouldProposeEquivalence({
+        label: "contradiction",
+        confidence: 0.8,
+        available: true,
+      }),
+    ).toBe(false);
   });
   it("skips unavailable verdicts (no unverified merge)", () => {
-    expect(shouldProposeEquivalence({ label: "neutral", confidence: 0, available: false })).toBe(false);
+    expect(
+      shouldProposeEquivalence({
+        label: "neutral",
+        confidence: 0,
+        available: false,
+      }),
+    ).toBe(false);
   });
 });
 
@@ -67,36 +94,57 @@ describe("equivalenceGate.decideEquivalence", () => {
 
   it("honours EQUIV_MIN_CONFIDENCE env override", () => {
     vi.stubEnv("EQUIV_MIN_CONFIDENCE", "0.95");
-    expect(decideEquivalence(payload("equivalent", 0.9)).outcome).toBe("reject");
+    expect(decideEquivalence(payload("equivalent", 0.9)).outcome).toBe(
+      "reject",
+    );
   });
 
   it("honours explicit minConfidence option", () => {
-    expect(decideEquivalence(payload("equivalent", 0.6), { minConfidence: 0.5 }).outcome).toBe("approve");
+    expect(
+      decideEquivalence(payload("equivalent", 0.6), { minConfidence: 0.5 })
+        .outcome,
+    ).toBe("approve");
   });
 });
 
 describe("equivalenceGate.buildEquivalenceDecisionRecord", () => {
   it("attaches record_equivalence_edge obligation on approve", () => {
-    const rec = buildEquivalenceDecisionRecord(decideEquivalence(payload("equivalent", 0.9)), "pv-1");
+    const rec = buildEquivalenceDecisionRecord(
+      decideEquivalence(payload("equivalent", 0.9)),
+      "pv-1",
+    );
     expect(rec.result).toBe("allow");
     expect(rec.policy_version).toBe("pv-1");
     expect(rec.binding).toBe("nli-gate");
-    expect(rec.obligations.map((o) => o.type)).toContain("record_equivalence_edge");
+    expect(rec.obligations.map((o) => o.type)).toContain(
+      "record_equivalence_edge",
+    );
     expect(rec.decision_id).toBeTruthy();
   });
 
   it("has no obligations on reject", () => {
-    const rec = buildEquivalenceDecisionRecord(decideEquivalence(payload("neutral", 0.3)), "pv-1");
+    const rec = buildEquivalenceDecisionRecord(
+      decideEquivalence(payload("neutral", 0.3)),
+      "pv-1",
+    );
     expect(rec.result).toBe("deny");
     expect(rec.obligations).toHaveLength(0);
   });
 });
 
 describe("equivalenceGate.buildEquivalenceProposal", () => {
-  const verdict: NliVerdict = { label: "equivalent", confidence: 0.88, available: true };
+  const verdict: NliVerdict = {
+    label: "equivalent",
+    confidence: 0.88,
+    available: true,
+  };
 
   it("builds an assert_equivalence proposal carrying the pair", () => {
-    const p = buildEquivalenceProposal(candidate, verdict, { scopeId: "s1", agent: "facts-1", mode: "YOLO" });
+    const p = buildEquivalenceProposal(candidate, verdict, {
+      scopeId: "s1",
+      agent: "facts-1",
+      mode: "YOLO",
+    });
     expect(p.proposed_action).toBe(EQUIVALENCE_ACTION);
     expect(p.target_node).toBe("node-1");
     expect(p.mode).toBe("YOLO");

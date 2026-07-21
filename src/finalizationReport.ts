@@ -3,7 +3,10 @@
  */
 import { getPool } from "./db.js";
 import { getKnowledgeState } from "./semanticGraph.js";
-import { computeGoalScoreForScope, loadFinalitySnapshot } from "./finalityEvaluator.js";
+import {
+  computeGoalScoreForScope,
+  loadFinalitySnapshot,
+} from "./finalityEvaluator.js";
 import { getLatestFinalityDecision } from "./finalityDecisions.js";
 import { getStudioCatalogScope } from "./studioCatalog.js";
 
@@ -69,7 +72,9 @@ export async function buildFinalizationReport(
   const snap = await loadFinalitySnapshot(scopeId);
   const goalScore = await computeGoalScoreForScope(scopeId);
   const humanResolutions = await loadHumanResolutions(scopeId);
-  const lastDecision = await getLatestFinalityDecision(scopeId).catch(() => null);
+  const lastDecision = await getLatestFinalityDecision(scopeId).catch(
+    () => null,
+  );
 
   const contraTotal =
     knowledge.counts.contradictions + knowledge.counts.contradictions_resolved;

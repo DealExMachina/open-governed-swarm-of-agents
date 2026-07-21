@@ -34,7 +34,8 @@ describe("nli-gold-set fixture", () => {
 
   it("has roughly balanced category counts (each ≥ 6)", () => {
     const counts = new Map<string, number>();
-    for (const p of gold.pairs) counts.set(p.category, (counts.get(p.category) ?? 0) + 1);
+    for (const p of gold.pairs)
+      counts.set(p.category, (counts.get(p.category) ?? 0) + 1);
     for (const [, n] of counts) expect(n).toBeGreaterThanOrEqual(6);
   });
 });
@@ -44,18 +45,30 @@ describe("resolveActionFromVerdict", () => {
   afterEach(() => vi.unstubAllEnvs());
 
   it("auto_merge on high-confidence equivalent", () => {
-    const v: NliVerdict = { label: "equivalent", confidence: 0.92, available: true };
+    const v: NliVerdict = {
+      label: "equivalent",
+      confidence: 0.92,
+      available: true,
+    };
     expect(resolveActionFromVerdict(v, min).action).toBe("auto_merge");
   });
 
   it("block_contradiction on contradiction label", () => {
-    const v: NliVerdict = { label: "contradiction", confidence: 0.99, available: true };
+    const v: NliVerdict = {
+      label: "contradiction",
+      confidence: 0.99,
+      available: true,
+    };
     expect(resolveActionFromVerdict(v, min).action).toBe("block_contradiction");
   });
 
   it("hitl on accrual prefilter when EQUIVAL_ACCRUAL_PREFILTER=1", () => {
     vi.stubEnv("EQUIVAL_ACCRUAL_PREFILTER", "1");
-    const v: NliVerdict = { label: "contradiction", confidence: 0.99, available: true };
+    const v: NliVerdict = {
+      label: "contradiction",
+      confidence: 0.99,
+      available: true,
+    };
     const { action, reason } = resolveActionFromVerdict(
       v,
       min,
@@ -68,7 +81,11 @@ describe("resolveActionFromVerdict", () => {
   });
 
   it("typed non-equivalent routes to HITL", () => {
-    const v: NliVerdict = { label: "contradiction", confidence: 0.99, available: true };
+    const v: NliVerdict = {
+      label: "contradiction",
+      confidence: 0.99,
+      available: true,
+    };
     const { action, reason } = resolveActionFromVerdict(
       v,
       min,
@@ -81,12 +98,20 @@ describe("resolveActionFromVerdict", () => {
   });
 
   it("hitl on neutral", () => {
-    const v: NliVerdict = { label: "neutral", confidence: 0.85, available: true };
+    const v: NliVerdict = {
+      label: "neutral",
+      confidence: 0.85,
+      available: true,
+    };
     expect(resolveActionFromVerdict(v, min).action).toBe("hitl");
   });
 
   it("hitl on low-confidence equivalent", () => {
-    const v: NliVerdict = { label: "equivalent", confidence: 0.55, available: true };
+    const v: NliVerdict = {
+      label: "equivalent",
+      confidence: 0.55,
+      available: true,
+    };
     expect(resolveActionFromVerdict(v, min).action).toBe("hitl");
   });
 
@@ -109,24 +134,36 @@ describe("isCorrectRouting", () => {
   });
 
   it("refutation accepts block or no_merge", () => {
-    expect(isCorrectRouting("block_refutation", "block_contradiction")).toBe(true);
+    expect(isCorrectRouting("block_refutation", "block_contradiction")).toBe(
+      true,
+    );
     expect(isCorrectRouting("block_refutation", "no_merge")).toBe(true);
     expect(isCorrectRouting("block_refutation", "auto_merge")).toBe(false);
   });
 });
 
 describe("evaluatePair (mocked verdicts)", () => {
-  const pair = loadNliGoldSet().pairs.find((p) => p.id === "s1-arr-fp-trap-01")!;
+  const pair = loadNliGoldSet().pairs.find(
+    (p) => p.id === "s1-arr-fp-trap-01",
+  )!;
 
   it("routes typed fp-trap to HITL even if NLI says equivalent", () => {
-    const verdict: NliVerdict = { label: "equivalent", confidence: 0.95, available: true };
+    const verdict: NliVerdict = {
+      label: "equivalent",
+      confidence: 0.95,
+      available: true,
+    };
     const result = evaluatePair(pair, verdict, 0.7);
     expect(result.correct).toBe(true);
     expect(result.resolved).toBe("hitl");
   });
 
   it("passes when NLI says contradiction", () => {
-    const verdict: NliVerdict = { label: "contradiction", confidence: 0.98, available: true };
+    const verdict: NliVerdict = {
+      label: "contradiction",
+      confidence: 0.98,
+      available: true,
+    };
     const result = evaluatePair(pair, verdict, 0.7);
     expect(result.correct).toBe(true);
   });
@@ -136,12 +173,26 @@ describe("buildEvalReport metrics", () => {
   it("computes false-merge rate", () => {
     const results = [
       evaluatePair(
-        { id: "a", scenario: "s1", dimension: "x", category: "false_positive_trap", prior: "a", next: "b" },
+        {
+          id: "a",
+          scenario: "s1",
+          dimension: "x",
+          category: "false_positive_trap",
+          prior: "a",
+          next: "b",
+        },
         { label: "equivalent", confidence: 0.9, available: true },
         0.7,
       ),
       evaluatePair(
-        { id: "b", scenario: "s1", dimension: "x", category: "paraphrase", prior: "a", next: "b" },
+        {
+          id: "b",
+          scenario: "s1",
+          dimension: "x",
+          category: "paraphrase",
+          prior: "a",
+          next: "b",
+        },
         { label: "equivalent", confidence: 0.9, available: true },
         0.7,
       ),

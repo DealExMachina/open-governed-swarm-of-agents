@@ -6,24 +6,20 @@ describe("equivalenceRoutingPolicy", () => {
   afterEach(() => vi.unstubAllEnvs());
 
   it("skips canonically equivalent typed pairs", () => {
-    const r = resolveGenericEquivalenceRouting(
-      "ARR €50M",
-      "€50M ARR",
-      null,
-      { dimension: "arr", schemaMap: NLI_GOLD_DIMENSION_SCHEMA },
-    );
+    const r = resolveGenericEquivalenceRouting("ARR €50M", "€50M ARR", null, {
+      dimension: "arr",
+      schemaMap: NLI_GOLD_DIMENSION_SCHEMA,
+    });
     expect(r.propose).toBe(false);
     expect(r.reason).toBe("canonical_equal_skip");
     expect(r.skipNli).toBe(true);
   });
 
   it("routes typed non-equivalent pairs to HITL without NLI", () => {
-    const r = resolveGenericEquivalenceRouting(
-      "ARR €50M",
-      "ARR €38M",
-      null,
-      { dimension: "arr", schemaMap: NLI_GOLD_DIMENSION_SCHEMA },
-    );
+    const r = resolveGenericEquivalenceRouting("ARR €50M", "ARR €38M", null, {
+      dimension: "arr",
+      schemaMap: NLI_GOLD_DIMENSION_SCHEMA,
+    });
     expect(r.propose).toBe(true);
     expect(r.reason).toBe("typed_diff_hitl");
     expect(r.skipNli).toBe(true);
@@ -45,7 +41,10 @@ describe("equivalenceRoutingPolicy", () => {
       "Top client significant share",
       "Largest client €8.2M ARR",
       { label: "neutral", confidence: 0.9, available: true },
-      { dimension: "customer_concentration", schemaMap: NLI_GOLD_DIMENSION_SCHEMA },
+      {
+        dimension: "customer_concentration",
+        schemaMap: NLI_GOLD_DIMENSION_SCHEMA,
+      },
     );
     expect(r.propose).toBe(true);
     expect(r.reason).toBe("free_text_hitl");

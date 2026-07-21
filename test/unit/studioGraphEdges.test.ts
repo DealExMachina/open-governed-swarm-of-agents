@@ -21,8 +21,12 @@ describe("studioGraphEdges", () => {
       ],
       [],
     );
-    expect(edges.some((e) => e.source === "x1" && e.target === "c1")).toBe(true);
-    expect(edges.some((e) => e.source === "x1" && e.target === "c2")).toBe(false);
+    expect(edges.some((e) => e.source === "x1" && e.target === "c1")).toBe(
+      true,
+    );
+    expect(edges.some((e) => e.source === "x1" && e.target === "c2")).toBe(
+      false,
+    );
   });
 
   it("links docs to related claims when claim_ids metadata is missing", () => {
@@ -42,7 +46,11 @@ describe("studioGraphEdges", () => {
       ],
       [],
     );
-    expect(edges.some((e) => e.source === "d1" && e.target === "c1")).toBe(true);
-    expect(edges.some((e) => e.source === "d1" && e.target === "c2")).toBe(false);
+    expect(edges.some((e) => e.source === "d1" && e.target === "c1")).toBe(
+      true,
+    );
+    expect(edges.some((e) => e.source === "d1" && e.target === "c2")).toBe(
+      false,
+    );
   });
 });

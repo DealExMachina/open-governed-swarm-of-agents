@@ -75,7 +75,12 @@ export function assignDocumentStatuses(
   if (firstPendingIdx >= 0) {
     const doc = withStatus[firstPendingIdx];
     const ageMs = now - new Date(doc.ingested_at).getTime();
-    if (claimCount === 0 && Number.isFinite(ageMs) && ageMs >= STALL_MS && swarmIdle) {
+    if (
+      claimCount === 0 &&
+      Number.isFinite(ageMs) &&
+      ageMs >= STALL_MS &&
+      swarmIdle
+    ) {
       doc.status = "stalled";
     } else if (claimCount > 0 && swarmIdle) {
       doc.status = "stalled";
@@ -242,8 +247,6 @@ export async function listScopeDocumentProgress(scopeId: string): Promise<{
   return assignDocumentStatuses(docs, processedKeys, {
     claimCount: Number(claimRes.rows[0]?.n ?? 0),
     swarmLastNode: swarmRow?.last_node ? String(swarmRow.last_node) : undefined,
-    swarmUpdatedAt: swarmRow?.updated_at
-      ? new Date(swarmRow.updated_at)
-      : null,
+    swarmUpdatedAt: swarmRow?.updated_at ? new Date(swarmRow.updated_at) : null,
   });
 }

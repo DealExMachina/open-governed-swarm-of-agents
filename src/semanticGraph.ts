@@ -3,7 +3,10 @@ import { z } from "zod";
 import type { FinalitySnapshot } from "./finalityEvaluator.js";
 import { getPool } from "./db.js";
 import { GoalMatchItemSchema } from "./modelConfig.js";
-import { synthesizeStudioEdges, type StudioLinkNode } from "./studioGraphEdges.js";
+import {
+  synthesizeStudioEdges,
+  type StudioLinkNode,
+} from "./studioGraphEdges.js";
 
 export interface SemanticNode {
   node_id: string;
@@ -1736,11 +1739,8 @@ export async function getStudioGraphElements(scopeId: string): Promise<{
     },
   );
 
-  const studioEdgeId = (
-    source: string,
-    target: string,
-    type: string,
-  ): string => `edge-${source}-${target}-${type}`;
+  const studioEdgeId = (source: string, target: string, type: string): string =>
+    `edge-${source}-${target}-${type}`;
 
   const edges = edgeRes.rows.map(
     (r: { source_id: string; target_id: string; edge_type: string }) => {

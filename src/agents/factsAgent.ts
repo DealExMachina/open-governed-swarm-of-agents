@@ -37,9 +37,9 @@ function scopeFromWalEvent(data: unknown): string | null {
   return null;
 }
 
-function resolveFactsWriteScopeId(recentEvents: Awaited<
-  ReturnType<typeof tailEvents>
->): string {
+function resolveFactsWriteScopeId(
+  recentEvents: Awaited<ReturnType<typeof tailEvents>>,
+): string {
   const active = getActiveScopeId()?.trim();
   if (active) return active;
   for (let i = recentEvents.length - 1; i >= 0; i--) {

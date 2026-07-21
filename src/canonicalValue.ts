@@ -22,15 +22,41 @@
 // ---------------------------------------------------------------------------
 
 const NUMBER_WORDS_SMALL: Record<string, number> = {
-  zero: 0, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7,
-  eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12, thirteen: 13,
-  fourteen: 14, fifteen: 15, sixteen: 16, seventeen: 17, eighteen: 18,
-  nineteen: 19, twenty: 20, thirty: 30, forty: 40, fifty: 50, sixty: 60,
-  seventy: 70, eighty: 80, ninety: 90,
+  zero: 0,
+  one: 1,
+  two: 2,
+  three: 3,
+  four: 4,
+  five: 5,
+  six: 6,
+  seven: 7,
+  eight: 8,
+  nine: 9,
+  ten: 10,
+  eleven: 11,
+  twelve: 12,
+  thirteen: 13,
+  fourteen: 14,
+  fifteen: 15,
+  sixteen: 16,
+  seventeen: 17,
+  eighteen: 18,
+  nineteen: 19,
+  twenty: 20,
+  thirty: 30,
+  forty: 40,
+  fifty: 50,
+  sixty: 60,
+  seventy: 70,
+  eighty: 80,
+  ninety: 90,
 };
 
 const NUMBER_WORDS_MAGNITUDE: Record<string, number> = {
-  hundred: 100, thousand: 1_000, million: 1_000_000, billion: 1_000_000_000,
+  hundred: 100,
+  thousand: 1_000,
+  million: 1_000_000,
+  billion: 1_000_000_000,
 };
 
 /**
@@ -38,7 +64,10 @@ const NUMBER_WORDS_MAGNITUDE: Record<string, number> = {
  * works inside prose ("fifty million"). Returns null if no number word present.
  */
 export function wordsToNumber(text: string): number | null {
-  const tokens = text.toLowerCase().split(/[^a-z]+/).filter(Boolean);
+  const tokens = text
+    .toLowerCase()
+    .split(/[^a-z]+/)
+    .filter(Boolean);
   let total = 0;
   let current = 0;
   let found = false;
@@ -65,8 +94,14 @@ export function wordsToNumber(text: string): number | null {
 // ---------------------------------------------------------------------------
 
 const MULTIPLIERS: Record<string, number> = {
-  k: 1_000, m: 1_000_000, mn: 1_000_000, b: 1_000_000_000, bn: 1_000_000_000,
-  thousand: 1_000, million: 1_000_000, billion: 1_000_000_000,
+  k: 1_000,
+  m: 1_000_000,
+  mn: 1_000_000,
+  b: 1_000_000_000,
+  bn: 1_000_000_000,
+  thousand: 1_000,
+  million: 1_000_000,
+  billion: 1_000_000_000,
 };
 
 /** Regex fragments (kept in sync between the parsers below). */
@@ -92,10 +127,19 @@ function formatAmount(amount: number, symbol: string): string {
   const abs = Math.abs(amount);
   let value: number;
   let unit: string;
-  if (abs >= 1_000_000_000) { value = amount / 1_000_000_000; unit = "B"; }
-  else if (abs >= 1_000_000) { value = amount / 1_000_000; unit = "M"; }
-  else if (abs >= 1_000) { value = amount / 1_000; unit = "K"; }
-  else { value = amount; unit = ""; }
+  if (abs >= 1_000_000_000) {
+    value = amount / 1_000_000_000;
+    unit = "B";
+  } else if (abs >= 1_000_000) {
+    value = amount / 1_000_000;
+    unit = "M";
+  } else if (abs >= 1_000) {
+    value = amount / 1_000;
+    unit = "K";
+  } else {
+    value = amount;
+    unit = "";
+  }
   const num = Number(value.toFixed(2)).toString();
   return `${symbol}${num}${unit}`;
 }
@@ -105,7 +149,7 @@ function toNumber(digits: string): number {
 }
 
 function multiplierFor(mag: string | undefined): number {
-  return mag ? MULTIPLIERS[mag.toLowerCase()] ?? 1 : 1;
+  return mag ? (MULTIPLIERS[mag.toLowerCase()] ?? 1) : 1;
 }
 
 // ---------------------------------------------------------------------------
@@ -119,9 +163,17 @@ function multiplierFor(mag: string | undefined): number {
  */
 export function canonicalizeCurrencyRanges(text: string): string {
   const re = new RegExp(
-    "(" + CUR + ")?\\s*(\\d[\\d,]*(?:\\.\\d+)?)\\s*(" + MAG + ")?" +
+    "(" +
+      CUR +
+      ")?\\s*(\\d[\\d,]*(?:\\.\\d+)?)\\s*(" +
+      MAG +
+      ")?" +
       "\\s*(?:-|–|—|to)\\s*" +
-      "(" + CUR + ")?\\s*(\\d[\\d,]*(?:\\.\\d+)?)\\s*(" + MAG + ")?" +
+      "(" +
+      CUR +
+      ")?\\s*(\\d[\\d,]*(?:\\.\\d+)?)\\s*(" +
+      MAG +
+      ")?" +
       "(?:\\s*(euros?|dollars?|pounds?|eur|usd|gbp))?",
     "gi",
   );
@@ -160,7 +212,12 @@ export function canonicalizeCurrencyRanges(text: string): string {
 export function canonicalizeCurrencyAmounts(text: string): string {
   // (a) symbol / ISO code before the number
   let out = text.replace(
-    new RegExp("([€£$]|\\b(?:eur|usd|gbp)\\b)\\s*(\\d[\\d,]*(?:\\.\\d+)?)\\s*(" + MAG + ")?", "gi"),
+    new RegExp(
+      "([€£$]|\\b(?:eur|usd|gbp)\\b)\\s*(\\d[\\d,]*(?:\\.\\d+)?)\\s*(" +
+        MAG +
+        ")?",
+      "gi",
+    ),
     (match: string, cur: string, n: string, g: string | undefined): string => {
       const amount = toNumber(n) * multiplierFor(g);
       if (!Number.isFinite(amount)) return match;
@@ -170,7 +227,12 @@ export function canonicalizeCurrencyAmounts(text: string): string {
 
   // (b) digits + optional magnitude + trailing currency word
   out = out.replace(
-    new RegExp("(\\d[\\d,]*(?:\\.\\d+)?)\\s*(" + MAG + ")?\\s*\\b(euros?|dollars?|pounds?|eur|usd|gbp)\\b", "gi"),
+    new RegExp(
+      "(\\d[\\d,]*(?:\\.\\d+)?)\\s*(" +
+        MAG +
+        ")?\\s*\\b(euros?|dollars?|pounds?|eur|usd|gbp)\\b",
+      "gi",
+    ),
     (match: string, n: string, g: string | undefined, cur: string): string => {
       const amount = toNumber(n) * multiplierFor(g);
       if (!Number.isFinite(amount)) return match;
@@ -180,7 +242,10 @@ export function canonicalizeCurrencyAmounts(text: string): string {
 
   // (c) spelled-out amount + trailing currency word
   out = out.replace(
-    new RegExp("((?:\\b(?:" + NUMWORD + ")\\b[\\s-]*)+)(euros?|dollars?|pounds?)\\b", "gi"),
+    new RegExp(
+      "((?:\\b(?:" + NUMWORD + ")\\b[\\s-]*)+)(euros?|dollars?|pounds?)\\b",
+      "gi",
+    ),
     (match: string, words: string, cur: string): string => {
       const amount = wordsToNumber(words);
       if (amount === null || amount <= 0) return match;
