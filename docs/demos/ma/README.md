@@ -20,5 +20,17 @@ Archived overview: [docs/archive/demo.md](../archive/demo.md). Step-by-step guid
 
 ## Scope isolation
 
-- Demo routes use strict scope/session isolation.
-- Shell walkthroughs require explicit scope: `DEMO_SCOPE_ID=default ./demo/run-demo.sh --fast`.
+Each demo scenario has a dedicated Studio catalog scope (see `src/scenarioScopes.ts`):
+
+| Scenario | Scope id |
+|---|---|
+| M&A | `deal-horizon` |
+| Financial | `meridian-holdings` |
+| Insurance | `insurance-review` |
+| Green bond | `green-bond-2026` |
+
+Basic Example / scratch in Studio uses `default` — not a demo scenario scope.
+
+- Demo UI: pick a scenario → that scope is reset, hatchery bound, docs fed there.
+- Shell walkthrough (`./demo/run-demo.sh`) is M&A-only; default `DEMO_SCOPE_ID=deal-horizon`.
+- **Runtime:** one hatchery, one active processing scope — see [issue #21](https://github.com/DealExMachina/open-governed-swarm-of-agents/issues/21).

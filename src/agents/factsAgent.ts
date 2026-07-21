@@ -76,7 +76,13 @@ function createFactsTools(
       const recent = await tailEvents(20);
       const scopeId = resolveFactsWriteScopeId(recent);
       const events = await tailEventsForScope(scopeId, limit);
-      const contextData = events.map((e) => e.data);
+      // Include the WAL seq on each event so the facts-worker can attribute
+      // extracted claims back to their originating document (issue #6 provenance).
+      const contextData = events.map((e) => ({
+        seq: e.seq,
+        ts: e.ts,
+        ...(e.data as Record<string, unknown>),
+      }));
       const prevRaw = await s3GetText(s3, bucket, scopeFactsKey(scopeId));
       const previous_facts = prevRaw
         ? (JSON.parse(prevRaw) as Record<string, unknown>)

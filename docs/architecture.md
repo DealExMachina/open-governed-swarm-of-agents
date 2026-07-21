@@ -162,6 +162,10 @@ Since migration 007, the state table uses `scope_id TEXT PRIMARY KEY` instead of
 a singleton row. Each scope has independent state, epoch, and run_id. The default
 scope is `"default"` (configurable via `SCOPE_ID` env).
 
+**Known limitation (runtime):** Postgres/S3 partition data by scope, but the
+hatchery processes **one active scope** at a time per machine (`rebindActiveScope`).
+See [issue #21](https://github.com/DealExMachina/open-governed-swarm-of-agents/issues/21).
+
 ### Governance integration
 
 When `advanceState` is called with `drift` and `governance` options, it first
@@ -896,6 +900,21 @@ Rust exposes typed `KernelError` (config, unknown state, invalid numeric, stale 
 ## 11. Agent Hatchery: Dynamic Lifecycle Management
 
 The hatchery is the default: a single-process orchestrator that spawns agent loops as in-process async tasks.
+
+### Active scope and rebind
+
+The hatchery holds one `scopeId` in config. Feed (`ensureHatcheryBoundToScope`),
+Studio (`POST /studio/scopes/:id/activate`), and the demo (`select-scenario`) switch
+the active scope via NATS runtime control (`start` / `restart`). Rebind updates
+billing context immediately, drains existing agent loops, and respawns minimum
+instances for the new scope. **Only one scope is processed at a time** on a given
+hatchery; multiple stored scopes do not imply parallel processing.
+
+**Known limitation:** Clients time-share the hatchery — last rebind wins. Running
+Studio and demo ingestion concurrently can produce wrong-scope processing or
+expensive drain cycles. Not supported in this version: multiple hatchery processes
+without isolated NATS consumer names. Full write-up:
+[issue #21](https://github.com/DealExMachina/open-governed-swarm-of-agents/issues/21).
 
 ### Design
 

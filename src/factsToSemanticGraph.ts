@@ -39,6 +39,28 @@ export interface StructuredClaim {
   content: string;
 }
 
+/**
+ * Per-item document provenance emitted by the facts-worker (issue #6).
+ * document_seq is the primary originating WAL context_doc seq; document_seqs
+ * lists all matched sources (>1 for multi-source items like contradictions).
+ */
+export interface NodeProvenance {
+  document_seq?: number | null;
+  document_seqs?: number[];
+  document_title?: string | null;
+  document_content_hash?: string | null;
+}
+
+export interface FactsProvenance {
+  documents?: Array<{ seq: number; title?: string | null; content_hash?: string | null }>;
+  claims?: NodeProvenance[];
+  structured_claims?: NodeProvenance[];
+  goals?: NodeProvenance[];
+  risks?: NodeProvenance[];
+  contradictions?: NodeProvenance[];
+  analyzed_seq_range?: [number, number] | null;
+}
+
 export interface FactsPayload {
   entities?: string[];
   claims?: string[];
@@ -49,10 +71,33 @@ export interface FactsPayload {
   contradictions?: string[];
   goals?: string[];
   confidence?: number;
+  /** Per-item document provenance (issue #6); parallel arrays to the lists above. */
+  provenance?: FactsProvenance;
   /** Bitemporal: valid time for all nodes/edges from this payload (optional). */
   valid_from?: string | null;
   valid_to?: string | null;
   [k: string]: unknown;
+}
+
+/**
+ * Build a facts-derived node's source_ref from optional per-item provenance.
+ * Always carries `source: "facts"`. document_seqs is only included when the item
+ * has more than one source (superset of issue #6's singular document_seq).
+ */
+export function factsSourceRef(prov?: NodeProvenance | null): Record<string, unknown> {
+  const ref: Record<string, unknown> = { source: "facts" };
+  if (!prov) return ref;
+  if (typeof prov.document_seq === "number") ref.document_seq = prov.document_seq;
+  if (Array.isArray(prov.document_seqs) && prov.document_seqs.length > 1) {
+    ref.document_seqs = prov.document_seqs;
+  }
+  if (typeof prov.document_title === "string" && prov.document_title) {
+    ref.document_title = prov.document_title;
+  }
+  if (typeof prov.document_content_hash === "string" && prov.document_content_hash) {
+    ref.document_content_hash = prov.document_content_hash;
+  }
+  return ref;
 }
 
 /**
@@ -221,6 +266,8 @@ export async function syncFactsToSemanticGraph(
   claimNodeIds: string[];
   /** Claims that fuzzy-matched an existing node but whose content differs. */
   equivalenceCandidates: EquivalenceCandidate[];
+  /** Count of newly created nodes carrying an exact document_seq (issue #6). */
+  nodesWithProvenance: number;
 }> {
   const structuredClaims = (Array.isArray(facts.structured_claims) ? facts.structured_claims : [])
     .filter(
@@ -242,12 +289,43 @@ export async function syncFactsToSemanticGraph(
   const validTo = facts.valid_to ?? undefined;
   const hasValidTime = validFrom !== undefined || validTo !== undefined;
 
+  // Per-item document provenance (issue #6), parallel to the lists above.
+  const provenance: FactsProvenance =
+    facts.provenance && typeof facts.provenance === "object" ? facts.provenance : {};
+  const claimProv = Array.isArray(provenance.claims) ? provenance.claims : [];
+  const structuredClaimProv = Array.isArray(provenance.structured_claims)
+    ? provenance.structured_claims
+    : [];
+  const goalProv = Array.isArray(provenance.goals) ? provenance.goals : [];
+  const riskProv = Array.isArray(provenance.risks) ? provenance.risks : [];
+  const contradictionProv = Array.isArray(provenance.contradictions)
+    ? provenance.contradictions
+    : [];
+
   let nodesCreated = 0;
   let nodesUpdated = 0;
   let nodesStaled = 0;
   let edgesCreated = 0;
+  let nodesWithProvenance = 0;
   const claimContentToNodeId = new Map<string, string>();
   const equivalenceCandidates: EquivalenceCandidate[] = [];
+
+  // Backfill provenance onto an existing facts-sync node when it currently has
+  // none. Cheap partial-retroactive coverage: a re-extraction that now matches
+  // a source document heals a pre-migration node without a full replay.
+  async function enrichNodeProvenance(
+    nodeId: string,
+    prov: NodeProvenance | undefined,
+    client: import("pg").PoolClient,
+  ): Promise<void> {
+    const ref = factsSourceRef(prov);
+    if (typeof ref.document_seq !== "number") return;
+    await client.query(
+      `UPDATE nodes SET source_ref = source_ref || $2::jsonb, updated_at = now()
+       WHERE node_id = $1 AND (source_ref->>'document_seq') IS NULL`,
+      [nodeId, JSON.stringify(ref)],
+    );
+  }
 
   await runInTransaction(async (client) => {
     // Load existing fact-synced nodes
@@ -262,13 +340,18 @@ export async function syncFactsToSemanticGraph(
 
     // --- Claims: upsert-if-better (skip low-confidence batches to reduce noise) ---
     if (confidence >= minClaimConfidence) {
-      const claimEntries: Array<{ content: string; dimension?: string }> =
+      const claimEntries: Array<{
+        content: string;
+        dimension?: string;
+        prov?: NodeProvenance;
+      }> =
         structuredClaims.length > 0
-          ? structuredClaims.map((c) => ({
+          ? structuredClaims.map((c, i) => ({
               content: c.content,
               dimension: c.dimension.trim(),
+              prov: structuredClaimProv[i],
             }))
-          : claims.map((content) => ({ content }));
+          : claims.map((content, i) => ({ content, prov: claimProv[i] }));
 
       for (const entry of claimEntries) {
         if (!entry.content?.trim()) continue;
@@ -281,6 +364,7 @@ export async function syncFactsToSemanticGraph(
 
         if (existing) {
           matchedClaimIds.add(existing.node_id);
+          await enrichNodeProvenance(existing.node_id, entry.prov, client);
           if (existing.content !== trimmed) {
             equivalenceCandidates.push({
               node_type: "claim",
@@ -307,6 +391,7 @@ export async function syncFactsToSemanticGraph(
           if (dupRes.rowCount && dupRes.rows[0]) {
             const dup = dupRes.rows[0] as { node_id: string; confidence: number };
             matchedClaimIds.add(dup.node_id);
+            await enrichNodeProvenance(dup.node_id, entry.prov, client);
             if (confidence >= dup.confidence) {
               await updateNodeConfidence(dup.node_id, confidence, client);
               nodesUpdated++;
@@ -314,6 +399,8 @@ export async function syncFactsToSemanticGraph(
             claimContentToNodeId.set(trimmed, dup.node_id);
             continue;
           }
+          const claimSourceRef = factsSourceRef(entry.prov);
+          if (typeof claimSourceRef.document_seq === "number") nodesWithProvenance++;
           const nodeId = await appendNode(
             {
               scope_id: scopeId,
@@ -321,7 +408,7 @@ export async function syncFactsToSemanticGraph(
               content: trimmed,
               confidence,
               status: "active",
-              source_ref: { source: "facts" },
+              source_ref: claimSourceRef,
               metadata: entry.dimension ? { dimension: entry.dimension } : {},
               created_by: FACTS_SYNC_SOURCE,
               ...(hasValidTime && { valid_from: validFrom ?? null, valid_to: validTo ?? null }),
@@ -335,24 +422,28 @@ export async function syncFactsToSemanticGraph(
     }
 
     // --- Goals: upsert by content match ---
-    for (const content of goals) {
+    for (let gi = 0; gi < goals.length; gi++) {
+      const content = goals[gi];
       if (typeof content !== "string" || !content.trim()) continue;
       const trimmed = canonicalizeClaimText(content).trim();
       const existing = matchExistingNode(existingGoals, trimmed);
 
       if (existing) {
         matchedGoalIds.add(existing.node_id);
+        await enrichNodeProvenance(existing.node_id, goalProv[gi], client);
         if (existing.status !== "active") {
           await updateNodeStatus(existing.node_id, "active", client);
         }
       } else {
+        const goalSourceRef = factsSourceRef(goalProv[gi]);
+        if (typeof goalSourceRef.document_seq === "number") nodesWithProvenance++;
         await appendNode(
           {
             scope_id: scopeId,
             type: "goal",
             content: trimmed,
             status: "active",
-            source_ref: { source: "facts" },
+            source_ref: goalSourceRef,
             created_by: FACTS_SYNC_SOURCE,
             ...(hasValidTime && { valid_from: validFrom ?? null, valid_to: validTo ?? null }),
           },
@@ -363,17 +454,21 @@ export async function syncFactsToSemanticGraph(
     }
 
     // --- Risks: upsert by content match ---
-    for (const content of risks) {
+    for (let ri = 0; ri < risks.length; ri++) {
+      const content = risks[ri];
       if (typeof content !== "string" || !content.trim()) continue;
       const trimmed = canonicalizeClaimText(content).trim();
       const existing = matchExistingNode(existingRisks, trimmed);
 
       if (existing) {
         matchedRiskIds.add(existing.node_id);
+        await enrichNodeProvenance(existing.node_id, riskProv[ri], client);
         if (existing.status !== "active") {
           await updateNodeStatus(existing.node_id, "active", client);
         }
       } else {
+        const riskSourceRef = factsSourceRef(riskProv[ri]);
+        if (typeof riskSourceRef.document_seq === "number") nodesWithProvenance++;
         await appendNode(
           {
             scope_id: scopeId,
@@ -382,7 +477,7 @@ export async function syncFactsToSemanticGraph(
             ...(hasValidTime && { valid_from: validFrom ?? null, valid_to: validTo ?? null }),
             status: "active",
             metadata: { severity: "high" },
-            source_ref: { source: "facts" },
+            source_ref: riskSourceRef,
             created_by: FACTS_SYNC_SOURCE,
           },
           client,
@@ -430,7 +525,8 @@ export async function syncFactsToSemanticGraph(
       // resolved query may fail in tests or if schema differs
     }
 
-    for (const raw of contradictions) {
+    for (let ci = 0; ci < contradictions.length; ci++) {
+      const raw = contradictions[ci];
       const str = typeof raw === "string" ? raw : String(raw);
       if (!str.trim()) continue;
 
@@ -463,17 +559,20 @@ export async function syncFactsToSemanticGraph(
       if (existingContra) {
         contraNodeId = existingContra.node_id;
         matchedContraIds.add(existingContra.node_id);
+        await enrichNodeProvenance(existingContra.node_id, contradictionProv[ci], client);
         if (existingContra.status !== "active") {
           await updateNodeStatus(existingContra.node_id, "active", client);
         }
       } else {
+        const contraSourceRef = factsSourceRef(contradictionProv[ci]);
+        if (typeof contraSourceRef.document_seq === "number") nodesWithProvenance++;
         contraNodeId = await appendNode(
           {
             scope_id: scopeId,
             type: "contradiction",
             content: str.trim(),
             status: "active",
-            source_ref: { source: "facts" },
+            source_ref: contraSourceRef,
             created_by: FACTS_SYNC_SOURCE,
             ...(hasValidTime && { valid_from: validFrom ?? null, valid_to: validTo ?? null }),
           },
@@ -612,6 +711,12 @@ export async function syncFactsToSemanticGraph(
     nodesStaled,
     edgesCreated,
     equivalenceCandidates: equivalenceCandidates.length,
+    // Issue #6 provenance coverage: fraction of newly created nodes that carry an
+    // exact document_seq. Low coverage indicates LLM paraphrase / synthesis or
+    // missing WAL seq plumbing.
+    nodesWithProvenance,
+    provenanceCoverage:
+      nodesCreated > 0 ? Number((nodesWithProvenance / nodesCreated).toFixed(3)) : null,
   });
   return {
     nodesCreated,
@@ -620,6 +725,7 @@ export async function syncFactsToSemanticGraph(
     nodesStaled,
     claimNodeIds: [...claimContentToNodeId.values()],
     equivalenceCandidates,
+    nodesWithProvenance,
   };
 }
 

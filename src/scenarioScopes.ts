@@ -58,6 +58,8 @@ export const SCENARIO_SCOPES: Record<DemoScenarioId, ScenarioScopeDef> = {
   },
 };
 
+export const DEFAULT_DEMO_MA_SCOPE_ID = SCENARIO_SCOPES.ma.scopeId;
+
 export const ALL_SCENARIO_SCOPE_IDS: string[] = Object.values(
   SCENARIO_SCOPES,
 ).map((s) => s.scopeId);
