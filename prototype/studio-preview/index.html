@@ -37,7 +37,7 @@
         --r: 12px;
         --r-sm: 8px;
 
-        --side-w: 320px;
+        --side-w: 400px;
         --t-smooth: 220ms cubic-bezier(0.4, 0, 0.2, 1);
       }
 
@@ -287,6 +287,362 @@
         justify-content: flex-end;
         margin-top: 18px;
       }
+      .scope-modal textarea {
+        width: 100%;
+        min-height: 88px;
+        background: var(--ink);
+        border: 1px solid var(--graphite);
+        border-radius: var(--r-sm);
+        padding: 8px 10px;
+        color: var(--mist);
+        font-family: inherit;
+        font-size: 13px;
+        resize: vertical;
+      }
+      .hitl-blocker {
+        border: 1px solid var(--graphite);
+        border-radius: var(--r-sm);
+        padding: 10px;
+        margin-bottom: 8px;
+        background: var(--ink);
+      }
+      .hitl-blocker .hb-title {
+        font-size: 13px;
+        color: var(--mist);
+        margin-bottom: 4px;
+      }
+      .hitl-blocker .hb-meta {
+        font-size: 11px;
+        color: var(--fog-2);
+        margin-bottom: 8px;
+      }
+      .hitl-blocker .hb-choices {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .hitl-status {
+        font-size: 12px;
+        color: var(--fog-2);
+        margin-bottom: 10px;
+      }
+      .hitl-status.warn {
+        color: var(--amber);
+      }
+      .docs-hint {
+        font-size: 12px;
+        color: var(--fog-2);
+        margin: 0 0 8px;
+        line-height: 1.45;
+      }
+      .doc-progress {
+        margin-bottom: 12px;
+      }
+      .doc-progress-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 8px;
+        margin-bottom: 6px;
+        font-size: 11px;
+        color: var(--fog);
+      }
+      .doc-progress-top b {
+        color: var(--mist);
+        font-family: "JetBrains Mono", monospace;
+        font-weight: 500;
+        font-size: 11px;
+      }
+      .doc-progress-track {
+        height: 7px;
+        border-radius: 4px;
+        background: var(--graphite);
+        overflow: hidden;
+      }
+      .doc-progress-fill {
+        height: 100%;
+        width: 0%;
+        border-radius: 4px;
+        background: linear-gradient(90deg, #3e6b93, var(--ok));
+        transition: width 240ms ease;
+      }
+      .doc-progress-fill.indeterminate {
+        width: 35% !important;
+        animation: docProgressPulse 1.2s ease-in-out infinite alternate;
+      }
+      @keyframes docProgressPulse {
+        from {
+          transform: translateX(0%);
+        }
+        to {
+          transform: translateX(190%);
+        }
+      }
+      .docs-status {
+        font-size: 12px;
+        color: var(--ok);
+        margin-top: 8px;
+      }
+      .docs-status.err {
+        color: var(--risk);
+      }
+      .docs-list {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        max-height: 120px;
+        overflow-y: auto;
+      }
+      .docs-list .doc-row {
+        display: grid;
+        grid-template-columns: 1fr auto auto;
+        gap: 8px;
+        align-items: center;
+        padding: 6px 8px;
+        border-radius: var(--r-sm);
+        background: var(--ink);
+        border: 1px solid var(--graphite);
+        font-size: 12px;
+      }
+      .docs-list .doc-row.status-processed {
+        border-color: rgba(127, 185, 139, 0.28);
+      }
+      .docs-list .doc-row.status-processing {
+        border-color: rgba(255, 122, 26, 0.35);
+        background: rgba(255, 122, 26, 0.04);
+      }
+      .docs-list .doc-row.status-pending {
+        opacity: 0.82;
+      }
+      .docs-list .doc-row.status-stalled {
+        border-color: rgba(201, 162, 39, 0.45);
+        background: rgba(201, 162, 39, 0.05);
+      }
+      .docs-list .doc-row .t {
+        color: var(--mist);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .docs-list .doc-row .m {
+        color: var(--fog);
+        font-size: 10px;
+        white-space: nowrap;
+      }
+      .docs-list .doc-row .doc-status {
+        font-size: 9.5px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+      .docs-list .doc-row .doc-status.processed {
+        color: var(--ok);
+      }
+      .docs-list .doc-row .doc-status.processing {
+        color: var(--orange);
+      }
+      .docs-list .doc-row .doc-status.pending {
+        color: var(--fog);
+      }
+      .docs-list .doc-row .doc-status.stalled {
+        color: #c9a227;
+      }
+      .side .sb-section {
+        flex-shrink: 0;
+      }
+      .side .sb-section .sb-list {
+        max-height: 120px;
+        overflow-y: auto;
+      }
+      .add-docs-scope {
+        font-size: 12px;
+        color: var(--fog-2);
+        margin: -4px 0 14px;
+      }
+      .add-docs-status {
+        font-size: 12px;
+        color: var(--fog-2);
+        min-height: 18px;
+        margin-top: 8px;
+      }
+      .add-docs-status.err {
+        color: var(--risk);
+      }
+      .graph-overlay {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        z-index: 4;
+      }
+      .graph-cartouche {
+        position: absolute;
+        left: 10px;
+        right: 10px;
+        bottom: 10px;
+        z-index: 5;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        min-height: 32px;
+        padding: 5px 10px;
+        border-radius: var(--r-sm);
+        background: rgba(11, 12, 15, 0.9);
+        border: 1px solid var(--graphite);
+        backdrop-filter: blur(8px);
+        pointer-events: none;
+      }
+      .graph-cartouche-controls {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-shrink: 0;
+        pointer-events: auto;
+      }
+      .graph-chip.links-toggle {
+        pointer-events: auto;
+        cursor: pointer;
+        font-family: inherit;
+        transition: all var(--t-smooth);
+      }
+      .graph-chip.links-toggle:hover {
+        color: var(--mist);
+        border-color: var(--fog);
+      }
+      .graph-chip.links-toggle[aria-pressed="true"] {
+        border-color: rgba(106, 166, 214, 0.55);
+        background: rgba(62, 107, 147, 0.24);
+        color: #9ec5e8;
+        box-shadow: 0 0 0 1px rgba(106, 166, 214, 0.14);
+      }
+      .graph-chip.links-toggle[aria-pressed="false"] {
+        border-color: rgba(232, 183, 101, 0.42);
+        background: rgba(232, 183, 101, 0.1);
+        color: var(--amber);
+      }
+      .graph-chip.links-toggle[aria-pressed="false"] .dot {
+        background: var(--amber) !important;
+      }
+      .graph-legend {
+        display: flex;
+        flex: 1;
+        flex-wrap: nowrap;
+        align-items: center;
+        gap: 4px;
+        min-width: 0;
+        overflow-x: auto;
+        scrollbar-width: none;
+        pointer-events: none;
+      }
+      .graph-legend-types {
+        display: flex;
+        flex-wrap: nowrap;
+        align-items: center;
+        gap: 4px;
+        min-width: 0;
+      }
+      .graph-legend::-webkit-scrollbar {
+        display: none;
+      }
+      .graph-legend[hidden] {
+        display: none !important;
+      }
+      .graph-empty[hidden] {
+        display: none !important;
+      }
+      .graph-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 6px;
+        border-radius: 999px;
+        font-size: 10px;
+        line-height: 1.2;
+        white-space: nowrap;
+        color: var(--fog-2);
+        background: transparent;
+        border: 1px solid var(--graphite);
+      }
+      .graph-chip .dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+      .graph-chip.src-live {
+        border-color: rgba(127, 185, 139, 0.35);
+        color: var(--ok);
+      }
+      .graph-empty {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-content: center;
+        text-align: center;
+        padding: 24px;
+        background: rgba(11, 12, 15, 0.55);
+      }
+      .graph-empty .title {
+        font-size: 15px;
+        color: var(--mist);
+        margin-bottom: 6px;
+      }
+      .graph-empty .sub {
+        font-size: 12px;
+        color: var(--fog-2);
+        max-width: 320px;
+        line-height: 1.45;
+      }
+      .final-report-card {
+        flex: 1 1 auto;
+        min-height: 200px;
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+      }
+      .final-report-card .final-report-title {
+        font-size: 15px;
+        color: var(--mist);
+        margin-bottom: 10px;
+        font-weight: 600;
+        line-height: 1.35;
+      }
+      .final-report-card .final-report-body {
+        font-size: 13px;
+        color: var(--fog-2);
+        line-height: 1.65;
+        margin-bottom: 12px;
+      }
+      .final-report-card .final-report-scroll {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+        padding-right: 4px;
+      }
+      .final-report-list {
+        margin-bottom: 10px;
+      }
+      .final-report-list .h {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--fog-2);
+        margin-bottom: 4px;
+      }
+      .final-report-list ul {
+        margin: 0;
+        padding-left: 1.1rem;
+        font-size: 12px;
+        color: var(--mist);
+        line-height: 1.45;
+      }
+      .final-report-next {
+        font-size: 12px;
+        color: var(--amber);
+        margin-top: 8px;
+        line-height: 1.45;
+      }
 
       /* Mode switcher */
       .modes {
@@ -356,7 +712,7 @@
 
       /* ─── BUSINESS MODE ─── */
       .mode-pane.business {
-        grid-template-columns: 1fr var(--side-w);
+        grid-template-columns: 1fr minmax(380px, var(--side-w));
         gap: 16px;
         padding: 16px;
       }
@@ -461,15 +817,14 @@
         color: var(--ok);
       }
 
-      /* Subtle zoom hint — bottom right */
+      /* Subtle zoom hint — inside bottom cartouche */
       .zoom-hint {
-        position: absolute;
-        bottom: 14px;
-        right: 14px;
+        flex-shrink: 0;
         font-family: "JetBrains Mono", monospace;
-        font-size: 10.5px;
+        font-size: 10px;
         color: var(--fog);
-        letter-spacing: 0.4px;
+        letter-spacing: 0.3px;
+        white-space: nowrap;
       }
       .zoom-hint .cur {
         color: var(--mist);
@@ -947,6 +1302,102 @@
         opacity: 0.6;
       }
 
+      .cfg-section[hidden] {
+        display: none;
+      }
+      .cfg-scopes-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 24px;
+      }
+      .cfg-scope-row {
+        display: grid;
+        grid-template-columns: 1fr auto auto;
+        gap: 12px;
+        align-items: center;
+        padding: 10px 12px;
+        border: 1px solid var(--graphite);
+        border-radius: var(--r-sm);
+        background: var(--ink-raised);
+        font-size: 12.5px;
+      }
+      .cfg-scope-row.current {
+        border-color: var(--orange);
+        box-shadow: inset 2px 0 0 var(--orange);
+      }
+      .cfg-scope-row .name b {
+        color: var(--mist);
+        font-weight: 600;
+      }
+      .cfg-scope-row .name span {
+        color: var(--fog);
+        font-family: "JetBrains Mono", monospace;
+        font-size: 11px;
+        margin-left: 8px;
+      }
+      .cfg-scope-row .meta {
+        color: var(--fog);
+        font-size: 11px;
+        text-align: right;
+      }
+      .cfg-scope-row .cfg-reset-one {
+        font-size: 11px;
+        padding: 5px 10px;
+        border-radius: var(--r-sm);
+        border: 1px solid var(--graphite);
+        background: transparent;
+        color: var(--fog-2);
+        cursor: pointer;
+      }
+      .cfg-scope-row .cfg-reset-one:hover {
+        color: var(--mist);
+        border-color: var(--fog);
+      }
+      .cfg-danger {
+        margin-top: 28px;
+        padding: 16px;
+        border: 1px solid #5c3030;
+        border-radius: var(--r-sm);
+        background: #1a1214;
+      }
+      .cfg-danger .lbl {
+        color: #e8a0a0;
+        font-size: 12px;
+        font-weight: 600;
+        margin-bottom: 8px;
+      }
+      .cfg-danger p {
+        color: var(--fog);
+        font-size: 12px;
+        line-height: 1.5;
+        margin: 0 0 12px;
+      }
+      .cfg-danger .btn-reset {
+        padding: 8px 14px;
+        border-radius: var(--r-sm);
+        border: 1px solid #8b4040;
+        background: #3d1f1f;
+        color: #f0c0c0;
+        font-size: 12px;
+        cursor: pointer;
+      }
+      .cfg-danger .btn-reset:hover {
+        background: #4a2626;
+      }
+      .cfg-danger .btn-reset:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      #cfgResetStatus {
+        margin-top: 10px;
+        font-size: 11.5px;
+        color: var(--fog);
+      }
+      #cfgResetStatus.err {
+        color: #e8a0a0;
+      }
+
       /* ─── DEBUG MODE ─── */
       .mode-pane.debug {
         grid-template-columns: 1fr 340px;
@@ -1016,6 +1467,56 @@
         letter-spacing: 0.9px;
         color: var(--fog);
         font-weight: 500;
+      }
+      .dbg-scope-lead {
+        margin: 0 0 12px;
+        font-size: 11.5px;
+        line-height: 1.45;
+        color: var(--fog);
+      }
+      .dbg-scopes-list {
+        margin-bottom: 12px;
+        max-height: 180px;
+        overflow-y: auto;
+      }
+      .dbg-scope-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .dbg-scope-actions button {
+        padding: 7px 12px;
+        border-radius: var(--r-sm);
+        border: 1px solid var(--graphite);
+        background: var(--ink-raised);
+        color: var(--fog-2);
+        font-size: 11.5px;
+        cursor: pointer;
+      }
+      .dbg-scope-actions button:hover {
+        color: var(--mist);
+        border-color: var(--fog);
+      }
+      .dbg-scope-actions button.danger {
+        border-color: #8b4040;
+        background: #3d1f1f;
+        color: #f0c0c0;
+      }
+      .dbg-scope-actions button.danger:hover {
+        background: #4a2626;
+      }
+      .dbg-scope-actions button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      #dbgResetStatus {
+        margin-top: 10px;
+        font-size: 11px;
+        color: var(--fog);
+        line-height: 1.4;
+      }
+      #dbgResetStatus.err {
+        color: #e8a0a0;
       }
       .dim-bar {
         margin-top: 6px;
@@ -1197,13 +1698,103 @@
           <div class="graph-wrap" id="graphWrap">
             <div id="cy"></div>
             <div class="tt" id="tt"></div>
-            <div class="zoom-hint">
-              <span class="cur" id="zoomLvl">100%</span>
-              <span class="hint" id="zoomHint">hover for detail</span>
+            <div class="graph-overlay">
+              <div class="graph-empty" id="graphEmpty" hidden>
+                <div class="title">No knowledge graph yet</div>
+                <div class="sub">
+                  Add documents (.txt, .pdf, .docx) in the sidebar — claims and
+                  contradictions will appear here as the swarm analyzes them.
+                </div>
+              </div>
+            </div>
+            <div class="graph-cartouche">
+              <div class="graph-legend" id="graphLegend" hidden>
+                <div class="graph-legend-types" id="graphLegendTypes"></div>
+                <button
+                  type="button"
+                  id="edgeToggleBtn"
+                  class="graph-chip links-toggle"
+                  aria-pressed="true"
+                  title="Show or hide graph links"
+                  hidden
+                >
+                  <span class="dot" style="background:#5a6c7e"></span
+                  ><span class="links-toggle-label">links</span>
+                </button>
+              </div>
+              <div class="graph-cartouche-controls">
+                <div class="zoom-hint">
+                  <span class="cur" id="zoomLvl">100%</span>
+                  <span class="hint" id="zoomHint">zoom · hover</span>
+                </div>
+              </div>
             </div>
           </div>
 
           <aside class="side">
+            <!-- Documents + ingestion progress -->
+            <section class="card tight" id="docsCard">
+              <div
+                class="h"
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                  gap: 8px;
+                "
+              >
+                <span>Documents</span>
+                <button
+                  type="button"
+                  class="btn ghost"
+                  id="addDocsBtn"
+                  style="padding: 4px 10px; font-size: 12px"
+                >
+                  + Add
+                </button>
+              </div>
+              <div class="doc-progress" id="docProgress" hidden>
+                <div class="doc-progress-top">
+                  <span id="docProgressLabel">0 / 0 analyzed</span>
+                  <b id="docProgressPct">0%</b>
+                </div>
+                <div class="doc-progress-track">
+                  <div class="doc-progress-fill" id="docProgressFill"></div>
+                </div>
+              </div>
+              <p class="docs-hint" id="docsHint">
+                Upload .txt, .pdf, or .docx — the bar tracks which files the swarm has analyzed.
+              </p>
+              <div class="docs-list" id="docsList">
+                <div class="sb-empty">Loading…</div>
+              </div>
+              <div class="docs-status" id="docsStatus" hidden></div>
+            </section>
+
+            <!-- Situation report (primary reading area) -->
+            <section class="card tight final-report-card" id="finalReportCard" hidden>
+              <div class="h">Situation report</div>
+              <div class="final-report-scroll">
+                <div class="final-report-title"></div>
+                <div class="final-report-body"></div>
+                <div class="final-report-lists"></div>
+              </div>
+            </section>
+
+            <!-- Finality progress -->
+            <section class="card tight">
+              <div class="h">Convergence</div>
+              <div class="prg-compact">
+                <div class="top">
+                  <span class="score">0.00</span>
+                  <span class="state">active</span>
+                </div>
+                <div class="rows">
+                  <span>Goal score toward auto-finality</span>
+                </div>
+              </div>
+            </section>
+
             <!-- Attention -->
             <section class="card attn">
               <div class="h">
@@ -1217,23 +1808,12 @@
                 is below veto threshold. Two ARR claims remain unreconciled.
               </p>
               <div style="display: flex; gap: 6px">
-                <button class="btn primary">Review</button>
-                <button class="btn ghost">Defer</button>
-              </div>
-            </section>
-
-            <!-- Progress (compact — detail in sidebar, not oversized chrome) -->
-            <section class="card tight">
-              <div class="h">Progress</div>
-              <div class="prg-compact">
-                <div class="top">
-                  <span class="score">0.78</span>
-                  <span class="state">near-finality</span>
-                </div>
-                <div class="rows">
-                  <span>Trend <strong style="color: var(--ok)">↑ 3 cycles</strong></span>
-                  <span>ETA to auto-finality threshold <strong>~3 cycles</strong></span>
-                </div>
+                <button type="button" class="btn primary" id="attnReviewBtn">
+                  Review
+                </button>
+                <button type="button" class="btn ghost" id="attnDeferBtn">
+                  Defer
+                </button>
               </div>
             </section>
 
@@ -1291,13 +1871,15 @@
         <!-- ═══ Configure mode ═══ -->
         <div class="mode-pane configure">
           <nav class="cfg-nav">
-            <div class="item active">
+            <div class="item active" data-cfg="governance">
               Governance <span class="n">v3.2.1</span>
             </div>
             <div class="item">Finality <span class="n">4 dim</span></div>
             <div class="item">Agents <span class="n">9</span></div>
             <div class="item">Models <span class="n">2</span></div>
-            <div class="item">Scopes <span class="n">4</span></div>
+            <div class="item" data-cfg="scopes">
+              Scopes <span class="n" id="cfgScopeNavCount">—</span>
+            </div>
             <div class="item">Access <span class="n">OpenFGA</span></div>
           </nav>
 
@@ -1327,6 +1909,7 @@
                 "
               ></pre>
             </div>
+            <div class="cfg-section" data-cfg="governance">
             <h2>Governance</h2>
             <p class="lead">
               How the kernel handles proposed state transitions. The Rust
@@ -1433,6 +2016,28 @@
                 <span class="kebab">⋯</span>
               </div>
             </div>
+            </div>
+
+            <div class="cfg-section" data-cfg="scopes" hidden>
+              <h2>Scopes</h2>
+              <p class="lead">
+                Each scope has an isolated graph, document WAL, and S3 prefix.
+                Reset wipes all persisted data for that scope and rebinds the
+                swarm to a fresh <code>ContextIngested</code> epoch.
+              </p>
+              <div id="cfgScopesList" class="cfg-scopes-list"></div>
+              <div class="cfg-danger">
+                <div class="lbl">Reset current scope</div>
+                <p id="cfgResetScopeHint">
+                  Wipes graph nodes, context events, uploaded documents, and
+                  scope storage for the scope selected in the header.
+                </p>
+                <button type="button" class="btn-reset" id="cfgResetScopeBtn">
+                  Reset scope…
+                </button>
+                <div id="cfgResetStatus"></div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -1444,6 +2049,24 @@
           </div>
 
           <div class="debug-metrics">
+            <div class="dbg-card dbg-scope-tools">
+              <h4>Scope reset</h4>
+              <p class="dbg-scope-lead">
+                Wipe graph, WAL, documents, and S3 for one scope or reinit all
+                scenario scopes (same as <code>pnpm run reinit:scenario-scopes</code>).
+              </p>
+              <div id="dbgScopesList" class="cfg-scopes-list dbg-scopes-list"></div>
+              <div class="dbg-scope-actions">
+                <button type="button" id="dbgResetScopeBtn">
+                  Reset current scope
+                </button>
+                <button type="button" id="dbgResetAllBtn" class="danger">
+                  Reset all…
+                </button>
+              </div>
+              <div id="dbgResetStatus"></div>
+            </div>
+
             <div class="dbg-card">
               <h4>Convergence · V(t)</h4>
               <div class="kv">
@@ -1596,6 +2219,43 @@
       </div>
     </div>
 
+    <div class="scope-modal-backdrop" id="hitlModal" hidden>
+      <div
+        class="scope-modal"
+        role="dialog"
+        aria-labelledby="hitlModalTitle"
+        style="width: 520px"
+      >
+        <h3 id="hitlModalTitle">Human review</h3>
+        <div class="hitl-status" id="hitlStatus">Loading pending review…</div>
+        <div id="hitlBlockers"></div>
+        <div class="field">
+          <label for="hitlResolutionText">Resolution / decision</label>
+          <textarea
+            id="hitlResolutionText"
+            placeholder="e.g. ARR confirmed at EUR 38M after independent audit. Use restated figures."
+          ></textarea>
+        </div>
+        <div class="actions" style="flex-wrap: wrap">
+          <button type="button" class="btn ghost" id="hitlModalClose">
+            Cancel
+          </button>
+          <button type="button" class="btn ghost" id="hitlEscalateBtn">
+            Escalate
+          </button>
+          <button type="button" class="btn ghost" id="hitlDeferBtn">
+            Defer 7d
+          </button>
+          <button type="button" class="btn ghost" id="hitlApproveBtn">
+            Approve finality
+          </button>
+          <button type="button" class="btn primary" id="hitlSubmitResolutionBtn">
+            Submit resolution
+          </button>
+        </div>
+      </div>
+    </div>
+
     <div class="scope-modal-backdrop" id="scopeModal" hidden>
       <div class="scope-modal" role="dialog" aria-labelledby="scopeModalTitle">
         <h3 id="scopeModalTitle">New scope</h3>
@@ -1611,18 +2271,74 @@
           <label for="newScopeCorpus">Load prewired corpus (optional)</label>
           <select id="newScopeCorpus">
             <option value="">— none —</option>
+            <option value="basic-example">Basic Example — Acme Widgets (2 docs)</option>
             <option value="ma">M&amp;A Due Diligence (5 docs)</option>
             <option value="financial">Financial Consolidation (8 docs)</option>
             <option value="green-bond">Green Bond EUGBS (38 docs)</option>
           </select>
         </div>
         <div class="field">
-          <label for="newScopeFiles">Or upload .txt files</label>
-          <input id="newScopeFiles" type="file" accept=".txt,text/plain" multiple />
+          <label for="newScopeFiles">Or upload documents (.txt, .pdf, .docx)</label>
+          <input id="newScopeFiles" type="file" accept=".txt,.md,.pdf,.docx,text/plain,text/markdown,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" multiple />
         </div>
         <div class="actions">
           <button type="button" class="btn ghost" id="scopeModalCancel">Cancel</button>
           <button type="button" class="btn primary" id="scopeModalSubmit">Create &amp; load</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="scope-modal-backdrop" id="addDocsModal" hidden>
+      <div
+        class="scope-modal"
+        role="dialog"
+        aria-labelledby="addDocsModalTitle"
+        style="width: 520px"
+      >
+        <h3 id="addDocsModalTitle">Add documents</h3>
+        <p class="add-docs-scope" id="addDocsScopeLabel">Scope: …</p>
+        <div class="field">
+          <label for="addDocFiles">Upload documents</label>
+          <input
+            id="addDocFiles"
+            type="file"
+            accept=".txt,.md,.pdf,.docx,text/plain,text/markdown,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            multiple
+          />
+        </div>
+        <div class="field">
+          <label for="addDocTitle">Or paste one document — title</label>
+          <input
+            id="addDocTitle"
+            type="text"
+            placeholder="e.g. Q2 board memo"
+          />
+        </div>
+        <div class="field">
+          <label for="addDocBody">Document text</label>
+          <textarea
+            id="addDocBody"
+            placeholder="Paste the full text of the document here…"
+          ></textarea>
+        </div>
+        <div class="field">
+          <label for="addDocCorpus">Or load a prewired demo corpus</label>
+          <select id="addDocCorpus">
+            <option value="">— none —</option>
+            <option value="basic-example">Basic Example — Acme Widgets (2 docs)</option>
+            <option value="ma">M&amp;A Due Diligence (5 docs)</option>
+            <option value="financial">Financial Consolidation (8 docs)</option>
+            <option value="green-bond">Green Bond EUGBS (38 docs)</option>
+          </select>
+        </div>
+        <div class="add-docs-status" id="addDocsSubmitStatus"></div>
+        <div class="actions">
+          <button type="button" class="btn ghost" id="addDocsModalCancel">
+            Cancel
+          </button>
+          <button type="button" class="btn primary" id="addDocsModalSubmit">
+            Add to scope
+          </button>
         </div>
       </div>
     </div>
@@ -1660,7 +2376,7 @@
 
       /* ═══════════════ Graph: live feed or demo fallback ═══════════════ */
       (async function initStudioGraph() {
-      const MOCK_NODES = [
+      const MOCK_MA_NODES = [
         { data: { id: "doc-1", label: "Analyst Briefing", type: "doc", info: { subtitle: "doc · 2026-03-01 · 3 claims", desc: "Initial profile · ARR €50M · CAGR 45% · 7 patents" } } },
         { data: { id: "doc-2", label: "Financial DD", type: "doc", info: { subtitle: "doc · 2026-03-18 · 5 claims", desc: "ARR €38M · 2 patents disputed · drift high vs doc-1" } } },
         { data: { id: "doc-3", label: "Technical", type: "doc", info: { subtitle: "doc · 2026-03-26 · 4 claims", desc: "Core tech solid · CTO + 2 seniors departing" } } },
@@ -1691,7 +2407,7 @@
         { data: { id: "g-signoff", label: "Legal sign-off", type: "goal", info: { subtitle: "goal · 81% complete", desc: "Legal recommendation · refs c-ip-ok, r-ip" } } },
       ];
 
-      const MOCK_EDGES = [
+      const MOCK_MA_EDGES = [
         { data: { source: "doc-1", target: "c-arr-50", type: "refers" } },
         { data: { source: "doc-1", target: "c-cagr", type: "refers" } },
         { data: { source: "doc-1", target: "c-patents-7", type: "refers" } },
@@ -1719,9 +2435,35 @@
         { data: { source: "c-arr-38", target: "g-price", type: "supports" } },
       ];
 
-      let nodes = MOCK_NODES;
-      let edges = MOCK_EDGES;
+      const MOCK_BASIC_NODES = [
+        { data: { id: "doc-b1", label: "Company Overview", type: "doc", info: { subtitle: "doc · Acme Widgets", desc: "FY2024 revenue EUR 12M · 85 employees · Lyon HQ" } } },
+        { data: { id: "doc-b2", label: "Operating Metrics", type: "doc", info: { subtitle: "doc · Q1 2025", desc: "Run-rate EUR 13.2M vs EUR 12M annual — reconcile baseline" } } },
+        { data: { id: "c-rev-12", label: "Revenue EUR 12M", type: "claim", conf: 0.88, info: { subtitle: "claim · audited FY2024", desc: "From company overview" } } },
+        { data: { id: "c-rev-13", label: "Run-rate EUR 13.2M", type: "claim", conf: 0.76, info: { subtitle: "claim · forecast", desc: "From operating metrics deck" } } },
+        { data: { id: "x-rev", label: "Revenue baseline", type: "contradiction", veto: false, resolved: false, info: { subtitle: "contradiction · open · soft", desc: "Annual vs run-rate figures need reconciliation" } } },
+        { data: { id: "g-onboard", label: "Onboarding checklist", type: "goal", info: { subtitle: "goal · active", desc: "Close supplier onboarding review" } } },
+        { data: { id: "r-supplier", label: "Single-source supplier", type: "risk", info: { subtitle: "risk · medium", desc: "Chip supplier concentration for smart desk mats" } } },
+      ];
+
+      const MOCK_BASIC_EDGES = [
+        { data: { source: "doc-b1", target: "c-rev-12", type: "refers" } },
+        { data: { source: "doc-b2", target: "c-rev-13", type: "refers" } },
+        { data: { source: "x-rev", target: "c-rev-12", type: "contradicts" } },
+        { data: { source: "x-rev", target: "c-rev-13", type: "contradicts" } },
+        { data: { source: "c-rev-12", target: "g-onboard", type: "supports" } },
+        { data: { source: "r-supplier", target: "g-onboard", type: "refers" } },
+      ];
+
+      let nodes = MOCK_BASIC_NODES;
+      let edges = MOCK_BASIC_EDGES;
       const studioCfg = window.STUDIO_CONTROL || {};
+      try {
+        const raw = localStorage.getItem("studio_edges_visible");
+        window.__studioEdgesVisible =
+          raw === "0" || raw === "false" ? false : true;
+      } catch (_prefErr) {
+        window.__studioEdgesVisible = true;
+      }
       const studioScope = studioCfg.scopeId || "default";
       const studioBase = String(
         studioCfg.baseUrl || "http://127.0.0.1:3002",
@@ -1738,10 +2480,34 @@
             nodes = live.nodes;
             edges = live.edges || [];
             document.body.dataset.graphSource = "live";
+          } else if (studioScope === "deal-horizon") {
+            nodes = MOCK_MA_NODES;
+            edges = MOCK_MA_EDGES;
+            document.body.dataset.graphSource = "mock-ma";
+          } else if (studioScope === "default") {
+            nodes = MOCK_BASIC_NODES;
+            edges = MOCK_BASIC_EDGES;
+            document.body.dataset.graphSource = "mock-basic";
+          } else {
+            nodes = [];
+            edges = [];
+            document.body.dataset.graphSource = "empty";
           }
         }
       } catch (_err) {
-        document.body.dataset.graphSource = "mock";
+        if (studioScope === "deal-horizon") {
+          nodes = MOCK_MA_NODES;
+          edges = MOCK_MA_EDGES;
+          document.body.dataset.graphSource = "mock-ma";
+        } else if (studioScope === "default") {
+          nodes = MOCK_BASIC_NODES;
+          edges = MOCK_BASIC_EDGES;
+          document.body.dataset.graphSource = "mock-basic";
+        } else {
+          nodes = [];
+          edges = [];
+          document.body.dataset.graphSource = "empty";
+        }
       }
 
       /* ═══════════════ Deterministic layered positions (no overlap) ═══════════════ */
@@ -1907,24 +2673,24 @@
         {
           selector: "edge",
           style: {
-            width: 1,
+            width: 0.65,
             "curve-style": "bezier",
             "target-arrow-shape": "triangle",
-            "arrow-scale": 0.65,
-            "line-color": "#262a33",
-            "target-arrow-color": "#262a33",
-            opacity: 0.48,
-            "transition-property": "opacity, line-color",
+            "arrow-scale": 0.5,
+            "line-color": "#4a5c6e",
+            "target-arrow-color": "#5a6c7e",
+            opacity: 0.38,
+            "transition-property": "opacity, line-color, width",
             "transition-duration": "140ms",
           },
         },
         {
           selector: 'edge[type="supports"]',
           style: {
-            "line-color": "#3e6b93",
-            "target-arrow-color": "#3e6b93",
-            width: 1,
-            opacity: 0.72,
+            "line-color": "#4a5c6e",
+            "target-arrow-color": "#5a6c7e",
+            width: 0.65,
+            opacity: 0.38,
           },
         },
         {
@@ -1933,24 +2699,28 @@
             "line-color": "#d97a6c",
             "target-arrow-color": "#d97a6c",
             "line-style": "dashed",
-            width: 1.15,
-            opacity: 0.72,
+            width: 1,
+            opacity: 0.82,
+            "arrow-scale": 0.65,
           },
         },
         {
           selector: 'edge[type="refers"]',
           style: {
-            opacity: 0.38,
+            "line-color": "#4a5c6e",
+            "target-arrow-color": "#5a6c7e",
+            width: 0.65,
+            opacity: 0.34,
           },
         },
         {
           selector: 'edge[type="resolves"]',
           style: {
-            "line-color": "#5a9468",
-            "target-arrow-color": "#7fb98b",
+            "line-color": "#4a5c6e",
+            "target-arrow-color": "#5a6c7e",
             "line-style": "solid",
-            width: 1.2,
-            opacity: 0.85,
+            width: 0.65,
+            opacity: 0.38,
           },
         },
         {
@@ -1958,13 +2728,13 @@
           style: { "text-opacity": 1 },
         },
         {
-          selector: ".dim",
+          selector: "node.dim",
           style: {
             opacity: 0.12,
           },
         },
         {
-          selector: ".hi",
+          selector: "node.hi",
           style: {
             opacity: 1,
             "border-color": "#ff7a1a",
@@ -1972,12 +2742,25 @@
           },
         },
         {
-          selector: "edge.hi",
+          selector: "edge.hi:not(.edges-hidden)",
           style: {
             "line-color": "#ff7a1a",
             "target-arrow-color": "#ff7a1a",
             width: 1.5,
             opacity: 1,
+          },
+        },
+        {
+          selector:
+            'edge.edges-hidden, edge.edges-hidden[type="supports"], edge.edges-hidden[type="contradicts"], edge.edges-hidden[type="refers"], edge.edges-hidden[type="resolves"], edge.edges-hidden.hi',
+          style: {
+            display: "none",
+            opacity: 0,
+            width: 0,
+            "line-color": "transparent",
+            "target-arrow-color": "transparent",
+            "target-arrow-shape": "none",
+            "events": "no",
           },
         },
       ];
@@ -2059,12 +2842,31 @@
       }
 
       /* ═══════════════ Hover: dim + tooltip (detail lives here) ═══════════════ */
+      function studioLinksVisible() {
+        return window.__studioEdgesVisible !== false;
+      }
+
+      function highlightGraphNeighborhood(inst, n) {
+        const nbh = n.closedNeighborhood();
+        inst.nodes().difference(nbh.nodes()).addClass("dim");
+        nbh.nodes().addClass("hi");
+        if (studioLinksVisible()) {
+          nbh.edges().addClass("hi");
+        }
+      }
+
+      function clearGraphHighlight(inst) {
+        inst.nodes().removeClass("dim hi");
+        inst.edges().removeClass("hi");
+        if (window.__studioApplyEdgeVisibility) {
+          window.__studioApplyEdgeVisibility(inst);
+        }
+      }
+
       function bindHover(inst, wrap, ttEl) {
         inst.on("mouseover", "node", (e) => {
           const n = e.target;
-          const nbh = n.closedNeighborhood();
-          inst.elements().difference(nbh).addClass("dim");
-          nbh.addClass("hi");
+          highlightGraphNeighborhood(inst, n);
           const info = n.data("info") || {};
           const type = n.data("type");
           let tag = "";
@@ -2115,7 +2917,7 @@
           ttEl.classList.add("show");
         });
         inst.on("mouseout", "node", () => {
-          inst.elements().removeClass("dim hi");
+          clearGraphHighlight(inst);
           ttEl.classList.remove("show");
         });
         inst.on("pan zoom", () => {
@@ -2129,10 +2931,8 @@
       function focusInGraph(inst, id) {
         const n = inst.getElementById(id);
         if (!n || n.empty()) return;
-        inst.elements().removeClass("dim hi");
-        const nbh = n.closedNeighborhood();
-        inst.elements().difference(nbh).addClass("dim");
-        nbh.addClass("hi");
+        clearGraphHighlight(inst);
+        highlightGraphNeighborhood(inst, n);
         const z = Math.max(inst.zoom(), 1);
         inst.animate(
           { center: { eles: n }, zoom: z },
@@ -2258,8 +3058,12 @@
 
       window.__studioCy = cy;
       window.__studioCyDbg = cyDbg;
-      window.__studioMockNodes = MOCK_NODES;
-      window.__studioMockEdges = MOCK_EDGES;
+      window.__studioMockMaNodes = MOCK_MA_NODES;
+      window.__studioMockMaEdges = MOCK_MA_EDGES;
+      window.__studioMockBasicNodes = MOCK_BASIC_NODES;
+      window.__studioMockBasicEdges = MOCK_BASIC_EDGES;
+      window.__studioMockNodes = MOCK_MA_NODES;
+      window.__studioMockEdges = MOCK_MA_EDGES;
       window.__studioLayeredPositions = layeredPositions;
       window.__studioNodes = nodes;
       window.__studioEdges = edges;

@@ -5,8 +5,16 @@ import { z } from "zod";
 import { logger } from "../logger.js";
 import { toErrorString } from "../errors.js";
 import { s3GetText, s3PutJson } from "../s3.js";
-import { tailEvents } from "../contextWal.js";
+import { tailEvents, tailEventsForScope } from "../contextWal.js";
 import { emitContribution } from "../causalEmit.js";
+import type { EquivalenceCandidate } from "../equivalenceGate.js";
+import { getActiveScopeId } from "../billingContext.js";
+import {
+  scopeDriftKey,
+  scopeFactsHistoryKey,
+  scopeFactsKey,
+  scopeResolutionsKey,
+} from "../scopeStorage.js";
 
 /** Default 5 min: local LLM (e.g. Ollama) can take several minutes per document; avoid client abort before worker finishes. */
 const FACTS_WORKER_TIMEOUT_MS = Math.max(
@@ -19,12 +27,33 @@ function getFactsWorkerUrl(): string {
   if (!url) throw new Error("FACTS_WORKER_URL is required for facts agent");
   return url;
 }
-const KEY_FACTS = "facts/latest.json";
-const KEY_DRIFT = "drift/latest.json";
-const KEY_FACTS_HIST = (ts: string) =>
-  `facts/history/${ts.replace(/[:.]/g, "-")}.json`;
 
-export type LastFactsResult = { wrote: string[]; facts_hash?: string } | null;
+function scopeFromWalEvent(data: unknown): string | null {
+  if (!data || typeof data !== "object") return null;
+  const rec = data as Record<string, unknown>;
+  const payload = rec.payload as Record<string, unknown> | undefined;
+  const sid = payload?.scope_id ?? rec.scope_id;
+  if (typeof sid === "string" && sid.trim()) return sid.trim();
+  return null;
+}
+
+function resolveFactsWriteScopeId(recentEvents: Awaited<
+  ReturnType<typeof tailEvents>
+>): string {
+  const active = getActiveScopeId()?.trim();
+  if (active) return active;
+  for (let i = recentEvents.length - 1; i >= 0; i--) {
+    const sid = scopeFromWalEvent(recentEvents[i]?.data);
+    if (sid) return sid;
+  }
+  return process.env.SCOPE_ID || "default";
+}
+
+export type LastFactsResult = {
+  wrote: string[];
+  facts_hash?: string;
+  equivalence_candidates?: EquivalenceCandidate[];
+} | null;
 
 function createFactsTools(
   s3: S3Client,
@@ -44,9 +73,11 @@ function createFactsTools(
     }),
     execute: async (inputData) => {
       const limit = inputData.limit ?? 200;
-      const events = await tailEvents(limit);
+      const recent = await tailEvents(20);
+      const scopeId = resolveFactsWriteScopeId(recent);
+      const events = await tailEventsForScope(scopeId, limit);
       const contextData = events.map((e) => e.data);
-      const prevRaw = await s3GetText(s3, bucket, KEY_FACTS);
+      const prevRaw = await s3GetText(s3, bucket, scopeFactsKey(scopeId));
       const previous_facts = prevRaw
         ? (JSON.parse(prevRaw) as Record<string, unknown>)
         : null;
@@ -67,10 +98,16 @@ function createFactsTools(
       drift: z.record(z.unknown()),
     }),
     execute: async (inputData) => {
+      const recentEvents = await tailEvents(20);
+      const scopeId = resolveFactsWriteScopeId(recentEvents);
       // Read resolved contradictions from S3 so facts-worker avoids re-extracting them
       let resolvedContradictions: string[] = [];
       try {
-        const resRaw = await s3GetText(s3, bucket, "resolutions/latest.json");
+        const resRaw = await s3GetText(
+          s3,
+          bucket,
+          scopeResolutionsKey(scopeId),
+        );
         if (resRaw) {
           const parsed = JSON.parse(resRaw) as {
             resolved_contradictions?: Array<{ content: string }>;
@@ -124,20 +161,24 @@ function createFactsTools(
     }),
     execute: async (inputData) => {
       const ts = new Date().toISOString();
-      await s3PutJson(s3, bucket, KEY_FACTS, inputData.facts);
-      await s3PutJson(s3, bucket, KEY_DRIFT, inputData.drift);
-      await s3PutJson(s3, bucket, KEY_FACTS_HIST(ts), inputData.facts);
-      const wrote = [KEY_FACTS, KEY_DRIFT, KEY_FACTS_HIST(ts)];
+      const recent = await tailEvents(20);
+      const scopeId = resolveFactsWriteScopeId(recent);
+      const scopedEvents = await tailEventsForScope(scopeId, 50);
+      const factsKey = scopeFactsKey(scopeId);
+      const driftKey = scopeDriftKey(scopeId);
+      const histKey = scopeFactsHistoryKey(scopeId, ts);
+      await s3PutJson(s3, bucket, factsKey, inputData.facts);
+      await s3PutJson(s3, bucket, driftKey, inputData.drift);
+      await s3PutJson(s3, bucket, histKey, inputData.facts);
+      const wrote = [factsKey, driftKey, histKey];
       const facts_hash = (inputData.facts as { hash?: string })?.hash;
       lastWriteResult.current = { wrote, facts_hash };
 
-      const scopeId = process.env.SCOPE_ID ?? "default";
       // Hoist factsPayload so it's accessible to both semantic graph sync and sgrsSync blocks
       const factsPayload = JSON.parse(
         JSON.stringify(inputData.facts ?? {}),
       ) as Record<string, unknown>;
-      const recentEvents = await tailEvents(20);
-      const lastDoc = [...recentEvents]
+      const lastDoc = [...scopedEvents]
         .reverse()
         .find(
           (e) => (e.data as Record<string, unknown>)?.type === "context_doc",
@@ -153,6 +194,8 @@ function createFactsTools(
         edgesCreated: number;
         nodesUpdated: number;
         nodesStaled: number;
+        claimNodeIds: string[];
+        equivalenceCandidates: EquivalenceCandidate[];
       } | null = null;
       try {
         const { syncFactsToSemanticGraph } =
@@ -160,12 +203,53 @@ function createFactsTools(
         syncResult = await syncFactsToSemanticGraph(scopeId, factsPayload, {
           embedClaims: process.env.FACTS_SYNC_EMBED === "1",
           docTitle,
+          contextSeq:
+            typeof lastDoc?.seq === "number" ? lastDoc.seq : undefined,
         });
       } catch (e) {
         logger.warn("writeFacts: semantic graph sync failed", {
           scopeId,
           error: toErrorString(e),
         });
+      }
+      if (lastWriteResult.current) {
+        lastWriteResult.current.equivalence_candidates =
+          syncResult?.equivalenceCandidates ?? [];
+      }
+      if (syncResult) {
+        try {
+          const { markContextDocsAnalyzed } =
+            await import("../factsToSemanticGraph.js");
+          const contextDocs = scopedEvents
+            .filter(
+              (e) =>
+                (e.data as Record<string, unknown>)?.type === "context_doc",
+            )
+            .map((e) => {
+              const data = e.data as Record<string, unknown>;
+              const payload = (data.payload as Record<string, unknown>) ?? {};
+              return {
+                title: String(payload.title ?? data.title ?? "document"),
+                contextSeq: e.seq,
+              };
+            });
+          await markContextDocsAnalyzed(
+            scopeId,
+            contextDocs,
+            syncResult?.claimNodeIds ?? [],
+            contextDocs.length > 1
+              ? { attachClaimsToAll: true }
+              : {
+                  claimContextSeq:
+                    typeof lastDoc?.seq === "number" ? lastDoc.seq : undefined,
+                },
+          );
+        } catch (e) {
+          logger.warn("writeFacts: doc progress markers failed", {
+            scopeId,
+            error: toErrorString(e),
+          });
+        }
       }
 
       // Wire into causal DAG: every facts extraction is a claim contribution
@@ -290,6 +374,7 @@ export async function runFactsPipelineDirect(
     wrote: Array.isArray(last?.wrote) ? [...last.wrote] : [],
     facts_hash:
       typeof last?.facts_hash === "string" ? last.facts_hash : undefined,
+    equivalence_candidates: last?.equivalence_candidates ?? [],
   };
 }
 

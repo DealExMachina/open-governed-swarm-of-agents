@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { FinalitySnapshot } from "./finalityEvaluator.js";
 import { getPool } from "./db.js";
 import { GoalMatchItemSchema } from "./modelConfig.js";
+import { synthesizeStudioEdges, type StudioLinkNode } from "./studioGraphEdges.js";
 
 export interface SemanticNode {
   node_id: string;
@@ -1735,14 +1736,26 @@ export async function getStudioGraphElements(scopeId: string): Promise<{
     },
   );
 
+  const studioEdgeId = (
+    source: string,
+    target: string,
+    type: string,
+  ): string => `edge-${source}-${target}-${type}`;
+
   const edges = edgeRes.rows.map(
-    (r: { source_id: string; target_id: string; edge_type: string }) => ({
-      data: {
-        source: String(r.source_id),
-        target: String(r.target_id),
-        type: String(r.edge_type || "refers"),
-      },
-    }),
+    (r: { source_id: string; target_id: string; edge_type: string }) => {
+      const source = String(r.source_id);
+      const target = String(r.target_id);
+      const type = String(r.edge_type || "refers");
+      return {
+        data: {
+          id: studioEdgeId(source, target, type),
+          source,
+          target,
+          type,
+        },
+      };
+    },
   );
 
   const edgeKeys = new Set(
@@ -1752,46 +1765,42 @@ export async function getStudioGraphElements(scopeId: string): Promise<{
     const key = `${source}|${target}|${type}`;
     if (!source || !target || edgeKeys.has(key)) return;
     edgeKeys.add(key);
-    edges.push({ data: { source, target, type } });
+    edges.push({
+      data: {
+        id: studioEdgeId(source, target, type),
+        source,
+        target,
+        type,
+      },
+    });
   };
 
-  // Synthetic edges from node metadata when DB edges table is sparse.
-  const nodeMetaRes = await p.query(
-    `SELECT node_id, type, metadata, source_ref FROM nodes
-     WHERE scope_id = $1 AND (${CURRENT_VIEW_NODES})`,
-    [scopeId],
+  // Synthetic edges when DB edges table is sparse (Studio business graph).
+  const linkNodes: StudioLinkNode[] = nodeRes.rows.map(
+    (r: {
+      node_id: string;
+      type: string;
+      content: string;
+      metadata: Record<string, unknown> | null;
+      source_ref: Record<string, unknown> | null;
+    }) => ({
+      id: String(r.node_id),
+      type: String(r.type),
+      content: String(r.content || ""),
+      metadata: r.metadata ?? {},
+      source_ref: r.source_ref ?? {},
+    }),
   );
-  for (const row of nodeMetaRes.rows as Array<{
-    node_id: string;
-    type: string;
-    metadata: Record<string, unknown> | null;
-    source_ref: Record<string, unknown> | null;
-  }>) {
-    const meta = row.metadata ?? {};
-    const srcRef = row.source_ref ?? {};
-    if (row.type === "contradiction") {
-      const a = String(meta.claim_source_id ?? "");
-      const b = String(meta.claim_target_id ?? "");
-      if (a && b) {
-        pushEdge(String(row.node_id), a, "contradicts");
-        pushEdge(String(row.node_id), b, "contradicts");
-      }
-    }
-    if (row.type === "resolution") {
-      const target = String(
-        meta.targetsContradiction ?? srcRef.contradiction_id ?? "",
-      );
-      if (target) pushEdge(String(row.node_id), target, "resolves");
-    }
-    if (row.type === "doc") {
-      const claimIds = meta.claim_ids;
-      if (Array.isArray(claimIds)) {
-        for (const cid of claimIds) {
-          if (typeof cid === "string")
-            pushEdge(String(row.node_id), cid, "refers");
-        }
-      }
-    }
+  const synthesized = synthesizeStudioEdges(
+    linkNodes,
+    edges.map((e) => ({
+      source: String(e.data.source),
+      target: String(e.data.target),
+      type: String(e.data.type),
+    })),
+  );
+  for (const e of synthesized) {
+    pushEdge(e.source, e.target, e.type);
   }
 
   return { nodes, edges };

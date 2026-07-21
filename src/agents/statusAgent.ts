@@ -11,6 +11,11 @@ import {
 } from "../modelConfig.js";
 import { logger } from "../logger.js";
 import { s3GetText } from "../s3.js";
+import {
+  resolveStorageScopeId,
+  scopeDriftKey,
+  scopeFactsKey,
+} from "../scopeStorage.js";
 import { appendEvent } from "../contextWal.js";
 import { emitContribution } from "../causalEmit.js";
 import { createSwarmEvent } from "../events.js";
@@ -78,12 +83,13 @@ export async function runStatusAgent(
   const elapsedMs = (payload?.elapsedMs as number) ?? 0;
   const nextFullMs = (payload?.nextFullMs as number) ?? 600000;
   const isFull = elapsedMs >= nextFullMs;
+  const sid = resolveStorageScopeId();
 
   const modelConfig = getChatModelConfig();
   if (modelConfig) {
     try {
-      const readFacts = makeReadFactsTool(s3, bucket);
-      const readDrift = makeReadDriftTool(s3, bucket);
+      const readFacts = makeReadFactsTool(s3, bucket, sid);
+      const readDrift = makeReadDriftTool(s3, bucket, sid);
       const readRecentEvents = makeReadContextTool(50);
       const writeBriefing = createWriteBriefingTool();
       const agent = new Agent({
@@ -107,8 +113,8 @@ export async function runStatusAgent(
         },
       );
       trackAgentTokens("status", genResult);
-      const factsRaw = await s3GetText(s3, bucket, "facts/latest.json");
-      const driftRaw = await s3GetText(s3, bucket, "drift/latest.json");
+      const factsRaw = await s3GetText(s3, bucket, scopeFactsKey(sid));
+      const driftRaw = await s3GetText(s3, bucket, scopeDriftKey(sid));
       const facts = factsRaw
         ? (JSON.parse(factsRaw) as Record<string, unknown>)
         : null;
@@ -149,8 +155,8 @@ export async function runStatusAgent(
     }
   }
 
-  const factsRaw = await s3GetText(s3, bucket, "facts/latest.json");
-  const driftRaw = await s3GetText(s3, bucket, "drift/latest.json");
+  const factsRaw = await s3GetText(s3, bucket, scopeFactsKey(sid));
+  const driftRaw = await s3GetText(s3, bucket, scopeDriftKey(sid));
   const facts = factsRaw
     ? (JSON.parse(factsRaw) as Record<string, unknown>)
     : null;

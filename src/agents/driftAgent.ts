@@ -19,12 +19,14 @@ import {
 import { composeInstructions } from "../skills/loader.js";
 import { generateWithStructuredOutput } from "../mastraStructured.js";
 import { trackAgentTokens } from "../skills/tokenTracker.js";
+import {
+  resolveStorageScopeId,
+  scopeDriftHistoryKey,
+  scopeDriftKey,
+  scopeFactsKey,
+} from "../scopeStorage.js";
 
 const DRIFT_LLM_TIMEOUT_MS = 90_000;
-
-const KEY_DRIFT = "drift/latest.json";
-const KEY_DRIFT_HIST = (ts: string) =>
-  `drift/history/${ts.replace(/[:.]/g, "-")}.json`;
 
 const DRIFT_INSTRUCTIONS = `You are a drift analysis agent. Your job is to detect ALL forms of drift and contradiction.
 
@@ -44,11 +46,11 @@ const driftRefSchema = z.object({
   excerpt: z.string().optional(),
 });
 
-function createWriteDriftTool(s3: S3Client, bucket: string) {
+function createWriteDriftTool(s3: S3Client, bucket: string, scopeId?: string) {
   return createTool({
     id: "writeDrift",
     description:
-      "Write drift analysis to storage (drift/latest.json and drift/history). Include references (sources) with type, doc, excerpt when citing a drift finding.",
+      "Write drift analysis to storage (scope drift/latest.json and drift/history). Include references (sources) with type, doc, excerpt when citing a drift finding.",
     inputSchema: z.object({
       level: z.enum(["none", "low", "medium", "high", "critical"]),
       types: z.array(z.string()),
@@ -91,9 +93,12 @@ function createWriteDriftTool(s3: S3Client, bucket: string) {
         recommend_hitl: recommendHitl,
       };
       const ts = new Date().toISOString();
-      await s3PutJson(s3, bucket, KEY_DRIFT, drift);
-      await s3PutJson(s3, bucket, KEY_DRIFT_HIST(ts), drift);
-      return { wrote: [KEY_DRIFT, KEY_DRIFT_HIST(ts)] };
+      const sid = resolveStorageScopeId(scopeId);
+      const driftKey = scopeDriftKey(sid);
+      const histKey = scopeDriftHistoryKey(sid, ts);
+      await s3PutJson(s3, bucket, driftKey, drift);
+      await s3PutJson(s3, bucket, histKey, drift);
+      return { wrote: [driftKey, histKey] };
     },
   });
 }
@@ -106,13 +111,14 @@ export async function runDriftAgent(
   bucket: string,
   _payload: Record<string, unknown>,
 ): Promise<Record<string, unknown>> {
+  const scopeId = resolveStorageScopeId();
   const modelConfig = getChatModelConfig();
   if (modelConfig) {
     try {
-      const readFacts = makeReadFactsTool(s3, bucket);
-      const readFactsHistory = makeReadFactsHistoryTool(s3, bucket);
-      const readDrift = makeReadDriftTool(s3, bucket);
-      const writeDrift = createWriteDriftTool(s3, bucket);
+      const readFacts = makeReadFactsTool(s3, bucket, scopeId);
+      const readFactsHistory = makeReadFactsHistoryTool(s3, bucket, 5, scopeId);
+      const readDrift = makeReadDriftTool(s3, bucket, scopeId);
+      const writeDrift = createWriteDriftTool(s3, bucket, scopeId);
       const agent = new Agent({
         id: "drift-agent",
         name: "Drift Agent",
@@ -146,7 +152,7 @@ export async function runDriftAgent(
       } finally {
         clearTimeout(timeoutId);
       }
-      const driftRaw = await s3GetText(s3, bucket, KEY_DRIFT);
+      const driftRaw = await s3GetText(s3, bucket, scopeDriftKey(scopeId));
       const drift = driftRaw
         ? (JSON.parse(driftRaw) as { level: string; types: string[] })
         : { level: "none", types: [] };
@@ -161,9 +167,13 @@ export async function runDriftAgent(
           drift_level: drift.level,
           drift_types: drift.types,
         },
-        { scopeId: process.env.SCOPE_ID ?? "default" },
+        { scopeId },
       );
-      return { wrote: [KEY_DRIFT], level: drift.level, types: drift.types };
+      return {
+        wrote: [scopeDriftKey(scopeId)],
+        level: drift.level,
+        types: drift.types,
+      };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       if (/timeout|TIMEOUT|ECONNREFUSED|API|fetch failed|abort/i.test(msg)) {
@@ -177,7 +187,7 @@ export async function runDriftAgent(
     }
   }
 
-  const factsRaw = await s3GetText(s3, bucket, "facts/latest.json");
+  const factsRaw = await s3GetText(s3, bucket, scopeFactsKey(scopeId));
   const facts = factsRaw
     ? (JSON.parse(factsRaw) as Record<string, unknown>)
     : null;
@@ -185,7 +195,7 @@ export async function runDriftAgent(
   const intraBatch = detectIntraBatchDrift(facts);
   const graphState = await getGraphResolutionState();
 
-  const driftRaw = await s3GetText(s3, bucket, KEY_DRIFT);
+  const driftRaw = await s3GetText(s3, bucket, scopeDriftKey(scopeId));
   const existing = driftRaw
     ? (JSON.parse(driftRaw) as {
         level: string;
@@ -231,8 +241,10 @@ export async function runDriftAgent(
   drift = adjustDriftForResolutions(drift, graphState);
 
   const ts = new Date().toISOString();
-  await s3PutJson(s3, bucket, KEY_DRIFT, drift);
-  await s3PutJson(s3, bucket, KEY_DRIFT_HIST(ts), drift);
+  const driftKey = scopeDriftKey(scopeId);
+  const histKey = scopeDriftHistoryKey(scopeId, ts);
+  await s3PutJson(s3, bucket, driftKey, drift);
+  await s3PutJson(s3, bucket, histKey, drift);
   logger.info("drift written (fallback)", {
     drift_level: drift.level,
     types: drift.types,
@@ -244,10 +256,10 @@ export async function runDriftAgent(
       drift_level: drift.level,
       drift_types: drift.types,
     },
-    { scopeId: process.env.SCOPE_ID ?? "default" },
+    { scopeId },
   );
   return {
-    wrote: [KEY_DRIFT, KEY_DRIFT_HIST(ts)],
+    wrote: [driftKey, histKey],
     level: drift.level,
     types: drift.types,
   };

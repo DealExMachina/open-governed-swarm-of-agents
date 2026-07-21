@@ -23,7 +23,7 @@ from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import Any, Dict, List, Optional
-from rlm_facts import extract_facts_and_drift, _get_model_info
+from rlm_facts import extract_facts_and_drift, _get_model_info, nli_entailment
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -37,6 +37,11 @@ class ExtractReq(BaseModel):
     context: List[Dict[str, Any]]
     previous_facts: Optional[Dict[str, Any]] = None
     resolved_contradictions: Optional[List[str]] = None
+
+
+class NliReq(BaseModel):
+    a: str
+    b: str
 
 
 @app.get("/health")
@@ -62,6 +67,24 @@ def health():
         "capabilities": capabilities,
         "busy": _busy,
     }
+
+
+@app.post("/nli")
+def nli(req: NliReq):
+    """Bidirectional NLI entailment for two claims (cross-encoder).
+
+    Returns {available: false, label: "neutral", confidence: 0} when the NLI
+    model is not loaded (SKIP_NLI or no NLI_MODEL) so the TS gate can fall back
+    conservatively without treating the pair as equivalent.
+    """
+    try:
+        result = nli_entailment(req.a, req.b)
+    except Exception as e:
+        logger.error("nli failed: %s", e)
+        result = None
+    if result is None:
+        return {"available": False, "label": "neutral", "confidence": 0.0}
+    return {"available": True, **result}
 
 
 @app.post("/extract")

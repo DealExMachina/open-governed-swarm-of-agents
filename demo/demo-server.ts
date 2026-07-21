@@ -25,13 +25,18 @@ import { checkAllServices } from "../scripts/check-services.js";
 import { readFileSync, readdirSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
-import pg from "pg";
 import {
   S3Client,
-  ListObjectsV2Command,
-  DeleteObjectsCommand,
 } from "@aws-sdk/client-s3";
 import { startDemoSession, closeDemoSession } from "../src/demoSessions.js";
+import { resetScopeAndReinit } from "../src/scopeReset.js";
+import { scopeStoragePrefix } from "../src/scopeStorage.js";
+import { getPool } from "../src/db.js";
+import { requestRuntimeControl } from "../src/runtimeControlRpc.js";
+import {
+  scopeIdForScenario,
+  DEFAULT_CUSTOM_SCOPE_ID,
+} from "../src/scenarioScopes.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -40,7 +45,6 @@ const DEMO_PORT = parseInt(process.env.DEMO_PORT ?? "3005", 10);
 const FEED_URL = (process.env.FEED_URL ?? "http://127.0.0.1:3002").replace(/\/$/, "");
 const MITL_URL = (process.env.MITL_URL ?? "http://127.0.0.1:3001").replace(/\/$/, "");
 const SWARM_API_TOKEN = process.env.SWARM_API_TOKEN ?? "";
-const DEMO_RUNTIME_SCOPE_ID = process.env.SCOPE_ID ?? "default";
 
 function authHeaders(): Record<string, string> {
   if (SWARM_API_TOKEN) {
@@ -224,7 +228,7 @@ const SCENARIOS: Record<string, { meta: ScenarioMeta; docs: DemoDoc[] }> = {
 let activeScenarioId = "ma";
 let activeDocs: DemoDoc[] = SCENARIOS.ma.docs;
 let activeSessionId: string | null = null;
-let activeScopeId: string | null = DEMO_RUNTIME_SCOPE_ID;
+let activeScopeId: string | null = scopeIdForScenario("ma");
 const fedSteps = new Set<number>();
 
 // ---------------------------------------------------------------------------
@@ -334,17 +338,31 @@ async function handleSelectScenario(body: string, res: ServerResponse): Promise<
       await closeDemoSession(activeSessionId).catch(() => {});
       activeSessionId = null;
     }
-    const resetErrors = await resetScopeState();
+    const targetScopeId = scopeIdForScenario(id);
+    const resetErrors = await resetScopeState(targetScopeId);
     if (resetErrors.length > 0) {
       sendJson(res, 500, { error: "scenario_reset_failed", details: resetErrors });
       return;
     }
-    const session = await startDemoSession(id, DEMO_RUNTIME_SCOPE_ID);
+    const session = await startDemoSession(id, targetScopeId);
     activeScenarioId = id;
     activeDocs = scenario.docs;
     activeSessionId = session.session_id;
     activeScopeId = session.scope_id;
-    sendJson(res, 200, { ok: true, scenario: scenario.meta, session_id: session.session_id, scope_id: session.scope_id });
+    // Bind hatchery to the demo runtime scope so graph builds here (not a leftover Studio scope).
+    const rpc = await requestRuntimeControl({
+      action: "start",
+      scope_id: session.scope_id,
+      tenant_id: null,
+    });
+    sendJson(res, 200, {
+      ok: true,
+      scenario: scenario.meta,
+      session_id: session.session_id,
+      scope_id: session.scope_id,
+      hatchery_bound: rpc.ok,
+      hatchery_error: rpc.ok ? undefined : rpc.error,
+    });
   } catch (e) {
     sendJson(res, 400, { error: String(e) });
   }
@@ -365,17 +383,30 @@ async function handleDemoSessionStart(req: IncomingMessage, res: ServerResponse)
       await closeDemoSession(activeSessionId).catch(() => {});
       activeSessionId = null;
     }
-    const resetErrors = await resetScopeState();
+    const targetScopeId = scopeIdForScenario(scenarioId);
+    const resetErrors = await resetScopeState(targetScopeId);
     if (resetErrors.length > 0) {
       sendJson(res, 500, { error: "scenario_reset_failed", details: resetErrors });
       return;
     }
-    const session = await startDemoSession(scenarioId, DEMO_RUNTIME_SCOPE_ID);
+    const session = await startDemoSession(scenarioId, targetScopeId);
     activeScenarioId = scenarioId;
     activeDocs = scenario.docs;
     activeSessionId = session.session_id;
     activeScopeId = session.scope_id;
-    sendJson(res, 200, { ok: true, session_id: session.session_id, scope_id: session.scope_id, scenario: scenario.meta });
+    const rpc = await requestRuntimeControl({
+      action: "start",
+      scope_id: session.scope_id,
+      tenant_id: null,
+    });
+    sendJson(res, 200, {
+      ok: true,
+      session_id: session.session_id,
+      scope_id: session.scope_id,
+      scenario: scenario.meta,
+      hatchery_bound: rpc.ok,
+      hatchery_error: rpc.ok ? undefined : rpc.error,
+    });
   } catch (e) {
     sendJson(res, 400, { error: String(e) });
   }
@@ -585,49 +616,22 @@ async function handleResolution(req: IncomingMessage, res: ServerResponse): Prom
   }
 }
 
-/** Clear all swarm state for the current scope (DB, S3, in-memory fedSteps). Used by reset and by select-scenario to avoid mixing facts across demos. */
-async function resetScopeState(): Promise<string[]> {
+/**
+ * Clear persisted state for one scenario catalog scope (graph + catalog badge).
+ * Used by reset and select-scenario so each demo scenario stays isolated.
+ */
+async function resetScopeState(scopeIdOverride?: string): Promise<string[]> {
   const errors: string[] = [];
-  const scopeId = process.env.SCOPE_ID ?? "default";
+  const scopeId =
+    scopeIdOverride ??
+    activeScopeId ??
+    (activeScenarioId ? scopeIdForScenario(activeScenarioId) : DEFAULT_CUSTOM_SCOPE_ID);
 
-  // 1. Clear Postgres tables
-  const dbUrl = process.env.DATABASE_URL;
-  if (dbUrl) {
-    const pool = new pg.Pool({ connectionString: dbUrl, max: 1 });
-    try {
-      const tables = [
-        "context_events", "swarm_state", "edges", "nodes",
-        "convergence_history", "decision_records", "finality_certificates",
-        "mitl_pending", "scope_finality_decisions", "processed_messages",
-        "agent_memory", "filter_configs", "demo_sessions",
-      ];
-      for (const t of tables) {
-        try { await pool.query(`DELETE FROM ${t}`); } catch { /* table may not exist */ }
-      }
-      try {
-        await pool.query(
-          `INSERT INTO swarm_state (scope_id, run_id, last_node, epoch, updated_at)
-           VALUES ($1, $2, 'ContextIngested', 0, now())
-           ON CONFLICT (scope_id) DO UPDATE SET run_id = $2, last_node = 'ContextIngested', epoch = 0, updated_at = now()`,
-          [scopeId, randomUUID()],
-        );
-      } catch (e) {
-        errors.push(`swarm_state init: ${e}`);
-      }
-    } catch (e) {
-      errors.push(`db: ${e}`);
-    } finally {
-      await pool.end();
-    }
-  } else {
-    errors.push("db: DATABASE_URL not set");
-  }
-
-  // 2. Clear S3/MinIO facts and drift
   const s3Endpoint = process.env.S3_ENDPOINT;
   const s3Bucket = process.env.S3_BUCKET ?? "swarm";
+  let s3: S3Client | undefined;
   if (s3Endpoint) {
-    const s3 = new S3Client({
+    s3 = new S3Client({
       region: process.env.S3_REGION || "us-east-1",
       endpoint: s3Endpoint,
       forcePathStyle: true,
@@ -636,23 +640,19 @@ async function resetScopeState(): Promise<string[]> {
         secretAccessKey: process.env.S3_SECRET_KEY ?? "minioadmin",
       },
     });
-    for (const prefix of ["facts/", "drift/", ""]) {
-      try {
-        const list = await s3.send(new ListObjectsV2Command({ Bucket: s3Bucket, Prefix: prefix, MaxKeys: 1000 }));
-        const keys = (list.Contents ?? []).flatMap((c) => (c.Key != null ? [c.Key] : []));
-        if (keys.length > 0) {
-          await s3.send(new DeleteObjectsCommand({
-            Bucket: s3Bucket,
-            Delete: { Objects: keys.map(Key => ({ Key })) },
-          }));
-        }
-      } catch (e) {
-        errors.push(`s3(${prefix || "all"}): ${e}`);
-      }
-    }
-    s3.destroy();
-  } else {
-    errors.push("s3: S3_ENDPOINT not set");
+  }
+
+  try {
+    const pool = getPool();
+    await resetScopeAndReinit(pool, scopeId, {
+      s3,
+      bucket: s3 ? s3Bucket : undefined,
+      storagePrefix: scopeStoragePrefix(scopeId),
+    });
+  } catch (e) {
+    errors.push(`db: ${e}`);
+  } finally {
+    s3?.destroy();
   }
 
   fedSteps.clear();
@@ -3050,6 +3050,23 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
+      // Clear MITL finality pending so the review does not linger after a resolution.
+      if (pendingProposalId) {
+        var submittedId = pendingProposalId;
+        try {
+          await fetch('/api/finality-response', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              proposal_id: pendingProposalId,
+              option: 'provide_resolution',
+              days: 7,
+            }),
+          });
+          initialPendingIds.add(submittedId);
+          pendingProposalId = null;
+        } catch (_fe) { /* resolution already recorded */ }
+      }
       addActivity('Resolution submitted: ' + text.slice(0, 60), 'doc');
       startStepTimeout();
     } catch(e) {
@@ -3118,11 +3135,19 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
     html += '<div class="report-sub">' + escHtml(modeLabel) + '</div>';
     html += '</div>';
 
-    // Plain-language governance narrative
+    // Plain-language governance narrative (prefer server finalization_report when present)
+    var report = (lastSummary && lastSummary.finalization_report) ? lastSummary.finalization_report : null;
     html += '<div class="statement-of-position">';
     html += '<div class="statement-title">What happened</div>';
     html += '<div class="statement-body">';
-    html += '<p>' + buildGovernanceNarrative(fin, knCounts, driftLevelReport, resolved, goalsReport) + '</p>';
+    if (report && report.narrative) {
+      html += '<p>' + escHtml(report.narrative) + '</p>';
+      if (report.next_steps) {
+        html += '<p style="margin-top:0.5rem;color:var(--muted)"><strong>Next:</strong> ' + escHtml(report.next_steps) + '</p>';
+      }
+    } else {
+      html += '<p>' + buildGovernanceNarrative(fin, knCounts, driftLevelReport, resolved, goalsReport) + '</p>';
+    }
     html += '</div></div>';
 
     // Outcome card — use knCounts (semantic graph, active only) as canonical source

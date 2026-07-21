@@ -8,12 +8,13 @@ import { fileURLToPath } from "url";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const SCENARIO_ROOT = join(__dirname, "..", "demo", "scenario");
 
-export type StudioCorpusId = "ma" | "financial" | "green-bond";
+export type StudioCorpusId = "ma" | "financial" | "green-bond" | "basic-example";
 
 const CORPUS_DIRS: Record<StudioCorpusId, string> = {
   ma: "docs",
   financial: "docs-financial",
   "green-bond": "docs-green-bond",
+  "basic-example": "docs-basic-example",
 };
 
 export function listStudioCorpora(): Array<{

@@ -7,7 +7,7 @@
  * progression in sequence — useful for live demos.
  *
  * Usage:
- *   DEMO_SCOPE_ID=default pnpm run seed:demo                        # all docs in scenario/docs, 20s gap
+ *   DEMO_SCOPE_ID=deal-horizon pnpm run seed:demo                        # all docs in scenario/docs, 20s gap
  *   DEMO_SCOPE_ID=default DEMO_DELAY_MS=5000 pnpm run seed:demo     # faster (5s gap, less visible processing)
  *   DEMO_SCOPE_ID=default DEMO_DOC=01 pnpm run seed:demo            # single doc by prefix
  *

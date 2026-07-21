@@ -28,12 +28,22 @@ import {
   type SemanticNode,
 } from "./semanticGraph.js";
 import { logger } from "./logger.js";
+import { canonicalizeClaimText } from "./canonicalValue.js";
+import type { EquivalenceCandidate } from "./equivalenceGate.js";
+import { findRelatedNodeIds } from "./studioGraphEdges.js";
 
 const FACTS_SYNC_SOURCE = "facts-sync";
+
+export interface StructuredClaim {
+  dimension: string;
+  content: string;
+}
 
 export interface FactsPayload {
   entities?: string[];
   claims?: string[];
+  /** Dimension-keyed claims from structured extraction (preferred over flat `claims`). */
+  structured_claims?: StructuredClaim[];
   risks?: string[];
   assumptions?: string[];
   contradictions?: string[];
@@ -67,25 +77,14 @@ function parseNliContradiction(s: string): [string, string] | null {
   const contradicts = /^(.*?)\s+contradicts?\s+(.*)$/i.exec(trimmed);
   if (contradicts) return [contradicts[1].trim(), contradicts[2].trim()];
 
-  const whichContradicts = /(.+?),?\s+which\s+contradicts?\s+(.+)/i.exec(
-    trimmed,
-  );
-  if (whichContradicts)
-    return [whichContradicts[1].trim(), whichContradicts[2].trim()];
+  const whichContradicts = /(.+?),?\s+which\s+contradicts?\s+(.+)/i.exec(trimmed);
+  if (whichContradicts) return [whichContradicts[1].trim(), whichContradicts[2].trim()];
 
   const versus = /(.+?)\s+(?:versus|vs\.?)\s+(.+)/i.exec(trimmed);
   if (versus) return [versus[1].trim(), versus[2].trim()];
 
-  const butWhile = /(.+?),?\s+(?:but|while|whereas|however)\s+(.+)/i.exec(
-    trimmed,
-  );
+  const butWhile = /(.+?),?\s+(?:but|while|whereas|however)\s+(.+)/i.exec(trimmed);
   if (butWhile) return [butWhile[1].trim(), butWhile[2].trim()];
-
-  const revised =
-    /(.+?)\s+(?:was|were)\s+(?:revised|restated|corrected)\s+(?:to|at)\s+(.+)/i.exec(
-      trimmed,
-    );
-  if (revised) return [revised[1].trim(), revised[2].trim()];
 
   return null;
 }
@@ -102,29 +101,15 @@ export function findClaimNodeId(
   const exact = contentToId.get(fragment);
   if (exact) return exact;
   for (const [content, id] of contentToId) {
-    if (
-      content === fragment ||
-      content.startsWith(fragment) ||
-      fragment.startsWith(content)
-    )
+    if (content === fragment || content.startsWith(fragment) || fragment.startsWith(content))
       return id;
   }
-  const fragWords = new Set(
-    fragment
-      .toLowerCase()
-      .split(/\s+/)
-      .filter((w) => w.length > 3),
-  );
+  const fragWords = new Set(fragment.toLowerCase().split(/\s+/).filter(w => w.length > 3));
   if (fragWords.size === 0) return null;
   let bestId: string | null = null;
   let bestScore = 0;
   for (const [content, id] of contentToId) {
-    const contentWords = new Set(
-      content
-        .toLowerCase()
-        .split(/\s+/)
-        .filter((w) => w.length > 3),
-    );
+    const contentWords = new Set(content.toLowerCase().split(/\s+/).filter(w => w.length > 3));
     let overlap = 0;
     for (const w of fragWords) if (contentWords.has(w)) overlap++;
     const score = overlap / Math.max(fragWords.size, 1);
@@ -142,45 +127,14 @@ export function findClaimNodeId(
  * short but important domain terms like "ARR", "IP"), minus stop words.
  */
 const SYNC_STOP = new Set([
-  "the",
-  "and",
-  "for",
-  "are",
-  "was",
-  "were",
-  "has",
-  "have",
-  "had",
-  "not",
-  "but",
-  "its",
-  "that",
-  "this",
-  "from",
-  "with",
-  "they",
-  "been",
-  "which",
-  "into",
-  "also",
-  "than",
-  "will",
-  "can",
-  "may",
-  "who",
-  "how",
-  "all",
-  "any",
-  "each",
-  "some",
-  "such",
-  "very",
+  "the","and","for","are","was","were","has","have","had","not","but","its",
+  "that","this","from","with","they","been","which","into","also","than",
+  "will","can","may","who","how","all","any","each","some","such","very",
 ]);
 
 function sigWords(s: string): Set<string> {
   return new Set(
-    s
-      .toLowerCase()
+    s.toLowerCase()
       .replace(/[^a-z0-9\s]/g, "")
       .split(/\s+/)
       .filter((w) => w.length > 2 && !SYNC_STOP.has(w))
@@ -199,6 +153,17 @@ function tokenOverlap(a: string, b: string): number {
   let overlap = 0;
   for (const w of wa) if (wb.has(w)) overlap++;
   return overlap / Math.max(wa.size, wb.size);
+}
+
+function matchExistingByDimension(
+  existingNodes: SemanticNode[],
+  dimension: string,
+): SemanticNode | null {
+  for (const node of existingNodes) {
+    const dim = node.metadata?.dimension;
+    if (typeof dim === "string" && dim === dimension) return node;
+  }
+  return null;
 }
 
 /**
@@ -247,27 +212,31 @@ function matchExistingNode(
 export async function syncFactsToSemanticGraph(
   scopeId: string,
   facts: FactsPayload,
-  opts?: { embedClaims?: boolean; docTitle?: string },
+  opts?: { embedClaims?: boolean; docTitle?: string; contextSeq?: number },
 ): Promise<{
   nodesCreated: number;
   edgesCreated: number;
   nodesUpdated: number;
   nodesStaled: number;
+  claimNodeIds: string[];
+  /** Claims that fuzzy-matched an existing node but whose content differs. */
+  equivalenceCandidates: EquivalenceCandidate[];
 }> {
-  const claims = (Array.isArray(facts.claims) ? facts.claims : []).filter(
+  const structuredClaims = (Array.isArray(facts.structured_claims) ? facts.structured_claims : [])
+    .filter(
+      (c): c is StructuredClaim =>
+        typeof c === "object" &&
+        c !== null &&
+        typeof (c as StructuredClaim).dimension === "string" &&
+        typeof (c as StructuredClaim).content === "string",
+    );
+  const claims = (Array.isArray(facts.claims) ? facts.claims : []).filter((c): c is string => typeof c === "string");
+  const goals = (Array.isArray(facts.goals) ? facts.goals : []).filter((g): g is string => typeof g === "string");
+  const risks = (Array.isArray(facts.risks) ? facts.risks : []).filter((r): r is string => typeof r === "string");
+  const contradictions = (Array.isArray(facts.contradictions) ? facts.contradictions : []).filter(
     (c): c is string => typeof c === "string",
   );
-  const goals = (Array.isArray(facts.goals) ? facts.goals : []).filter(
-    (g): g is string => typeof g === "string",
-  );
-  const risks = (Array.isArray(facts.risks) ? facts.risks : []).filter(
-    (r): r is string => typeof r === "string",
-  );
-  const contradictions = (
-    Array.isArray(facts.contradictions) ? facts.contradictions : []
-  ).filter((c): c is string => typeof c === "string");
-  const confidence =
-    typeof facts.confidence === "number" ? facts.confidence : 1;
+  const confidence = typeof facts.confidence === "number" ? facts.confidence : 1;
   const minClaimConfidence = Number(process.env.MIN_CLAIM_CONFIDENCE ?? "0.65");
   const validFrom = facts.valid_from ?? undefined;
   const validTo = facts.valid_to ?? undefined;
@@ -278,27 +247,13 @@ export async function syncFactsToSemanticGraph(
   let nodesStaled = 0;
   let edgesCreated = 0;
   const claimContentToNodeId = new Map<string, string>();
+  const equivalenceCandidates: EquivalenceCandidate[] = [];
 
   await runInTransaction(async (client) => {
     // Load existing fact-synced nodes
-    const existingClaims = await queryNodesByCreator(
-      scopeId,
-      FACTS_SYNC_SOURCE,
-      "claim",
-      client,
-    );
-    const existingGoals = await queryNodesByCreator(
-      scopeId,
-      FACTS_SYNC_SOURCE,
-      "goal",
-      client,
-    );
-    const existingRisks = await queryNodesByCreator(
-      scopeId,
-      FACTS_SYNC_SOURCE,
-      "risk",
-      client,
-    );
+    const existingClaims = await queryNodesByCreator(scopeId, FACTS_SYNC_SOURCE, "claim", client);
+    const existingGoals = await queryNodesByCreator(scopeId, FACTS_SYNC_SOURCE, "goal", client);
+    const existingRisks = await queryNodesByCreator(scopeId, FACTS_SYNC_SOURCE, "risk", client);
 
     // Track which existing nodes were matched (for stale detection)
     const matchedClaimIds = new Set<string>();
@@ -306,38 +261,51 @@ export async function syncFactsToSemanticGraph(
     const matchedRiskIds = new Set<string>();
 
     // --- Claims: upsert-if-better (skip low-confidence batches to reduce noise) ---
-    if (confidence < minClaimConfidence) {
-      /* skip claims from low-confidence extraction */
-    } else
-      for (const content of claims) {
-        if (typeof content !== "string" || !content.trim()) continue;
-        const trimmed = content.trim();
-        const existing = matchExistingNode(existingClaims, trimmed);
+    if (confidence >= minClaimConfidence) {
+      const claimEntries: Array<{ content: string; dimension?: string }> =
+        structuredClaims.length > 0
+          ? structuredClaims.map((c) => ({
+              content: c.content,
+              dimension: c.dimension.trim(),
+            }))
+          : claims.map((content) => ({ content }));
+
+      for (const entry of claimEntries) {
+        if (!entry.content?.trim()) continue;
+        const trimmed = canonicalizeClaimText(entry.content).trim();
+        const existing =
+          entry.dimension !== undefined
+            ? matchExistingByDimension(existingClaims, entry.dimension) ??
+              matchExistingNode(existingClaims, trimmed)
+            : matchExistingNode(existingClaims, trimmed);
 
         if (existing) {
           matchedClaimIds.add(existing.node_id);
-          // Monotonic: only update if new confidence >= existing
+          if (existing.content !== trimmed) {
+            equivalenceCandidates.push({
+              node_type: "claim",
+              existing_node_id: existing.node_id,
+              existing_content: existing.content,
+              new_content: trimmed,
+              ...(entry.dimension ? { dimension: entry.dimension } : {}),
+            });
+          }
           if (confidence >= existing.confidence) {
             await updateNodeConfidence(existing.node_id, confidence, client);
             nodesUpdated++;
           }
-          // Ensure active status (may have been previously marked irrelevant)
           if (existing.status !== "active") {
             await updateNodeStatus(existing.node_id, "active", client);
           }
           claimContentToNodeId.set(trimmed, existing.node_id);
         } else {
-          // Check if resolution or other source already added this claim (avoid duplicate)
           const dupRes = await client.query(
             `SELECT node_id, confidence FROM nodes WHERE scope_id = $1 AND type = 'claim' AND status = 'active'
            AND content = $2 AND superseded_at IS NULL LIMIT 1`,
             [scopeId, trimmed],
           );
           if (dupRes.rowCount && dupRes.rows[0]) {
-            const dup = dupRes.rows[0] as {
-              node_id: string;
-              confidence: number;
-            };
+            const dup = dupRes.rows[0] as { node_id: string; confidence: number };
             matchedClaimIds.add(dup.node_id);
             if (confidence >= dup.confidence) {
               await updateNodeConfidence(dup.node_id, confidence, client);
@@ -346,7 +314,6 @@ export async function syncFactsToSemanticGraph(
             claimContentToNodeId.set(trimmed, dup.node_id);
             continue;
           }
-          // New claim — insert
           const nodeId = await appendNode(
             {
               scope_id: scopeId,
@@ -355,11 +322,9 @@ export async function syncFactsToSemanticGraph(
               confidence,
               status: "active",
               source_ref: { source: "facts" },
+              metadata: entry.dimension ? { dimension: entry.dimension } : {},
               created_by: FACTS_SYNC_SOURCE,
-              ...(hasValidTime && {
-                valid_from: validFrom ?? null,
-                valid_to: validTo ?? null,
-              }),
+              ...(hasValidTime && { valid_from: validFrom ?? null, valid_to: validTo ?? null }),
             },
             client,
           );
@@ -367,11 +332,12 @@ export async function syncFactsToSemanticGraph(
           nodesCreated++;
         }
       }
+    }
 
     // --- Goals: upsert by content match ---
     for (const content of goals) {
       if (typeof content !== "string" || !content.trim()) continue;
-      const trimmed = content.trim();
+      const trimmed = canonicalizeClaimText(content).trim();
       const existing = matchExistingNode(existingGoals, trimmed);
 
       if (existing) {
@@ -388,10 +354,7 @@ export async function syncFactsToSemanticGraph(
             status: "active",
             source_ref: { source: "facts" },
             created_by: FACTS_SYNC_SOURCE,
-            ...(hasValidTime && {
-              valid_from: validFrom ?? null,
-              valid_to: validTo ?? null,
-            }),
+            ...(hasValidTime && { valid_from: validFrom ?? null, valid_to: validTo ?? null }),
           },
           client,
         );
@@ -402,7 +365,7 @@ export async function syncFactsToSemanticGraph(
     // --- Risks: upsert by content match ---
     for (const content of risks) {
       if (typeof content !== "string" || !content.trim()) continue;
-      const trimmed = content.trim();
+      const trimmed = canonicalizeClaimText(content).trim();
       const existing = matchExistingNode(existingRisks, trimmed);
 
       if (existing) {
@@ -416,10 +379,7 @@ export async function syncFactsToSemanticGraph(
             scope_id: scopeId,
             type: "risk",
             content: trimmed,
-            ...(hasValidTime && {
-              valid_from: validFrom ?? null,
-              valid_to: validTo ?? null,
-            }),
+            ...(hasValidTime && { valid_from: validFrom ?? null, valid_to: validTo ?? null }),
             status: "active",
             metadata: { severity: "high" },
             source_ref: { source: "facts" },
@@ -442,11 +402,7 @@ export async function syncFactsToSemanticGraph(
     const STALEABLE_STATUSES = new Set(["active"]);
     const PROTECTED_CREATORS = new Set(["resolution"]);
     for (const node of existingClaims) {
-      if (
-        !matchedClaimIds.has(node.node_id) &&
-        STALEABLE_STATUSES.has(node.status) &&
-        !PROTECTED_CREATORS.has(node.created_by ?? "")
-      ) {
+      if (!matchedClaimIds.has(node.node_id) && STALEABLE_STATUSES.has(node.status) && !PROTECTED_CREATORS.has(node.created_by ?? "")) {
         await updateNodeStatus(node.node_id, "irrelevant", client);
         nodesStaled++;
       }
@@ -456,12 +412,7 @@ export async function syncFactsToSemanticGraph(
 
     // --- Contradictions: create nodes AND edges ---
     // Load existing contradiction nodes to avoid duplicates
-    const existingContras = await queryNodesByCreator(
-      scopeId,
-      FACTS_SYNC_SOURCE,
-      "contradiction",
-      client,
-    );
+    const existingContras = await queryNodesByCreator(scopeId, FACTS_SYNC_SOURCE, "contradiction", client);
     const matchedContraIds = new Set<string>();
 
     // Load resolved contradictions to skip re-creating them
@@ -473,9 +424,7 @@ export async function syncFactsToSemanticGraph(
         [scopeId],
       );
       resolvedContents = new Set(
-        resolvedContras.rows.map((r: { content: string }) =>
-          r.content.toLowerCase().trim(),
-        ),
+        resolvedContras.rows.map((r: { content: string }) => r.content.toLowerCase().trim()),
       );
     } catch {
       // resolved query may fail in tests or if schema differs
@@ -494,13 +443,9 @@ export async function syncFactsToSemanticGraph(
         const lowerStr = str.trim().toLowerCase();
         matchesResolved = resolvedContents.has(lowerStr);
         if (!matchesResolved) {
-          const newWords = new Set(
-            lowerStr.split(/\s+/).filter((w) => w.length > 3),
-          );
+          const newWords = new Set(lowerStr.split(/\s+/).filter((w) => w.length > 3));
           for (const resolved of resolvedContents) {
-            const resWords = new Set(
-              resolved.split(/\s+/).filter((w: string) => w.length > 3),
-            );
+            const resWords = new Set(resolved.split(/\s+/).filter((w: string) => w.length > 3));
             let overlap = 0;
             for (const w of newWords) if (resWords.has(w)) overlap++;
             if (newWords.size > 0 && overlap / newWords.size >= 0.5) {
@@ -530,35 +475,41 @@ export async function syncFactsToSemanticGraph(
             status: "active",
             source_ref: { source: "facts" },
             created_by: FACTS_SYNC_SOURCE,
-            ...(hasValidTime && {
-              valid_from: validFrom ?? null,
-              valid_to: validTo ?? null,
-            }),
+            ...(hasValidTime && { valid_from: validFrom ?? null, valid_to: validTo ?? null }),
           },
           client,
         );
         nodesCreated++;
       }
 
-      // Try to create edge between the conflicting claims
+      // Link contradiction node to related claims (Studio graph topology).
+      let linkedClaimIds: string[] = [];
       const pair = parseNliContradiction(str);
-      if (!pair) continue;
-      const [a, b] = pair;
-      const sourceId = findClaimNodeId(claimContentToNodeId, a);
-      const targetId = findClaimNodeId(claimContentToNodeId, b);
-      if (sourceId && targetId && sourceId !== targetId) {
-        const resolved = await hasResolvingEdge(
-          scopeId,
-          sourceId,
-          targetId,
-          client,
+      if (pair) {
+        const aId = findClaimNodeId(claimContentToNodeId, pair[0]);
+        const bId = findClaimNodeId(claimContentToNodeId, pair[1]);
+        if (aId) linkedClaimIds.push(aId);
+        if (bId && bId !== aId) linkedClaimIds.push(bId);
+      }
+      if (linkedClaimIds.length === 0) {
+        linkedClaimIds = findRelatedNodeIds(
+          [...claimContentToNodeId.entries()].map(([content, id]) => ({
+            id,
+            type: "claim",
+            content,
+          })),
+          str,
+          2,
+          0.2,
         );
-        if (!resolved) {
+      }
+      if (contraNodeId && linkedClaimIds.length) {
+        for (const claimId of linkedClaimIds) {
           await appendEdge(
             {
               scope_id: scopeId,
-              source_id: sourceId,
-              target_id: targetId,
+              source_id: contraNodeId,
+              target_id: claimId,
               edge_type: "contradicts",
               weight: 1,
               metadata: { raw: str },
@@ -571,64 +522,76 @@ export async function syncFactsToSemanticGraph(
             client,
           );
           edgesCreated++;
-
-          // Store structural claim link on the contradiction node
-          if (contraNodeId) {
-            await client.query(
-              `UPDATE nodes SET metadata = metadata || $2::jsonb, updated_at = now()
-               WHERE node_id = $1`,
-              [
-                contraNodeId,
-                JSON.stringify({
-                  claim_source_id: sourceId,
-                  claim_target_id: targetId,
-                }),
-              ],
-            );
-          }
         }
+        await client.query(
+          `UPDATE nodes SET metadata = COALESCE(metadata, '{}'::jsonb) || $2::jsonb, updated_at = now()
+           WHERE node_id = $1`,
+          [
+            contraNodeId,
+            JSON.stringify({
+              claim_source_id: linkedClaimIds[0],
+              ...(linkedClaimIds[1]
+                ? { claim_target_id: linkedClaimIds[1] }
+                : {}),
+            }),
+          ],
+        );
       }
     }
 
     // Contradictions: skip stale marking — contradictions accumulate across extractions
     // and should only be resolved via the resolution flow (HITL, resolver agent, or MCP).
     // Staling contradictions caused them to disappear before the user could address them.
-  });
 
-  if (opts?.docTitle && claimContentToNodeId.size > 0) {
-    const docTitle = opts.docTitle.trim();
-    await runInTransaction(async (client) => {
-      const claimIds = [...new Set(claimContentToNodeId.values())];
-      const docNodeId = await appendNode(
-        {
-          scope_id: scopeId,
-          type: "doc",
-          content: docTitle,
-          status: "active",
-          source_ref: { source: "context_doc" },
-          created_by: FACTS_SYNC_SOURCE,
-          metadata: { claim_ids: claimIds },
-        },
-        client,
+    if (opts?.docTitle?.trim()) {
+      const title = opts.docTitle.trim();
+      const claimIds = [...claimContentToNodeId.values()];
+      const docMeta: Record<string, unknown> = { claim_ids: claimIds };
+      if (typeof opts.contextSeq === "number") {
+        docMeta.context_seq = opts.contextSeq;
+      }
+      const existingDocRes = await client.query(
+        `SELECT node_id, content FROM nodes
+         WHERE scope_id = $1 AND type = 'doc' AND superseded_at IS NULL AND status = 'active'`,
+        [scopeId],
       );
-      nodesCreated++;
-      for (const claimId of claimIds) {
-        await appendEdge(
+      const normTitle = title.trim().toLowerCase().replace(/\.[^.]+$/i, "");
+      const existing = (
+        existingDocRes.rows as Array<{ node_id: string; content: string }>
+      ).find(
+        (r) =>
+          String(r.content).trim().toLowerCase().replace(/\.[^.]+$/i, "") ===
+          normTitle,
+      );
+      if (existing) {
+        await client.query(
+          `UPDATE nodes SET metadata = COALESCE(metadata, '{}'::jsonb) || $2::jsonb, updated_at = now()
+           WHERE node_id = $1`,
+          [existing.node_id, JSON.stringify(docMeta)],
+        );
+        nodesUpdated++;
+      } else {
+        await appendNode(
           {
             scope_id: scopeId,
-            source_id: docNodeId,
-            target_id: claimId,
-            edge_type: "refers",
-            weight: 1,
-            metadata: { doc: docTitle },
+            type: "doc",
+            content: title,
+            status: "active",
+            metadata: docMeta,
+            source_ref: {
+              source: "facts",
+              ...(typeof opts.contextSeq === "number"
+                ? { context_seq: opts.contextSeq }
+                : {}),
+            },
             created_by: FACTS_SYNC_SOURCE,
           },
           client,
         );
-        edgesCreated++;
+        nodesCreated++;
       }
-    });
-  }
+    }
+  });
 
   if (opts?.embedClaims && nodesCreated > 0) {
     const { embedAndPersistNode } = await import("./embeddingPipeline.js");
@@ -637,10 +600,7 @@ export async function syncFactsToSemanticGraph(
       try {
         await embedAndPersistNode(nodeId, scopeId, content);
       } catch (e) {
-        logger.warn("facts-sync: embed claim failed", {
-          nodeId,
-          error: String(e),
-        });
+        logger.warn("facts-sync: embed claim failed", { nodeId, error: String(e) });
       }
     }
   }
@@ -651,6 +611,96 @@ export async function syncFactsToSemanticGraph(
     nodesUpdated,
     nodesStaled,
     edgesCreated,
+    equivalenceCandidates: equivalenceCandidates.length,
   });
-  return { nodesCreated, edgesCreated, nodesUpdated, nodesStaled };
+  return {
+    nodesCreated,
+    edgesCreated,
+    nodesUpdated,
+    nodesStaled,
+    claimNodeIds: [...claimContentToNodeId.values()],
+    equivalenceCandidates,
+  };
+}
+
+export type ContextDocMarker = { title: string; contextSeq: number };
+
+function normalizeDocTitleForStorage(title: string): string {
+  return title.trim().toLowerCase().replace(/\.[^.]+$/i, "");
+}
+
+async function upsertDocMarker(
+  scopeId: string,
+  title: string,
+  contextSeq: number,
+  claimIds: string[],
+  client: import("pg").PoolClient,
+): Promise<void> {
+  const trimmed = title.trim();
+  if (!trimmed) return;
+  const docMeta: Record<string, unknown> = {
+    context_seq: contextSeq,
+    analyzed_at: new Date().toISOString(),
+  };
+  if (claimIds.length) docMeta.claim_ids = claimIds;
+
+  const existingDocRes = await client.query(
+    `SELECT node_id, content FROM nodes
+     WHERE scope_id = $1 AND type = 'doc' AND superseded_at IS NULL AND status = 'active'`,
+    [scopeId],
+  );
+  const normTitle = normalizeDocTitleForStorage(trimmed);
+  const existing = (
+    existingDocRes.rows as Array<{ node_id: string; content: string }>
+  ).find(
+    (r) => normalizeDocTitleForStorage(String(r.content || "")) === normTitle,
+  );
+  if (existing) {
+    await client.query(
+      `UPDATE nodes SET metadata = COALESCE(metadata, '{}'::jsonb) || $2::jsonb, updated_at = now()
+       WHERE node_id = $1`,
+      [existing.node_id, JSON.stringify(docMeta)],
+    );
+    return;
+  }
+  await appendNode(
+    {
+      scope_id: scopeId,
+      type: "doc",
+      content: trimmed,
+      status: "active",
+      metadata: docMeta,
+      source_ref: { source: "facts", context_seq: contextSeq },
+      created_by: FACTS_SYNC_SOURCE,
+    },
+    client,
+  );
+}
+
+/** Mark WAL context_doc rows as analyzed (Studio document progress). */
+export async function markContextDocsAnalyzed(
+  scopeId: string,
+  docs: ContextDocMarker[],
+  claimIds: string[] = [],
+  opts?: { claimContextSeq?: number; attachClaimsToAll?: boolean },
+): Promise<void> {
+  if (!docs.length) return;
+  await runInTransaction(async (client) => {
+    for (const doc of docs) {
+      const attachClaims = opts?.attachClaimsToAll
+        ? claimIds
+        : opts?.claimContextSeq != null
+          ? opts.claimContextSeq === doc.contextSeq
+            ? claimIds
+            : []
+          : claimIds;
+      await upsertDocMarker(
+        scopeId,
+        doc.title,
+        doc.contextSeq,
+        attachClaims,
+        client,
+      );
+    }
+  });
 }

@@ -9,6 +9,7 @@ import type { S3Client } from "@aws-sdk/client-s3";
 import { getPool } from "./db.js";
 import { tailEvents, getLatestPipelineWalSeqForFacts } from "./contextWal.js";
 import { s3GetText, s3PutJson } from "./s3.js";
+import { resolveScopedFieldKey } from "./scopeStorage.js";
 
 export type FilterType =
   | "hash_delta"
@@ -351,6 +352,7 @@ async function readHashFromS3(
 export interface FilterContext {
   s3: S3Client;
   bucket: string;
+  scopeId: string;
 }
 
 /**
@@ -389,6 +391,7 @@ export async function checkFilter(
     }
     case "hash_delta": {
       const field = (config.params.field as string) ?? "facts/latest.json";
+      const scopedField = resolveScopedFieldKey(ctx.scopeId, field);
       const lastHash = field.includes("drift")
         ? memory.lastDriftHash
         : memory.lastHash;
@@ -401,35 +404,35 @@ export async function checkFilter(
         return {
           shouldActivate: false,
           reason: `cooldown (${now - memory.lastActivatedAt}ms < ${cooldownMs}ms)`,
-          context: { field },
+          context: { field: scopedField },
         };
       }
 
       // Also skip S3 read if we fetched recently and hash was unchanged (cache for half the cooldown)
-      const cacheKey = `_hashReadAt_${field}`;
+      const cacheKey = `_hashReadAt_${ctx.scopeId}_${field}`;
       const lastReadAt = (memory.data[cacheKey] as number) ?? 0;
       const cacheTtlMs = cooldownMs / 2;
       if (lastReadAt > 0 && now - lastReadAt < cacheTtlMs) {
         return {
           shouldActivate: false,
-          reason: `hash_cached (field=${field}, age=${now - lastReadAt}ms < ${cacheTtlMs}ms)`,
-          context: { field },
+          reason: `hash_cached (field=${scopedField}, age=${now - lastReadAt}ms < ${cacheTtlMs}ms)`,
+          context: { field: scopedField },
         };
       }
 
-      const currentHash = await readHashFromS3(ctx.s3, ctx.bucket, field);
+      const currentHash = await readHashFromS3(ctx.s3, ctx.bucket, scopedField);
       memory.data[cacheKey] = now;
       const changed = currentHash !== null && currentHash !== lastHash;
       const shouldActivate = changed;
       const reason = shouldActivate
         ? "activated"
         : currentHash === null
-          ? `hash_missing (field=${field})`
-          : `hash_unchanged (field=${field})`;
+          ? `hash_missing (field=${scopedField})`
+          : `hash_unchanged (field=${scopedField})`;
       return {
         shouldActivate,
         reason,
-        context: { currentHash, previousHash: lastHash, field },
+        context: { currentHash, previousHash: lastHash, field: scopedField },
       };
     }
     case "timer": {

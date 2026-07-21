@@ -215,8 +215,30 @@ export class AgentHatchery {
     return this.config.scopeId;
   }
 
+  /** Switch active scope immediately (before worker recycle). */
+  applyActiveScope(scopeId: string, tenantId?: string | null): void {
+    this.config.scopeId = scopeId;
+    if (tenantId !== undefined) this.config.tenantId = tenantId ?? null;
+    setActiveBillingContext(this.config.tenantId ?? null, scopeId);
+  }
+
   /**
-   * Drain all agents, set new scope (+ optional tenant), respawn minimum instances.
+   * Drain workers in parallel and respawn minimums for the current scope.
+   */
+  private async recycleAgentsForScope(): Promise<void> {
+    const alive = [...this.agents.values()].filter((t) => t.state === "alive");
+    await Promise.all(alive.map((t) => this.drainAgent(t.id)));
+    if (this.paused || this.shuttingDown) return;
+    for (const [role, roleConfig] of Object.entries(this.config.roles)) {
+      for (let i = 0; i < roleConfig.minInstances; i++) {
+        await this.spawnAgent(role);
+      }
+    }
+  }
+
+  /**
+   * Bind hatchery to a scope. Scope/billing context switches first so new work
+   * targets the new scope even while old agents drain.
    */
   async rebindActiveScope(
     scopeId: string,
@@ -227,18 +249,30 @@ export class AgentHatchery {
       from: this.config.scopeId,
       to: scopeId,
     });
-    for (const t of this.agents.values()) {
-      if (t.state === "alive") await this.drainAgent(t.id);
-    }
-    this.config.scopeId = scopeId;
-    if (tenantId !== undefined) this.config.tenantId = tenantId ?? null;
-    setActiveBillingContext(this.config.tenantId ?? null, scopeId);
-    if (this.paused) return;
-    for (const [role, roleConfig] of Object.entries(this.config.roles)) {
-      for (let i = 0; i < roleConfig.minInstances; i++) {
-        await this.spawnAgent(role);
-      }
-    }
+    this.applyActiveScope(scopeId, tenantId);
+    await this.recycleAgentsForScope();
+  }
+
+  /**
+   * Switch scope immediately and recycle workers in the background.
+   * Used by NATS runtime control so feed load-corpus is not blocked on drains.
+   */
+  scheduleRebindActiveScope(
+    scopeId: string,
+    tenantId?: string | null,
+  ): void {
+    if (this.shuttingDown) return;
+    logger.info("hatchery schedule rebind scope", {
+      from: this.config.scopeId,
+      to: scopeId,
+    });
+    this.applyActiveScope(scopeId, tenantId);
+    void this.recycleAgentsForScope().catch((e) => {
+      logger.warn("hatchery background rebind failed", {
+        scopeId,
+        error: toErrorString(e),
+      });
+    });
   }
 
   /** Pause: drain all workers and block respawn until resume. */

@@ -1,0 +1,8 @@
+ACME WIDGETS — OPERATING METRICS (Q1 2025)
+
+Internal forecast deck cites revenue run-rate of EUR 13.2M.
+The company overview (FY2024) reported EUR 12M annual revenue.
+
+Claim: Q1 pipeline supports roughly 10% year-over-year growth.
+Contradiction: Annual revenue (EUR 12M) vs run-rate (EUR 13.2M) — clarify whether figures are annualized or trailing.
+Goal: Reconcile the revenue baseline before closing the onboarding checklist.

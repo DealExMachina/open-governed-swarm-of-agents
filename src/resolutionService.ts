@@ -22,6 +22,7 @@ import {
 } from "./semanticGraph.js";
 import { s3PutJson, s3GetText } from "./s3.js";
 import { logger } from "./logger.js";
+import { scopeResolutionsKey } from "./scopeStorage.js";
 import {
   getChatModelConfig,
   REASONING_SETTINGS,
@@ -227,7 +228,7 @@ async function markContradictionResolved(
         judgment: string;
         reason: string;
       }> = [];
-      const raw = await s3GetText(s3, bucket, "resolutions/latest.json");
+      const raw = await s3GetText(s3, bucket, scopeResolutionsKey(scopeId));
       if (raw) {
         const parsed = JSON.parse(raw) as {
           resolved_contradictions?: Array<{
@@ -241,7 +242,7 @@ async function markContradictionResolved(
       if (!existing.some((r) => r.content === content)) {
         existing.push({ content, judgment, reason });
       }
-      await s3PutJson(s3, bucket, "resolutions/latest.json", {
+      await s3PutJson(s3, bucket, scopeResolutionsKey(scopeId), {
         resolved_contradictions: existing,
         updated_at: new Date().toISOString(),
       });

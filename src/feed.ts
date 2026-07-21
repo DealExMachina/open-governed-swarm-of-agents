@@ -4,20 +4,22 @@
  */
 
 import "dotenv/config";
+import { randomUUID } from "crypto";
 import { createServer, type IncomingMessage, type ServerResponse } from "http";
 import { readFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath, pathToFileURL } from "url";
 import { makeEventBus, type EventBus } from "./eventBus.js";
 import type { PushSubscription } from "./eventBus.js";
-import { appendEvent } from "./contextWal.js";
+import { appendEvent, scopeIdFromEventData, tailEvents } from "./contextWal.js";
 import { createSwarmEvent } from "./events.js";
-import { loadState } from "./stateGraph.js";
-import { tailEvents } from "./contextWal.js";
+import { initState, loadState } from "./stateGraph.js";
 import { makeS3 } from "./s3.js";
 import { s3GetText } from "./s3.js";
 import { toErrorString } from "./errors.js";
 import { getPool } from "./db.js";
+import { requestRuntimeControl } from "./runtimeControlRpc.js";
+import { buildFinalizationReport } from "./finalizationReport.js";
 import {
   loadPolicies,
   getGovernanceForScope,
@@ -28,6 +30,7 @@ import {
   computeGoalScoreForScope,
   loadFinalityConfig,
   loadFinalitySnapshot,
+  scopeHasFinalityContent,
 } from "./finalityEvaluator.js";
 import {
   getConvergenceState,
@@ -38,6 +41,7 @@ import {
   getStudioGraphElements,
   appendResolutionGoal,
   loadAllContradictionsWithResolutions,
+  getKnowledgeState,
 } from "./semanticGraph.js";
 import {
   listStudioCatalogScopes,
@@ -45,6 +49,15 @@ import {
   scopeIsKnown,
 } from "./studioCatalog.js";
 import { loadCorpusDocuments, listStudioCorpora } from "./studioCorpora.js";
+import { resetScopeAndReinit } from "./scopeReset.js";
+import { reinitAllScenarioScopes } from "./studioScopeReinit.js";
+import {
+  scopeDriftKey,
+  scopeFactsKey,
+  scopeStoragePrefix,
+} from "./scopeStorage.js";
+import { resolveUploadDocumentBody } from "./documentExtract.js";
+import { listScopeDocumentProgress } from "./studioDocumentProgress.js";
 import {
   getLatestFinalityDecision,
   getAllFinalityDecisions,
@@ -56,6 +69,41 @@ import {
 import { getLatestCertificate } from "./finalityCertificates.js";
 import { requireBearer } from "./auth.js";
 import { getHatcheryInstance } from "./hatchery.js";
+/**
+ * Bind hatchery (in-process or via NATS RPC) to scope before ingesting docs.
+ * Also ensures swarm_state exists for the scope.
+ */
+async function ensureHatcheryBoundToScope(
+  scopeId: string,
+): Promise<{ ok: true } | { ok: false; error: string; detail?: string }> {
+  try {
+    await initState(scopeId, randomUUID());
+  } catch (e) {
+    return { ok: false, error: "swarm_state_init_failed", detail: toErrorString(e) };
+  }
+  const hatchery = getHatcheryInstance();
+  if (hatchery) {
+    try {
+      await hatchery.rebindActiveScope(scopeId, null);
+      return { ok: true };
+    } catch (e) {
+      return { ok: false, error: "hatchery_rebind_failed", detail: toErrorString(e) };
+    }
+  }
+  const rpc = await requestRuntimeControl({
+    action: "start",
+    scope_id: scopeId,
+    tenant_id: null,
+  });
+  if (!rpc.ok) {
+    return {
+      ok: false,
+      error: "runtime_rpc_unavailable",
+      detail: rpc.error ?? "unknown_error",
+    };
+  }
+  return { ok: true };
+}
 
 // ── Persistent EventBus singleton ────────────────────────────────────────────
 // Reused across all requests (avoids creating/destroying NATS connections per POST).
@@ -239,6 +287,16 @@ async function handleAddResolution(
       });
       return;
     }
+    const bound = await ensureHatcheryBoundToScope(scopeId);
+    if (!bound.ok) {
+      sendJson(res, 503, {
+        error: bound.error,
+        detail: bound.detail,
+        scope_id: scopeId,
+      });
+      return;
+    }
+
     const decision =
       typeof body.decision === "string"
         ? body.decision
@@ -459,13 +517,33 @@ export async function buildScopeSummaryForScope(
 ): Promise<Record<string, unknown>> {
   const state = await loadState(scopeId);
   const recent = await tailEvents(20);
+  const knowledge = await getKnowledgeState(scopeId).catch(() => null);
+  const knowledgeCount = knowledge
+    ? knowledge.counts.claims +
+      knowledge.counts.goals +
+      knowledge.counts.contradictions +
+      knowledge.counts.risks
+    : 0;
+
   let facts: Record<string, unknown> | null = null;
   let drift: Record<string, unknown> | null = null;
-  if (S3_BUCKET) {
+
+  if (knowledge && knowledgeCount > 0) {
+    facts = {
+      goals: knowledge.goals,
+      claims: knowledge.claims,
+      risks: knowledge.risks,
+      contradictions: knowledge.contradictions,
+      assumptions: [],
+      confidence: null,
+      hash: null,
+      keys: [],
+    };
+  } else if (S3_BUCKET) {
     try {
       const s3 = makeS3();
-      const factsRaw = await s3GetText(s3, S3_BUCKET, "facts/latest.json");
-      const driftRaw = await s3GetText(s3, S3_BUCKET, "drift/latest.json");
+      const factsRaw = await s3GetText(s3, S3_BUCKET, scopeFactsKey(scopeId));
+      const driftRaw = await s3GetText(s3, S3_BUCKET, scopeDriftKey(scopeId));
       if (factsRaw) facts = JSON.parse(factsRaw) as Record<string, unknown>;
       if (driftRaw) drift = JSON.parse(driftRaw) as Record<string, unknown>;
     } catch {
@@ -539,6 +617,7 @@ export async function buildScopeSummaryForScope(
           "resolution",
         ].includes((e.data as { type?: string })?.type ?? ""),
       )
+      .filter((e) => scopeIdFromEventData(e.data) === scopeId)
       .slice(-10)
       .map((e) => ({
         seq: e.seq,
@@ -620,7 +699,7 @@ export async function buildScopeSummaryForScope(
         }
         try {
           const cert = await getLatestCertificate(scopeId);
-          if (cert) {
+          if (cert && status === "RESOLVED") {
             finality_certificate = {
               decision: cert.payload.decision,
               timestamp: cert.payload.timestamp,
@@ -630,6 +709,33 @@ export async function buildScopeSummaryForScope(
         } catch {
           // table may not exist
         }
+        const dimensions = await (async () => {
+          try {
+            const snap = await loadFinalitySnapshot(scopeId);
+            const hasContent = await scopeHasFinalityContent(scopeId, snap);
+            if (!hasContent) {
+              return {
+                claim_avg_confidence: 0,
+                contradiction_resolution_ratio: 0,
+                goal_completion_ratio: 0,
+                risk_score_inverse: 0,
+              };
+            }
+            const contraTotal = snap.contradictions_total_count || 0;
+            const contraResolved =
+              contraTotal === 0
+                ? 1
+                : 1 - snap.contradictions_unresolved_count / contraTotal;
+            return {
+              claim_avg_confidence: snap.claims_active_avg_confidence,
+              contradiction_resolution_ratio: contraResolved,
+              goal_completion_ratio: snap.goals_completion_ratio,
+              risk_score_inverse: 1 - Math.min(snap.scope_risk_score, 1),
+            };
+          } catch {
+            return null;
+          }
+        })();
         return {
           goal_score: Math.round(goal_score * 100) / 100,
           status,
@@ -645,25 +751,35 @@ export async function buildScopeSummaryForScope(
           policy_version: policy_version ?? undefined,
           finality_certificate: finality_certificate ?? undefined,
           convergence,
-          dimensions: await (async () => {
-            try {
-              const snap = await loadFinalitySnapshot(scopeId);
-              const contraTotal = snap.contradictions_total_count || 0;
-              const contraResolved =
-                contraTotal === 0
-                  ? 1
-                  : 1 - snap.contradictions_unresolved_count / contraTotal;
-              return {
-                claim_avg_confidence: snap.claims_active_avg_confidence,
-                contradiction_resolution_ratio: contraResolved,
-                goal_completion_ratio: snap.goals_completion_ratio,
-                risk_score_inverse: 1 - Math.min(snap.scope_risk_score, 1),
-              };
-            } catch {
-              return null;
-            }
-          })(),
+          dimensions,
         };
+      } catch {
+        return null;
+      }
+    })(),
+    finalization_report: await (async () => {
+      try {
+        const hasContent = await scopeHasFinalityContent(scopeId);
+        if (!hasContent) return null;
+        const config = loadFinalityConfig();
+        const near = config.goal_gradient?.near_finality_threshold ?? 0.75;
+        const goal_score = await computeGoalScoreForScope(scopeId);
+        const result = await evaluateFinality(scopeId);
+        const status =
+          result?.kind === "status"
+            ? result.status
+            : result?.kind === "review"
+              ? "near_finality"
+              : "ACTIVE";
+        const showReport =
+          status === "RESOLVED" ||
+          status === "near_finality" ||
+          status === "ESCALATED" ||
+          goal_score >= near;
+        if (!showReport) return null;
+        const reportStatus =
+          status === "ACTIVE" && goal_score >= near ? "near_finality" : status;
+        return await buildFinalizationReport(scopeId, { status: reportStatus });
       } catch {
         return null;
       }
@@ -889,6 +1005,11 @@ async function handleStudioScopeCreate(
       return;
     }
     const scope = await createStudioCatalogScope({ id, name, tag });
+    try {
+      await initState(id, randomUUID());
+    } catch {
+      // catalog created; state init best-effort
+    }
     sendJson(res, 201, { scope });
   } catch (e) {
     sendJson(res, 500, { error: toErrorString(e) });
@@ -909,6 +1030,61 @@ async function ingestContextDoc(
   const bus = await getFeedBus();
   await bus.publishEvent(event);
   return seq;
+}
+
+/** List context_doc events ingested for one studio scope (from WAL). */
+async function listScopeContextDocs(
+  scopeId: string,
+  limit: number = 50,
+): Promise<
+  Array<{ seq: number; title: string; ingested_at: string; source: string }>
+> {
+  const pool = getPool();
+  const res = await pool.query(
+    `SELECT seq, ts, data
+     FROM context_events
+     WHERE data->>'type' = 'context_doc'
+       AND COALESCE(data->'payload'->>'scope_id', data->>'scope_id') = $1
+     ORDER BY seq DESC
+     LIMIT $2`,
+    [scopeId, limit],
+  );
+  return res.rows.map((row) => {
+    const data = row.data as Record<string, unknown>;
+    const payload = (data.payload as Record<string, unknown>) ?? {};
+    const title =
+      typeof payload.title === "string" ? payload.title : "document";
+    const source =
+      typeof payload.source === "string" ? payload.source : "studio";
+    const ts = row.ts instanceof Date ? row.ts.toISOString() : String(row.ts);
+    return {
+      seq: Number(row.seq),
+      title,
+      ingested_at: ts,
+      source,
+    };
+  });
+}
+
+async function handleStudioListDocs(
+  _req: IncomingMessage,
+  res: ServerResponse,
+  scopeId: string,
+): Promise<void> {
+  const valid = await validateScopeAccess(scopeId);
+  if (!valid.ok) {
+    sendJson(res, valid.status, {
+      error: valid.error,
+      runtime_scope_id: RUNTIME_SCOPE_ID,
+    });
+    return;
+  }
+  try {
+    const { documents, progress } = await listScopeDocumentProgress(scopeId);
+    sendJson(res, 200, { scope_id: scopeId, documents, progress });
+  } catch (e) {
+    sendJson(res, 500, { error: toErrorString(e) });
+  }
 }
 
 async function handleStudioLoadCorpus(
@@ -942,14 +1118,20 @@ async function handleStudioLoadCorpus(
       sendJson(res, 404, { error: "corpus_not_found", corpus });
       return;
     }
+    // Rebind before ingest so events are processed into this scope.
+    const bound = await ensureHatcheryBoundToScope(scopeId);
+    if (!bound.ok) {
+      sendJson(res, 503, {
+        error: bound.error,
+        detail: bound.detail,
+        scope_id: scopeId,
+      });
+      return;
+    }
     const fed: Array<{ title: string; seq: number }> = [];
     for (const doc of docs) {
       const seq = await ingestContextDoc(scopeId, doc.title, doc.body);
       fed.push({ title: doc.title, seq });
-    }
-    const hatchery = getHatcheryInstance();
-    if (hatchery) {
-      await hatchery.rebindActiveScope(scopeId, null);
     }
     sendJson(res, 200, {
       ok: true,
@@ -957,6 +1139,7 @@ async function handleStudioLoadCorpus(
       corpus,
       fed: fed.length,
       documents: fed,
+      hatchery_bound: true,
     });
   } catch (e) {
     sendJson(res, 500, { error: toErrorString(e) });
@@ -983,30 +1166,124 @@ async function handleStudioUploadDocs(
       sendJson(res, 400, { error: "documents_required" });
       return;
     }
-    const fed: Array<{ title: string; seq: number }> = [];
+    const bound = await ensureHatcheryBoundToScope(scopeId);
+    if (!bound.ok) {
+      sendJson(res, 503, {
+        error: bound.error,
+        detail: bound.detail,
+        scope_id: scopeId,
+      });
+      return;
+    }
+    const fed: Array<{ title: string; seq: number; format?: string }> = [];
+    const skipped: Array<{ title: string; reason: string }> = [];
     for (const raw of docs) {
       const row = raw as Record<string, unknown>;
       const title = typeof row.title === "string" ? row.title : "doc";
-      const text =
-        typeof row.body === "string"
-          ? row.body
-          : typeof row.text === "string"
-            ? row.text
-            : "";
-      if (!text.trim()) continue;
+      let text = "";
+      try {
+        text = await resolveUploadDocumentBody(row, title);
+      } catch (e) {
+        skipped.push({
+          title,
+          reason: toErrorString(e),
+        });
+        continue;
+      }
+      if (!text.trim()) {
+        skipped.push({ title, reason: "empty_document" });
+        continue;
+      }
       const seq = await ingestContextDoc(scopeId, title, text);
-      fed.push({ title, seq });
+      fed.push({
+        title,
+        seq,
+        format:
+          typeof row.filename === "string"
+            ? row.filename.split(".").pop()?.toLowerCase()
+            : undefined,
+      });
     }
-    const hatchery = getHatcheryInstance();
-    if (hatchery) {
-      await hatchery.rebindActiveScope(scopeId, null);
+    if (fed.length === 0) {
+      sendJson(res, 400, {
+        error: "no_ingestible_documents",
+        skipped,
+      });
+      return;
     }
     sendJson(res, 200, {
       ok: true,
       scope_id: scopeId,
       fed: fed.length,
       documents: fed,
+      skipped: skipped.length ? skipped : undefined,
+      hatchery_bound: true,
     });
+  } catch (e) {
+    sendJson(res, 500, { error: toErrorString(e) });
+  }
+}
+
+/** POST /studio/scopes/:id/activate — bind hatchery to this scope (no ingest). */
+async function handleStudioActivate(
+  req: IncomingMessage,
+  res: ServerResponse,
+  scopeId: string,
+): Promise<void> {
+  const valid = await validateScopeAccess(scopeId);
+  if (!valid.ok) {
+    sendJson(res, valid.status, {
+      error: valid.error,
+      runtime_scope_id: RUNTIME_SCOPE_ID,
+    });
+    return;
+  }
+  const bound = await ensureHatcheryBoundToScope(scopeId);
+  if (!bound.ok) {
+    sendJson(res, 503, {
+      error: bound.error,
+      detail: bound.detail,
+      scope_id: scopeId,
+    });
+    return;
+  }
+  sendJson(res, 200, { ok: true, scope_id: scopeId, hatchery_bound: true });
+}
+
+/** POST /studio/scopes/:id/reset — wipe graph + reinit catalog badge and swarm_state. */
+async function handleStudioReset(
+  req: IncomingMessage,
+  res: ServerResponse,
+  scopeId: string,
+): Promise<void> {
+  const valid = await validateScopeAccess(scopeId);
+  if (!valid.ok) {
+    sendJson(res, valid.status, {
+      error: valid.error,
+      runtime_scope_id: RUNTIME_SCOPE_ID,
+    });
+    return;
+  }
+  try {
+    await resetScopeAndReinit(getPool(), scopeId, {
+      s3: S3_BUCKET ? makeS3() : undefined,
+      bucket: S3_BUCKET ?? undefined,
+      storagePrefix: scopeStoragePrefix(scopeId),
+    });
+    sendJson(res, 200, { ok: true, scope_id: scopeId });
+  } catch (e) {
+    sendJson(res, 500, { error: toErrorString(e) });
+  }
+}
+
+/** POST /studio/scopes/reset-all — wipe ephemeral + reinit all scenario catalog scopes. */
+async function handleStudioResetAll(
+  _req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  try {
+    const result = await reinitAllScenarioScopes(getPool());
+    sendJson(res, 200, { ok: true, ...result });
   } catch (e) {
     sendJson(res, 500, { error: toErrorString(e) });
   }
@@ -1061,8 +1338,38 @@ async function main(): Promise<void> {
         ) {
           const parts = pathname.split("/").filter(Boolean);
           const scopeId = parts[2] ?? "";
+          if (req.method === "GET") {
+            await handleStudioListDocs(req, res, scopeId);
+            return;
+          }
           if (req.method === "POST") {
             await handleStudioUploadDocs(req, res, scopeId);
+            return;
+          }
+        }
+        if (
+          pathname.startsWith("/studio/scopes/") &&
+          pathname.endsWith("/activate")
+        ) {
+          const parts = pathname.split("/").filter(Boolean);
+          const scopeId = parts[2] ?? "";
+          if (req.method === "POST") {
+            await handleStudioActivate(req, res, scopeId);
+            return;
+          }
+        }
+        if (req.method === "POST" && pathname === "/studio/scopes/reset-all") {
+          await handleStudioResetAll(req, res);
+          return;
+        }
+        if (
+          pathname.startsWith("/studio/scopes/") &&
+          pathname.endsWith("/reset")
+        ) {
+          const parts = pathname.split("/").filter(Boolean);
+          const scopeId = parts[2] ?? "";
+          if (req.method === "POST") {
+            await handleStudioReset(req, res, scopeId);
             return;
           }
         }

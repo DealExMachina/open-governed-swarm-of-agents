@@ -10,6 +10,10 @@ import {
 import { logger } from "../logger.js";
 import { s3GetText } from "../s3.js";
 import {
+  resolveStorageScopeId,
+  scopeDriftKey,
+} from "../scopeStorage.js";
+import {
   loadPolicies,
   getGovernanceForScope,
   evaluateRules,
@@ -46,8 +50,8 @@ export async function runPlannerAgent(
     setMaxListeners(64, abortController.signal);
     const timeoutId = setTimeout(() => abortController.abort(), timeoutMs);
     try {
-      const readDrift = makeReadDriftTool(s3, bucket);
-      const readFacts = makeReadFactsTool(s3, bucket);
+      const readDrift = makeReadDriftTool(s3, bucket, resolveStorageScopeId());
+      const readFacts = makeReadFactsTool(s3, bucket, resolveStorageScopeId());
       const readGovernanceRules = makeReadGovernanceRulesTool();
       const agent = new Agent({
         id: "planner-agent",
@@ -77,7 +81,8 @@ export async function runPlannerAgent(
         actions = Array.isArray(obj.actions) ? obj.actions : [];
         reasoning = String(obj.reasoning ?? "");
       }
-      const driftRaw = await s3GetText(s3, bucket, "drift/latest.json");
+      const sid = resolveStorageScopeId();
+      const driftRaw = await s3GetText(s3, bucket, scopeDriftKey(sid));
       const drift = driftRaw
         ? (JSON.parse(driftRaw) as { level: string; types: string[] })
         : { level: "none", types: [] as string[] };
@@ -124,7 +129,8 @@ export async function runPlannerAgent(
     }
   }
 
-  const driftRaw = await s3GetText(s3, bucket, "drift/latest.json");
+  const sid = resolveStorageScopeId();
+  const driftRaw = await s3GetText(s3, bucket, scopeDriftKey(sid));
   const drift = driftRaw
     ? (JSON.parse(driftRaw) as { level: string; types: string[] })
     : { level: "none", types: [] as string[] };

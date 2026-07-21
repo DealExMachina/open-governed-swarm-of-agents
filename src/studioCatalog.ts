@@ -115,3 +115,54 @@ export async function scopeIsKnown(scopeId: string): Promise<boolean> {
   if (catalog) return true;
   return scopeExistsInCpScopes(scopeId);
 }
+
+/** Reset catalog badge/score after graph wipe (best-effort if row missing). */
+export async function resetCatalogScopeState(scopeId: string): Promise<void> {
+  try {
+    await getPool().query(
+      `UPDATE studio_catalog_scopes
+       SET state = 'active', score = 0, cycles = 0, updated_at = now()
+       WHERE id = $1`,
+      [scopeId],
+    );
+  } catch {
+    /* table may not exist */
+  }
+}
+
+/** Ensure a scenario catalog row exists (idempotent). */
+export async function ensureScenarioCatalogScope(input: {
+  id: string;
+  name: string;
+  tag: string;
+}): Promise<void> {
+  await getPool().query(
+    `INSERT INTO studio_catalog_scopes (id, name, tag, state, score, cycles)
+     VALUES ($1, $2, $3, 'active', 0, 0)
+     ON CONFLICT (id) DO UPDATE SET
+       name = EXCLUDED.name,
+       tag = EXCLUDED.tag,
+       updated_at = now()`,
+    [input.id, input.name, input.tag],
+  );
+}
+
+/** Remove catalog row and all persisted scope data. */
+export async function deleteCatalogScope(scopeId: string): Promise<void> {
+  const { resetScopeData } = await import("./scopeReset.js");
+  const { makeS3 } = await import("./s3.js");
+  const { scopeStoragePrefix } = await import("./scopeStorage.js");
+  const bucket = process.env.S3_BUCKET;
+  await resetScopeData(getPool(), scopeId, {
+    s3: bucket && process.env.S3_ENDPOINT ? makeS3() : undefined,
+    bucket: bucket ?? undefined,
+    storagePrefix: scopeStoragePrefix(scopeId),
+  });
+  try {
+    await getPool().query(`DELETE FROM studio_catalog_scopes WHERE id = $1`, [
+      scopeId,
+    ]);
+  } catch {
+    /* table may not exist */
+  }
+}

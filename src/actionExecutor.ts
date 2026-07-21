@@ -5,6 +5,7 @@ import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
 import { Agent } from "@mastra/core/agent";
 import { makeS3, s3GetText } from "./s3.js";
+import { scopeDriftKey } from "./scopeStorage.js";
 import {
   advanceState,
   loadState,
@@ -99,7 +100,11 @@ function createExecutorTools(
       }),
     }),
     execute: async () => {
-      const raw = await s3GetText(s3, bucket, "drift/latest.json");
+      const scopeId =
+        (action.payload as { scope_id?: string })?.scope_id ??
+        process.env.SCOPE_ID ??
+        "default";
+      const raw = await s3GetText(s3, bucket, scopeDriftKey(scopeId));
       const drift = raw
         ? (JSON.parse(raw) as { level: string; types: string[] })
         : { level: "none", types: [] as string[] };
@@ -130,7 +135,7 @@ function createExecutorTools(
       }
       const scopeId = payload.scope_id ?? process.env.SCOPE_ID ?? "default";
       const governance = getGovernanceForScope(scopeId, loadPolicies(govPath));
-      const driftRaw = await s3GetText(s3, bucket, "drift/latest.json");
+      const driftRaw = await s3GetText(s3, bucket, scopeDriftKey(scopeId));
       const drift = driftRaw
         ? (JSON.parse(driftRaw) as { level: string; types: string[] })
         : { level: "none", types: [] as string[] };
@@ -301,7 +306,7 @@ async function executeActionInline(
     const govPath =
       process.env.GOVERNANCE_PATH ?? join(process.cwd(), "governance.yaml");
     const governance = getGovernanceForScope(scopeId, loadPolicies(govPath));
-    const driftRaw = await s3GetText(s3, bucket, "drift/latest.json");
+    const driftRaw = await s3GetText(s3, bucket, scopeDriftKey(scopeId));
     const drift = driftRaw
       ? (JSON.parse(driftRaw) as { level: string; types: string[] })
       : { level: "none", types: [] as string[] };
@@ -428,6 +433,29 @@ export async function runActionExecutor(
                 option,
                 error: String(err),
               });
+            }
+          }
+          return;
+        }
+
+        if (actionType === "assert_equivalence") {
+          if (data.result === "approved" && data.payload) {
+            try {
+              const { recordEquivalenceInGraph } = await import("./equivalenceTrace.js");
+              const p = data.payload as Record<string, unknown>;
+              await recordEquivalenceInGraph({
+                scope_id: String(p.scope_id ?? process.env.SCOPE_ID ?? "default"),
+                node_type: (p.node_type as "claim" | "goal" | "risk") ?? "claim",
+                existing_node_id: String(p.existing_node_id ?? ""),
+                a: String(p.a ?? ""),
+                b: String(p.b ?? ""),
+                nli_label: (p.nli_label as "equivalent" | "contradiction" | "neutral") ?? "neutral",
+                nli_confidence: Number(p.nli_confidence ?? 0),
+                decision_id: String(p.decision_id ?? ""),
+                policy_version: String(p.policy_version ?? ""),
+              });
+            } catch (err) {
+              logger.warn("equivalence trace failed", { proposal_id: data.proposal_id, error: String(err) });
             }
           }
           return;
