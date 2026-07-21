@@ -18,11 +18,12 @@ For the full cleanup backlog, corpus wiring matrix, and refactor phases, see **[
 
 ---
 
-## Prototype / not wired to npm scripts
+## Static UI / optional tooling
 
 | Item | Notes |
 |------|--------|
-| **`prototype/studio-preview/index.html`** | **SGRS Studio** UI (Cytoscape). Served by the feed at **`http://localhost:3002/studio`** when `pnpm run feed` is running; loads graph from **`GET /studio/elements?scope_id=`** (falls back to embedded demo graph if empty). Optional static serve: `npx serve prototype/studio-preview`. |
+| **`public/studio/`** | **SGRS Studio** UI (Cytoscape). Served by the feed at **`http://localhost:3002/studio`** when `pnpm run feed` is running; loads graph from **`GET /studio/elements?scope_id=`** (falls back to embedded demo graph if empty). Optional static serve: `npx serve public/studio`. |
+| **`public/observability.html`** | Ops dashboard at **`GET /`** on the feed. |
 | **`scripts/benchmarks/benchmark-*-agents.ts`** (LangChain, Mastra, Agentica, Gateway) | Comparative / baseline drivers; not listed in the main README script table. Safe to treat as **optional research tooling**. See [`scripts/README.md`](../scripts/README.md). |
 | **`scripts/checks/test-dashboard-*.ts`** | Dashboard quality checks exposed through `pnpm run test:dashboard:smoke` and `pnpm run test:dashboard:regression`. Useful for UI/ops regression guardrails; optional for core kernel development. |
 

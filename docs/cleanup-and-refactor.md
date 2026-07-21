@@ -35,8 +35,7 @@ The repo is a healthy research + product monorepo with clear license/package bou
 | Path | Why |
 |------|-----|
 | `Dockerfile.feed` / `Dockerfile.feed.dist` | Dev bind-mount vs CI/GHCR image — complementary, not duplicates |
-| `prototype/studio-preview/**` | Served by `src/feed.ts` at `/studio` |
-| `src/observability.html` | Served by feed dashboard |
+| `public/studio/**`, `public/observability.html` | Served by feed at `/studio` and `/` (copied into GHCR image) |
 | `seed-docs/**` | Used by `pnpm run seed:all` and E2E |
 | `sgrs-core/verify-build.cjs` | `postbuild` hook |
 | `publications/publication_1/**` | Distinct main + arXiv TeX/PDF variants |
@@ -54,7 +53,7 @@ The repo is a healthy research + product monorepo with clear license/package bou
 | Unwired corpora (`docs-ma-extended`) | Extended M&A corpus still without a driver/manifest; keep until publication confirms unused |
 | ~~Missing `docs/benchmarks/manifests/*.yaml`~~ | **done** — S1–S5 manifests shipped under [`docs/benchmarks/`](benchmarks/README.md) |
 | Missing root `skills/*.md` | Dead data path until skill markdown is added (`src/skills/loader.ts`) |
-| `Dockerfile.feed.dist` omits `prototype/` | Dist image cannot serve Studio; either copy assets or document as unsupported |
+| ~~`Dockerfile.feed.dist` omits Studio assets~~ | **done** — image copies `public/` |
 
 ---
 
@@ -67,7 +66,7 @@ The repo is a healthy research + product monorepo with clear license/package bou
 ├── packages/            # MIT clients (TS + Python)
 ├── workers/facts-worker # Python extraction / NLI
 ├── demo/                # Demo UI server + scenario corpora
-├── prototype/           # Misnamed: active Studio static assets
+├── public/              # Feed static assets (Studio + observability)
 ├── scripts/             # Taxonomized: ops / checks / demo / experiments / benchmarks / lib
 ├── migrations/          # App Postgres
 ├── seed-docs/           # Default WAL seed (≠ demo corpora)
@@ -87,9 +86,9 @@ The repo is a healthy research + product monorepo with clear license/package bou
 
 1. **`src/` is a junk drawer** — feed HTTP, semantic graph SQL, finality, Studio helpers, billing, hatchery, and agents share one flat namespace.
 2. ~~**`scripts/` mixes production ops with one-off research**~~ — **done**: files live under `ops/`, `checks/`, `demo/`, `experiments/`, `benchmarks/` (see [`scripts/README.md`](../scripts/README.md)).
-3. **`prototype/` naming lies** — Studio is production-served UI, not a disposable sketch.
-4. **Scenario corpora lack manifests** — wiring is hardcoded across `demo-server.ts`, `studioCorpora.ts`, and `drive-experiment.ts`.
-5. **Static HTML lives beside TS** — `observability.html` in `src/`; Studio under `prototype/`.
+3. ~~**`prototype/` naming lies**~~ — **done**: Studio + observability live under `public/`.
+4. **Scenario corpora lack manifests** — wiring is hardcoded across `demo-server.ts`, `studioCorpora.ts`, and `drive-experiment.ts` (S1–S5 YAML manifests exist; demo wiring still open).
+5. ~~**Static HTML lives beside TS**~~ — **done**: assets under `public/`, loaded via `src/feed/assets.ts`.
 
 ### Target layout (incremental)
 
@@ -118,11 +117,11 @@ demo/
 
 | File | ~Lines | Issue |
 |------|-------:|-------|
-| `demo/demo-server.ts` | 4300+ | Server + corpora + HTML/CSS/JS monolith |
-| `prototype/studio-preview/index.html` | 3100+ | Oversized static document |
+| `demo/demo-server.ts` | thin entry | Logic in `demo/server/`; UI in `demo/ui/` |
+| `public/studio/index.html` | 3100+ | Oversized static document |
 | `src/semanticGraph.ts` | 1800+ | Persistence + queries + Studio shaping |
 | `sgrs-core/src/bridge.rs` | 1600+ | Broad N-API surface |
-| `src/feed.ts` | 1500+ | Routes + static serve + SSE + summaries |
+| `src/feed.ts` | thin entry | Routes under `src/feed/`; static via `assets.ts` |
 | `src/agents/governanceAgent.ts` | 1300+ | Tools + finality consumer + proposals |
 | `src/finalityEvaluator.ts` | 1250+ | Config + gates + certificates + blockers |
 
@@ -138,7 +137,7 @@ demo/
 |-------|-------|--------------|------|
 | **P0 — Manifests** | ~~Add `docs/benchmarks/manifests/` for `s1`–`s5`~~ **done** (demo/experiment list generation from manifests still open) | Remaining: wire demos to manifests | Low–medium |
 | **P1 — Split demo server** | ~~Extract `demo/server/` + `demo/ui/`~~ **done** (`pnpm run demo` entry unchanged) | — | — |
-| **P2 — Static assets** | Move Studio + observability HTML to `public/`; update feed + `Dockerfile.feed.dist` | Medium | Low–medium (image/regression) |
+| **P2 — Static assets** | ~~Move Studio + observability HTML to `public/`; update feed + `Dockerfile.feed.dist`~~ **done** | — | — |
 | **P3 — Split `feed.ts`** | ~~Module boundaries under `src/feed/`~~ **done** (`pnpm run feed` entry + re-exports preserved). `semanticGraph.ts` still open. | — | — |
 | **P4 — Scripts taxonomy** | ~~Move files into `scripts/{ops,experiments,...}`; update `package.json` scripts~~ **done** | — | — |
 | **P5 — Rust test classes** | Fast invariants vs publication `exp_*` harness (ignore/feature-gate heavy tests) | Medium in `sgrs-core/tests` | Low for product path |
@@ -157,6 +156,7 @@ demo/
 1. ~~Ship `docs/benchmarks/manifests/s1`–`s5` so `registry.ts` resolves.~~ **done**
 2. Wire or archive `docs-ma-extended`; optionally drive S2–S5 through `run-experiment.sh` using manifests.
 3. Add root `skills/` markdown or remove dead loader path from docs/DEMO claims.
-4. Include Studio assets in `Dockerfile.feed.dist` (or document Studio as compose-dev-only).
-5. Split `demo-server.ts` (largest maintainability win for product UX).
+4. ~~Include Studio assets in `Dockerfile.feed.dist`.~~ **done** (`COPY public`)
+5. ~~Split `demo-server.ts`.~~ **done** (`demo/server/` + `demo/ui/`)
 6. ~~Organize `scripts/` into role-based subdirectories with updated npm entries.~~ **done**
+7. Split `semanticGraph.ts`; optionally wire demos to S1–S5 manifests.

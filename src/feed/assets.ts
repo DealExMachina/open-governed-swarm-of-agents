@@ -1,20 +1,29 @@
-import { readFileSync } from "fs";
+import { existsSync, readFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 
-const __feed_dirname = dirname(fileURLToPath(import.meta.url));
-// assets live next to legacy src/ paths (one level up from src/feed/)
-const srcDir = join(__feed_dirname, "..");
+/** Resolve `public/` from repo/image root (cwd) or relative to this module. */
+function resolvePublicDir(): string {
+  const fromCwd = join(process.cwd(), "public");
+  if (existsSync(fromCwd)) return fromCwd;
+  // src/feed → ../../public ; dist/src/feed → ../../../public
+  const here = dirname(fileURLToPath(import.meta.url));
+  const fromSrc = join(here, "..", "..", "public");
+  if (existsSync(fromSrc)) return fromSrc;
+  return join(here, "..", "..", "..", "public");
+}
+
+const publicDir = resolvePublicDir();
 
 export const INDEX_HTML = readFileSync(
-  join(srcDir, "observability.html"),
+  join(publicDir, "observability.html"),
   "utf-8",
 );
 export const STUDIO_HTML = readFileSync(
-  join(srcDir, "..", "prototype", "studio-preview", "index.html"),
+  join(publicDir, "studio", "index.html"),
   "utf-8",
 );
 export const STUDIO_APP_JS = readFileSync(
-  join(srcDir, "..", "prototype", "studio-preview", "studio-app.js"),
+  join(publicDir, "studio", "studio-app.js"),
   "utf-8",
 );

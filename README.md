@@ -127,7 +127,7 @@ Agents --> shared bitemporal state --> governance kernel --> finality certificat
 | Cleanup backlog and refactor phases | [Cleanup and refactor](docs/cleanup-and-refactor.md) |
 | Comparative benchmark manifests (s1–s5) | [Benchmark scenarios](docs/benchmarks/README.md) |
 | Run the M&A demo (5 docs, contradictions, HITL) | [Demo Guide](demo/DEMO.md) |
-| Static SGRS Studio (graph UI prototype) | [`prototype/studio-preview/`](prototype/studio-preview/index.html) — serve as static files |
+| Static SGRS Studio (graph UI) | [`public/studio/`](public/studio/index.html) — also at `http://localhost:3002/studio` via `pnpm run feed` |
 | Read the paper | [publications/publication_1/swarm-governed-agents.pdf](publications/publication_1/swarm-governed-agents.pdf) |
 | Formal convergence theory | [docs/convergence.md](docs/convergence.md) |
 | Architecture deep dive | [docs/architecture.md](docs/architecture.md) |
