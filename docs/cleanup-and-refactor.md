@@ -137,9 +137,9 @@ demo/
 | Phase | Scope | Invasiveness | Risk |
 |-------|-------|--------------|------|
 | **P0 — Manifests** | ~~Add `docs/benchmarks/manifests/` for `s1`–`s5`~~ **done** (demo/experiment list generation from manifests still open) | Remaining: wire demos to manifests | Low–medium |
-| **P1 — Split demo server** | Extract `demo/server/` + `demo/ui/`; leave public API stable | High file move, low runtime change if routes preserved | Medium |
+| **P1 — Split demo server** | ~~Extract `demo/server/` + `demo/ui/`~~ **done** (`pnpm run demo` entry unchanged) | — | — |
 | **P2 — Static assets** | Move Studio + observability HTML to `public/`; update feed + `Dockerfile.feed.dist` | Medium | Low–medium (image/regression) |
-| **P3 — Split `semanticGraph.ts` / `feed.ts`** | Module boundaries by concern; re-export barrels for compatibility | High | Medium–high (import churn) |
+| **P3 — Split `feed.ts`** | ~~Module boundaries under `src/feed/`~~ **done** (`pnpm run feed` entry + re-exports preserved). `semanticGraph.ts` still open. | — | — |
 | **P4 — Scripts taxonomy** | ~~Move files into `scripts/{ops,experiments,...}`; update `package.json` scripts~~ **done** | — | — |
 | **P5 — Rust test classes** | Fast invariants vs publication `exp_*` harness (ignore/feature-gate heavy tests) | Medium in `sgrs-core/tests` | Low for product path |
 

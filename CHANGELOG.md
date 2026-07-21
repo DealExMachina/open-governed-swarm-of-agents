@@ -28,6 +28,8 @@ Kernel crate `sgrs-core` bumped **0.1.0 -> 0.2.0** (propagation-layer Lyapunov +
 - Moved `workers/facts-worker/test_nli.py` into `workers/facts-worker/tests/unit/` for consistent pytest layout.
 - Fixed `agents-swarm-governed.code-workspace` to open only this repo (removed broken sibling path).
 - Taxonomized `scripts/` into `ops/`, `checks/`, `demo/`, `experiments/`, `benchmarks/` (+ `lib/`); updated `package.json`, shell entrypoints, and docs accordingly.
+- Split `demo/demo-server.ts` into `demo/server/*` + `demo/ui/*` (HTML assets); entry `pnpm run demo` unchanged.
+- Split `src/feed.ts` into `src/feed/*` modules; thin entry keeps `pnpm run feed` and re-exports `validateScopedRequest` / `buildScopeSummaryForScope`.
 
 ### Removed
 
