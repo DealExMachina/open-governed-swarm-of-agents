@@ -49,12 +49,12 @@ The repo is a healthy research + product monorepo with clear license/package bou
 
 | Item | Recommendation |
 |------|----------------|
-| `docs/archive/demo.md` | Keep as redirect stub, or delete after updating `docs/demos/*` and hygiene links |
-| Empty Python `tests/__init__.py` files | Optional; low value, conventional for some runners |
-| Unwired corpora (`docs-ma-extended`) | Extended M&A corpus still without a driver/manifest; keep until publication confirms unused |
+| ~~`docs/archive/demo.md`~~ | **done** — deleted; preflight/troubleshooting in [`demo/DEMO.md`](../demo/DEMO.md) |
+| Empty Python `tests/__init__.py` files | **keep** — conventional markers; not worth deleting |
+| ~~Unwired corpora (`docs-ma-extended`)~~ | **done** — archived at [`docs/archive/scenario/docs-ma-extended/`](archive/scenario/docs-ma-extended/) |
 | ~~Missing `docs/benchmarks/manifests/*.yaml`~~ | **done** — S1–S5 manifests shipped under [`docs/benchmarks/`](benchmarks/README.md) |
-| Missing root `skills/*.md` | Dead data path until skill markdown is added (`src/skills/loader.ts`) |
-| `Dockerfile.feed.dist` omits `prototype/` | Dist image cannot serve Studio; either copy assets or document as unsupported |
+| ~~Missing root `skills/*.md`~~ | **done (doc)** — unshipped by design; loader kept; no placeholder markdown |
+| `Dockerfile.feed.dist` omits `prototype/` | Tracked separately (PR #26 moves assets to `public/`) |
 
 ---
 
@@ -155,8 +155,9 @@ demo/
 ## Suggested follow-up tickets
 
 1. ~~Ship `docs/benchmarks/manifests/s1`–`s5` so `registry.ts` resolves.~~ **done**
-2. Wire or archive `docs-ma-extended`; optionally drive S2–S5 through `run-experiment.sh` using manifests.
-3. Add root `skills/` markdown or remove dead loader path from docs/DEMO claims.
-4. Include Studio assets in `Dockerfile.feed.dist` (or document Studio as compose-dev-only).
-5. Split `demo-server.ts` (largest maintainability win for product UX).
+2. ~~Wire or archive `docs-ma-extended`.~~ **done** (archived). Optionally drive S2–S5 through `run-experiment.sh` using manifests.
+3. ~~Clarify `skills/` gap.~~ **done** (docs: unshipped by design; loader kept).
+4. Include Studio assets in `Dockerfile.feed.dist` — see PR #26 / `public/`.
+5. ~~Split `demo-server.ts`.~~ **done** (`demo/server/` + `demo/ui/`).
 6. ~~Organize `scripts/` into role-based subdirectories with updated npm entries.~~ **done**
+7. Split `semanticGraph.ts`; optionally wire demos to S1–S5 manifests.

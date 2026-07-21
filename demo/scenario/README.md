@@ -15,10 +15,11 @@ Document sets under `demo/scenario/`. Each folder is a corpus of `.txt` files in
 | `docs-solvency2/` | 15 | Benchmark **s2** | [`docs/benchmarks/manifests/s2-solvency2.yaml`](../../docs/benchmarks/manifests/s2-solvency2.yaml) |
 | `docs-aml-kyc/` | 15 | Benchmark **s4** | [`docs/benchmarks/manifests/s4-aml-kyc.yaml`](../../docs/benchmarks/manifests/s4-aml-kyc.yaml) |
 | `docs-energy-grid/` | 15 | Benchmark **s5** | [`docs/benchmarks/manifests/s5-energy-grid.yaml`](../../docs/benchmarks/manifests/s5-energy-grid.yaml) |
-| `docs-ma-extended/` | 25 | Prepared, **not yet wired** | Extended M&A corpus; no driver/manifest |
+
+**Archived (not live):** [`docs/archive/scenario/docs-ma-extended/`](../../docs/archive/scenario/docs-ma-extended/) — 25-doc extended Horizon set; no driver/manifest. Do not wire without an explicit demo/manifest ticket.
 
 ## Rules
 
-- Do not delete unwired corpora without confirming they are not needed for publication or upcoming manifests (`src/baselines/manifest/registry.ts` already keys `s1`–`s5`).
+- Do not delete archived or benchmark corpora without confirming publication / manifest needs (`src/baselines/manifest/registry.ts` keys `s1`–`s5`).
 - Prefer adding a short README or YAML manifest per corpus before wiring a new driver.
 - Default WAL seed documents live in repo-root [`seed-docs/`](../../seed-docs/), not here.
