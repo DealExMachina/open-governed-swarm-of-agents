@@ -441,21 +441,30 @@ export async function runActionExecutor(
         if (actionType === "assert_equivalence") {
           if (data.result === "approved" && data.payload) {
             try {
-              const { recordEquivalenceInGraph } = await import("./equivalenceTrace.js");
+              const { recordEquivalenceInGraph } =
+                await import("./equivalenceTrace.js");
               const p = data.payload as Record<string, unknown>;
               await recordEquivalenceInGraph({
-                scope_id: String(p.scope_id ?? process.env.SCOPE_ID ?? "default"),
-                node_type: (p.node_type as "claim" | "goal" | "risk") ?? "claim",
+                scope_id: String(
+                  p.scope_id ?? process.env.SCOPE_ID ?? "default",
+                ),
+                node_type:
+                  (p.node_type as "claim" | "goal" | "risk") ?? "claim",
                 existing_node_id: String(p.existing_node_id ?? ""),
                 a: String(p.a ?? ""),
                 b: String(p.b ?? ""),
-                nli_label: (p.nli_label as "equivalent" | "contradiction" | "neutral") ?? "neutral",
+                nli_label:
+                  (p.nli_label as "equivalent" | "contradiction" | "neutral") ??
+                  "neutral",
                 nli_confidence: Number(p.nli_confidence ?? 0),
                 decision_id: String(p.decision_id ?? ""),
                 policy_version: String(p.policy_version ?? ""),
               });
             } catch (err) {
-              logger.warn("equivalence trace failed", { proposal_id: data.proposal_id, error: String(err) });
+              logger.warn("equivalence trace failed", {
+                proposal_id: data.proposal_id,
+                error: String(err),
+              });
             }
           }
           return;

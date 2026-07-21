@@ -107,7 +107,12 @@ export interface NliEvalReport {
   /** Contradiction/refutation pairs where NLI returned contradiction. */
   blockRecall: number;
   byCategory: CategoryMetrics[];
-  byScenario: Array<{ scenario: string; count: number; correct: number; accuracy: number }>;
+  byScenario: Array<{
+    scenario: string;
+    count: number;
+    correct: number;
+    accuracy: number;
+  }>;
   results: PairEvalResult[];
 }
 
@@ -115,9 +120,14 @@ export interface NliEvalReport {
 // Loader
 // ---------------------------------------------------------------------------
 
-const DEFAULT_GOLD_PATH = join(process.cwd(), "test/fixtures/nli-gold-set.yaml");
+const DEFAULT_GOLD_PATH = join(
+  process.cwd(),
+  "test/fixtures/nli-gold-set.yaml",
+);
 
-export function categoryToExpectedAction(category: GoldCategory): ExpectedAction {
+export function categoryToExpectedAction(
+  category: GoldCategory,
+): ExpectedAction {
   switch (category) {
     case "paraphrase":
       return "auto_merge";
@@ -134,7 +144,8 @@ export function categoryToExpectedAction(category: GoldCategory): ExpectedAction
 
 export function loadNliGoldSet(path = DEFAULT_GOLD_PATH): NliGoldSet {
   const raw = parseYaml(readFileSync(path, "utf-8")) as NliGoldSet;
-  if (!raw?.pairs?.length) throw new Error(`Invalid or empty gold set: ${path}`);
+  if (!raw?.pairs?.length)
+    throw new Error(`Invalid or empty gold set: ${path}`);
   return raw;
 }
 
@@ -170,7 +181,10 @@ export function resolveActionFromVerdict(
         reason: `nli_contradiction:${verdict.confidence.toFixed(2)}`,
       };
     }
-    if (routing.reason === "typed_diff_hitl" || routing.reason === "free_text_hitl") {
+    if (
+      routing.reason === "typed_diff_hitl" ||
+      routing.reason === "free_text_hitl"
+    ) {
       return { action: "hitl", reason: routing.reason };
     }
     if (routing.reason === "accrual_prefilter_hitl") {
@@ -179,7 +193,10 @@ export function resolveActionFromVerdict(
   }
 
   if (verdict.label === "contradiction") {
-    return { action: "block_contradiction", reason: `nli_contradiction:${verdict.confidence.toFixed(2)}` };
+    return {
+      action: "block_contradiction",
+      reason: `nli_contradiction:${verdict.confidence.toFixed(2)}`,
+    };
   }
 
   if (!shouldProposeEquivalence(verdict)) {
@@ -238,7 +255,10 @@ export function isCorrectRouting(
         resolved === "hitl"
       );
     case "hitl":
-      if (pair?.hitlSubtype === "accrual" || pair?.hitlSubtype === "refinement") {
+      if (
+        pair?.hitlSubtype === "accrual" ||
+        pair?.hitlSubtype === "refinement"
+      ) {
         // Accrual/refinement: human must confirm growth — never contradiction or silent merge
         return resolved === "hitl" || resolved === "no_merge";
       }
@@ -279,7 +299,9 @@ export function evaluatePairsFromVerdicts(
   minConfidence: number,
 ): PairEvalResult[] {
   if (pairs.length !== verdicts.length) {
-    throw new Error(`pairs/verdicts length mismatch: ${pairs.length} vs ${verdicts.length}`);
+    throw new Error(
+      `pairs/verdicts length mismatch: ${pairs.length} vs ${verdicts.length}`,
+    );
   }
   return pairs.map((pair, i) => evaluatePair(pair, verdicts[i], minConfidence));
 }
@@ -301,7 +323,9 @@ export function sweepConfidenceThresholds(
   thresholds: number[],
 ): ConfidenceSweepRow[] {
   return thresholds.map((minConfidence) => {
-    const report = buildEvalReport(evaluatePairsFromVerdicts(pairs, verdicts, minConfidence));
+    const report = buildEvalReport(
+      evaluatePairsFromVerdicts(pairs, verdicts, minConfidence),
+    );
     return {
       minConfidence,
       accuracy: report.accuracy,
@@ -329,7 +353,6 @@ export function formatConfidenceSweep(rows: ConfidenceSweepRow[]): string {
   );
   return [header, ...lines].join("\n");
 }
-
 
 function tallyByKey<T extends { correct: boolean }>(
   items: T[],
@@ -363,11 +386,17 @@ export function buildEvalReport(results: PairEvalResult[]): NliEvalReport {
     "refutation",
     "ambiguous_hitl",
   ]);
-  const nonMergePairs = results.filter((r) => nonMergeCategories.has(r.category));
-  const falseMerges = nonMergePairs.filter((r) => r.resolved === "auto_merge").length;
+  const nonMergePairs = results.filter((r) =>
+    nonMergeCategories.has(r.category),
+  );
+  const falseMerges = nonMergePairs.filter(
+    (r) => r.resolved === "auto_merge",
+  ).length;
 
   const paraphrasePairs = results.filter((r) => r.category === "paraphrase");
-  const missedMerges = paraphrasePairs.filter((r) => r.resolved !== "auto_merge").length;
+  const missedMerges = paraphrasePairs.filter(
+    (r) => r.resolved !== "auto_merge",
+  ).length;
 
   const hitlPairs = results.filter((r) => r.category === "ambiguous_hitl");
   const hitlCorrect = hitlPairs.filter((r) => r.correct).length;
@@ -377,10 +406,16 @@ export function buildEvalReport(results: PairEvalResult[]): NliEvalReport {
       r.category === "ambiguous_hitl" &&
       (r.hitlSubtype === "accrual" || r.hitlSubtype === "refinement"),
   );
-  const accrualOverBlocked = accrualPairs.filter((r) => r.resolved === "block_contradiction").length;
+  const accrualOverBlocked = accrualPairs.filter(
+    (r) => r.resolved === "block_contradiction",
+  ).length;
 
-  const blockPairs = results.filter((r) => r.category === "contradiction" || r.category === "refutation");
-  const blockDetected = blockPairs.filter((r) => r.nli.label === "contradiction").length;
+  const blockPairs = results.filter(
+    (r) => r.category === "contradiction" || r.category === "refutation",
+  );
+  const blockDetected = blockPairs.filter(
+    (r) => r.nli.label === "contradiction",
+  ).length;
 
   const categories: GoldCategory[] = [
     "paraphrase",
@@ -411,10 +446,16 @@ export function buildEvalReport(results: PairEvalResult[]): NliEvalReport {
     total,
     correct,
     accuracy: total ? correct / total : 0,
-    falseMergeRate: nonMergePairs.length ? falseMerges / nonMergePairs.length : 0,
-    missedMergeRate: paraphrasePairs.length ? missedMerges / paraphrasePairs.length : 0,
+    falseMergeRate: nonMergePairs.length
+      ? falseMerges / nonMergePairs.length
+      : 0,
+    missedMergeRate: paraphrasePairs.length
+      ? missedMerges / paraphrasePairs.length
+      : 0,
     hitlRoutingAccuracy: hitlPairs.length ? hitlCorrect / hitlPairs.length : 0,
-    accrualOverBlockRate: accrualPairs.length ? accrualOverBlocked / accrualPairs.length : 0,
+    accrualOverBlockRate: accrualPairs.length
+      ? accrualOverBlocked / accrualPairs.length
+      : 0,
     blockRecall: blockPairs.length ? blockDetected / blockPairs.length : 0,
     byCategory,
     byScenario,
@@ -437,11 +478,15 @@ export function formatEvalReport(report: NliEvalReport): string {
   ];
   for (const c of report.byCategory) {
     if (c.count === 0) continue;
-    lines.push(`  ${c.category.padEnd(22)} ${c.correct}/${c.count}  ${(c.accuracy * 100).toFixed(0)}%`);
+    lines.push(
+      `  ${c.category.padEnd(22)} ${c.correct}/${c.count}  ${(c.accuracy * 100).toFixed(0)}%`,
+    );
   }
   lines.push("", "By scenario:");
   for (const s of report.byScenario) {
-    lines.push(`  ${s.scenario.padEnd(10)} ${s.correct}/${s.count}  ${(s.accuracy * 100).toFixed(0)}%`);
+    lines.push(
+      `  ${s.scenario.padEnd(10)} ${s.correct}/${s.count}  ${(s.accuracy * 100).toFixed(0)}%`,
+    );
   }
   const failures = report.results.filter((r) => !r.correct);
   if (failures.length > 0) {

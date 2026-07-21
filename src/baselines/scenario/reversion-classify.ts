@@ -65,30 +65,57 @@ export function classifyReversion(
     return { dimension, class: "new", reason: "no prior value" };
   }
 
-  if (dimensionValuesEquivalent(dimension, priorContent, nextContent, schemaMap)) {
-    return { dimension, class: "paraphrase", reason: "semantically equivalent to prior" };
+  if (
+    dimensionValuesEquivalent(dimension, priorContent, nextContent, schemaMap)
+  ) {
+    return {
+      dimension,
+      class: "paraphrase",
+      reason: "semantically equivalent to prior",
+    };
   }
 
-  const schema: DimensionSchemaDef = schemaMap[dimension] ?? { type: "free_text" };
+  const schema: DimensionSchemaDef = schemaMap[dimension] ?? {
+    type: "free_text",
+  };
   const oldC = canonicalise(priorContent, schema);
   const newC = canonicalise(nextContent, schema);
 
   // Both sides parsed to the same typed (non free_text) form but are not
   // equivalent -> a real numeric/categorical change (instrumentation: reversion).
   if (oldC.type !== "free_text" && newC.type !== "free_text") {
-    return { dimension, class: "reversion", reason: `typed ${oldC.type} value changed` };
+    return {
+      dimension,
+      class: "reversion",
+      reason: `typed ${oldC.type} value changed`,
+    };
   }
 
   // Free-text path: does the new value add to the prior (accrual) or replace it?
   const priorTokens = tokenSet(priorContent);
   const nextTokens = tokenSet(nextContent);
-  if (isTokenSubset(priorTokens, nextTokens) && nextTokens.size > priorTokens.size) {
-    return { dimension, class: "accrual", reason: "new value extends prior (superset)" };
+  if (
+    isTokenSubset(priorTokens, nextTokens) &&
+    nextTokens.size > priorTokens.size
+  ) {
+    return {
+      dimension,
+      class: "accrual",
+      reason: "new value extends prior (superset)",
+    };
   }
   if (isTokenSubset(nextTokens, priorTokens)) {
-    return { dimension, class: "paraphrase", reason: "new value is a terser restatement (subset)" };
+    return {
+      dimension,
+      class: "paraphrase",
+      reason: "new value is a terser restatement (subset)",
+    };
   }
-  return { dimension, class: "reversion", reason: "free-text value genuinely differs" };
+  return {
+    dimension,
+    class: "reversion",
+    reason: "free-text value genuinely differs",
+  };
 }
 
 export interface ReversionTally {
@@ -99,8 +126,15 @@ export interface ReversionTally {
 }
 
 /** Aggregate classifications into counts (paraphrase = noise; reversion+accrual = signal). */
-export function tallyReversions(classes: ReversionClassification[]): ReversionTally {
-  const tally: ReversionTally = { new: 0, paraphrase: 0, accrual: 0, reversion: 0 };
+export function tallyReversions(
+  classes: ReversionClassification[],
+): ReversionTally {
+  const tally: ReversionTally = {
+    new: 0,
+    paraphrase: 0,
+    accrual: 0,
+    reversion: 0,
+  };
   for (const c of classes) tally[c.class] += 1;
   return tally;
 }

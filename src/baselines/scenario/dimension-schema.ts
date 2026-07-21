@@ -92,18 +92,46 @@ export type DimensionSchemaMap = Record<string, DimensionSchemaDef>;
 // ---------------------------------------------------------------------------
 
 export const S1_DIMENSION_SCHEMA: DimensionSchemaMap = {
-  arr:                   { type: "currency_amount", tolerance: 0.03, description: "Annual Recurring Revenue" },
-  arr_growth:            { type: "percentage",      description: "ARR CAGR" },
-  gross_margin:          { type: "percentage",      description: "Gross margin %" },
-  valuation:             { type: "currency_range",  description: "Indicative / revised enterprise valuation" },
-  customer_concentration:{ type: "free_text",       description: "Largest customer ARR share and churn risk" },
-  patents:               { type: "free_text",       description: "Patent portfolio status" },
-  ip_dispute:            { type: "free_text",       description: "IP co-ownership / ownership dispute" },
-  patent_litigation:     { type: "free_text",       description: "Active patent litigation" },
-  ip_resolution:         { type: "free_text",       description: "Settlement terms for IP disputes" },
-  key_person_risk:       { type: "free_text",       description: "Key-person departure risk" },
-  code_concentration:    { type: "percentage",      description: "% codebase authored by departing staff" },
-  clients:               { type: "integer_count",   description: "Number of enterprise clients" },
+  arr: {
+    type: "currency_amount",
+    tolerance: 0.03,
+    description: "Annual Recurring Revenue",
+  },
+  arr_growth: { type: "percentage", description: "ARR CAGR" },
+  gross_margin: { type: "percentage", description: "Gross margin %" },
+  valuation: {
+    type: "currency_range",
+    description: "Indicative / revised enterprise valuation",
+  },
+  customer_concentration: {
+    type: "free_text",
+    description: "Largest customer ARR share and churn risk",
+  },
+  patents: { type: "free_text", description: "Patent portfolio status" },
+  ip_dispute: {
+    type: "free_text",
+    description: "IP co-ownership / ownership dispute",
+  },
+  patent_litigation: {
+    type: "free_text",
+    description: "Active patent litigation",
+  },
+  ip_resolution: {
+    type: "free_text",
+    description: "Settlement terms for IP disputes",
+  },
+  key_person_risk: {
+    type: "free_text",
+    description: "Key-person departure risk",
+  },
+  code_concentration: {
+    type: "percentage",
+    description: "% codebase authored by departing staff",
+  },
+  clients: {
+    type: "integer_count",
+    description: "Number of enterprise clients",
+  },
 };
 
 // ---------------------------------------------------------------------------
@@ -112,29 +140,66 @@ export const S1_DIMENSION_SCHEMA: DimensionSchemaMap = {
 
 /** Currency multipliers recognised in extracted text. */
 const CURRENCY_MULTIPLIERS: Record<string, number> = {
-  k: 1_000, K: 1_000,
-  m: 1_000_000, M: 1_000_000, mn: 1_000_000, million: 1_000_000,
-  b: 1_000_000_000, B: 1_000_000_000, bn: 1_000_000_000, billion: 1_000_000_000,
+  k: 1_000,
+  K: 1_000,
+  m: 1_000_000,
+  M: 1_000_000,
+  mn: 1_000_000,
+  million: 1_000_000,
+  b: 1_000_000_000,
+  B: 1_000_000_000,
+  bn: 1_000_000_000,
+  billion: 1_000_000_000,
 };
 
 /** Currency symbols / codes recognised in extracted text. */
 const CURRENCY_CODES: Record<string, string> = {
-  "€": "EUR", "£": "GBP", "$": "USD",
-  eur: "EUR", usd: "USD", gbp: "GBP",
+  "€": "EUR",
+  "£": "GBP",
+  $: "USD",
+  eur: "EUR",
+  usd: "USD",
+  gbp: "GBP",
 };
 
 /** Number-word units and tens (0-90). */
 const NUMBER_WORDS_SMALL: Record<string, number> = {
-  zero: 0, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7,
-  eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12, thirteen: 13,
-  fourteen: 14, fifteen: 15, sixteen: 16, seventeen: 17, eighteen: 18,
-  nineteen: 19, twenty: 20, thirty: 30, forty: 40, fifty: 50, sixty: 60,
-  seventy: 70, eighty: 80, ninety: 90,
+  zero: 0,
+  one: 1,
+  two: 2,
+  three: 3,
+  four: 4,
+  five: 5,
+  six: 6,
+  seven: 7,
+  eight: 8,
+  nine: 9,
+  ten: 10,
+  eleven: 11,
+  twelve: 12,
+  thirteen: 13,
+  fourteen: 14,
+  fifteen: 15,
+  sixteen: 16,
+  seventeen: 17,
+  eighteen: 18,
+  nineteen: 19,
+  twenty: 20,
+  thirty: 30,
+  forty: 40,
+  fifty: 50,
+  sixty: 60,
+  seventy: 70,
+  eighty: 80,
+  ninety: 90,
 };
 
 /** Number-word magnitudes. */
 const NUMBER_WORDS_MAGNITUDE: Record<string, number> = {
-  hundred: 100, thousand: 1_000, million: 1_000_000, billion: 1_000_000_000,
+  hundred: 100,
+  thousand: 1_000,
+  million: 1_000_000,
+  billion: 1_000_000_000,
 };
 
 /**
@@ -143,7 +208,10 @@ const NUMBER_WORDS_MAGNITUDE: Record<string, number> = {
  * word is present. Handles up to "<n> hundred <n> million/billion".
  */
 export function wordsToNumber(text: string): number | null {
-  const tokens = text.toLowerCase().split(/[^a-z]+/).filter(Boolean);
+  const tokens = text
+    .toLowerCase()
+    .split(/[^a-z]+/)
+    .filter(Boolean);
   let total = 0;
   let current = 0;
   let found = false;
@@ -177,7 +245,8 @@ function detectCurrency(s: string): string {
 /** Digit-based currency parse (e.g. "€50M", "EUR 50,000,000"). */
 function parseCurrencyDigits(raw: string): CanonicalCurrencyAmount | null {
   const s = raw.replace(/,/g, "").toLowerCase().trim();
-  const approx = /approx|approximately|~|around|about|circa|indicative|revised/.test(s);
+  const approx =
+    /approx|approximately|~|around|about|circa|indicative|revised/.test(s);
 
   // Match pattern: [currency] [amount] [multiplier] or [amount] [multiplier] [currency]
   const pattern =
@@ -193,7 +262,12 @@ function parseCurrencyDigits(raw: string): CanonicalCurrencyAmount | null {
   const multiplier = CURRENCY_MULTIPLIERS[multiplierKey] ?? 1;
   const currency = CURRENCY_CODES[rawCurr] ?? "EUR"; // default EUR for M&A context
 
-  return { type: "currency_amount", amount: amount * multiplier, currency, approx };
+  return {
+    type: "currency_amount",
+    amount: amount * multiplier,
+    currency,
+    approx,
+  };
 }
 
 /**
@@ -205,8 +279,14 @@ function parseCurrencyWords(raw: string): CanonicalCurrencyAmount | null {
   if (!/\b(hundred|thousand|million|billion)\b/.test(s)) return null;
   const amount = wordsToNumber(s);
   if (amount === null || amount <= 0) return null;
-  const approx = /approx|approximately|~|around|about|circa|indicative|revised/.test(s);
-  return { type: "currency_amount", amount, currency: detectCurrency(s), approx };
+  const approx =
+    /approx|approximately|~|around|about|circa|indicative|revised/.test(s);
+  return {
+    type: "currency_amount",
+    amount,
+    currency: detectCurrency(s),
+    approx,
+  };
 }
 
 /**
@@ -215,7 +295,9 @@ function parseCurrencyWords(raw: string): CanonicalCurrencyAmount | null {
  *          "EUR 50,000,000", "50m euros", and spelled-out amounts such as
  *          "approximately fifty million euros". Returns null if unparsable.
  */
-export function parseCurrencyAmount(raw: string): CanonicalCurrencyAmount | null {
+export function parseCurrencyAmount(
+  raw: string,
+): CanonicalCurrencyAmount | null {
   return parseCurrencyDigits(raw) ?? parseCurrencyWords(raw);
 }
 
@@ -255,11 +337,18 @@ export function parseCurrencyRange(raw: string): CanonicalCurrencyRange | null {
     const multA = multARaw ?? multB;
     const min = parseFloat(m[2]) * multA;
     const max = parseFloat(m[5]) * multB;
-    if (!isNaN(min) && !isNaN(max)) return { type: "currency_range", min, max, currency };
+    if (!isNaN(min) && !isNaN(max))
+      return { type: "currency_range", min, max, currency };
   }
   // Fall back to single amount (min === max)
   const single = parseCurrencyAmount(raw);
-  if (single) return { type: "currency_range", min: single.amount, max: single.amount, currency: single.currency };
+  if (single)
+    return {
+      type: "currency_range",
+      min: single.amount,
+      max: single.amount,
+      currency: single.currency,
+    };
   return null;
 }
 
@@ -278,7 +367,12 @@ export function parseIntegerCount(raw: string): CanonicalIntegerCount | null {
  */
 export function normaliseText(raw: string): CanonicalFreeText {
   // Order: trim whitespace → collapse internal spaces → lowercase → strip trailing punctuation → trim again
-  const v = raw.trim().replace(/\s+/g, " ").toLowerCase().replace(/[.;,]+$/, "").trim();
+  const v = raw
+    .trim()
+    .replace(/\s+/g, " ")
+    .toLowerCase()
+    .replace(/[.;,]+$/, "")
+    .trim();
   return { type: "free_text", value: v };
 }
 
@@ -322,7 +416,9 @@ export function canonicalise(
 // ---------------------------------------------------------------------------
 
 /** JSON schema for a single dimension's structured `content` field. */
-export function jsonSchemaForDimensionType(type: DimensionType): Record<string, unknown> {
+export function jsonSchemaForDimensionType(
+  type: DimensionType,
+): Record<string, unknown> {
   switch (type) {
     case "currency_amount":
       return {
@@ -402,7 +498,9 @@ export function buildExtractionResponseSchema(
   allowedDimensions: string[],
   schemaMap: DimensionSchemaMap,
 ): Record<string, unknown> {
-  const itemSchemas = allowedDimensions.map((dim) => jsonSchemaFor(dim, schemaMap));
+  const itemSchemas = allowedDimensions.map((dim) =>
+    jsonSchemaFor(dim, schemaMap),
+  );
   return {
     type: "array",
     items: itemSchemas.length === 1 ? itemSchemas[0] : { oneOf: itemSchemas },
@@ -481,12 +579,15 @@ export function formatStructuredClaimContent(
       const min = Number(obj.min);
       const max = Number(obj.max);
       const currency = String(obj.currency ?? "EUR");
-      if (!Number.isFinite(min) || !Number.isFinite(max)) return JSON.stringify(content);
+      if (!Number.isFinite(min) || !Number.isFinite(max))
+        return JSON.stringify(content);
       return `${formatAmountCompact(min, currency)}-${formatAmountCompact(max, currency)}`;
     }
     case "integer_count": {
       const value = Number(obj.value);
-      return Number.isFinite(value) ? String(Math.trunc(value)) : JSON.stringify(content);
+      return Number.isFinite(value)
+        ? String(Math.trunc(value))
+        : JSON.stringify(content);
     }
     case "free_text":
     default:
@@ -556,11 +657,16 @@ export function isSemanticallyEquivalent(
       return minRel <= tol && maxRel <= tol;
     }
     case "integer_count": {
-      return (oldC as CanonicalIntegerCount).value === (newC as CanonicalIntegerCount).value;
+      return (
+        (oldC as CanonicalIntegerCount).value ===
+        (newC as CanonicalIntegerCount).value
+      );
     }
     case "free_text":
     default:
-      return (oldC as CanonicalFreeText).value === (newC as CanonicalFreeText).value;
+      return (
+        (oldC as CanonicalFreeText).value === (newC as CanonicalFreeText).value
+      );
   }
 }
 
@@ -594,11 +700,16 @@ export async function dimensionValuesEquivalentAsync(
   options?: SemanticEquivalenceRuntimeOptions,
 ): Promise<boolean> {
   const schema = schemaMap[dimension];
-  const embeddingEnabled = !!options?.embeddingEquiv && !!options?.ollamaBaseUrl;
+  const embeddingEnabled =
+    !!options?.embeddingEquiv && !!options?.ollamaBaseUrl;
   const nliEnabled = !!options?.nliGate;
 
   // Only free_text benefits from embedding/NLI; typed dimensions use parsers.
-  if (!schema || schema.type !== "free_text" || (!embeddingEnabled && !nliEnabled)) {
+  if (
+    !schema ||
+    schema.type !== "free_text" ||
+    (!embeddingEnabled && !nliEnabled)
+  ) {
     return dimensionValuesEquivalent(dimension, oldRaw, newRaw, schemaMap);
   }
 
@@ -609,18 +720,30 @@ export async function dimensionValuesEquivalentAsync(
 
   // Couche 2: embedding similarity, with NLI resolving the gray zone (Couche 3).
   if (embeddingEnabled) {
-    const { embedTexts, cosineSimilarity } = await import("./embedding-equiv.js");
+    const { embedTexts, cosineSimilarity } =
+      await import("./embedding-equiv.js");
     const model = options!.embeddingModel ?? "nomic-embed-text";
-    const embeddings = await embedTexts([oldRaw, newRaw], options!.ollamaBaseUrl!, model);
+    const embeddings = await embedTexts(
+      [oldRaw, newRaw],
+      options!.ollamaBaseUrl!,
+      model,
+    );
     if (embeddings.length >= 2) {
       const score = cosineSimilarity(embeddings[0], embeddings[1]);
       if (score >= threshold) return true;
       if (nliEnabled) {
         const { resolveAmbiguousEquivalence } = await import("./nli-gate.js");
-        return resolveAmbiguousEquivalence(oldRaw, newRaw, score, 0.7, threshold, {
-          enabled: true,
-          workerUrl: options!.nliWorkerUrl,
-        });
+        return resolveAmbiguousEquivalence(
+          oldRaw,
+          newRaw,
+          score,
+          0.7,
+          threshold,
+          {
+            enabled: true,
+            workerUrl: options!.nliWorkerUrl,
+          },
+        );
       }
       return false;
     }
@@ -649,7 +772,13 @@ export async function claimsRepresentReversion(
   options?: SemanticEquivalenceRuntimeOptions,
 ): Promise<boolean> {
   const equivalent = options?.embeddingEquiv
-    ? await dimensionValuesEquivalentAsync(dimension, priorContent, newContent, schemaMap, options)
+    ? await dimensionValuesEquivalentAsync(
+        dimension,
+        priorContent,
+        newContent,
+        schemaMap,
+        options,
+      )
     : dimensionValuesEquivalent(dimension, priorContent, newContent, schemaMap);
   return !equivalent;
 }

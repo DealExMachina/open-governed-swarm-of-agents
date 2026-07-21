@@ -8,7 +8,10 @@
  * contradiction blocks when EQUIVAL_ACCRUAL_PREFILTER=1.
  */
 
-import type { DimensionSchemaMap, DimensionSchemaDef } from "./baselines/scenario/dimension-schema.js";
+import type {
+  DimensionSchemaMap,
+  DimensionSchemaDef,
+} from "./baselines/scenario/dimension-schema.js";
 import { dimensionValuesEquivalent } from "./baselines/scenario/dimension-schema.js";
 import {
   ACCRUAL_HITL_VERDICT,
@@ -39,7 +42,11 @@ export interface GenericEquivalenceRouting {
   skipNli: boolean;
 }
 
-const HITL_VERDICT: NliVerdict = { label: "neutral", confidence: 0, available: true };
+const HITL_VERDICT: NliVerdict = {
+  label: "neutral",
+  confidence: 0,
+  available: true,
+};
 
 function schemaFor(
   dimension: string | undefined,
@@ -123,7 +130,8 @@ export function resolveGenericEquivalenceRouting(
     return {
       propose: true,
       verdict,
-      reason: verdict.label === "equivalent" ? "nli_equiv_propose" : "free_text_hitl",
+      reason:
+        verdict.label === "equivalent" ? "nli_equiv_propose" : "free_text_hitl",
       skipNli: false,
     };
   }

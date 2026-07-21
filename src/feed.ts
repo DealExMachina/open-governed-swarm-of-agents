@@ -79,7 +79,11 @@ async function ensureHatcheryBoundToScope(
   try {
     await initState(scopeId, randomUUID());
   } catch (e) {
-    return { ok: false, error: "swarm_state_init_failed", detail: toErrorString(e) };
+    return {
+      ok: false,
+      error: "swarm_state_init_failed",
+      detail: toErrorString(e),
+    };
   }
   const hatchery = getHatcheryInstance();
   if (hatchery) {
@@ -87,7 +91,11 @@ async function ensureHatcheryBoundToScope(
       await hatchery.rebindActiveScope(scopeId, null);
       return { ok: true };
     } catch (e) {
-      return { ok: false, error: "hatchery_rebind_failed", detail: toErrorString(e) };
+      return {
+        ok: false,
+        error: "hatchery_rebind_failed",
+        detail: toErrorString(e),
+      };
     }
   }
   const rpc = await requestRuntimeControl({
@@ -1032,40 +1040,6 @@ async function ingestContextDoc(
   return seq;
 }
 
-/** List context_doc events ingested for one studio scope (from WAL). */
-async function listScopeContextDocs(
-  scopeId: string,
-  limit: number = 50,
-): Promise<
-  Array<{ seq: number; title: string; ingested_at: string; source: string }>
-> {
-  const pool = getPool();
-  const res = await pool.query(
-    `SELECT seq, ts, data
-     FROM context_events
-     WHERE data->>'type' = 'context_doc'
-       AND COALESCE(data->'payload'->>'scope_id', data->>'scope_id') = $1
-     ORDER BY seq DESC
-     LIMIT $2`,
-    [scopeId, limit],
-  );
-  return res.rows.map((row) => {
-    const data = row.data as Record<string, unknown>;
-    const payload = (data.payload as Record<string, unknown>) ?? {};
-    const title =
-      typeof payload.title === "string" ? payload.title : "document";
-    const source =
-      typeof payload.source === "string" ? payload.source : "studio";
-    const ts = row.ts instanceof Date ? row.ts.toISOString() : String(row.ts);
-    return {
-      seq: Number(row.seq),
-      title,
-      ingested_at: ts,
-      source,
-    };
-  });
-}
-
 async function handleStudioListDocs(
   _req: IncomingMessage,
   res: ServerResponse,
@@ -1226,7 +1200,7 @@ async function handleStudioUploadDocs(
 
 /** POST /studio/scopes/:id/activate — bind hatchery to this scope (no ingest). */
 async function handleStudioActivate(
-  req: IncomingMessage,
+  _req: IncomingMessage,
   res: ServerResponse,
   scopeId: string,
 ): Promise<void> {
@@ -1252,7 +1226,7 @@ async function handleStudioActivate(
 
 /** POST /studio/scopes/:id/reset — wipe graph + reinit catalog badge and swarm_state. */
 async function handleStudioReset(
-  req: IncomingMessage,
+  _req: IncomingMessage,
   res: ServerResponse,
   scopeId: string,
 ): Promise<void> {

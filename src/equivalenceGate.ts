@@ -15,6 +15,10 @@ import { randomUUID } from "crypto";
 import type { Proposal } from "./events.js";
 import type { DecisionRecord, Obligation } from "./policyEngine.js";
 import type { NliLabel, NliVerdict } from "./nliGate.js";
+import type {
+  AccrualPrefilterKind,
+  AccrualPrefilterContext,
+} from "./accrualPrefilter.js";
 import type { DimensionSchemaMap } from "./baselines/scenario/dimension-schema.js";
 import { resolveGenericEquivalenceRouting } from "./equivalenceRoutingPolicy.js";
 
@@ -111,10 +115,18 @@ export function decideEquivalence(
   const min = resolveMinConfidence(options.minConfidence);
   const conf = payload.nli_confidence.toFixed(2);
   if (payload.nli_label === "equivalent" && payload.nli_confidence >= min) {
-    return { outcome: "approve", result: "allow", reason: `nli_equivalent:${conf}` };
+    return {
+      outcome: "approve",
+      result: "allow",
+      reason: `nli_equivalent:${conf}`,
+    };
   }
   if (payload.prefilter === "accrual") {
-    return { outcome: "reject", result: "deny", reason: "accrual_prefilter:hitl" };
+    return {
+      outcome: "reject",
+      result: "deny",
+      reason: "accrual_prefilter:hitl",
+    };
   }
   const reason =
     payload.nli_label === "equivalent"

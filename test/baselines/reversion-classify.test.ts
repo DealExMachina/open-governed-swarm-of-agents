@@ -14,7 +14,8 @@ import { S1_DIMENSION_SCHEMA } from "../../src/baselines/scenario/dimension-sche
 describe("classifyReversion", () => {
   it("no prior value → new", () => {
     expect(
-      classifyReversion("arr", undefined, "ARR €50M", S1_DIMENSION_SCHEMA).class,
+      classifyReversion("arr", undefined, "ARR €50M", S1_DIMENSION_SCHEMA)
+        .class,
     ).toBe("new");
     expect(
       classifyReversion("arr", "   ", "ARR €50M", S1_DIMENSION_SCHEMA).class,
@@ -103,7 +104,12 @@ describe("tallyReversions", () => {
   it("aggregates classes into counts", () => {
     const tally = tallyReversions([
       classifyReversion("arr", undefined, "€50M", S1_DIMENSION_SCHEMA),
-      classifyReversion("arr", "€50M", "approximately €50M", S1_DIMENSION_SCHEMA),
+      classifyReversion(
+        "arr",
+        "€50M",
+        "approximately €50M",
+        S1_DIMENSION_SCHEMA,
+      ),
       classifyReversion("arr", "€50M", "€38M", S1_DIMENSION_SCHEMA),
     ]);
     expect(tally.new).toBe(1);

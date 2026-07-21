@@ -1,12 +1,17 @@
 import { describe, it, expect, vi } from "vitest";
-import { recordEquivalenceInGraph, type EquivalenceTraceInput } from "../../src/equivalenceTrace.js";
+import {
+  recordEquivalenceInGraph,
+  type EquivalenceTraceInput,
+} from "../../src/equivalenceTrace.js";
 
 function makeFakeClient() {
   const calls: Array<{ sql: string; params: unknown[] }> = [];
   const query = vi.fn(async (sql: string, params: unknown[]) => {
     calls.push({ sql, params });
-    if (/INSERT INTO nodes/.test(sql)) return { rows: [{ node_id: "ent-1" }], rowCount: 1 };
-    if (/INSERT INTO edges/.test(sql)) return { rows: [{ edge_id: "edge-1" }], rowCount: 1 };
+    if (/INSERT INTO nodes/.test(sql))
+      return { rows: [{ node_id: "ent-1" }], rowCount: 1 };
+    if (/INSERT INTO edges/.test(sql))
+      return { rows: [{ edge_id: "edge-1" }], rowCount: 1 };
     return { rows: [], rowCount: 0 };
   });
   return { client: { query } as any, calls };

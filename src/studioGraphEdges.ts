@@ -11,10 +11,43 @@ export type StudioLinkNode = {
 };
 
 const STOP = new Set([
-  "the", "and", "for", "are", "was", "were", "has", "have", "had", "not", "but",
-  "its", "that", "this", "from", "with", "they", "been", "which", "into", "also",
-  "than", "will", "can", "may", "who", "how", "all", "any", "each", "some", "such",
-  "very", "now", "previously", "before", "after",
+  "the",
+  "and",
+  "for",
+  "are",
+  "was",
+  "were",
+  "has",
+  "have",
+  "had",
+  "not",
+  "but",
+  "its",
+  "that",
+  "this",
+  "from",
+  "with",
+  "they",
+  "been",
+  "which",
+  "into",
+  "also",
+  "than",
+  "will",
+  "can",
+  "may",
+  "who",
+  "how",
+  "all",
+  "any",
+  "each",
+  "some",
+  "such",
+  "very",
+  "now",
+  "previously",
+  "before",
+  "after",
 ]);
 
 function sigWords(s: string): Set<string> {
@@ -82,6 +115,7 @@ function pickDocClaimIds(
   claims: StudioLinkNode[],
   claimIds: string[],
   max = 3,
+  minScore = 0.22,
 ): string[] {
   const byId = new Map(claims.map((c) => [c.id, c]));
   const ranked = claimIds
@@ -92,6 +126,7 @@ function pickDocClaimIds(
         score: claim ? claimDocAffinity(doc.content, claim.content) : 0,
       };
     })
+    .filter((row) => row.score >= minScore)
     .sort((a, b) => b.score - a.score);
   const picked: string[] = [];
   for (const row of ranked) {
@@ -144,7 +179,12 @@ export function synthesizeStudioEdges(
     if (a) push(contra.id, a, "contradicts");
     if (b && b !== a) push(contra.id, b, "contradicts");
     if (!a && !b) {
-      for (const claimId of findRelatedNodeIds(claims, contra.content, 2, 0.2)) {
+      for (const claimId of findRelatedNodeIds(
+        claims,
+        contra.content,
+        2,
+        0.2,
+      )) {
         push(contra.id, claimId, "contradicts");
       }
     }

@@ -7,21 +7,35 @@ import {
 
 describe("canonicalValue — currency amounts", () => {
   it("collapses lexical variants of the same amount to one canonical form", () => {
-    const forms = ["€50M", "EUR 50M", "50 million euros", "EUR 50,000,000", "fifty million euros"];
+    const forms = [
+      "€50M",
+      "EUR 50M",
+      "50 million euros",
+      "EUR 50,000,000",
+      "fifty million euros",
+    ];
     const canon = forms.map((f) => canonicalizeClaimText(f));
     for (const c of canon) expect(c).toBe("€50M");
   });
 
   it("keeps distinct amounts distinct (no false merge)", () => {
-    expect(canonicalizeClaimText("€50M")).not.toBe(canonicalizeClaimText("€38M"));
-    expect(canonicalizeClaimText("ARR €50M")).not.toBe(canonicalizeClaimText("ARR €38M"));
+    expect(canonicalizeClaimText("€50M")).not.toBe(
+      canonicalizeClaimText("€38M"),
+    );
+    expect(canonicalizeClaimText("ARR €50M")).not.toBe(
+      canonicalizeClaimText("ARR €38M"),
+    );
   });
 
   it("normalizes amounts in place inside surrounding prose", () => {
-    expect(canonicalizeClaimText("ARR of 50 million euros")).toBe("ARR of €50M");
-    expect(canonicalizeClaimText("Indicative valuation 420 million euros (8.4x ARR)")).toBe(
-      "Indicative valuation €420M (8.4x ARR)",
+    expect(canonicalizeClaimText("ARR of 50 million euros")).toBe(
+      "ARR of €50M",
     );
+    expect(
+      canonicalizeClaimText(
+        "Indicative valuation 420 million euros (8.4x ARR)",
+      ),
+    ).toBe("Indicative valuation €420M (8.4x ARR)");
   });
 
   it("handles other currencies", () => {
@@ -43,11 +57,15 @@ describe("canonicalValue — currency ranges", () => {
   });
 
   it("canonicalizes 'to'-style ranges", () => {
-    expect(canonicalizeClaimText("270 million to 290 million euros")).toBe("€270M-€290M");
+    expect(canonicalizeClaimText("270 million to 290 million euros")).toBe(
+      "€270M-€290M",
+    );
   });
 
   it("does not touch year ranges or counts (no currency/magnitude)", () => {
-    expect(canonicalizeClaimText("45% CAGR (2021-2024)")).toBe("45% CAGR (2021-2024)");
+    expect(canonicalizeClaimText("45% CAGR (2021-2024)")).toBe(
+      "45% CAGR (2021-2024)",
+    );
     expect(canonicalizeClaimText("5-10 people")).toBe("5-10 people");
   });
 });
@@ -69,11 +87,26 @@ describe("canonicalValue — real S1 scenario strings", () => {
     ["ARR €50M (FY 2024, self-reported)", "ARR €50M (FY 2024, self-reported)"],
     ["45% CAGR (2021-2024)", "45% CAGR (2021-2024)"],
     ["Gross margin 72%", "Gross margin 72%"],
-    ["Indicative valuation €420M (8.4x ARR)", "Indicative valuation €420M (8.4x ARR)"],
-    ["ARR €38M (adjusted, auditor-verified)", "ARR €38M (adjusted, auditor-verified)"],
-    ["61% of codebase authored by departing staff", "61% of codebase authored by departing staff"],
-    ["Revised valuation €270-290M (down 37% from €420M)", "Revised valuation €270M-€290M (down 37% from €420M)"],
-    ["Axion settlement €1.5-2M, Haber buyout €800K-1.2M", "Axion settlement €1.5M-€2M, Haber buyout €800K-€1.2M"],
+    [
+      "Indicative valuation €420M (8.4x ARR)",
+      "Indicative valuation €420M (8.4x ARR)",
+    ],
+    [
+      "ARR €38M (adjusted, auditor-verified)",
+      "ARR €38M (adjusted, auditor-verified)",
+    ],
+    [
+      "61% of codebase authored by departing staff",
+      "61% of codebase authored by departing staff",
+    ],
+    [
+      "Revised valuation €270-290M (down 37% from €420M)",
+      "Revised valuation €270M-€290M (down 37% from €420M)",
+    ],
+    [
+      "Axion settlement €1.5-2M, Haber buyout €800K-1.2M",
+      "Axion settlement €1.5M-€2M, Haber buyout €800K-€1.2M",
+    ],
   ];
 
   it.each(cases)("canonicalizes %s", (input, expected) => {
@@ -96,7 +129,9 @@ describe("canonicalValue — dedup key convergence", () => {
   });
 
   it("different values do not converge", () => {
-    expect(canonicalClaimKey("ARR €50M")).not.toBe(canonicalClaimKey("ARR €38M"));
+    expect(canonicalClaimKey("ARR €50M")).not.toBe(
+      canonicalClaimKey("ARR €38M"),
+    );
   });
 });
 

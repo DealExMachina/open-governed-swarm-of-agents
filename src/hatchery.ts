@@ -257,10 +257,7 @@ export class AgentHatchery {
    * Switch scope immediately and recycle workers in the background.
    * Used by NATS runtime control so feed load-corpus is not blocked on drains.
    */
-  scheduleRebindActiveScope(
-    scopeId: string,
-    tenantId?: string | null,
-  ): void {
+  scheduleRebindActiveScope(scopeId: string, tenantId?: string | null): void {
     if (this.shuttingDown) return;
     logger.info("hatchery schedule rebind scope", {
       from: this.config.scopeId,

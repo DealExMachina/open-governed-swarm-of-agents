@@ -43,6 +43,7 @@ const s3PutJson = vi.fn(async () => {});
 const s3PutText = vi.fn(async () => {});
 const s3ListKeys = vi.fn(async () => [] as string[]);
 const tailEvents = vi.fn(async () => [] as Array<{ data: unknown }>);
+const tailEventsForScope = vi.fn(async () => [] as Array<{ data: unknown }>);
 const emitContribution = vi.fn(async () => {});
 const syncFactsToSemanticGraph = vi.fn(async () => ({
   nodesCreated: 0,
@@ -67,6 +68,7 @@ vi.mock("../../src/s3.js", () => ({
 }));
 vi.mock("../../src/contextWal.js", () => ({
   tailEvents: (...args: unknown[]) => tailEvents(...(args as [])),
+  tailEventsForScope: (...args: unknown[]) => tailEventsForScope(...(args as [])),
   appendEvent: vi.fn(async () => 1),
 }));
 vi.mock("../../src/causalEmit.js", () => ({
@@ -255,6 +257,7 @@ describe("shared read tools receive inputData under v1", () => {
   beforeEach(() => {
     s3GetText.mockReset().mockResolvedValue(null);
     tailEvents.mockReset().mockResolvedValue([]);
+    tailEventsForScope.mockReset().mockResolvedValue([]);
   });
 
   it("readFacts parses stored JSON and returns { facts }", async () => {
@@ -284,6 +287,7 @@ describe("facts agent tool pipeline (runFactsPipelineDirect)", () => {
     s3GetText.mockReset().mockResolvedValue(null);
     s3PutJson.mockReset().mockResolvedValue(undefined);
     tailEvents.mockReset().mockResolvedValue([]);
+    tailEventsForScope.mockReset().mockResolvedValue([]);
     emitContribution.mockReset().mockResolvedValue(undefined);
     syncFactsToSemanticGraph.mockClear();
     syncFactsToSgrs.mockClear();
@@ -325,9 +329,7 @@ describe("facts agent tool pipeline (runFactsPipelineDirect)", () => {
     expect(emitContribution).toHaveBeenCalled();
 
     // Pipeline surfaces the write result + facts hash.
-    expect(result.wrote).toEqual(
-      expect.arrayContaining([factsKey, driftKey]),
-    );
+    expect(result.wrote).toEqual(expect.arrayContaining([factsKey, driftKey]));
     expect(result.facts_hash).toBe("abc123");
   });
 });
