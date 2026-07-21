@@ -68,7 +68,8 @@ vi.mock("../../src/s3.js", () => ({
 }));
 vi.mock("../../src/contextWal.js", () => ({
   tailEvents: (...args: unknown[]) => tailEvents(...(args as [])),
-  tailEventsForScope: (...args: unknown[]) => tailEventsForScope(...(args as [])),
+  tailEventsForScope: (...args: unknown[]) =>
+    tailEventsForScope(...(args as [])),
   appendEvent: vi.fn(async () => 1),
 }));
 vi.mock("../../src/causalEmit.js", () => ({
