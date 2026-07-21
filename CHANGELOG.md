@@ -16,11 +16,19 @@ Kernel crate `sgrs-core` bumped **0.1.0 -> 0.2.0** (propagation-layer Lyapunov +
 - Propagation steps now report `dirichlet_before` / `dirichlet_after` (NAPI DTO + TS `PropagationStepResult`), plus direct `dirichletEnergy` / `dirichletEnergyByEdge` bridges and `PropagationEngine.getDirichletEnergy`.
 - **Dual-condition (∧) finality gate**: RESOLVED requires `[f(x) < ε_prop] ∧ F*(t)` — propagation-layer consensus (global section) AND semantic-layer vector finality (non-compensable). Configured via `finality.yaml: dirichlet_gate`. Additive and backward-compatible: falls back to the semantic layer alone when disabled or when no propagation history exists. Emits a `dirichlet_hold` signal when semantics are ready but propagation is still converging.
 - Migration `025_propagation_history_dirichlet.sql`: nullable `dirichlet_before` / `dirichlet_after` columns (legacy rows fall back to the Ω proxy).
+- `docs/cleanup-and-refactor.md`: cleanup backlog, subdirectory review, and phased refactor assessment.
+- `demo/scenario/README.md` corpus wiring matrix; READMEs for root and `sgrs-core` migration trees.
 
 ### Changed
 
 - **Convergence model is now explicitly two-layer and lattice-geometric.** The scalar Lyapunov `V(t)` is documented and retained as a **diagnostic** (rate, ETA, plateau, pressure), not the admissibility test; admissibility is vector finality `F*` plus the Dirichlet gate. `docs/convergence.md` and `docs/architecture.md` rewritten accordingly.
 - The variance proxy `Ω(x)` is now clearly labelled a topology-health signal (it equals `f(x)/N` only on the constant complete sheaf; on projection sheaves it can plateau above zero while `f(x) -> 0`). Finality gates on `f(x)`.
+- Moved `workers/facts-worker/test_nli.py` into `workers/facts-worker/tests/unit/` for consistent pytest layout.
+- Fixed `agents-swarm-governed.code-workspace` to open only this repo (removed broken sibling path).
+
+### Removed
+
+- Obsolete Vitest placeholders `test/.gitkeep` and `test/.placeholder.ts` (real tests already present under `test/`).
 
 ### Notes
 

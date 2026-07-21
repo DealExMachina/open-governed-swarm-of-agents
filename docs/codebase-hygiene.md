@@ -1,8 +1,10 @@
 # Codebase hygiene and known gaps
 
-> Back to [README](../README.md) | Related: [validation.md](validation.md).
+> Back to [README](../README.md) | Related: [validation.md](validation.md), [cleanup-and-refactor.md](cleanup-and-refactor.md).
 
 This page lists **documentation vs. reality** mismatches, **optional or missing assets**, and **dead or stub code paths** so contributors do not chase files that are not shipped. It is deliberately short and maintained when the layout changes.
+
+For the full cleanup backlog, corpus wiring matrix, and refactor phases, see **[cleanup-and-refactor.md](cleanup-and-refactor.md)**.
 
 ---
 
@@ -11,6 +13,7 @@ This page lists **documentation vs. reality** mismatches, **optional or missing 
 | Path | Expected by | If missing |
 |------|-------------|------------|
 | **`skills/`** (root) | `src/skills/loader.ts` loads `skills/<id>.md` | Skill text is **skipped** (empty string). Agents still run; prompts have no skill appendix. DEMO.md previously named files like `00-swarm-protocol.md` — add them under `skills/` to enable. |
+| **`docs/benchmarks/manifests/`** | `src/baselines/manifest/registry.ts` (`s1`–`s5` YAML paths) | Benchmark scenario resolution fails until manifests are added (or builtin overlays used). Corpora for several scenarios already live under `demo/scenario/`. |
 | **`test/`** | `vitest.config.ts` (`test/**/*.test.ts`, `test/setup.ts`) | **`pnpm test`** reports *no test files* and exits non-zero. |
 
 ---
@@ -48,8 +51,12 @@ This page lists **documentation vs. reality** mismatches, **optional or missing 
 
 ## Duplicate migration locations
 
-- **`migrations/`** (repo root): application Postgres schema for the Node swarm.
-- **`sgrs-core/migrations/`**: schema and assets used by the Rust crate / native build. Overlap in numbering (e.g. 019–021) reflects **parallel evolution** — they are not interchangeable. Application changes belong in root `migrations/` unless you are working inside `sgrs-core` only.
+- **`migrations/`** (repo root): application Postgres schema for the Node swarm. See [`migrations/README.md`](../migrations/README.md).
+- **`sgrs-core/migrations/`**: schema and assets used by the Rust crate / native build. See [`sgrs-core/migrations/README.md`](../sgrs-core/migrations/README.md). Overlap in numbering (e.g. 019–021) reflects **parallel evolution** — they are not interchangeable. Application changes belong in root `migrations/` unless you are working inside `sgrs-core` only.
+
+## Scenario corpora
+
+Wiring status for every `demo/scenario/docs-*` folder is maintained in [`demo/scenario/README.md`](../demo/scenario/README.md). Unwired corpora (`docs-aml-kyc`, `docs-energy-grid`, `docs-ma-extended`) are prepared assets, not orphans for deletion.
 
 ---
 
@@ -65,7 +72,7 @@ This page lists **documentation vs. reality** mismatches, **optional or missing 
 | Area | Detail |
 |------|--------|
 | **Skill markdown files** | **Dead data path** until `skills/` exists: `loadSkillFile` always hits `catch` and returns `""`. |
-| **Vitest entrypoint** | **`test/`** holds unit and architecture tests; **`pnpm test`** runs in CI after `build:rust` and `pnpm build`. E2E remains out of CI (see [validation.md](validation.md)). |
+| **Vitest entrypoint** | **`test/`** holds unit and architecture tests; **`pnpm test`** runs in CI after `build:rust` and `pnpm build`. Placeholders (`.gitkeep` / `.placeholder.ts`) were removed once real tests landed. E2E remains out of CI (see [validation.md](validation.md)). |
 | **Causal contribution → evidence state** | Documented in validation as **not implemented by design** (audit-only DAG); do not assume runtime wiring from TS `emitContribution` to full evidence-state consumers. |
 
 ---
