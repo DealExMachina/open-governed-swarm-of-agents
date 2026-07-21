@@ -149,9 +149,9 @@ export async function ensureScenarioCatalogScope(input: {
 
 /** Remove catalog row and all persisted scope data. */
 export async function deleteCatalogScope(scopeId: string): Promise<void> {
-  const { resetScopeData } = await import("./scopeReset.js");
-  const { makeS3 } = await import("./s3.js");
-  const { scopeStoragePrefix } = await import("./scopeStorage.js");
+  const { resetScopeData } = await import("../scopeReset.js");
+  const { makeS3 } = await import("../s3.js");
+  const { scopeStoragePrefix } = await import("../scopeStorage.js");
   const bucket = process.env.S3_BUCKET;
   await resetScopeData(getPool(), scopeId, {
     s3: bucket && process.env.S3_ENDPOINT ? makeS3() : undefined,

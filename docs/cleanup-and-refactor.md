@@ -62,7 +62,7 @@ The repo is a healthy research + product monorepo with clear license/package bou
 
 ```
 /
-├── src/                 # TS orchestration — feed/, semantic-graph/, studio/ extracted; rest still flat
+├── src/                 # TS orchestration — feed/, semantic-graph/, studio/, finality/ extracted; rest still flat
 ├── sgrs-core/           # Rust kernel + N-API (well modularized internally)
 ├── packages/            # MIT clients (TS + Python)
 ├── workers/facts-worker # Python extraction / NLI
@@ -162,4 +162,4 @@ See also the execution backlog: [`refactor-execution-plan.md`](refactor-executio
 4. Include Studio assets in `Dockerfile.feed.dist` — see PR #26.
 5. ~~Split `demo-server.ts` / `feed.ts` / `semanticGraph.ts`.~~ **done**
 6. ~~Organize `scripts/`.~~ **done**
-7. ~~`src/studio/` domain.~~ **done** (barrels). Next: `src/finality/`; Studio HTML split after #26; secondary hotspots.
+7. ~~`src/studio/` + `src/finality/` domains.~~ **done** (barrels). Next: Studio HTML split after #26; secondary hotspots (`governanceAgent`, `bridge.rs`).
