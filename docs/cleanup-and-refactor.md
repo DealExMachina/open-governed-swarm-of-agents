@@ -24,6 +24,7 @@ The repo is a healthy research + product monorepo with clear license/package bou
 | Added | `migrations/README.md`, `sgrs-core/migrations/README.md` | Clarify parallel migration trees |
 | Added | `demo/scenario/README.md` | Corpus wiring status matrix |
 | Taxonomized | `scripts/{ops,checks,demo,experiments,benchmarks}/` | Role-based layout; `package.json` + callers updated; see `scripts/README.md` |
+| Added | `docs/benchmarks/manifests/s1`–`s5` | Comparative benchmark packages; `pnpm run check:benchmark-manifests` passes |
 
 ---
 
@@ -50,8 +51,8 @@ The repo is a healthy research + product monorepo with clear license/package bou
 |------|----------------|
 | `docs/archive/demo.md` | Keep as redirect stub, or delete after updating `docs/demos/*` and hygiene links |
 | Empty Python `tests/__init__.py` files | Optional; low value, conventional for some runners |
-| Unwired corpora (`docs-aml-kyc`, `docs-energy-grid`, `docs-ma-extended`) | Keep until benchmark manifests exist or publication confirms unused |
-| Missing `docs/benchmarks/manifests/*.yaml` | **Gap**, not deletion — `src/baselines/manifest/registry.ts` points at non-existent paths |
+| Unwired corpora (`docs-ma-extended`) | Extended M&A corpus still without a driver/manifest; keep until publication confirms unused |
+| ~~Missing `docs/benchmarks/manifests/*.yaml`~~ | **done** — S1–S5 manifests shipped under [`docs/benchmarks/`](benchmarks/README.md) |
 | Missing root `skills/*.md` | Dead data path until skill markdown is added (`src/skills/loader.ts`) |
 | `Dockerfile.feed.dist` omits `prototype/` | Dist image cannot serve Studio; either copy assets or document as unsupported |
 
@@ -135,7 +136,7 @@ demo/
 
 | Phase | Scope | Invasiveness | Risk |
 |-------|-------|--------------|------|
-| **P0 — Manifests** | Add `docs/benchmarks/manifests/` (or stub READMEs) for `s1`–`s5`; generate demo/experiment lists from manifests | Medium — touches demo + scripts + baselines | Medium (behavior parity) |
+| **P0 — Manifests** | ~~Add `docs/benchmarks/manifests/` for `s1`–`s5`~~ **done** (demo/experiment list generation from manifests still open) | Remaining: wire demos to manifests | Low–medium |
 | **P1 — Split demo server** | Extract `demo/server/` + `demo/ui/`; leave public API stable | High file move, low runtime change if routes preserved | Medium |
 | **P2 — Static assets** | Move Studio + observability HTML to `public/`; update feed + `Dockerfile.feed.dist` | Medium | Low–medium (image/regression) |
 | **P3 — Split `semanticGraph.ts` / `feed.ts`** | Module boundaries by concern; re-export barrels for compatibility | High | Medium–high (import churn) |
@@ -153,8 +154,8 @@ demo/
 
 ## Suggested follow-up tickets
 
-1. Ship or stub `docs/benchmarks/manifests/s1`–`s5` so `registry.ts` resolves.
-2. Wire or archive `docs-aml-kyc`, `docs-energy-grid`, `docs-ma-extended`.
+1. ~~Ship `docs/benchmarks/manifests/s1`–`s5` so `registry.ts` resolves.~~ **done**
+2. Wire or archive `docs-ma-extended`; optionally drive S2–S5 through `run-experiment.sh` using manifests.
 3. Add root `skills/` markdown or remove dead loader path from docs/DEMO claims.
 4. Include Studio assets in `Dockerfile.feed.dist` (or document Studio as compose-dev-only).
 5. Split `demo-server.ts` (largest maintainability win for product UX).

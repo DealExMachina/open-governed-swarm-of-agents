@@ -16,8 +16,12 @@ All demo scenarios are **designed to be reproducible** with the reference implem
 | **Financial consolidation** | 8 | Bitemporal restatements, dual temporality | `./scripts/experiments/run-experiment.sh financial --rounds=8` |
 | **Insurance onboarding** | 22 | Long-horizon convergence, iterative resolution | `./scripts/experiments/run-experiment.sh insurance` |
 | **European Green Bond (EUGBS)** | 38 | Full bond lifecycle, regulatory transition, allocation | `./scripts/experiments/run-experiment.sh green-bond` |
-| **Clinical trial** | 18 | Phase progression, protocol drift | `demo/scenario/docs-clinical-trial/` |
-| **Solvency II** | -- | Regulatory stress testing | `demo/scenario/docs-solvency2/` |
+| **Clinical trial** (benchmark **s3**) | 18 | Phase progression, protocol drift | `demo/scenario/docs-clinical-trial/` — manifest [`docs/benchmarks/manifests/s3-clinical-trial.yaml`](benchmarks/manifests/s3-clinical-trial.yaml) |
+| **Solvency II** (benchmark **s2**) | 15 | Regulatory stress / look-through | `demo/scenario/docs-solvency2/` — manifest [`docs/benchmarks/manifests/s2-solvency2.yaml`](benchmarks/manifests/s2-solvency2.yaml) |
+| **AML/KYC** (benchmark **s4**) | 15 | CDD→EDD, SAR, risk re-rating | `demo/scenario/docs-aml-kyc/` — [`s4-aml-kyc.yaml`](benchmarks/manifests/s4-aml-kyc.yaml) |
+| **Energy grid** (benchmark **s5**) | 15 | NERC CIP / storm Helios | `demo/scenario/docs-energy-grid/` — [`s5-energy-grid.yaml`](benchmarks/manifests/s5-energy-grid.yaml) |
+
+Comparative manifests for **s1–s5**: [`docs/benchmarks/README.md`](benchmarks/README.md). Validate with `pnpm run check:benchmark-manifests`.
 
 Detailed protocols per demo: [docs/demos/](demos/README.md).
 

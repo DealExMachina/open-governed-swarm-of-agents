@@ -13,7 +13,7 @@ For the full cleanup backlog, corpus wiring matrix, and refactor phases, see **[
 | Path | Expected by | If missing |
 |------|-------------|------------|
 | **`skills/`** (root) | `src/skills/loader.ts` loads `skills/<id>.md` | Skill text is **skipped** (empty string). Agents still run; prompts have no skill appendix. DEMO.md previously named files like `00-swarm-protocol.md` — add them under `skills/` to enable. |
-| **`docs/benchmarks/manifests/`** | `src/baselines/manifest/registry.ts` (`s1`–`s5` YAML paths) | Benchmark scenario resolution fails until manifests are added (or builtin overlays used). Corpora for several scenarios already live under `demo/scenario/`. |
+| **`docs/benchmarks/manifests/`** | `src/baselines/manifest/registry.ts` (`s1`–`s5`) | Shipped — see [`docs/benchmarks/README.md`](benchmarks/README.md). Validate with `pnpm run check:benchmark-manifests`. |
 | **`test/`** | `vitest.config.ts` (`test/**/*.test.ts`, `test/setup.ts`) | **`pnpm test`** reports *no test files* and exits non-zero. |
 
 ---

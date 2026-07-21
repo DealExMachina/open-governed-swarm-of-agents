@@ -11,11 +11,11 @@ Document sets under `demo/scenario/`. Each folder is a corpus of `.txt` files in
 | `docs-noisy/` | 5 | Experiment | `drive-experiment.ts`, `run-experiment.sh` |
 | `docs-exp6/` | 7 | Experiment / adversarial | `drive-experiment.ts`, `drive-exp8-adversarial.ts` |
 | `docs-tier3/` | 6 | Experiment | `drive-experiment.ts` |
-| `docs-clinical-trial/` | 18 | Documented experiment corpus | `docs/experiments.md`, README |
-| `docs-solvency2/` | 15 | Documented experiment corpus | `docs/experiments.md`, README |
-| `docs-aml-kyc/` | 15 | Prepared, **not yet wired** | Intended for benchmark manifest `s4` (`docs/benchmarks/manifests/` missing) |
-| `docs-energy-grid/` | 15 | Prepared, **not yet wired** | Intended for benchmark manifest `s5` |
-| `docs-ma-extended/` | 25 | Prepared, **not yet wired** | Extended M&A corpus; no driver reference |
+| `docs-clinical-trial/` | 18 | Benchmark **s3** | [`docs/benchmarks/manifests/s3-clinical-trial.yaml`](../../docs/benchmarks/manifests/s3-clinical-trial.yaml) |
+| `docs-solvency2/` | 15 | Benchmark **s2** | [`docs/benchmarks/manifests/s2-solvency2.yaml`](../../docs/benchmarks/manifests/s2-solvency2.yaml) |
+| `docs-aml-kyc/` | 15 | Benchmark **s4** | [`docs/benchmarks/manifests/s4-aml-kyc.yaml`](../../docs/benchmarks/manifests/s4-aml-kyc.yaml) |
+| `docs-energy-grid/` | 15 | Benchmark **s5** | [`docs/benchmarks/manifests/s5-energy-grid.yaml`](../../docs/benchmarks/manifests/s5-energy-grid.yaml) |
+| `docs-ma-extended/` | 25 | Prepared, **not yet wired** | Extended M&A corpus; no driver/manifest |
 
 ## Rules
 

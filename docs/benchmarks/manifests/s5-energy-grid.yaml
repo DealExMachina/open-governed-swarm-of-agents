@@ -1,0 +1,191 @@
+# Benchmark scenario manifest (PRD v0.2)
+# Loaded via src/baselines/manifest/registry.ts
+# Validate: pnpm run check:benchmark-manifests
+
+manifestVersion: '1'
+id: s5-energy-grid
+prdScenario: S5
+version: 1.0.0
+docsRootRelative: demo/scenario
+documents:
+- id: doc-01
+  epoch: 0
+  title: Grid Topology Baseline
+  path: docs-energy-grid/01-grid-topology-baseline.txt
+  expectedClaims:
+  - dimension: peak_capacity
+    content: Peak generating capacity 12.4 GW across four balancing areas
+    confidence: 0.9
+    source: doc-01
+  - dimension: nodes
+    content: 847 transmission nodes / 14,200 line-miles
+    confidence: 0.85
+    source: doc-01
+  contradictions: []
+- id: doc-02
+  epoch: 1
+  title: NERC CIP Compliance Status
+  path: docs-energy-grid/02-nerc-cip-compliance-status.txt
+  expectedClaims:
+  - dimension: wci
+    content: Weighted compliance index baseline ~94% (pre-storm quarter)
+    confidence: 0.8
+    source: doc-02
+  contradictions: []
+- id: doc-03
+  epoch: 2
+  title: January Frequency Performance
+  path: docs-energy-grid/03-frequency-baseline-january.txt
+  expectedClaims: []
+  contradictions: []
+- id: doc-04
+  epoch: 3
+  title: Q1 Renewable Generation Forecast
+  path: docs-energy-grid/04-renewable-forecast-q1.txt
+  expectedClaims: []
+  contradictions: []
+- id: doc-05
+  epoch: 4
+  title: December Settlement Baseline
+  path: docs-energy-grid/05-settlement-baseline.txt
+  expectedClaims: []
+  contradictions: []
+- id: doc-06
+  epoch: 5
+  title: Winter Storm Helios Event Report
+  path: docs-energy-grid/06-winter-storm-event.txt
+  expectedClaims: []
+  contradictions: []
+- id: doc-07
+  epoch: 6
+  title: Post-Event Frequency Analysis
+  path: docs-energy-grid/07-post-event-frequency-analysis.txt
+  expectedClaims: []
+  contradictions: []
+- id: doc-08
+  epoch: 7
+  title: Renewable Curtailment Incident
+  path: docs-energy-grid/08-renewable-curtailment-incident.txt
+  expectedClaims: []
+  contradictions: []
+- id: doc-09
+  epoch: 8
+  title: CIP-007 Patch Management Failure
+  path: docs-energy-grid/09-nerc-cip-patch-failure.txt
+  expectedClaims:
+  - dimension: cip007
+    content: CIP-007 patch window missed on subset of BES Cyber Assets
+    confidence: 0.9
+    source: doc-09
+  contradictions: []
+- id: doc-10
+  epoch: 9
+  title: Gas Pipeline Supply Investigation
+  path: docs-energy-grid/10-gas-pipeline-investigation.txt
+  expectedClaims: []
+  contradictions: []
+- id: doc-11
+  epoch: 10
+  title: Storm Resilience Remediation Plan
+  path: docs-energy-grid/11-storm-remediation-plan.txt
+  expectedClaims: []
+  contradictions: []
+- id: doc-12
+  epoch: 11
+  title: PMU vs SCADA Frequency Reconciliation
+  path: docs-energy-grid/12-frequency-data-reconciliation.txt
+  expectedClaims: []
+  contradictions: []
+- id: doc-13
+  epoch: 12
+  title: Curtailment Settlement Dispute Resolution
+  path: docs-energy-grid/13-settlement-dispute-resolution.txt
+  expectedClaims: []
+  contradictions: []
+- id: doc-14
+  epoch: 13
+  title: Q1 NERC CIP Quarterly Compliance Filing
+  path: docs-energy-grid/14-quarterly-compliance-report.txt
+  expectedClaims:
+  - dimension: wci
+    content: Q1 2026 weighted compliance index 91% (down from 94%)
+    confidence: 0.9
+    source: doc-14
+  - dimension: cip007
+    content: Self-reported CIP-007-6 R2 patch management finding remediated
+    confidence: 0.85
+    source: doc-14
+  contradictions:
+  - dimension: wci
+    oldValue: Weighted compliance index baseline ~94% (pre-storm quarter)
+    newValue: Q1 2026 weighted compliance index 91% (down from 94%)
+    severity: medium
+    description: Storm Helios + CIP-007 patch failure reduce quarterly WCI
+- id: doc-15
+  epoch: 14
+  title: Evidence Coarsening Audit Report
+  path: docs-energy-grid/15-evidence-coarsening-audit.txt
+  expectedClaims: []
+  contradictions: []
+groundTruth:
+  resolvedDimensions:
+  - wci
+  - cip007
+  - settlement_dispute
+  unresolvableDimensions:
+  - gas_supply_causation
+  - evidence_coarsening_limits
+  falseClaims:
+  - Full CIP-007 patch compliance maintained throughout Q1 2026
+  epoch0State:
+  - dimension: peak_capacity
+    content: Peak generating capacity 12.4 GW across four balancing areas
+  - dimension: nodes
+    content: 847 transmission nodes / 14,200 line-miles
+  expectedValuation:
+    min: 88
+    max: 94
+  contradictionsByEpoch:
+    0: 0
+    1: 0
+    8: 0
+    13: 1
+agentRoles:
+- id: operations
+  name: Grid Operations Engineer
+  responsibility: Topology, frequency, events
+  systemPrompt: You are a grid operations engineer. Extract topology, frequency performance, and storm
+    event facts.
+- id: compliance
+  name: NERC CIP Compliance Analyst
+  responsibility: CIP standards and WCI
+  systemPrompt: You are a NERC CIP compliance analyst. Extract CIP findings, patch status, and weighted
+    compliance index.
+- id: markets
+  name: Settlement Analyst
+  responsibility: Settlements and curtailment disputes
+  systemPrompt: You are a settlement analyst. Extract settlement baselines, curtailment incidents, and
+    dispute resolutions.
+- id: reliability
+  name: Reliability Engineer
+  responsibility: Remediation and evidence quality
+  systemPrompt: You are a reliability engineer. Extract remediation plans, PMU/SCADA reconciliation, and
+    evidence audits.
+roleDimensionMap:
+  operations:
+  - peak_capacity
+  - nodes
+  - frequency
+  - storm_event
+  compliance:
+  - wci
+  - cip007
+  - cip006
+  markets:
+  - settlement
+  - curtailment
+  - settlement_dispute
+  reliability:
+  - remediation
+  - pmu_scada
+  - evidence_coarsening

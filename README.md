@@ -292,8 +292,10 @@ CRDT-inspired monotonic upserts: confidence only increases, resolution edges are
 | **Financial Consolidation** | 8 docs, restatements, dual temporality | `./scripts/experiments/run-experiment.sh financial --rounds=8` |
 | **Insurance Onboarding** | 22 docs, 20+ convergence cycles | `./scripts/experiments/run-experiment.sh insurance` |
 | **European Green Bond (EUGBS)** | 38 docs, full bond lifecycle | `./scripts/experiments/run-experiment.sh green-bond` |
-| **Clinical Trial** | 18 docs, phase progression | `demo/scenario/docs-clinical-trial/` |
-| **Solvency II** | Regulatory stress testing | `demo/scenario/docs-solvency2/` |
+| **Clinical Trial** (benchmark s3) | 18 docs, phase progression | [`docs/benchmarks/manifests/s3-clinical-trial.yaml`](docs/benchmarks/manifests/s3-clinical-trial.yaml) |
+| **Solvency II** (benchmark s2) | 15 docs, look-through / SCR | [`docs/benchmarks/manifests/s2-solvency2.yaml`](docs/benchmarks/manifests/s2-solvency2.yaml) |
+| **AML/KYC** (benchmark s4) | 15 docs, CDD→EDD / SAR | [`docs/benchmarks/manifests/s4-aml-kyc.yaml`](docs/benchmarks/manifests/s4-aml-kyc.yaml) |
+| **Energy grid** (benchmark s5) | 15 docs, NERC CIP / storm | [`docs/benchmarks/manifests/s5-energy-grid.yaml`](docs/benchmarks/manifests/s5-energy-grid.yaml) |
 
 See [docs/demos/README.md](docs/demos/README.md) for detailed protocols.
 

@@ -19,6 +19,7 @@ Kernel crate `sgrs-core` bumped **0.1.0 -> 0.2.0** (propagation-layer Lyapunov +
 - `docs/cleanup-and-refactor.md`: cleanup backlog, subdirectory review, and phased refactor assessment.
 - `demo/scenario/README.md` corpus wiring matrix; READMEs for root and `sgrs-core` migration trees.
 - `scripts/README.md` documenting the scripts taxonomy.
+- Benchmark manifests **s1–s5** under `docs/benchmarks/manifests/` (S1 via `builtinRef`; S2–S5 wire Solvency II, clinical trial, AML/KYC, energy-grid corpora).
 
 ### Changed
 

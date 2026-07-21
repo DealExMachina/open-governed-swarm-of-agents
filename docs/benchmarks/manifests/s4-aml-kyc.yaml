@@ -1,0 +1,186 @@
+# Benchmark scenario manifest (PRD v0.2)
+# Loaded via src/baselines/manifest/registry.ts
+# Validate: pnpm run check:benchmark-manifests
+
+manifestVersion: '1'
+id: s4-aml-kyc
+prdScenario: S4
+version: 1.0.0
+docsRootRelative: demo/scenario
+documents:
+- id: doc-01
+  epoch: 0
+  title: Client Onboarding CDD — Castellan Holdings
+  path: docs-aml-kyc/01-client-onboarding-cdd.txt
+  expectedClaims:
+  - dimension: client_id
+    content: Castellan Holdings S.a.r.l. (Luxembourg B-247831)
+    confidence: 0.95
+    source: doc-01
+  - dimension: ubo
+    content: Viktor Castellan 78% / Elena Castellan 22%
+    confidence: 0.9
+    source: doc-01
+  contradictions: []
+- id: doc-02
+  epoch: 1
+  title: Corporate Group Structure
+  path: docs-aml-kyc/02-corporate-structure.txt
+  expectedClaims: []
+  contradictions: []
+- id: doc-03
+  epoch: 2
+  title: Initial Sanctions and PEP Screening
+  path: docs-aml-kyc/03-initial-sanctions-screening.txt
+  expectedClaims: []
+  contradictions: []
+- id: doc-04
+  epoch: 3
+  title: Transaction Monitoring Baseline
+  path: docs-aml-kyc/04-transaction-baseline.txt
+  expectedClaims: []
+  contradictions: []
+- id: doc-05
+  epoch: 4
+  title: Initial Client Risk Rating (MEDIUM)
+  path: docs-aml-kyc/05-risk-rating-initial.txt
+  expectedClaims:
+  - dimension: risk_rating
+    content: Overall risk rating MEDIUM (score 54/100)
+    confidence: 0.9
+    source: doc-05
+  contradictions: []
+- id: doc-06
+  epoch: 5
+  title: Beneficial Ownership Change Notification
+  path: docs-aml-kyc/06-beneficial-ownership-change.txt
+  expectedClaims: []
+  contradictions: []
+- id: doc-07
+  epoch: 6
+  title: Transaction Anomaly Alert
+  path: docs-aml-kyc/07-transaction-anomaly-alert.txt
+  expectedClaims: []
+  contradictions: []
+- id: doc-08
+  epoch: 7
+  title: Enhanced Due Diligence Report
+  path: docs-aml-kyc/08-enhanced-due-diligence.txt
+  expectedClaims: []
+  contradictions: []
+- id: doc-09
+  epoch: 8
+  title: Adverse Media Screening Alert
+  path: docs-aml-kyc/09-adverse-media-screening.txt
+  expectedClaims: []
+  contradictions: []
+- id: doc-10
+  epoch: 9
+  title: GDPR Art. 17 Erasure Request
+  path: docs-aml-kyc/10-gdpr-erasure-request.txt
+  expectedClaims: []
+  contradictions: []
+- id: doc-11
+  epoch: 10
+  title: SAR Filing Decision
+  path: docs-aml-kyc/11-sar-filing-decision.txt
+  expectedClaims:
+  - dimension: sar
+    content: SAR filing decision for Castellan anomaly / Cerberus payments
+    confidence: 0.85
+    source: doc-11
+  contradictions: []
+- id: doc-12
+  epoch: 11
+  title: Ownership Reconciliation — Undisclosed BVI Interest
+  path: docs-aml-kyc/12-ownership-reconciliation.txt
+  expectedClaims: []
+  contradictions: []
+- id: doc-13
+  epoch: 12
+  title: BaFin On-Site Examination
+  path: docs-aml-kyc/13-regulatory-inspection.txt
+  expectedClaims: []
+  contradictions: []
+- id: doc-14
+  epoch: 13
+  title: GDPR Erasure DPO Resolution
+  path: docs-aml-kyc/14-gdpr-resolution.txt
+  expectedClaims: []
+  contradictions: []
+- id: doc-15
+  epoch: 14
+  title: Remediation and Risk Re-Rating (HIGH)
+  path: docs-aml-kyc/15-remediation-and-rerating.txt
+  expectedClaims:
+  - dimension: risk_rating
+    content: NEW risk rating HIGH (score 79/100); prior MEDIUM preserved bitemporally
+    confidence: 0.95
+    source: doc-15
+  contradictions:
+  - dimension: risk_rating
+    oldValue: Overall risk rating MEDIUM (score 54/100)
+    newValue: NEW risk rating HIGH (score 79/100); prior MEDIUM preserved bitemporally
+    severity: high
+    description: Material re-rating after ownership opacity, PEP proximity, and SAR — historical MEDIUM
+      kept for audit
+groundTruth:
+  resolvedDimensions:
+  - risk_rating
+  - sar
+  - gdpr_erasure
+  unresolvableDimensions:
+  - ultimate_source_of_funds
+  - ongoing_pep_investigation
+  falseClaims:
+  - 'FATF RISK CATEGORY: Standard CDD remains adequate for the full relationship lifecycle'
+  epoch0State:
+  - dimension: client_id
+    content: Castellan Holdings S.a.r.l. (Luxembourg B-247831)
+  - dimension: ubo
+    content: Viktor Castellan 78% / Elena Castellan 22%
+  expectedValuation:
+    min: 75
+    max: 84
+  contradictionsByEpoch:
+    0: 0
+    4: 0
+    14: 1
+agentRoles:
+- id: kyc
+  name: KYC Analyst
+  responsibility: CDD/EDD, UBO, risk rating
+  systemPrompt: You are a KYC analyst. Extract client identity, UBOs, risk scores, and EDD findings. Preserve
+    bitemporal rating history.
+- id: tm
+  name: Transaction Monitoring Analyst
+  responsibility: Baselines, anomalies, SAR
+  systemPrompt: You are a transaction monitoring analyst. Extract baselines, anomaly alerts, and SAR filing
+    decisions.
+- id: sanctions
+  name: Sanctions / Screening Analyst
+  responsibility: Sanctions, PEP, adverse media
+  systemPrompt: You are a sanctions and screening analyst. Extract PEP hits, sanctions results, and adverse
+    media alerts.
+- id: privacy
+  name: DPO / Privacy Counsel
+  responsibility: GDPR erasure vs AML retention
+  systemPrompt: You are privacy counsel. Extract GDPR Art. 17 requests and resolutions against AML retention
+    duties.
+roleDimensionMap:
+  kyc:
+  - client_id
+  - ubo
+  - risk_rating
+  - edd
+  tm:
+  - txn_baseline
+  - txn_anomaly
+  - sar
+  sanctions:
+  - sanctions
+  - pep
+  - adverse_media
+  privacy:
+  - gdpr_erasure
+  - retention
