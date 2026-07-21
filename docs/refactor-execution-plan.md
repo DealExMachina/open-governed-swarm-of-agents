@@ -8,7 +8,7 @@
 |-------|------|-----------|--------|
 | **R1** | Wire experiments to S1–S5 manifests | YAML already shipped; unlocks S2–S5 without new demo UX | **done** (this PR) |
 | **R2** | Split `src/semanticGraph.ts` behind barrel | Largest remaining TS hotspot; enables later `src/` layout | **done** (this PR) |
-| **R3** | Incremental `src/` domains | Move leaf clusters (`studio*`, feed already done) after R2 | Next |
+| **R3** | Incremental `src/` domains | `src/studio/` collocated (barrels at old paths); `finality/` next | **studio done**; finality pending |
 | **R4** | Split Studio HTML/JS | Needs `public/studio/` (PR #26); extract app shell vs graph logic | Blocked on #26 |
 | **R5** | Rust test classes (P5) | Gate/ignore heavy `exp_*` vs fast invariants | **done** (`exp-harness` feature) |
 | **R6** | Secondary hotspots | `governanceAgent`, `finalityEvaluator`, `bridge.rs` — after R2–R3 | Deferred |

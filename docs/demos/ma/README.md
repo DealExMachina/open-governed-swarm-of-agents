@@ -20,7 +20,7 @@ Archived overview: [docs/archive/demo.md](../archive/demo.md). Step-by-step guid
 
 ## Scope isolation
 
-Each demo scenario has a dedicated Studio catalog scope (see `src/scenarioScopes.ts`):
+Each demo scenario has a dedicated Studio catalog scope (see `src/studio/scenarioScopes.ts`):
 
 | Scenario | Scope id |
 |---|---|
