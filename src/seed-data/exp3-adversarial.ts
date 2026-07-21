@@ -1,6 +1,6 @@
 /**
  * Exp 3 seed data: adversarial evidence patterns for finality robustness.
- * Used by scripts/seed-exp3-adversarial.ts.
+ * Used by scripts/experiments/seed-exp3-adversarial.ts.
  *
  * Patterns: spike-and-drop, oscillating, stale, empty
  */

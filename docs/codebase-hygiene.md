@@ -1,8 +1,10 @@
 # Codebase hygiene and known gaps
 
-> Back to [README](../README.md) | Related: [validation.md](validation.md).
+> Back to [README](../README.md) | Related: [validation.md](validation.md), [cleanup-and-refactor.md](cleanup-and-refactor.md).
 
 This page lists **documentation vs. reality** mismatches, **optional or missing assets**, and **dead or stub code paths** so contributors do not chase files that are not shipped. It is deliberately short and maintained when the layout changes.
+
+For the full cleanup backlog, corpus wiring matrix, and refactor phases, see **[cleanup-and-refactor.md](cleanup-and-refactor.md)**.
 
 ---
 
@@ -11,6 +13,7 @@ This page lists **documentation vs. reality** mismatches, **optional or missing 
 | Path | Expected by | If missing |
 |------|-------------|------------|
 | **`skills/`** (root) | `src/skills/loader.ts` loads `skills/<id>.md` | Skill text is **skipped** (empty string). Agents still run; prompts have no skill appendix. DEMO.md previously named files like `00-swarm-protocol.md` — add them under `skills/` to enable. |
+| **`docs/benchmarks/manifests/`** | `src/baselines/manifest/registry.ts` (`s1`–`s5`) | Shipped — see [`docs/benchmarks/README.md`](benchmarks/README.md). Validate with `pnpm run check:benchmark-manifests`. |
 | **`test/`** | `vitest.config.ts` (`test/**/*.test.ts`, `test/setup.ts`) | **`pnpm test`** reports *no test files* and exits non-zero. |
 
 ---
@@ -20,22 +23,22 @@ This page lists **documentation vs. reality** mismatches, **optional or missing 
 | Item | Notes |
 |------|--------|
 | **`prototype/studio-preview/index.html`** | **SGRS Studio** UI (Cytoscape). Served by the feed at **`http://localhost:3002/studio`** when `pnpm run feed` is running; loads graph from **`GET /studio/elements?scope_id=`** (falls back to embedded demo graph if empty). Optional static serve: `npx serve prototype/studio-preview`. |
-| **`scripts/benchmark-*-agents.ts`** (LangChain, Mastra, Agentica, Gateway) | Comparative / baseline drivers; not listed in the main README script table. Safe to treat as **optional research tooling**. |
-| **`scripts/test-dashboard-*.ts`** | Dashboard quality checks exposed through `pnpm run test:dashboard:smoke` and `pnpm run test:dashboard:regression`. Useful for UI/ops regression guardrails; optional for core kernel development. |
+| **`scripts/benchmarks/benchmark-*-agents.ts`** (LangChain, Mastra, Agentica, Gateway) | Comparative / baseline drivers; not listed in the main README script table. Safe to treat as **optional research tooling**. See [`scripts/README.md`](../scripts/README.md). |
+| **`scripts/checks/test-dashboard-*.ts`** | Dashboard quality checks exposed through `pnpm run test:dashboard:smoke` and `pnpm run test:dashboard:regression`. Useful for UI/ops regression guardrails; optional for core kernel development. |
 
 ---
 
 ## E2E vs. normal schema path
 
 - **Day-to-day:** `pnpm run ensure-schema` applies **all** SQL files under `migrations/` in order.
-- **`scripts/run-e2e.sh`** applies only **002, 003, 005, 006** by hand. Features that need later migrations may **not** be covered by E2E unless the script is updated. Prefer `ensure-schema` for a full DB.
+- **`scripts/ops/run-e2e.sh`** applies only **002, 003, 005, 006** by hand. Features that need later migrations may **not** be covered by E2E unless the script is updated. Prefer `ensure-schema` for a full DB.
 
 ---
 
 ## Experiments and gitignored output
 
 - **`docs/experiments/*/results/`** is gitignored (see `.gitignore`). Protocol text may reference result paths that are empty in a fresh clone.
-- **`exp-skills`** in `scripts/run-experiment.sh` writes under `docs/experiments/exp-skills/results/` — there is **no** shipped `docs/experiments/exp-skills/README.md`; treat the experiment as **script-only** unless you add docs locally.
+- **`exp-skills`** in `scripts/experiments/run-experiment.sh` writes under `docs/experiments/exp-skills/results/` — there is **no** shipped `docs/experiments/exp-skills/README.md`; treat the experiment as **script-only** unless you add docs locally.
 
 ---
 
@@ -48,8 +51,12 @@ This page lists **documentation vs. reality** mismatches, **optional or missing 
 
 ## Duplicate migration locations
 
-- **`migrations/`** (repo root): application Postgres schema for the Node swarm.
-- **`sgrs-core/migrations/`**: schema and assets used by the Rust crate / native build. Overlap in numbering (e.g. 019–021) reflects **parallel evolution** — they are not interchangeable. Application changes belong in root `migrations/` unless you are working inside `sgrs-core` only.
+- **`migrations/`** (repo root): application Postgres schema for the Node swarm. See [`migrations/README.md`](../migrations/README.md).
+- **`sgrs-core/migrations/`**: schema and assets used by the Rust crate / native build. See [`sgrs-core/migrations/README.md`](../sgrs-core/migrations/README.md). Overlap in numbering (e.g. 019–021) reflects **parallel evolution** — they are not interchangeable. Application changes belong in root `migrations/` unless you are working inside `sgrs-core` only.
+
+## Scenario corpora
+
+Wiring status for every `demo/scenario/docs-*` folder is maintained in [`demo/scenario/README.md`](../demo/scenario/README.md). Unwired corpora (`docs-aml-kyc`, `docs-energy-grid`, `docs-ma-extended`) are prepared assets, not orphans for deletion.
 
 ---
 
@@ -65,7 +72,7 @@ This page lists **documentation vs. reality** mismatches, **optional or missing 
 | Area | Detail |
 |------|--------|
 | **Skill markdown files** | **Dead data path** until `skills/` exists: `loadSkillFile` always hits `catch` and returns `""`. |
-| **Vitest entrypoint** | **`test/`** holds unit and architecture tests; **`pnpm test`** runs in CI after `build:rust` and `pnpm build`. E2E remains out of CI (see [validation.md](validation.md)). |
+| **Vitest entrypoint** | **`test/`** holds unit and architecture tests; **`pnpm test`** runs in CI after `build:rust` and `pnpm build`. Placeholders (`.gitkeep` / `.placeholder.ts`) were removed once real tests landed. E2E remains out of CI (see [validation.md](validation.md)). |
 | **Causal contribution → evidence state** | Documented in validation as **not implemented by design** (audit-only DAG); do not assume runtime wiring from TS `emitContribution` to full evidence-state consumers. |
 
 ---

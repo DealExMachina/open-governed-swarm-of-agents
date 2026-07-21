@@ -10,12 +10,12 @@ Simplified property and contents insurance: one applicant, one product. Flow: ap
 
 ## Corpus
 
-22 documents, built in `scripts/drive-experiment.ts` (`buildInsuranceCorpus()`). Not file-based.
+22 documents, built in `scripts/experiments/drive-experiment.ts` (`buildInsuranceCorpus()`). Not file-based.
 
 ## Run
 
 ```bash
-bash scripts/run-experiment.sh insurance
+bash scripts/experiments/run-experiment.sh insurance
 # Custom rounds: --rounds=25
 ```
 

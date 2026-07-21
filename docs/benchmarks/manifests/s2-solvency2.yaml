@@ -1,0 +1,212 @@
+# Benchmark scenario manifest (PRD v0.2)
+# Loaded via src/baselines/manifest/registry.ts
+# Validate: pnpm run check:benchmark-manifests
+
+manifestVersion: '1'
+id: s2-solvency2
+prdScenario: S2
+version: 1.0.0
+docsRootRelative: demo/scenario
+documents:
+- id: doc-01
+  epoch: 0
+  title: SCR Baseline Q4 2025
+  path: docs-solvency2/01-scr-baseline-q4.txt
+  expectedClaims:
+  - dimension: scr_ratio
+    content: Group SCR ratio 142% (Q4 2025)
+    confidence: 0.9
+    source: doc-01
+  - dimension: own_funds
+    content: Eligible own funds EUR 890M
+    confidence: 0.9
+    source: doc-01
+  - dimension: scr_total
+    content: SCR computed under Solvency II standard formula
+    confidence: 0.85
+    source: doc-01
+  contradictions: []
+- id: doc-02
+  epoch: 1
+  title: Internal Model Calibration
+  path: docs-solvency2/02-internal-model-calibration.txt
+  expectedClaims: []
+  contradictions: []
+- id: doc-03
+  epoch: 2
+  title: Regulatory Interpretation Memo
+  path: docs-solvency2/03-regulatory-interpretation-memo.txt
+  expectedClaims: []
+  contradictions: []
+- id: doc-04
+  epoch: 3
+  title: Audit Committee Report Q4
+  path: docs-solvency2/04-audit-committee-report-q4.txt
+  expectedClaims: []
+  contradictions: []
+- id: doc-05
+  epoch: 4
+  title: ORSA Summary
+  path: docs-solvency2/05-orsa-summary.txt
+  expectedClaims: []
+  contradictions: []
+- id: doc-06
+  epoch: 5
+  title: EIOPA Guideline Update (Look-Through)
+  path: docs-solvency2/06-eiopa-guideline-update.txt
+  expectedClaims:
+  - dimension: regulation_version
+    content: EIOPA-BoS-26/142 look-through guidelines effective
+    confidence: 0.95
+    source: doc-06
+  contradictions: []
+- id: doc-07
+  epoch: 6
+  title: SCR Q1 2026 Recalculation
+  path: docs-solvency2/07-scr-q1-recalculation.txt
+  expectedClaims:
+  - dimension: scr_ratio
+    content: Recalculated SCR ratio 128% (Q1 2026 under new guidelines)
+    confidence: 0.9
+    source: doc-07
+  contradictions:
+  - dimension: scr_ratio
+    oldValue: Group SCR ratio 142% (Q4 2025)
+    newValue: Recalculated SCR ratio 128% (Q1 2026 under new guidelines)
+    severity: high
+    description: Full look-through increases market risk SCR; Q4 figure preserved bitemporally under prior
+      guidelines
+- id: doc-08
+  epoch: 7
+  title: Transitional Measure Review
+  path: docs-solvency2/08-transitional-measure-review.txt
+  expectedClaims: []
+  contradictions: []
+- id: doc-09
+  epoch: 8
+  title: BaFin Supervisory Letter
+  path: docs-solvency2/09-nca-supervisory-letter.txt
+  expectedClaims: []
+  contradictions: []
+- id: doc-10
+  epoch: 9
+  title: Reinsurance Treaty Impact
+  path: docs-solvency2/10-reinsurance-treaty-impact.txt
+  expectedClaims: []
+  contradictions: []
+- id: doc-11
+  epoch: 10
+  title: Capital Remediation Plan
+  path: docs-solvency2/11-capital-remediation-plan.txt
+  expectedClaims: []
+  contradictions: []
+- id: doc-12
+  epoch: 11
+  title: Revised Internal Model
+  path: docs-solvency2/12-revised-internal-model.txt
+  expectedClaims: []
+  contradictions: []
+- id: doc-13
+  epoch: 12
+  title: EIOPA Stress Test Results
+  path: docs-solvency2/13-eiopa-stress-test-results.txt
+  expectedClaims: []
+  contradictions: []
+- id: doc-14
+  epoch: 13
+  title: Audit Follow-Up
+  path: docs-solvency2/14-audit-follow-up.txt
+  expectedClaims: []
+  contradictions: []
+- id: doc-15
+  epoch: 14
+  title: Year-End Solvency Position FY2026
+  path: docs-solvency2/15-year-end-solvency-position.txt
+  expectedClaims:
+  - dimension: scr_ratio
+    content: Year-end SCR ratio 151% (FY2026)
+    confidence: 0.9
+    source: doc-15
+  - dimension: own_funds
+    content: Eligible own funds EUR 1,076M including new Tier 2 issuance
+    confidence: 0.9
+    source: doc-15
+  contradictions:
+  - dimension: scr_ratio
+    oldValue: Recalculated SCR ratio 128% (Q1 2026 under new guidelines)
+    newValue: Year-end SCR ratio 151% (FY2026)
+    severity: medium
+    description: Capital remediation and de-risking recover SCR ratio; still below Board target 155%
+groundTruth:
+  resolvedDimensions:
+  - scr_ratio
+  - own_funds
+  - capital_remediation
+  unresolvableDimensions:
+  - model_uncertainty
+  - supervisory_discretion
+  falseClaims:
+  - The Board may rely on this figure for capital planning and dividend distribution decisions.
+  epoch0State:
+  - dimension: scr_ratio
+    content: Group SCR ratio 142% (Q4 2025)
+  - dimension: own_funds
+    content: Eligible own funds EUR 890M
+  expectedValuation:
+    min: 145
+    max: 155
+  contradictionsByEpoch:
+    0: 0
+    1: 0
+    2: 0
+    3: 0
+    4: 0
+    5: 0
+    6: 1
+    7: 1
+    14: 2
+agentRoles:
+- id: capital
+  name: Capital Model Analyst
+  responsibility: Compute SCR, own funds, and look-through impacts
+  systemPrompt: You are a Solvency II capital model analyst. Extract SCR ratios, own funds tiering, and
+    module breakdowns. Flag guideline-driven restatements vs period-end official figures.
+- id: actuarial
+  name: Risk Actuary
+  responsibility: Assess underwriting modules and ORSA
+  systemPrompt: You are a risk actuary. Extract life/non-life/health underwriting risk, diversification,
+    and ORSA conclusions.
+- id: regulatory
+  name: Regulatory Interpreter
+  responsibility: Track EIOPA/BaFin guidance changes
+  systemPrompt: You are a regulatory interpreter for Solvency II. Identify EIOPA guideline changes, NCA
+    letters, and which regulationVersion applies to each reporting period.
+- id: audit
+  name: Audit Committee Analyst
+  responsibility: Track audit findings and remediation
+  systemPrompt: You are an audit committee analyst. Extract findings, remediation commitments, and SFCR
+    readiness.
+roleDimensionMap:
+  capital:
+  - scr_ratio
+  - own_funds
+  - scr_total
+  - market_risk
+  actuarial:
+  - life_uw_risk
+  - nonlife_uw_risk
+  - orsa
+  regulatory:
+  - regulation_version
+  - supervisory_letter
+  - transitional_measures
+  audit:
+  - audit_finding
+  - capital_remediation
+  - sfcr
+evaluation:
+  epochRegulationVersion:
+    '0': EIOPA-BoS-14/171
+    '5': EIOPA-BoS-26/142
+    '6': EIOPA-BoS-26/142
+    '14': SII-FY2026

@@ -973,11 +973,11 @@ flowchart TD
 AGENT_ROLE=hatchery pnpm run swarm
 
 # Or with full preflight:
-./scripts/swarm-hatchery.sh
+./scripts/ops/swarm-hatchery.sh
 
 # Legacy mode (unchanged)
 AGENT_ROLE=facts pnpm run swarm
-./scripts/swarm-hatchery.sh   # or: pnpm run swarm:start
+./scripts/ops/swarm-hatchery.sh   # or: pnpm run swarm:start
 ```
 
 ---

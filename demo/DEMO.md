@@ -441,7 +441,7 @@ The governance mode is a one-line change. The agents, the semantic graph, and th
 
 `src/skills/loader.ts` appends markdown snippets from a repository-root **`skills/`** directory (files like `00-swarm-protocol.md` referenced in the registry). **If `skills/` is missing, loading silently returns empty text** — agents still run without the extra playbooks. Add the directory and files to enable the documented behavior.
 
-To compare runs with and without composed skills, set `SKILLS_DISABLED=1`. The `exp-skills` experiment in `scripts/run-experiment.sh` writes under `docs/experiments/exp-skills/results/` (gitignored); there is no bundled protocol README — see [docs/codebase-hygiene.md](../docs/codebase-hygiene.md).
+To compare runs with and without composed skills, set `SKILLS_DISABLED=1`. The `exp-skills` experiment in `scripts/experiments/run-experiment.sh` writes under `docs/experiments/exp-skills/results/` (gitignored); there is no bundled protocol README — see [docs/codebase-hygiene.md](../docs/codebase-hygiene.md).
 
 ### Observable skill effects when `skills/` is present
 
@@ -554,7 +554,7 @@ The summary API and demo UI expose governance and finality context so reviewers 
 | `demo/scenario/docs/` | The five Project Horizon documents |
 | `demo/scenario/governance-demo.yaml` | M&A-specific governance rules for this demo |
 | `demo/run-demo.sh` | Shell walkthrough (alternative to the UI) |
-| `scripts/seed-demo.ts` | Programmatic document feeder (`pnpm run seed:demo`) |
+| `scripts/demo/seed-demo.ts` | Programmatic document feeder (`pnpm run seed:demo`) |
 | `governance.yaml` | Default governance config (not M&A-specific) |
 | `finality.yaml` | Finality thresholds and state conditions |
 | `src/feed.ts` | Feed server source (port 3002) |

@@ -211,7 +211,7 @@ export interface ConvergenceGateState {
  * When CONVERGENCE_INSTRUMENTATION=1, also logs per-dimension step sizes
  * (|d_i(t) - d_i(t-1)|) to support the Assumption #1 (discretization)
  * experiment. The log line is JSON-structured for post-processing by
- * scripts/analyze-discretization.ts.
+ * scripts/experiments/analyze-discretization.ts.
  */
 export async function recordConvergencePoint(
   scopeId: string,

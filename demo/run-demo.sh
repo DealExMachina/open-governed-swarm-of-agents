@@ -211,7 +211,7 @@ run_preflight() {
     return 0
   fi
   SCRIPT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-  if [ ! -f "${SCRIPT_DIR}/scripts/demo-preflight.sh" ]; then
+  if [ ! -f "${SCRIPT_DIR}/scripts/demo/demo-preflight.sh" ]; then
     print_warn "demo-preflight.sh not found; checking feed only..."
     if ! curl -s --max-time 5 "${CURL_AUTH[@]}" "${FEED_URL}/summary?scope_id=${DEMO_SCOPE_ID}" > /dev/null 2>&1; then
       echo -e "  ${RED}Feed is not reachable at ${FEED_URL}.${RESET}"
@@ -221,7 +221,7 @@ run_preflight() {
     print_ok "Feed is reachable."
     return 0
   fi
-  "${SCRIPT_DIR}/scripts/demo-preflight.sh" || exit 1
+  "${SCRIPT_DIR}/scripts/demo/demo-preflight.sh" || exit 1
 }
 
 reset_demo_state() {

@@ -15,7 +15,7 @@ The trajectory exhibits contraction-then-divergence-then-re-contraction: geometr
 ## Running
 
 ```bash
-bash scripts/run-experiment.sh green-bond
+bash scripts/experiments/run-experiment.sh green-bond
 # Default: 38 rounds, 15s interval, 300s drain
 # Custom: --rounds=40 --drain=360
 ```

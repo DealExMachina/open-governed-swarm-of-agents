@@ -119,7 +119,7 @@ PYTHONPATH=src python3 -m unittest discover -s tests -v
 
 **Pure math. No Docker, no Postgres, no NATS, no LLM.**
 
-Run: `pnpm tsx scripts/benchmark-convergence.ts`
+Run: `pnpm tsx scripts/benchmarks/benchmark-convergence.ts`
 
 The benchmark generates synthetic `FinalitySnapshot` sequences, pipes them through
 `computeLyapunovV`, `computePressure`, `computeDimensionScores`, and
@@ -152,7 +152,7 @@ output produces trajectories that match these synthetic patterns.
 
 **Pure sgrs (Rust kernel). No Docker, no Postgres, no NATS.**
 
-Run: `pnpm run benchmark:sgrs` or `npx tsx scripts/benchmark-sgrs-load.ts`
+Run: `pnpm run benchmark:sgrs` or `npx tsx scripts/benchmarks/benchmark-sgrs-load.ts`
 
 Multiple concurrent workers share a single governance config (e.g. `governance.yaml`). Each worker repeatedly calls sgrs: kernel, transition, rules, gates, convergence. The benchmark reports total ops, elapsed time, throughput (ops/s), per-operation latency (p50/p95/p99), and verifies that **all instances produce identical outputs for the same inputs** (unified governance).
 
@@ -169,7 +169,7 @@ This validates that the governance/convergence kernel is not a throughput bottle
 
 ## 5. E2E pipeline
 
-**Script:** `scripts/run-e2e.sh`
+**Script:** `scripts/ops/run-e2e.sh`
 **Duration:** ~2 minutes (excluding Docker image build on first run; facts-worker
 pip install can add 3-5 minutes on cold start).
 **Requires:** Docker, `psql` on PATH, `.env` with either `OPENAI_API_KEY` or

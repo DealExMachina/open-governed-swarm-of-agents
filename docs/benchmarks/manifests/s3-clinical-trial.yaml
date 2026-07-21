@@ -1,0 +1,216 @@
+# Benchmark scenario manifest (PRD v0.2)
+# Loaded via src/baselines/manifest/registry.ts
+# Validate: pnpm run check:benchmark-manifests
+
+manifestVersion: '1'
+id: s3-clinical-trial
+prdScenario: S3
+version: 1.0.0
+docsRootRelative: demo/scenario
+documents:
+- id: doc-01
+  epoch: 0
+  title: Protocol Synopsis ONCO-RESOLVE-301
+  path: docs-clinical-trial/01-protocol-synopsis.txt
+  expectedClaims:
+  - dimension: enrollment_target
+    content: Planned enrollment 450 patients across 12 sites
+    confidence: 0.9
+    source: doc-01
+  - dimension: primary_endpoint
+    content: PFS per RECIST v1.1 by BICR (Phase III)
+    confidence: 0.9
+    source: doc-01
+  - dimension: dose
+    content: ORX-4471 200mg IV q3w
+    confidence: 0.85
+    source: doc-01
+  contradictions: []
+- id: doc-02
+  epoch: 1
+  title: Phase I Safety and Dose-Finding Summary
+  path: docs-clinical-trial/02-phase1-safety-summary.txt
+  expectedClaims: []
+  contradictions: []
+- id: doc-03
+  epoch: 2
+  title: Site 01 Enrollment Report
+  path: docs-clinical-trial/03-site-01-enrollment.txt
+  expectedClaims: []
+  contradictions: []
+- id: doc-04
+  epoch: 3
+  title: Site 04 Enrollment Report
+  path: docs-clinical-trial/04-site-04-enrollment.txt
+  expectedClaims: []
+  contradictions: []
+- id: doc-05
+  epoch: 4
+  title: Central Lab Baseline Biomarkers
+  path: docs-clinical-trial/05-central-lab-baseline.txt
+  expectedClaims: []
+  contradictions: []
+- id: doc-06
+  epoch: 5
+  title: 'DSMB Interim Safety Review #1'
+  path: docs-clinical-trial/06-interim-safety-review-1.txt
+  expectedClaims: []
+  contradictions: []
+- id: doc-07
+  epoch: 6
+  title: Phase II Efficacy Interim Analysis
+  path: docs-clinical-trial/07-phase2-efficacy-interim.txt
+  expectedClaims: []
+  contradictions: []
+- id: doc-08
+  epoch: 7
+  title: Site 07 Critical Safety Data Correction
+  path: docs-clinical-trial/08-site-07-data-correction.txt
+  expectedClaims:
+  - dimension: hepatotoxicity
+    content: Critical ALT data correction at Site 07 changes safety signal interpretation
+    confidence: 0.9
+    source: doc-08
+  contradictions:
+  - dimension: hepatotoxicity
+    oldValue: Interim safety rates as reported before Site 07 correction
+    newValue: Critical ALT data correction at Site 07 changes safety signal interpretation
+    severity: high
+    description: Safety data correction can reopen DSMB boundary assessment
+- id: doc-09
+  epoch: 8
+  title: DSMB Emergency Safety Reassessment
+  path: docs-clinical-trial/09-safety-signal-reassessment.txt
+  expectedClaims: []
+  contradictions: []
+- id: doc-10
+  epoch: 9
+  title: Biostatistics Sensitivity Analysis
+  path: docs-clinical-trial/10-biostatistics-sensitivity-analysis.txt
+  expectedClaims: []
+  contradictions: []
+- id: doc-11
+  epoch: 10
+  title: Cross-Site RECIST Discrepancy Report
+  path: docs-clinical-trial/11-site-discrepancy-report.txt
+  expectedClaims: []
+  contradictions: []
+- id: doc-12
+  epoch: 11
+  title: FDA Information Request
+  path: docs-clinical-trial/12-fda-information-request.txt
+  expectedClaims: []
+  contradictions: []
+- id: doc-13
+  epoch: 12
+  title: Protocol Amendment v3.2 Phase III Expansion
+  path: docs-clinical-trial/13-phase3-expansion-protocol.txt
+  expectedClaims: []
+  contradictions: []
+- id: doc-14
+  epoch: 13
+  title: Amended Informed Consent v4.0
+  path: docs-clinical-trial/14-amended-informed-consent.txt
+  expectedClaims: []
+  contradictions: []
+- id: doc-15
+  epoch: 14
+  title: Phase II Final Analysis
+  path: docs-clinical-trial/15-phase2-final-analysis.txt
+  expectedClaims: []
+  contradictions: []
+- id: doc-16
+  epoch: 15
+  title: Cross-Site RECIST Harmonization
+  path: docs-clinical-trial/16-cross-site-harmonization.txt
+  expectedClaims: []
+  contradictions: []
+- id: doc-17
+  epoch: 16
+  title: Pre-BLA Meeting Briefing
+  path: docs-clinical-trial/17-regulatory-submission-package.txt
+  expectedClaims: []
+  contradictions: []
+- id: doc-18
+  epoch: 17
+  title: DSMB Final Recommendation
+  path: docs-clinical-trial/18-dsmb-final-recommendation.txt
+  expectedClaims:
+  - dimension: hepatotoxicity
+    content: Grade 3+ hepatotoxicity 7.0% (below 10% Phase III stopping boundary)
+    confidence: 0.9
+    source: doc-18
+  - dimension: dsmb_decision
+    content: DSMB final review at ~300 patients with continue recommendation history
+    confidence: 0.8
+    source: doc-18
+  contradictions:
+  - dimension: hepatotoxicity
+    oldValue: Critical ALT data correction at Site 07 changes safety signal interpretation
+    newValue: Grade 3+ hepatotoxicity 7.0% (below 10% Phase III stopping boundary)
+    severity: medium
+    description: Enhanced monitoring yields rate below stopping boundary after correction
+groundTruth:
+  resolvedDimensions:
+  - hepatotoxicity
+  - dsmb_decision
+  - dose
+  unresolvableDimensions:
+  - site_heterogeneity
+  - long_term_os
+  falseClaims:
+  - No material hepatotoxicity signal under original uncorrected Site 07 ALT reporting
+  epoch0State:
+  - dimension: enrollment_target
+    content: Planned enrollment 450 patients across 12 sites
+  - dimension: primary_endpoint
+    content: PFS per RECIST v1.1 by BICR (Phase III)
+  - dimension: dose
+    content: ORX-4471 200mg IV q3w
+  expectedValuation:
+    min: 5
+    max: 10
+  contradictionsByEpoch:
+    0: 0
+    7: 1
+    8: 1
+    17: 2
+agentRoles:
+- id: clinical
+  name: Clinical Scientist
+  responsibility: Protocol, endpoints, efficacy
+  systemPrompt: You are a clinical scientist on an oncology trial. Extract protocol design, endpoints,
+    dose, and efficacy results.
+- id: safety
+  name: Safety Physician
+  responsibility: AEs, DSMB, hepatotoxicity
+  systemPrompt: You are a safety physician. Extract AE rates, DSMB decisions, hepatotoxicity, and stopping-boundary
+    comparisons.
+- id: biostats
+  name: Biostatistician
+  responsibility: Interim analyses and sensitivity
+  systemPrompt: You are a biostatistician. Extract interim analyses, sensitivity to data corrections,
+    and RECIST adjudication impacts.
+- id: regulatory
+  name: Regulatory Affairs
+  responsibility: FDA requests and amendments
+  systemPrompt: You are regulatory affairs. Extract FDA information requests, protocol amendments, and
+    ICF changes.
+roleDimensionMap:
+  clinical:
+  - enrollment_target
+  - primary_endpoint
+  - dose
+  - efficacy
+  safety:
+  - hepatotoxicity
+  - dsmb_decision
+  - sae
+  biostats:
+  - interim_analysis
+  - sensitivity
+  - recist
+  regulatory:
+  - fda_request
+  - protocol_amendment
+  - informed_consent

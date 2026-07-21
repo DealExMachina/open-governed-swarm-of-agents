@@ -2,7 +2,7 @@
 #
 # Purpose: NLI safety regression only (false-merge rate = 0, block recall).
 # Pipeline KPIs (M3 excess, HITL rate, off-contract) are measured separately
-# via scripts/report-pipeline-metrics.ts and held-out fixtures.
+# via scripts/ops/report-pipeline-metrics.ts and held-out fixtures.
 #
 # Categories (expectedAction):
 #   paraphrase          — same fact, lexical drift → auto_merge (governance approve)

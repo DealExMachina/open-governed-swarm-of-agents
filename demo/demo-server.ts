@@ -21,7 +21,7 @@ import {
   type ServerResponse,
   request as httpRequest,
 } from "http";
-import { checkAllServices } from "../scripts/check-services.js";
+import { checkAllServices } from "../scripts/checks/check-services.js";
 import { readFileSync, readdirSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
@@ -4209,7 +4209,7 @@ async function main(): Promise<void> {
       const failed = results.filter((r) => r.err != null);
       process.stderr.write("\nDemo preflight failed. Required services are not reachable:\n");
       for (const r of failed) process.stderr.write(`  ${r.name}: ${r.err}\n`);
-      process.stderr.write("\nFix: Run ./scripts/demo-preflight.sh, then start swarm hatchery and feed:\n");
+      process.stderr.write("\nFix: Run ./scripts/demo/demo-preflight.sh, then start swarm hatchery and feed:\n");
       process.stderr.write("  pnpm run swarm:start   (terminal 1)  # full pipeline\n");
       process.stderr.write("  pnpm run feed    (terminal 2)\n");
       process.stderr.write("  pnpm run demo    (terminal 3)\n\n");

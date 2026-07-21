@@ -124,6 +124,8 @@ Agents --> shared bitemporal state --> governance kernel --> finality certificat
 | Deploy, connect to cloud, or self-host | [Deployment guide](docs/deployment.md) |
 | Understand the terminology | [Beginner Tutorial: Lattice-State Graph](docs/tutorials/lattice-state-graph-beginner.md) |
 | Missing files, E2E caveats, prototypes | [Codebase hygiene](docs/codebase-hygiene.md) |
+| Cleanup backlog and refactor phases | [Cleanup and refactor](docs/cleanup-and-refactor.md) |
+| Comparative benchmark manifests (s1–s5) | [Benchmark scenarios](docs/benchmarks/README.md) |
 | Run the M&A demo (5 docs, contradictions, HITL) | [Demo Guide](demo/DEMO.md) |
 | Static SGRS Studio (graph UI prototype) | [`prototype/studio-preview/`](prototype/studio-preview/index.html) — serve as static files |
 | Read the paper | [publications/publication_1/swarm-governed-agents.pdf](publications/publication_1/swarm-governed-agents.pdf) |
@@ -169,7 +171,7 @@ pnpm run demo                    # Demo UI on http://localhost:3005
 
 **Full automated E2E** (Docker, reset, migrate, seed, bootstrap, run, verify):
 ```bash
-./scripts/run-e2e.sh
+./scripts/ops/run-e2e.sh
 ```
 
 **Ports (default compose):** 3002 feed API, **3005 demo UI** (default `DEMO_PORT`), **3006 resolution MCP** (default `RESOLUTION_MCP_PORT` when hatchery runs it), 3004 Grafana (host: container 3000), 3000/8080 OpenFGA (HTTP playground/gRPC), 5433 Postgres, 4222 NATS, 8222 NATS metrics, 9000/9001 MinIO, 8010 facts-worker, 9090 Prometheus, 4317/4318 OTLP. Product SGRS API uses **3003** — see companion monorepo `ROUTING_ARCHITECTURE.md`.
@@ -288,11 +290,13 @@ CRDT-inspired monotonic upserts: confidence only increases, resolution edges are
 | Scenario | Docs | Command |
 |---|---|---|
 | **M&A Due Diligence** (Project Horizon) | 5 docs, ARR contradiction, HITL | `pnpm run demo` |
-| **Financial Consolidation** | 8 docs, restatements, dual temporality | `./scripts/run-experiment.sh financial --rounds=8` |
-| **Insurance Onboarding** | 22 docs, 20+ convergence cycles | `./scripts/run-experiment.sh insurance` |
-| **European Green Bond (EUGBS)** | 38 docs, full bond lifecycle | `./scripts/run-experiment.sh green-bond` |
-| **Clinical Trial** | 18 docs, phase progression | `demo/scenario/docs-clinical-trial/` |
-| **Solvency II** | Regulatory stress testing | `demo/scenario/docs-solvency2/` |
+| **Financial Consolidation** | 8 docs, restatements, dual temporality | `./scripts/experiments/run-experiment.sh financial --rounds=8` |
+| **Insurance Onboarding** | 22 docs, 20+ convergence cycles | `./scripts/experiments/run-experiment.sh insurance` |
+| **European Green Bond (EUGBS)** | 38 docs, full bond lifecycle | `./scripts/experiments/run-experiment.sh green-bond` |
+| **Clinical Trial** (benchmark s3) | 18 docs, phase progression | [`docs/benchmarks/manifests/s3-clinical-trial.yaml`](docs/benchmarks/manifests/s3-clinical-trial.yaml) |
+| **Solvency II** (benchmark s2) | 15 docs, look-through / SCR | [`docs/benchmarks/manifests/s2-solvency2.yaml`](docs/benchmarks/manifests/s2-solvency2.yaml) |
+| **AML/KYC** (benchmark s4) | 15 docs, CDD→EDD / SAR | [`docs/benchmarks/manifests/s4-aml-kyc.yaml`](docs/benchmarks/manifests/s4-aml-kyc.yaml) |
+| **Energy grid** (benchmark s5) | 15 docs, NERC CIP / storm | [`docs/benchmarks/manifests/s5-energy-grid.yaml`](docs/benchmarks/manifests/s5-energy-grid.yaml) |
 
 See [docs/demos/README.md](docs/demos/README.md) for detailed protocols.
 
@@ -322,11 +326,11 @@ See [docs/demos/README.md](docs/demos/README.md) for detailed protocols.
 ```bash
 pnpm run test                                     # Vitest (test/ — runs in CI after native + TS build)
 cargo test --manifest-path sgrs-core/Cargo.toml  # Rust kernel, propagation, governance, …
-npx tsx scripts/benchmark-convergence.ts         # Synthetic convergence scenarios (no Docker)
+npx tsx scripts/benchmarks/benchmark-convergence.ts         # Synthetic convergence scenarios (no Docker)
 pnpm run benchmark:sgrs                          # sgrs load benchmark
 pnpm run test:dashboard:smoke                    # Dashboard smoke checks
 pnpm run test:dashboard:regression               # Dashboard regression checks
-./scripts/run-e2e.sh                             # Docker E2E (applies a subset of migrations — prefer ensure-schema for full DB)
+./scripts/ops/run-e2e.sh                             # Docker E2E (applies a subset of migrations — prefer ensure-schema for full DB)
 ```
 
 The repository includes a **Vitest** suite under `test/` (architecture boundaries, logger, errors, DB helpers). **CI** runs `pnpm test` after installing dependencies, building `sgrs-core`, and compiling TypeScript. **Rust** still carries the deepest automated coverage for the kernel (`sgrs-core`). See [docs/codebase-hygiene.md](docs/codebase-hygiene.md) for E2E vs. `ensure-schema` and prototype code.
@@ -358,7 +362,7 @@ See [docs/validation.md](docs/validation.md) for methodology and known gaps.
 | `pnpm run feed` | Feed server (port 3002). |
 | `pnpm run observe` | Tail NATS events in terminal. |
 | `pnpm run reset-e2e` | Truncate DB, empty S3, delete NATS stream. |
-| `./scripts/run-e2e.sh` | Full automated E2E pipeline. |
+| `./scripts/ops/run-e2e.sh` | Full automated E2E pipeline. |
 
 ---
 
@@ -381,6 +385,8 @@ See [docs/validation.md](docs/validation.md) for methodology and known gaps.
 - [Convergence](docs/convergence.md) -- formal theory, Gate C, configuration reference, benchmarks
 - [Experiments](docs/experiments.md) -- protocols and results
 - [Validation](docs/validation.md) -- test methodology, known gaps
+- [Codebase hygiene](docs/codebase-hygiene.md) -- missing assets, E2E caveats
+- [Cleanup and refactor](docs/cleanup-and-refactor.md) -- cleanup backlog, layout, refactor phases
 - [Changelog](CHANGELOG.md) -- workspace version and notable tooling/CI changes
 - [Deployment](docs/deployment.md) -- hosted vs self-host, GHCR feed image, enterprise contact
 - [Experimental terms (disclaimer)](docs/experimental-terms.md)
