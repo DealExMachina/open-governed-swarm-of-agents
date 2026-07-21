@@ -256,6 +256,15 @@ async function handleAddDoc(
       sendJson(res, 400, { error: "body or text required" });
       return;
     }
+    const bound = await ensureHatcheryBoundToScope(scopeId);
+    if (!bound.ok) {
+      sendJson(res, 503, {
+        error: bound.error,
+        detail: bound.detail,
+        scope_id: scopeId,
+      });
+      return;
+    }
     const event = createSwarmEvent(
       "context_doc",
       { title, text, source: "api", scope_id: scopeId },
@@ -335,7 +344,7 @@ async function handleAddResolution(
     const bus = await getFeedBus();
     await bus.publishEvent(event);
     try {
-      await appendResolutionGoal(scopeId, decision.trim(), summary.trim());
+      await appendResolutionGoal(scopeId, decision.trim(), summary.trim(), undefined, seq);
     } catch (err) {
       process.stderr.write(
         `[feed] appendResolutionGoal failed: ${err instanceof Error ? err.message : String(err)}\n`,

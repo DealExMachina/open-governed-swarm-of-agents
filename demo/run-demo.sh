@@ -8,7 +8,8 @@
 #   ./demo/run-demo.sh                   # interactive, full scenario
 #   ./demo/run-demo.sh --fast            # skip pauses (automated run)
 #   ./demo/run-demo.sh --step 2          # jump to specific step
-#   DEMO_SCOPE_ID=default ./demo/run-demo.sh
+#   DEMO_SCOPE_ID=deal-horizon ./demo/run-demo.sh   # default M&A scope (same as Studio)
+#   DEMO_SCOPE_ID=default ./demo/run-demo.sh      # Basic Example / scratch only
 #
 # Prerequisites:
 #   - Docker services running (docker compose up -d)
@@ -24,7 +25,8 @@ FAST="${FAST:-false}"
 START_STEP="${START_STEP:-1}"
 RUN_DEMO_RESET="${RUN_DEMO_RESET:-1}"
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-DEMO_SCOPE_ID="${DEMO_SCOPE_ID:-}"
+DEMO_SCOPE_ID="${DEMO_SCOPE_ID:-deal-horizon}"
+DEMO_RESET_MODE="${DEMO_RESET_MODE:-scope}"
 # When SWARM_API_TOKEN is set, add Bearer header to curl calls to feed/MITL
 CURL_AUTH=()
 if [ -n "${SWARM_API_TOKEN:-}" ]; then
@@ -201,7 +203,7 @@ show_summary_key_fields() {
 run_preflight() {
   if [ -z "${DEMO_SCOPE_ID}" ]; then
     echo -e "  ${RED}DEMO_SCOPE_ID is required (strict scope isolation).${RESET}"
-    echo "  Example: export DEMO_SCOPE_ID=default"
+    echo "  Example: export DEMO_SCOPE_ID=deal-horizon"
     exit 1
   fi
   if [ "${RUN_DEMO_SKIP_PREFLIGHT:-0}" = "1" ]; then
@@ -227,16 +229,39 @@ reset_demo_state() {
     print_info "Skipping state reset (RUN_DEMO_RESET=${RUN_DEMO_RESET})."
     return 0
   fi
-  print_info "Resetting demo state to avoid mixed facts/nodes..."
-  (
-    cd "${ROOT_DIR}" && \
-    pnpm run reset-e2e >/dev/null
-  ) || {
-    echo -e "  ${RED}Could not reset state before demo. Aborting to avoid mixed data.${RESET}"
-    echo "  Re-run with RUN_DEMO_RESET=0 only if you intentionally want to reuse state."
+  if [ "${DEMO_RESET_MODE}" = "global" ]; then
+    print_info "Resetting all demo state (DEMO_RESET_MODE=global)..."
+    (
+      cd "${ROOT_DIR}" && \
+      pnpm run reset-e2e >/dev/null
+    ) || {
+      echo -e "  ${RED}Could not reset state before demo.${RESET}"
+      exit 1
+    }
+    print_ok "Global state reset complete."
+    return 0
+  fi
+  print_info "Resetting scope \"${DEMO_SCOPE_ID}\" (DEMO_RESET_MODE=scope)..."
+  if ! curl -s -X POST "${FEED_URL}/studio/scopes/${DEMO_SCOPE_ID}/reset" \
+    -H "Content-Type: application/json" \
+    "${CURL_AUTH[@]}" \
+    -d "{}" >/dev/null; then
+    echo -e "  ${RED}Could not reset scope ${DEMO_SCOPE_ID}. Is feed running on ${FEED_URL}?${RESET}"
     exit 1
-  }
-  print_ok "State reset complete."
+  fi
+  print_ok "Scope reset complete."
+}
+
+activate_demo_scope() {
+  print_info "Binding hatchery to scope \"${DEMO_SCOPE_ID}\"..."
+  if curl -s -X POST "${FEED_URL}/studio/scopes/${DEMO_SCOPE_ID}/activate" \
+    -H "Content-Type: application/json" \
+    "${CURL_AUTH[@]}" \
+    -d "{}" >/dev/null; then
+    print_ok "Hatchery bound to ${DEMO_SCOPE_ID}."
+  else
+    print_warn "Could not activate scope via feed (hatchery may still be on another scope)."
+  fi
 }
 
 restart_swarm_for_demo() {
@@ -328,6 +353,7 @@ run_preflight
 reset_demo_state
 if [ "${RUN_DEMO_RESET}" = "1" ]; then
   restart_swarm_for_demo
+  activate_demo_scope
 fi
 
 # =============================================================================

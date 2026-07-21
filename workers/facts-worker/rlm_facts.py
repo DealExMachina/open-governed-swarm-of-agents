@@ -584,6 +584,162 @@ def _extract_resolution_claims(context: List[Dict[str, Any]]) -> List[str]:
     return out
 
 
+# -----------------------------
+# Provenance (issue #6): attribute each extracted item back to its source document
+# -----------------------------
+
+
+def _event_type(ev: Dict[str, Any]) -> Optional[str]:
+    t = ev.get("type")
+    if isinstance(t, str):
+        return t
+    data = ev.get("data")
+    if isinstance(data, dict) and isinstance(data.get("type"), str):
+        return data["type"]
+    return None
+
+
+def _event_payload(ev: Dict[str, Any]) -> Dict[str, Any]:
+    payload = ev.get("payload")
+    if isinstance(payload, dict):
+        return payload
+    data = ev.get("data")
+    if isinstance(data, dict):
+        if isinstance(data.get("payload"), dict):
+            return data["payload"]
+        return data
+    return {}
+
+
+def _doc_text(payload: Dict[str, Any]) -> str:
+    for key in ("text", "body", "content", "excerpt"):
+        v = payload.get(key)
+        if isinstance(v, str) and v.strip():
+            return v
+    return ""
+
+
+def _context_documents(context: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Extract the source context_doc events with their WAL seq, title, text and content hash.
+
+    Requires the caller (facts-agent readContext) to include the WAL ``seq`` on each
+    event. Events without a numeric seq are skipped for provenance (they cannot be
+    targeted precisely by lifecycle ops).
+    """
+    docs: List[Dict[str, Any]] = []
+    for ev in context:
+        if not isinstance(ev, dict):
+            continue
+        if _event_type(ev) != "context_doc":
+            continue
+        seq = ev.get("seq")
+        if seq is None:
+            payload_seq = _event_payload(ev).get("seq")
+            seq = payload_seq
+        try:
+            seq_int = int(seq) if seq is not None else None
+        except (TypeError, ValueError):
+            seq_int = None
+        if seq_int is None:
+            continue
+        payload = _event_payload(ev)
+        title = payload.get("title") or payload.get("filename") or payload.get("source")
+        text = _doc_text(payload)
+        docs.append(
+            {
+                "seq": seq_int,
+                "title": str(title) if isinstance(title, str) else None,
+                "text": text,
+                "content_hash": hashlib.sha256(text.encode("utf-8")).hexdigest() if text else None,
+            }
+        )
+    return docs
+
+
+_PROV_STOP = {
+    "the", "and", "for", "are", "was", "were", "has", "have", "had", "not",
+    "but", "its", "that", "this", "from", "with", "they", "been", "which",
+    "into", "also", "than", "will", "can", "may", "who", "how", "all", "any",
+}
+
+
+def _prov_tokens(s: str) -> set:
+    out = set()
+    for w in "".join(c if c.isalnum() or c.isspace() else " " for c in s.lower()).split():
+        if len(w) > 2 and w not in _PROV_STOP:
+            out.add(w)
+    return out
+
+
+def _empty_prov() -> Dict[str, Any]:
+    return {
+        "document_seq": None,
+        "document_seqs": [],
+        "document_title": None,
+        "document_content_hash": None,
+    }
+
+
+def _provenance_for_text(text: str, docs: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """Attribute a single extracted item back to originating document(s).
+
+    Strategy: exact substring match (case-insensitive) first, then token-overlap
+    fallback (Jaccard >= 0.5). Returns document_seq (primary), document_seqs[] (all
+    matches, ordered by strength), title and content hash of the primary source.
+    Returns an empty provenance when nothing matches (LLM paraphrase / synthesis).
+    """
+    if not text or not docs:
+        return _empty_prov()
+    needle = text.strip().lower()
+    if not needle:
+        return _empty_prov()
+    scored: List[Tuple[float, Dict[str, Any]]] = []
+    item_tokens = _prov_tokens(text)
+    for doc in docs:
+        doc_text = (doc.get("text") or "").lower()
+        if not doc_text:
+            continue
+        # Exact substring (use a bounded prefix so long claims still match).
+        probe = needle[:160]
+        if probe and probe in doc_text:
+            scored.append((1.0, doc))
+            continue
+        if item_tokens:
+            doc_tokens = _prov_tokens(doc_text)
+            if doc_tokens:
+                overlap = len(item_tokens & doc_tokens) / max(len(item_tokens), 1)
+                if overlap >= 0.5:
+                    scored.append((overlap, doc))
+    if not scored:
+        return _empty_prov()
+    scored.sort(key=lambda x: x[0], reverse=True)
+    seqs = [d["seq"] for _s, d in scored]
+    primary = scored[0][1]
+    return {
+        "document_seq": primary["seq"],
+        "document_seqs": seqs,
+        "document_title": primary.get("title"),
+        "document_content_hash": primary.get("content_hash"),
+    }
+
+
+def _seq_range(docs: List[Dict[str, Any]], context: List[Dict[str, Any]]) -> Optional[List[int]]:
+    seqs: List[int] = [d["seq"] for d in docs]
+    if not seqs:
+        for ev in context:
+            if not isinstance(ev, dict):
+                continue
+            s = ev.get("seq")
+            try:
+                if s is not None:
+                    seqs.append(int(s))
+            except (TypeError, ValueError):
+                continue
+    if not seqs:
+        return None
+    return [min(seqs), max(seqs)]
+
+
 def extract_facts_and_drift(
     context: List[Dict[str, Any]],
     previous_facts: Optional[Dict[str, Any]],
@@ -650,6 +806,33 @@ def extract_facts_and_drift(
     facts.updated_at = datetime.utcnow().isoformat() + "Z"
     facts.hash = stable_hash(facts.model_dump())
 
-    drift = compute_drift(facts, previous_facts, context)
+    # --- Provenance (issue #6): attribute each item to its source document(s) ---
+    docs = _context_documents(context)
+    facts_out = facts.model_dump()
 
-    return facts.model_dump(), drift.model_dump()
+    def _prov_for_structured(item: Dict[str, Any]) -> Dict[str, Any]:
+        content = item.get("content")
+        text = content if isinstance(content, str) else json.dumps(content, ensure_ascii=False)
+        return _provenance_for_text(text, docs)
+
+    provenance = {
+        "documents": [
+            {"seq": d["seq"], "title": d.get("title"), "content_hash": d.get("content_hash")}
+            for d in docs
+        ],
+        "claims": [_provenance_for_text(c, docs) for c in facts.claims],
+        "structured_claims": [
+            _prov_for_structured(sc) for sc in facts_out.get("structured_claims", [])
+        ],
+        "goals": [_provenance_for_text(g, docs) for g in facts.goals],
+        "risks": [_provenance_for_text(r, docs) for r in facts.risks],
+        "contradictions": [_provenance_for_text(c, docs) for c in facts.contradictions],
+        "analyzed_seq_range": _seq_range(docs, context),
+    }
+    facts_out["provenance"] = provenance
+
+    drift = compute_drift(facts, previous_facts, context)
+    drift_out = drift.model_dump()
+    drift_out["analyzed_seq_range"] = provenance["analyzed_seq_range"]
+
+    return facts_out, drift_out

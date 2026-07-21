@@ -125,7 +125,20 @@ export GOVERNANCE_PATH="$(pwd)/demo/scenario/governance-demo.yaml"
 2. Schema and stream: `pnpm run ensure-bucket && pnpm run ensure-schema && pnpm run ensure-stream`
 3. Swarm (agents + governance + executor): `pnpm run swarm` or `pnpm run swarm:start` (hatchery)
 4. Feed server (required for demo): `pnpm run feed` — serves port 3002
-5. Demo UI (optional): `pnpm run demo` — serves port 3005
+5. Demo UI: `pnpm run demo` — serves port 3005
+
+**Scope isolation (Studio vs demo):** Each demo scenario maps to its own Studio catalog scope — they do not share `default` (Basic Example / scratch):
+
+| Demo scenario | Scope id |
+|---|---|
+| M&A (Project Horizon) | `deal-horizon` |
+| Financial consolidation | `meridian-holdings` |
+| Insurance onboarding | `insurance-review` |
+| Green bond (EUGBS) | `green-bond-2026` |
+
+Selecting a scenario in the demo UI resets that scope, binds the hatchery to it, and filters live events to it. `./demo/run-demo.sh` and `pnpm run seed:demo` are M&A-only (`deal-horizon` by default). Demo reset scripts use per-scope wipe — not global `reset-e2e` — unless `DEMO_RESET_MODE=global`.
+
+**Known limitation:** Data is multi-scope; processing is not. One hatchery binds to **one active scope** at a time — Studio, demo, and feed share it via rebind (last writer wins). Do not ingest into two scopes concurrently on one machine. Details and workarounds: [issue #21](https://github.com/DealExMachina/open-governed-swarm-of-agents/issues/21).
 
 The feed server is separate from the swarm: it serves the summary API and context ingestion. Start it before opening the demo or running `./demo/run-demo.sh`.
 
@@ -192,7 +205,7 @@ The system has no prior context. The facts agent extracts the baseline claims fr
 
 Check the summary:
 ```bash
-curl -s "http://localhost:3002/summary?raw=1&scope_id=default" | python3 -m json.tool | grep -A5 '"facts"'
+curl -s "http://localhost:3002/summary?raw=1&scope_id=deal-horizon" | python3 -m json.tool | grep -A5 '"facts"'
 ```
 
 Expected knowledge graph after Step 1:
@@ -232,7 +245,7 @@ These appear in `GET /summary → drift.suggested_actions`.
 
 Check the drift state:
 ```bash
-curl -s "http://localhost:3002/summary?raw=1&scope_id=default" | python3 -m json.tool | grep -A10 '"drift"'
+curl -s "http://localhost:3002/summary?raw=1&scope_id=deal-horizon" | python3 -m json.tool | grep -A10 '"drift"'
 ```
 
 Expected state after Step 2:
@@ -258,7 +271,7 @@ The finality evaluator's `risk_score_inverse` dimension degrades as the number o
 
 Check the semantic graph:
 ```bash
-curl -s "http://localhost:3002/summary?raw=1&scope_id=default" | python3 -m json.tool | grep -A10 '"state_graph"'
+curl -s "http://localhost:3002/summary?raw=1&scope_id=deal-horizon" | python3 -m json.tool | grep -A10 '"state_graph"'
 ```
 
 Expected state after Step 3:
@@ -287,7 +300,7 @@ This is not a pipeline failure — it is a defined finality state with clear rec
 
 Check the finality dimension breakdown:
 ```bash
-curl -s "http://localhost:3002/summary?raw=1&scope_id=default" | python3 -m json.tool | grep -A20 '"finality"'
+curl -s "http://localhost:3002/summary?raw=1&scope_id=deal-horizon" | python3 -m json.tool | grep -A20 '"finality"'
 ```
 
 Expected state after Step 4:
@@ -318,7 +331,7 @@ The review includes:
 
 Check the MITL queue:
 ```bash
-curl -s "http://localhost:3001/pending?scope_id=default" | python3 -m json.tool
+curl -s "http://localhost:3001/pending?scope_id=deal-horizon" | python3 -m json.tool
 ```
 
 Or open [http://localhost:3002](http://localhost:3002) — the "Pending reviews" section shows the review card with action buttons.
@@ -356,7 +369,7 @@ To approve from the terminal:
 PROPOSAL_ID="<id from GET /pending>"
 curl -X POST http://localhost:3002/finality-response \
   -H "Content-Type: application/json" \
-  -d "{\"scope_id\": \"default\", \"proposal_id\": \"${PROPOSAL_ID}\", \"option\": \"approve_finality\"}"
+  -d "{\"scope_id\": \"deal-horizon\", \"proposal_id\": \"${PROPOSAL_ID}\", \"option\": \"approve_finality\"}"
 ```
 
 Or use the web UI at [http://localhost:3002](http://localhost:3002).
@@ -371,7 +384,7 @@ After the HITL decision, feed the final board decision back as a resolution even
 curl -X POST http://localhost:3002/context/resolution \
   -H "Content-Type: application/json" \
   -d '{
-    "scope_id": "default",
+    "scope_id": "deal-horizon",
     "decision": "Board approved proceeding to exclusivity with NovaTech AG at a revised offer of €280M. Three conditions must be met before signing: (1) Axion Corp licensing settlement executed, (2) Dr. Haber IP buyout completed, (3) CTO retention package for 12 months post-close signed.",
     "summary": "Project Horizon approved at €280M with three pre-signing conditions"
   }'
@@ -458,7 +471,9 @@ LIMIT 20;
 Each agent has an identity. The governance agent checks, before approving any proposal, whether the proposing agent has write permission on the target state node for the current scope. An agent assigned to the `drift` role cannot propose transitions that require `facts` write permission. This uses a Zanzibar-style relationship model (OpenFGA) — the full permission model is a first-class auditable object.
 
 **Multi-scope isolation**
-Each acquisition target, project, or client is a separate scope with its own semantic graph, finality state, and MITL queue. A single swarm infrastructure can serve multiple scopes simultaneously. OpenFGA enforces isolation — an agent authorized for scope `horizon` cannot read or write nodes in scope `project-atlas`. New scopes are created by setting `SCOPE_ID`.
+Each acquisition target, project, or client is a separate scope with its own semantic graph, finality state, and MITL queue. OpenFGA enforces isolation — an agent authorized for scope `horizon` cannot read or write nodes in scope `project-atlas`. New scopes are created by setting `SCOPE_ID`.
+
+**Runtime (this version):** A single hatchery process processes **one active scope** at a time; Studio, demo, and feed rebind it when switching scopes. Stored graphs remain isolated, but concurrent ingestion across scopes on one machine is not supported. See [issue #21](https://github.com/DealExMachina/open-governed-swarm-of-agents/issues/21).
 
 **Heterogeneous models**
 The extraction model (facts-worker), the governance rationale model, and the HITL explanation model are independent configuration parameters. A lower-stakes scope can use a lighter, faster model; a regulated scope can use a larger model with stricter prompting. The governance and finality layers stay constant.
@@ -491,7 +506,7 @@ Add a rule to `governance-demo.yaml` that fires when drift type is `goal` at med
 -- All nodes for the demo scope
 SELECT type, content, confidence, status
 FROM nodes
-WHERE scope_id = 'default'
+WHERE scope_id = 'deal-horizon'
 ORDER BY type, created_at;
 
 -- Unresolved contradictions
@@ -500,7 +515,7 @@ FROM edges e
 JOIN nodes n1 ON e.source_id = n1.id
 JOIN nodes n2 ON e.target_id = n2.id
 WHERE e.edge_type = 'contradicts'
-  AND e.scope_id = 'default'
+  AND e.scope_id = 'deal-horizon'
   AND NOT EXISTS (
     SELECT 1 FROM edges r
     WHERE r.scope_id = e.scope_id

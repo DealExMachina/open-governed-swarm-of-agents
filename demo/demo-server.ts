@@ -34,9 +34,12 @@ import { scopeStoragePrefix } from "../src/scopeStorage.js";
 import { getPool } from "../src/db.js";
 import { requestRuntimeControl } from "../src/runtimeControlRpc.js";
 import {
+  type DemoScenarioId,
+  SCENARIO_SCOPES,
+  isDemoScenarioId,
   scopeIdForScenario,
-  DEFAULT_CUSTOM_SCOPE_ID,
 } from "../src/scenarioScopes.js";
+import { ensureScenarioCatalogScope } from "../src/studioCatalog.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -225,10 +228,10 @@ const SCENARIOS: Record<string, { meta: ScenarioMeta; docs: DemoDoc[] }> = {
   },
 };
 
-let activeScenarioId = "ma";
-let activeDocs: DemoDoc[] = SCENARIOS.ma.docs;
+let activeScenarioId: string | null = null;
+let activeDocs: DemoDoc[] = [];
 let activeSessionId: string | null = null;
-let activeScopeId: string | null = scopeIdForScenario("ma");
+let activeScopeId: string | null = null;
 const fedSteps = new Set<number>();
 
 // ---------------------------------------------------------------------------
@@ -253,27 +256,63 @@ function startSseProxy(): void {
         res.on("end", () => setTimeout(startSseProxy, 3000));
         return;
       }
-      let chunkCount = 0;
+      let buffer = "";
       res.on("data", (chunk: Buffer) => {
-        const text = chunk.toString();
-        chunkCount++;
-        for (const client of sseClients) {
-          if (!client.writableEnded) client.write(text);
-          else sseClients.delete(client);
+        buffer += chunk.toString();
+        let sep: number;
+        while ((sep = buffer.indexOf("\n\n")) !== -1) {
+          const block = buffer.slice(0, sep);
+          buffer = buffer.slice(sep + 2);
+          if (!sseBlockMatchesActiveScope(block)) continue;
+          for (const client of sseClients) {
+            if (!client.writableEnded) client.write(`${block}\n\n`);
+            else sseClients.delete(client);
+          }
         }
       });
       res.on("end", () => {
         setTimeout(startSseProxy, 3000);
       });
-      res.on("error", (err) => {
+      res.on("error", () => {
         setTimeout(startSseProxy, 3000);
       });
     },
   );
-  req.on("error", (err) => {
+  req.on("error", () => {
     setTimeout(startSseProxy, 3000);
   });
   req.end();
+}
+
+function sseEventScopeId(raw: unknown): string | null {
+  if (!raw || typeof raw !== "object") return null;
+  const o = raw as Record<string, unknown>;
+  if (typeof o.scope_id === "string") return o.scope_id;
+  const payload = o.payload;
+  if (payload && typeof payload === "object") {
+    const ps = (payload as Record<string, unknown>).scope_id;
+    if (typeof ps === "string") return ps;
+  }
+  return null;
+}
+
+/** Drop feed events from other Studio scopes so the demo UI stays isolated. */
+function sseBlockMatchesActiveScope(block: string): boolean {
+  if (block.startsWith(":")) return true;
+  const scope = activeScopeId;
+  if (!scope) return true;
+  for (const line of block.split("\n")) {
+    if (!line.startsWith("data:")) continue;
+    const json = line.slice(5).trim();
+    if (!json) continue;
+    try {
+      const eventScope = sseEventScopeId(JSON.parse(json));
+      if (eventScope && eventScope !== scope) return false;
+    } catch {
+      /* non-JSON data lines — forward */
+    }
+  }
+  return true;
 }
 
 // ---------------------------------------------------------------------------
@@ -316,13 +355,53 @@ function getActiveScopeOrThrow(): string {
   return activeScopeId;
 }
 
+async function bindHatcheryToScope(
+  scopeId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const rpc = await requestRuntimeControl({
+    action: "start",
+    scope_id: scopeId,
+    tenant_id: null,
+  });
+  return { ok: rpc.ok, error: rpc.ok ? undefined : rpc.error };
+}
+
 // ---------------------------------------------------------------------------
 // Route handlers
 // ---------------------------------------------------------------------------
 
-/** GET /api/scenarios — list available scenarios */
+/** GET /api/scenarios — list available scenarios (each with its Studio catalog scope). */
 function handleScenarios(res: ServerResponse): void {
-  sendJson(res, 200, Object.values(SCENARIOS).map(({ meta }) => meta));
+  sendJson(
+    res,
+    200,
+    Object.values(SCENARIOS).map(({ meta }) => {
+      const scopeDef = isDemoScenarioId(meta.id)
+        ? SCENARIO_SCOPES[meta.id as DemoScenarioId]
+        : null;
+      return {
+        ...meta,
+        scope_id: scopeDef?.scopeId ?? scopeIdForScenario(meta.id),
+        scope_name: scopeDef?.name,
+      };
+    }),
+  );
+}
+
+/** GET /api/status — feed readiness + active demo session scope (no graph read). */
+async function handleStatus(res: ServerResponse): Promise<void> {
+  let feedOk = false;
+  try {
+    const r = await fetch(`${FEED_URL}/health`, { headers: authHeaders() });
+    feedOk = r.ok;
+  } catch {
+    feedOk = false;
+  }
+  sendJson(res, 200, {
+    feed_ok: feedOk,
+    scenario_id: activeScenarioId,
+    scope_id: activeScopeId,
+  });
 }
 
 /** POST /api/select-scenario — switch to a different scenario. Resets scope state first so facts from other demos are not mixed in. */
@@ -350,11 +429,7 @@ async function handleSelectScenario(body: string, res: ServerResponse): Promise<
     activeSessionId = session.session_id;
     activeScopeId = session.scope_id;
     // Bind hatchery to the demo runtime scope so graph builds here (not a leftover Studio scope).
-    const rpc = await requestRuntimeControl({
-      action: "start",
-      scope_id: session.scope_id,
-      tenant_id: null,
-    });
+    const rpc = await bindHatcheryToScope(session.scope_id);
     sendJson(res, 200, {
       ok: true,
       scenario: scenario.meta,
@@ -394,11 +469,7 @@ async function handleDemoSessionStart(req: IncomingMessage, res: ServerResponse)
     activeDocs = scenario.docs;
     activeSessionId = session.session_id;
     activeScopeId = session.scope_id;
-    const rpc = await requestRuntimeControl({
-      action: "start",
-      scope_id: session.scope_id,
-      tenant_id: null,
-    });
+    const rpc = await bindHatcheryToScope(session.scope_id);
     sendJson(res, 200, {
       ok: true,
       session_id: session.session_id,
@@ -620,12 +691,33 @@ async function handleResolution(req: IncomingMessage, res: ServerResponse): Prom
  * Clear persisted state for one scenario catalog scope (graph + catalog badge).
  * Used by reset and select-scenario so each demo scenario stays isolated.
  */
+async function ensureDemoScopeCatalog(scopeId: string): Promise<void> {
+  const def = Object.values(SCENARIO_SCOPES).find((s) => s.scopeId === scopeId);
+  if (!def) return;
+  await ensureScenarioCatalogScope({
+    id: def.scopeId,
+    name: def.name,
+    tag: def.tag,
+  });
+}
+
 async function resetScopeState(scopeIdOverride?: string): Promise<string[]> {
   const errors: string[] = [];
   const scopeId =
     scopeIdOverride ??
     activeScopeId ??
-    (activeScenarioId ? scopeIdForScenario(activeScenarioId) : DEFAULT_CUSTOM_SCOPE_ID);
+    (activeScenarioId ? scopeIdForScenario(activeScenarioId) : null);
+
+  if (!scopeId) {
+    errors.push("scope_not_selected");
+    return errors;
+  }
+
+  try {
+    await ensureDemoScopeCatalog(scopeId);
+  } catch (e) {
+    errors.push(`catalog: ${e}`);
+  }
 
   const s3Endpoint = process.env.S3_ENDPOINT;
   const s3Bucket = process.env.S3_BUCKET ?? "swarm";
@@ -659,10 +751,22 @@ async function resetScopeState(scopeIdOverride?: string): Promise<string[]> {
   return errors;
 }
 
-/** POST /api/reset — clear all swarm state (including finality decisions) and re-init a clean state graph for a fresh demo run */
+/** POST /api/reset — clear swarm state for the active scenario scope and re-bind hatchery */
 async function handleReset(res: ServerResponse): Promise<void> {
+  if (!activeScopeId || !activeScenarioId) {
+    sendJson(res, 400, { error: "scenario_not_selected" });
+    return;
+  }
   const errors = await resetScopeState();
-  sendJson(res, 200, { ok: true, errors: errors.length ? errors : undefined });
+  const scopeId = activeScopeId;
+  const rpc = await bindHatcheryToScope(scopeId);
+  sendJson(res, 200, {
+    ok: true,
+    scope_id: scopeId,
+    hatchery_bound: rpc.ok,
+    hatchery_error: rpc.ok ? undefined : rpc.error,
+    errors: errors.length ? errors : undefined,
+  });
 }
 
 /** GET /api/events — SSE stream proxied from feed server */
@@ -1340,20 +1444,41 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
       if (s.color === 'purple') sel.classList.add('color-purple');
     }
 
+    var launch = document.getElementById('introLaunch');
+    var beginBtn = document.getElementById('beginBtn');
+    var runAllBtn = document.getElementById('runAllBtn');
+    launch.classList.remove('hidden');
+    document.getElementById('introLaunchDesc').innerHTML =
+      'Activating <strong>' + escHtml(s.name) + '</strong>…';
+    if (beginBtn) beginBtn.disabled = true;
+    if (runAllBtn) runAllBtn.disabled = true;
+
     try {
-      await fetch('/api/select-scenario', {
+      var selResp = await fetch('/api/select-scenario', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: s.id }),
       });
-    } catch(_) {}
-
-    var launch = document.getElementById('introLaunch');
-    launch.classList.remove('hidden');
-    document.getElementById('introLaunchDesc').innerHTML =
-      '<strong>' + escHtml(s.name) + '</strong> selected. ' +
-      '<strong>Run all</strong> sends all ' + s.docCount + ' documents at once; ' +
-      '<strong>Step by step</strong> goes through each stage one at a time so you can see progress.';
+      var selData = await selResp.json();
+      if (!selResp.ok || !selData.ok) {
+        document.getElementById('introLaunchDesc').innerHTML =
+          '<span style="color:var(--red)">Could not activate scenario: ' +
+          escHtml(JSON.stringify(selData.error || selData.details || selData)) + '</span>';
+        return;
+      }
+      var scopeLabel = selData.scope_id || s.scope_id || '?';
+      var hatcheryNote = selData.hatchery_bound
+        ? ''
+        : ' <span style="color:var(--amber)">(start hatchery: pnpm run swarm:start)</span>';
+      document.getElementById('introLaunchDesc').innerHTML =
+        '<strong>' + escHtml(s.name) + '</strong> · scope <code>' + escHtml(scopeLabel) + '</code>. ' +
+        '<strong>Run all</strong> sends all ' + s.docCount + ' documents at once; ' +
+        '<strong>Step by step</strong> goes through each stage one at a time.' + hatcheryNote;
+    } catch (e) {
+      document.getElementById('introLaunchDesc').innerHTML =
+        '<span style="color:var(--red)">Select scenario failed: ' + escHtml(String(e)) + '</span>';
+      return;
+    }
 
     startServicePolling();
     buildTimeline();
@@ -1506,16 +1631,29 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
     setSvcState('checking', 'Checking services...');
     var hintEl = document.getElementById('introResolvedHint');
     if (hintEl) hintEl.classList.add('hidden');
-    fetch('/api/summary', { signal: AbortSignal.timeout(4000) })
+    fetch('/api/status', { signal: AbortSignal.timeout(4000) })
       .then(function(r) {
-        if (r.ok) {
-          setSvcState('ok', 'Feed server ready');
-          if (_svcCheckTimer) { clearInterval(_svcCheckTimer); _svcCheckTimer = null; }
-          return r.json();
-        } else {
-          setSvcState('down', 'Feed server not responding (HTTP ' + r.status + ')');
+        if (!r.ok) {
+          setSvcState('down', 'Demo server not responding (HTTP ' + r.status + ')');
           return null;
         }
+        return r.json();
+      })
+      .then(function(status) {
+        if (!status) return null;
+        if (!status.feed_ok) {
+          setSvcState('down', 'Waiting for feed server (pnpm run feed)...');
+          return null;
+        }
+        var scopeHint = status.scope_id ? ' · ' + status.scope_id : '';
+        setSvcState('ok', 'Feed server ready' + scopeHint);
+        if (_svcCheckTimer) { clearInterval(_svcCheckTimer); _svcCheckTimer = null; }
+        if (!status.scope_id) return null;
+        return fetch('/api/summary', { signal: AbortSignal.timeout(4000) });
+      })
+      .then(function(r) {
+        if (!r || !r.ok) return null;
+        return r.json();
       })
       .then(function(data) {
         if (data && data.finality && data.finality.status === 'RESOLVED' && hintEl) {
@@ -1532,8 +1670,6 @@ const DEMO_HTML = /* html */ `<!DOCTYPE html>
     if (_svcCheckTimer) clearInterval(_svcCheckTimer);
     _svcCheckTimer = setInterval(checkServices, 3000);
   }
-
-  startServicePolling();
 
   // ── Reset ──
   window.resetDemo = async function() {
@@ -4103,6 +4239,10 @@ async function main(): Promise<void> {
       }
       if (req.method === "GET" && pathname === "/api/scenarios") {
         handleScenarios(res);
+        return;
+      }
+      if (req.method === "GET" && pathname === "/api/status") {
+        await handleStatus(res);
         return;
       }
       if (req.method === "POST" && pathname === "/api/demo-session/start") {

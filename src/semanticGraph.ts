@@ -794,6 +794,7 @@ export async function appendResolutionAsClaim(
   scopeId: string,
   decision: string,
   client?: pg.PoolClient,
+  resolutionSeq?: number,
 ): Promise<string | null> {
   const trimmed = decision.trim();
   if (!trimmed) return null;
@@ -806,6 +807,11 @@ export async function appendResolutionAsClaim(
   );
   if (exist.rowCount && exist.rows[0])
     return (exist.rows[0] as { node_id: string }).node_id;
+  // Issue #6: carry exact resolution provenance (the originating WAL resolution seq).
+  const sourceRef: Record<string, unknown> =
+    typeof resolutionSeq === "number"
+      ? { source: "resolution", resolution_seq: resolutionSeq }
+      : { source: "resolution" };
   return appendNode(
     {
       scope_id: scopeId,
@@ -813,7 +819,7 @@ export async function appendResolutionAsClaim(
       content: trimmed,
       confidence: HUMAN_RESOLUTION_CONFIDENCE,
       status: "active",
-      source_ref: { source: "resolution" },
+      source_ref: sourceRef,
       metadata: {},
       created_by: "resolution",
     },
@@ -834,10 +840,11 @@ export async function appendResolutionGoal(
   decision: string,
   summary: string,
   client?: pg.PoolClient,
+  resolutionSeq?: number,
 ): Promise<string> {
   const q: Queryable = client ?? getPool();
 
-  await appendResolutionAsClaim(scopeId, decision, client);
+  await appendResolutionAsClaim(scopeId, decision, client, resolutionSeq);
 
   const activeGoals = await q.query(
     `SELECT node_id, content FROM nodes
@@ -895,6 +902,7 @@ export async function appendResolutionGoal(
       source_ref: {
         source: "resolution",
         decision_preview: decision.trim().slice(0, 200),
+        ...(typeof resolutionSeq === "number" ? { resolution_seq: resolutionSeq } : {}),
       },
       metadata: {},
       created_by: "resolution",
