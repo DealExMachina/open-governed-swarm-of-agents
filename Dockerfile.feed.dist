@@ -16,6 +16,7 @@ COPY tsconfig.json ./
 COPY governance.yaml finality.yaml evidence_schemas.yaml propagation.yaml ./
 COPY src ./src
 COPY sgrs-core ./sgrs-core
+COPY public ./public
 
 RUN corepack enable && corepack prepare pnpm@10.30.1 --activate \
   && pnpm install --frozen-lockfile \

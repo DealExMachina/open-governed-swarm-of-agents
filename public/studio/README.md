@@ -1,17 +1,15 @@
-# SGRS Studio (preview)
+# SGRS Studio
 
-Static HTML prototype (`index.html`): graph shell and Cytoscape visualization with embedded demo data.
-
-**Run locally (recommended):** with the feed server up:
+Static Studio UI (Cytoscape graph shell). Served by the feed:
 
 ```bash
 pnpm run feed
 # http://localhost:3002/studio?scope_id=default
 ```
 
-The page loads live graph elements from `GET /studio/elements?scope_id=…` on the same host. Without seeded graph data it falls back to the embedded Horizon demo graph.
+The page loads live graph elements from `GET /studio/elements?scope_id=…` on the same host (`/studio/app.js`). Without seeded graph data it falls back to the embedded Horizon demo graph.
 
-**Static-only:** `npx --yes serve .` (mock graph + manual `window.STUDIO_CONTROL`).
+**Static-only:** `npx --yes serve public/studio` (mock graph + manual `window.STUDIO_CONTROL`).
 
 For the full governed demo pipeline, see [`../../demo/DEMO.md`](../../demo/DEMO.md).
 
@@ -28,7 +26,7 @@ Overlapping **shapes** (nodes, diamonds, edges crossing stacked labels) and **te
 
 When in doubt, move detail **off** the graph and keep the canvas **sparse**.
 
-## Implemented in `index.html` (preview)
+## Implemented in `index.html`
 
 - **Preset layered layout** (docs → claims → contradictions → resolutions → risks → goals) instead of force-directed placement.
 - **Business graph:** node labels stay hidden; use **hover cards** for copy (claims unchanged style).

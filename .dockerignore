@@ -4,7 +4,6 @@
 node_modules
 **/node_modules
 **/target
-prototype
 publications
 seed-docs
 docs/demos
