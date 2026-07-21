@@ -1,3 +1,6 @@
+#![cfg(feature = "exp-harness")]
+#![allow(clippy::type_complexity)]
+
 //! E3: ISS Gain Boundary Sweep
 //!
 //! Validates:
@@ -6,7 +9,6 @@
 //!
 //! Run: cargo test --test exp_iss -- --nocapture
 
-#![allow(clippy::type_complexity)]
 
 use sgrs_core::propagation::{analyze_iss, spectral_analysis, CellularSheaf};
 

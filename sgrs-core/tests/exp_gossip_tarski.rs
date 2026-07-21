@@ -1,3 +1,6 @@
+#![cfg(feature = "exp-harness")]
+#![allow(clippy::type_complexity)]
+
 //! E10: Gossip Tarski vs Synchronous Tarski — Realistic & Synthetic
 //!
 //! Three-arm comparison across:
@@ -10,7 +13,6 @@
 //!
 //! Run: cargo test --test exp_gossip_tarski -- --nocapture
 
-#![allow(clippy::type_complexity)]
 
 mod scenarios;
 

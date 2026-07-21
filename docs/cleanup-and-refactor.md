@@ -1,6 +1,6 @@
 # Cleanup plan and refactor assessment
 
-> Produced by the Cleanup Agent review. Related: [codebase-hygiene.md](codebase-hygiene.md), [architecture.md](architecture.md).
+> Produced by the Cleanup Agent review. Related: [codebase-hygiene.md](codebase-hygiene.md), [architecture.md](architecture.md), [refactor-execution-plan.md](refactor-execution-plan.md).
 
 This document records what was cleaned in the current pass, what remains, how directories are organized, and a phased refactor assessment. Scope is technical (components and invasiveness), not calendar estimates.
 
@@ -8,7 +8,7 @@ This document records what was cleaned in the current pass, what remains, how di
 
 ## Verdict
 
-The repo is a healthy research + product monorepo with clear license/package boundaries, but it has accumulated **flat `src/` and `scripts/` layouts**, **god-file servers**, **prepared-but-unwired corpora**, and **missing `docs/benchmarks/manifests/`** referenced by baseline code. Safe dead-file cleanup is small; the real payoff is structural refactor, not mass deletion.
+The repo is a healthy research + product monorepo with clear license/package boundaries. Scripts are taxonomized, S1–S5 manifests exist and drive experiments/Studio, and `feed` / `semantic-graph` are modularized behind thin entries. Remaining payoff is incremental `src/` domain folders, Studio UI split (after `public/`), and secondary hotspots (`governanceAgent`, `finalityEvaluator`, `bridge.rs`).
 
 ---
 
@@ -120,9 +120,9 @@ demo/
 |------|-------:|-------|
 | `demo/demo-server.ts` | 4300+ | Server + corpora + HTML/CSS/JS monolith |
 | `prototype/studio-preview/index.html` | 3100+ | Oversized static document |
-| `src/semanticGraph.ts` | 1800+ | Persistence + queries + Studio shaping |
+| `src/semanticGraph.ts` | barrel | Logic under `src/semantic-graph/` |
 | `sgrs-core/src/bridge.rs` | 1600+ | Broad N-API surface |
-| `src/feed.ts` | 1500+ | Routes + static serve + SSE + summaries |
+| `src/feed.ts` | thin entry | Routes under `src/feed/` |
 | `src/agents/governanceAgent.ts` | 1300+ | Tools + finality consumer + proposals |
 | `src/finalityEvaluator.ts` | 1250+ | Config + gates + certificates + blockers |
 
@@ -136,12 +136,14 @@ demo/
 
 | Phase | Scope | Invasiveness | Risk |
 |-------|-------|--------------|------|
-| **P0 — Manifests** | ~~Add `docs/benchmarks/manifests/` for `s1`–`s5`~~ **done** (demo/experiment list generation from manifests still open) | Remaining: wire demos to manifests | Low–medium |
-| **P1 — Split demo server** | ~~Extract `demo/server/` + `demo/ui/`~~ **done** (`pnpm run demo` entry unchanged) | — | — |
-| **P2 — Static assets** | Move Studio + observability HTML to `public/`; update feed + `Dockerfile.feed.dist` | Medium | Low–medium (image/regression) |
-| **P3 — Split `feed.ts`** | ~~Module boundaries under `src/feed/`~~ **done** (`pnpm run feed` entry + re-exports preserved). `semanticGraph.ts` still open. | — | — |
-| **P4 — Scripts taxonomy** | ~~Move files into `scripts/{ops,experiments,...}`; update `package.json` scripts~~ **done** | — | — |
-| **P5 — Rust test classes** | Fast invariants vs publication `exp_*` harness (ignore/feature-gate heavy tests) | Medium in `sgrs-core/tests` | Low for product path |
+| **P0 — Manifests** | ~~Add manifests + wire experiments/Studio~~ **done** (`run-experiment.sh s1`–`s5`, `studioCorpora` ids). Demo UI picker unchanged. | — | — |
+| **P1 — Split demo server** | ~~Extract `demo/server/` + `demo/ui/`~~ **done** | — | — |
+| **P2 — Static assets** | Move Studio + observability HTML to `public/` — see PR #26 | Medium | Low–medium |
+| **P3 — Split feed + graph** | ~~`src/feed/`~~ **done**; ~~`src/semantic-graph/`~~ **done** (barrel `semanticGraph.ts`) | — | — |
+| **P4 — Scripts taxonomy** | ~~`scripts/{ops,experiments,...}`~~ **done** | — | — |
+| **P5 — Rust test classes** | ~~`exp-harness` feature gates `tests/exp_*.rs`~~ **done**; default `cargo test` = prop/scenarios | — | — |
+
+See also the execution backlog: [`refactor-execution-plan.md`](refactor-execution-plan.md).
 
 ### Explicit non-goals for cleanup PRs
 
@@ -154,9 +156,10 @@ demo/
 
 ## Suggested follow-up tickets
 
-1. ~~Ship `docs/benchmarks/manifests/s1`–`s5` so `registry.ts` resolves.~~ **done**
-2. Wire or archive `docs-ma-extended`; optionally drive S2–S5 through `run-experiment.sh` using manifests.
-3. Add root `skills/` markdown or remove dead loader path from docs/DEMO claims.
-4. Include Studio assets in `Dockerfile.feed.dist` (or document Studio as compose-dev-only).
-5. Split `demo-server.ts` (largest maintainability win for product UX).
-6. ~~Organize `scripts/` into role-based subdirectories with updated npm entries.~~ **done**
+1. ~~Ship `docs/benchmarks/manifests/s1`–`s5`.~~ **done**
+2. ~~Drive S1–S5 via `run-experiment.sh` / Studio corpora.~~ **done**
+3. Soft cleanup / skills docs / archive ma-extended — see PR #27.
+4. Include Studio assets in `Dockerfile.feed.dist` — see PR #26.
+5. ~~Split `demo-server.ts` / `feed.ts` / `semanticGraph.ts`.~~ **done**
+6. ~~Organize `scripts/`.~~ **done**
+7. Next: incremental `src/` domains (`studio/`, `finality/`); Studio HTML split after #26; secondary hotspots.

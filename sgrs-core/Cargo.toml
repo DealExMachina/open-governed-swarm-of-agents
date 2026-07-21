@@ -21,6 +21,12 @@ rand = "0.9"
 [dev-dependencies]
 proptest = "1"
 
+[features]
+default = []
+# Publication / experiment harness integration tests under tests/exp_*.rs.
+# Fast lane: `cargo test` (prop_* + scenarios). Slow lane: `cargo test --features exp-harness`.
+exp-harness = []
+
 [build-dependencies]
 napi-build = "2"
 

@@ -1,3 +1,5 @@
+#![cfg(feature = "exp-harness")]
+
 //! E13: Heterogeneous Sheaf — Spectral Characterization
 //!
 //! Validates that non-identity (projection) restriction maps produce a

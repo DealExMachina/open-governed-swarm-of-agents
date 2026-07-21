@@ -16,12 +16,13 @@ All demo scenarios are **designed to be reproducible** with the reference implem
 | **Financial consolidation** | 8 | Bitemporal restatements, dual temporality | `./scripts/experiments/run-experiment.sh financial --rounds=8` |
 | **Insurance onboarding** | 22 | Long-horizon convergence, iterative resolution | `./scripts/experiments/run-experiment.sh insurance` |
 | **European Green Bond (EUGBS)** | 38 | Full bond lifecycle, regulatory transition, allocation | `./scripts/experiments/run-experiment.sh green-bond` |
-| **Clinical trial** (benchmark **s3**) | 18 | Phase progression, protocol drift | `demo/scenario/docs-clinical-trial/` — manifest [`docs/benchmarks/manifests/s3-clinical-trial.yaml`](benchmarks/manifests/s3-clinical-trial.yaml) |
-| **Solvency II** (benchmark **s2**) | 15 | Regulatory stress / look-through | `demo/scenario/docs-solvency2/` — manifest [`docs/benchmarks/manifests/s2-solvency2.yaml`](benchmarks/manifests/s2-solvency2.yaml) |
-| **AML/KYC** (benchmark **s4**) | 15 | CDD→EDD, SAR, risk re-rating | `demo/scenario/docs-aml-kyc/` — [`s4-aml-kyc.yaml`](benchmarks/manifests/s4-aml-kyc.yaml) |
-| **Energy grid** (benchmark **s5**) | 15 | NERC CIP / storm Helios | `demo/scenario/docs-energy-grid/` — [`s5-energy-grid.yaml`](benchmarks/manifests/s5-energy-grid.yaml) |
+| **S1** Project Horizon (manifest) | 5 | Packaged M&A docs (not full `docs/` readdir) | `./scripts/experiments/run-experiment.sh s1` |
+| **S2** Solvency II | 15 | Regulatory stress / look-through | `./scripts/experiments/run-experiment.sh s2` |
+| **S3** Clinical trial | 18 | Phase progression, protocol drift | `./scripts/experiments/run-experiment.sh s3` |
+| **S4** AML/KYC | 15 | CDD→EDD, SAR, risk re-rating | `./scripts/experiments/run-experiment.sh s4` |
+| **S5** Energy grid | 15 | NERC CIP / storm Helios | `./scripts/experiments/run-experiment.sh s5` |
 
-Comparative manifests for **s1–s5**: [`docs/benchmarks/README.md`](benchmarks/README.md). Validate with `pnpm run check:benchmark-manifests`.
+Comparative manifests for **s1–s5**: [`docs/benchmarks/README.md`](benchmarks/README.md). Experiment driver and Studio corpora load documents from those YAMLs (`--corpus=s2` / `--scenario=s2`). Validate with `pnpm run check:benchmark-manifests`. Demo UI picker still uses the product scenarios (M&A / financial / insurance / green-bond) only.
 
 Detailed protocols per demo: [docs/demos/](demos/README.md).
 

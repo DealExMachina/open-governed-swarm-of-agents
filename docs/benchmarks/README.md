@@ -34,6 +34,13 @@ Optional: `evaluation.epochRegulationVersion`, `evaluation.c4ExpectedPreservedFa
 ## Run a scenario
 
 ```bash
+# Comparative / LLM smoke (benchmark harness)
 pnpm exec tsx scripts/benchmarks/benchmark-comparative.ts --preset=smoke --scenario=s2
 pnpm run benchmark:smoke-llm:all   # s1–s5 smoke-llm
+
+# Full swarm experiment driver (inject via hatchery pipeline)
+./scripts/experiments/run-experiment.sh s2
+pnpm exec tsx scripts/experiments/drive-experiment.ts --corpus=s3
 ```
+
+Studio can load the same packages via corpus ids `s1`–`s5` (`src/studioCorpora.ts`).

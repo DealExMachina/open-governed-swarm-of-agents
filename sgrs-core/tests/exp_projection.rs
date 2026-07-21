@@ -1,3 +1,5 @@
+#![cfg(feature = "exp-harness")]
+
 //! E2: Projected Diffusion Contraction
 //!
 //! Validates:

@@ -1,3 +1,6 @@
+#![cfg(feature = "exp-harness")]
+#![allow(clippy::type_complexity)]
+
 //! E11: Fair 3-Way Comparison — Linear vs Gossip-Average vs Gossip-Tarski
 //!
 //! Factorial design isolating two independent axes:
@@ -12,7 +15,6 @@
 //! Run: `cargo test --test exp_gossip_vs_linear -- --nocapture`
 //! Slow stress (E11.5 n≤1024): `cargo test -p sgrs-core --test exp_gossip_vs_linear e11_5_large_scale -- --ignored --nocapture`
 
-#![allow(clippy::type_complexity)]
 
 mod scenarios;
 

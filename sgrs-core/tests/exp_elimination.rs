@@ -1,3 +1,5 @@
+#![cfg(feature = "exp-harness")]
+
 //! E8: Hybrid Pipeline — Elimination via meet_t
 //!
 //! Validates Phase 3 of the research progress program:
