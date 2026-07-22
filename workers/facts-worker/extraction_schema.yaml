@@ -10,6 +10,14 @@ gross_margin:
   type: percentage
 valuation:
   type: currency_range
+  description: Indicative / revised enterprise valuation (not retention or litigation costs)
+  plausibility:
+    currency: EUR
+    enterpriseFloorEur: 50000000
+    retentionCostBandMinEur: 500000
+    retentionCostBandMaxEur: 25000000
+    priorEnterpriseMinEur: 100000000
+    unitScaleMinEur: 1000000
 customer_concentration:
   type: free_text
 patents:

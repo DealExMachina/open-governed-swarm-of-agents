@@ -98,7 +98,11 @@ services:
     working_dir: /app
     volumes:
       - ./workers/facts-worker:/app
-    command: sh -c "pip install -q -r requirements.txt && uvicorn app:app --host 0.0.0.0 --port 8010"
+    command: >-
+      sh -c "if [ \"$${SKIP_NLI:-1}\" = \"0\" ] || [ \"$${SKIP_NLI:-1}\" = \"false\" ]; then
+      pip install -q -r requirements-full.txt;
+      else pip install -q -r requirements.txt; fi
+      && uvicorn app:app --host 0.0.0.0 --port 8010"
     ports:
       - "8010:8010"
     environment:

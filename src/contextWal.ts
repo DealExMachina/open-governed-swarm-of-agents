@@ -161,22 +161,31 @@ export async function getLatestPipelineWalSeq(pool?: pg.Pool): Promise<number> {
   return parseInt(res.rows[0].seq, 10);
 }
 
+/** WAL event types that should re-trigger the facts agent (external input only). */
+export const FACTS_PIPELINE_WAL_TYPES = [
+  "bootstrap",
+  "context_doc",
+  "resolution",
+] as const;
+
 /**
- * Latest WAL seq for facts agent: new context (bootstrap, context_doc, resolution) or cycle wrap
- * (state_transition to DeltasExtracted). So facts run when new docs arrive and when we complete
- * a full cycle, allowing it to propose DeltasExtracted → ContextIngested. Other state_transitions
- * are ignored so governance rejections do not retrigger facts.
+ * Latest WAL seq for facts agent: new external context only (bootstrap, context_doc,
+ * resolution). Internal pipeline state transitions (including cycle wrap to
+ * DeltasExtracted) are excluded so facts does not re-run forever on an empty loop.
  */
 export async function getLatestPipelineWalSeqForFacts(
   pool?: pg.Pool,
 ): Promise<number> {
   const p = pool ?? getPool();
   await ensureContextTable(p);
+  const placeholders = FACTS_PIPELINE_WAL_TYPES.map((_, i) => `$${i + 1}`).join(
+    ", ",
+  );
   const res = await p.query(
     `SELECT seq FROM context_events
-     WHERE (data->>'type' IN ('bootstrap','context_doc','resolution'))
-        OR (data->>'type' = 'state_transition' AND data->'payload'->>'to' = 'DeltasExtracted')
+     WHERE data->>'type' IN (${placeholders})
      ORDER BY seq DESC LIMIT 1`,
+    [...FACTS_PIPELINE_WAL_TYPES],
   );
   if (!res.rowCount || !res.rows[0]) return 0;
   return parseInt(res.rows[0].seq, 10);

@@ -418,6 +418,15 @@
         border-color: rgba(201, 162, 39, 0.45);
         background: rgba(201, 162, 39, 0.05);
       }
+      .docs-list .doc-row.lineage-active {
+        outline: 1px solid var(--accent);
+        background: rgba(99, 102, 241, 0.08);
+      }
+      .docs-list .doc-row .seq {
+        color: var(--fog);
+        font-size: 10px;
+        margin-top: 2px;
+      }
       .docs-list .doc-row .t {
         color: var(--mist);
         overflow: hidden;
@@ -1389,6 +1398,50 @@
         opacity: 0.5;
         cursor: not-allowed;
       }
+      .cfg-warn-banner {
+        margin-bottom: 16px;
+        padding: 10px 12px;
+        border-radius: var(--r-sm);
+        border: 1px solid rgba(232, 183, 101, 0.35);
+        background: rgba(232, 183, 101, 0.08);
+        color: var(--amber);
+        font-size: 12px;
+        line-height: 1.45;
+      }
+      .cfg-dim-meta {
+        font-size: 12px;
+        color: var(--fog-2);
+        margin-bottom: 12px;
+      }
+      .cfg-dim-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+      }
+      .cfg-dim-table th,
+      .cfg-dim-table td {
+        text-align: left;
+        padding: 8px 10px;
+        border-bottom: 1px solid var(--graphite);
+        vertical-align: top;
+      }
+      .cfg-dim-table th {
+        color: var(--fog);
+        font-weight: 500;
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+      }
+      .cfg-dim-table code {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 11px;
+        color: var(--mist);
+      }
+      .cfg-dim-warn {
+        color: var(--amber);
+        font-size: 11px;
+        margin-top: 4px;
+      }
       #cfgResetStatus {
         margin-top: 10px;
         font-size: 11.5px;
@@ -1880,6 +1933,9 @@
             <div class="item" data-cfg="scopes">
               Scopes <span class="n" id="cfgScopeNavCount">—</span>
             </div>
+            <div class="item" data-cfg="dimensions">
+              Dimensions <span class="n" id="cfgDimNavCount">—</span>
+            </div>
             <div class="item">Access <span class="n">OpenFGA</span></div>
           </nav>
 
@@ -2037,6 +2093,20 @@
                 </button>
                 <div id="cfgResetStatus"></div>
               </div>
+            </div>
+
+            <div class="cfg-section" data-cfg="dimensions" hidden>
+              <h2>Claim dimensions</h2>
+              <p class="lead">
+                Typed extraction schema and plausibility gates (Couche 0). Thresholds
+                are declared here — override via
+                <code>DIMENSION_SCHEMA_PATH</code> or
+                <code>extraction_schema.yaml</code>; they are not inferred silently
+                at runtime.
+              </p>
+              <div id="cfgDimWarnings"></div>
+              <div id="cfgDimMeta" class="cfg-dim-meta"></div>
+              <div id="cfgDimTableWrap"></div>
             </div>
           </div>
         </div>

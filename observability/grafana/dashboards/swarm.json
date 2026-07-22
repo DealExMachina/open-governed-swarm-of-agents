@@ -33,7 +33,7 @@
       "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "textMode": "value", "colorMode": "background", "graphMode": "none" },
       "targets": [
         {
-          "expr": "swarm_governance_mode_active{mode=\"MASTER\"} * 1 + swarm_governance_mode_active{mode=\"MITL\"} * 2 + swarm_governance_mode_active{mode=\"YOLO\"} * 3",
+          "expr": "swarm_governance_mode_active{mode=\"MASTER\",scope_id=~\"$scope_id\"} * 1 + swarm_governance_mode_active{mode=\"MITL\",scope_id=~\"$scope_id\"} * 2 + swarm_governance_mode_active{mode=\"YOLO\",scope_id=~\"$scope_id\"} * 3",
           "legendFormat": "{{scope_id}}",
           "refId": "A",
           "instant": true
@@ -120,7 +120,7 @@
       },
       "targets": [
         {
-          "expr": "swarm_convergence_goal_score",
+          "expr": "swarm_convergence_goal_score{scope_id=~\"$scope_id\"}",
           "legendFormat": "{{scope_id}}",
           "refId": "A"
         }
@@ -146,7 +146,7 @@
       },
       "targets": [
         {
-          "expr": "swarm_governance_mode_active{mode=\"MASTER\"} * 1 + swarm_governance_mode_active{mode=\"MITL\"} * 2 + swarm_governance_mode_active{mode=\"YOLO\"} * 3",
+          "expr": "swarm_governance_mode_active{mode=\"MASTER\",scope_id=~\"$scope_id\"} * 1 + swarm_governance_mode_active{mode=\"MITL\",scope_id=~\"$scope_id\"} * 2 + swarm_governance_mode_active{mode=\"YOLO\",scope_id=~\"$scope_id\"} * 3",
           "legendFormat": "{{scope_id}}",
           "refId": "A"
         }
@@ -416,7 +416,7 @@
           },
           "targets": [
             {
-              "expr": "swarm_convergence_goal_score",
+              "expr": "swarm_convergence_goal_score{scope_id=~\"$scope_id\"}",
               "legendFormat": "{{scope_id}}",
               "refId": "A"
             }
@@ -433,7 +433,7 @@
           },
           "targets": [
             {
-              "expr": "swarm_convergence_lyapunov_v",
+              "expr": "swarm_convergence_lyapunov_v{scope_id=~\"$scope_id\"}",
               "legendFormat": "{{scope_id}}",
               "refId": "A"
             }
@@ -450,8 +450,8 @@
           },
           "targets": [
             {
-              "expr": "swarm_convergence_rate",
-              "legendFormat": "alpha",
+              "expr": "swarm_convergence_rate{scope_id=~\"$scope_id\"}",
+              "legendFormat": "{{scope_id}} alpha",
               "refId": "A"
             }
           ]
@@ -467,8 +467,8 @@
           },
           "targets": [
             {
-              "expr": "swarm_convergence_trajectory_quality",
-              "legendFormat": "quality",
+              "expr": "swarm_convergence_trajectory_quality{scope_id=~\"$scope_id\"}",
+              "legendFormat": "{{scope_id}} quality",
               "refId": "A"
             }
           ]
@@ -484,8 +484,8 @@
           },
           "targets": [
             {
-              "expr": "swarm_convergence_estimated_rounds",
-              "legendFormat": "rounds",
+              "expr": "swarm_convergence_estimated_rounds{scope_id=~\"$scope_id\"}",
+              "legendFormat": "{{scope_id}} rounds",
               "refId": "A"
             }
           ]
@@ -501,8 +501,8 @@
           },
           "targets": [
             {
-              "expr": "swarm_propagation_steps_total",
-              "legendFormat": "steps",
+              "expr": "swarm_propagation_steps_total{scope_id=~\"$scope_id\"}",
+              "legendFormat": "{{scope_id}} steps",
               "refId": "A"
             }
           ]
@@ -521,6 +521,20 @@
         "name": "DS_PROMETHEUS",
         "query": "prometheus",
         "type": "datasource"
+      },
+      {
+        "current": { "selected": true, "text": "All", "value": "$__all" },
+        "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+        "definition": "label_values(swarm_governance_mode_active, scope_id)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Scope",
+        "multi": true,
+        "name": "scope_id",
+        "query": "label_values(swarm_governance_mode_active, scope_id)",
+        "refresh": 2,
+        "sort": 1,
+        "type": "query"
       }
     ]
   },

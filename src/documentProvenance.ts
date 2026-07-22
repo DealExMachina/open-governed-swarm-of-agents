@@ -103,3 +103,67 @@ export async function queryNodeIdsByDocumentSeq(
   );
   return res.rows.map((r: { node_id: string }) => r.node_id);
 }
+
+export type DocumentDerivedNode = {
+  node_id: string;
+  type: string;
+  content: string;
+  provenance: ProvenanceDescription;
+};
+
+/** Nodes in a scope whose provenance traces to a WAL context_doc seq. */
+export async function listDocumentDerivedNodes(
+  scopeId: string,
+  documentSeq: number,
+  client?: pg.PoolClient,
+): Promise<DocumentDerivedNode[]> {
+  const q: pg.Pool | pg.PoolClient = client ?? getPool();
+  const res = await q.query(
+    `SELECT node_id, type, content, source_ref FROM nodes
+     WHERE scope_id = $1
+       AND (
+         (source_ref->>'document_seq') = $2
+         OR source_ref @> $3::jsonb
+       )
+     ORDER BY type, created_at ASC`,
+    [scopeId, String(documentSeq), JSON.stringify({ document_seqs: [documentSeq] })],
+  );
+  return res.rows.map(
+    (r: {
+      node_id: string;
+      type: string;
+      content: string;
+      source_ref: Record<string, unknown> | null;
+    }) => ({
+      node_id: r.node_id,
+      type: r.type,
+      content: r.content,
+      provenance: describeNodeProvenance(r.source_ref),
+    }),
+  );
+}
+
+/** Read-side provenance for a single graph node (Studio / observability). */
+export async function getNodeProvenanceDetail(
+  scopeId: string,
+  nodeId: string,
+): Promise<DocumentDerivedNode | null> {
+  const res = await getPool().query(
+    `SELECT node_id, type, content, source_ref FROM nodes
+     WHERE scope_id = $1 AND node_id = $2`,
+    [scopeId, nodeId],
+  );
+  if (!res.rows.length) return null;
+  const r = res.rows[0] as {
+    node_id: string;
+    type: string;
+    content: string;
+    source_ref: Record<string, unknown> | null;
+  };
+  return {
+    node_id: r.node_id,
+    type: r.type,
+    content: r.content,
+    provenance: describeNodeProvenance(r.source_ref),
+  };
+}

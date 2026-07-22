@@ -110,6 +110,34 @@ function claimDocAffinity(docContent: string, claimContent: string): number {
   return Math.max(slugScore, fullScore);
 }
 
+function asDocumentSeq(value: unknown): number | undefined {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim() !== "" && !Number.isNaN(Number(value))) {
+    return Number(value);
+  }
+  return undefined;
+}
+
+function docContextSeq(doc: StudioLinkNode): number | undefined {
+  const meta = doc.metadata ?? {};
+  const src = doc.source_ref ?? {};
+  return asDocumentSeq(meta.context_seq) ?? asDocumentSeq(src.context_seq);
+}
+
+function claimDocumentSeqs(claim: StudioLinkNode): number[] {
+  const src = claim.source_ref ?? {};
+  const seqs = new Set<number>();
+  const primary = asDocumentSeq(src.document_seq);
+  if (primary !== undefined) seqs.add(primary);
+  if (Array.isArray(src.document_seqs)) {
+    for (const raw of src.document_seqs) {
+      const seq = asDocumentSeq(raw);
+      if (seq !== undefined) seqs.add(seq);
+    }
+  }
+  return [...seqs];
+}
+
 function pickDocClaimIds(
   doc: StudioLinkNode,
   claims: StudioLinkNode[],
@@ -158,6 +186,23 @@ export function synthesizeStudioEdges(
   const goals = nodes.filter((n) => n.type === "goal");
   const docs = nodes.filter((n) => n.type === "doc");
 
+  const docsByContextSeq = new Map<number, StudioLinkNode[]>();
+  for (const doc of docs) {
+    const seq = docContextSeq(doc);
+    if (seq === undefined) continue;
+    const bucket = docsByContextSeq.get(seq) ?? [];
+    bucket.push(doc);
+    docsByContextSeq.set(seq, bucket);
+  }
+
+  for (const claim of claims) {
+    for (const seq of claimDocumentSeqs(claim)) {
+      for (const doc of docsByContextSeq.get(seq) ?? []) {
+        push(doc.id, claim.id, "refers");
+      }
+    }
+  }
+
   for (const doc of docs) {
     const rawClaimIds = doc.metadata?.claim_ids;
     const explicitIds = Array.isArray(rawClaimIds)
@@ -183,7 +228,7 @@ export function synthesizeStudioEdges(
         claims,
         contra.content,
         2,
-        0.2,
+        0.35,
       )) {
         push(contra.id, claimId, "contradicts");
       }

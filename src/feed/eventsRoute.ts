@@ -1,6 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "http";
 import type { PushSubscription } from "../eventBus.js";
-import { getPathname, sendJson } from "./http.js";
+import { scopeIdFromEventData } from "../contextWal.js";
+import { getPathname, getQuery } from "./http.js";
 import { getFeedBus } from "./runtime.js";
 import { NATS_STREAM } from "./config.js";
 
@@ -16,6 +17,7 @@ export async function handleEvents(
   }
 
   const bus = await getFeedBus();
+  const scopeFilter = getQuery(req.url ?? "").scope_id?.trim() ?? "";
 
   res.writeHead(200, {
     "Content-Type": "text/event-stream",
@@ -50,6 +52,13 @@ export async function handleEvents(
     data: Record<string, unknown>;
   }) => {
     if (res.writableEnded) return;
+    if (scopeFilter) {
+      const eventType = msg.data.type;
+      if (eventType !== "feed_connected") {
+        const eventScope = scopeIdFromEventData(msg.data);
+        if (!eventScope || eventScope !== scopeFilter) return;
+      }
+    }
     const line = `id: ${msg.id}\ndata: ${JSON.stringify(msg.data)}\n\n`;
     res.write(line);
   };

@@ -58,6 +58,7 @@
     "benchmark:smoke-llm": "pnpm exec tsx scripts/benchmarks/benchmark-comparative.ts --preset=smoke-llm",
     "benchmark:smoke-llm:all": "pnpm exec tsx scripts/benchmarks/benchmark-smoke-llm-scenarios.ts",
     "check:services": "node --loader ts-node/esm scripts/checks/check-services.ts",
+    "check:demo-ui": "pnpm exec tsx scripts/checks/check-demo-ui.ts",
     "test:postgres-ollama": "node --loader ts-node/esm scripts/checks/test-postgres-ollama.ts",
     "observe": "node --loader ts-node/esm scripts/checks/observer.ts",
     "observability": "docker compose up -d otel-collector prometheus grafana",

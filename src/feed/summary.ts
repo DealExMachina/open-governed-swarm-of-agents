@@ -1,5 +1,5 @@
 import { makeS3, s3GetText } from "../s3.js";
-import { getPool } from "../db.js";
+import { tailEventsForScope } from "../contextWal.js";
 import { loadState } from "../stateGraph.js";
 import { buildFinalizationReport } from "../finalizationReport.js";
 import {
@@ -71,7 +71,7 @@ export async function buildScopeSummaryForScope(
   scopeId: string,
 ): Promise<Record<string, unknown>> {
   const state = await loadState(scopeId);
-  const recent = await tailEvents(20);
+  const recent = await tailEventsForScope(scopeId, 20);
   const knowledge = await getKnowledgeState(scopeId).catch(() => null);
   const knowledgeCount = knowledge
     ? knowledge.counts.claims +
@@ -172,7 +172,6 @@ export async function buildScopeSummaryForScope(
           "resolution",
         ].includes((e.data as { type?: string })?.type ?? ""),
       )
-      .filter((e) => scopeIdFromEventData(e.data) === scopeId)
       .slice(-10)
       .map((e) => ({
         seq: e.seq,

@@ -29,6 +29,33 @@ describe("studioGraphEdges", () => {
     );
   });
 
+  it("links docs to claims via exact document_seq provenance", () => {
+    const edges = synthesizeStudioEdges(
+      [
+        {
+          id: "d1",
+          type: "doc",
+          content: "01-analyst-briefing",
+          metadata: { context_seq: 7 },
+        },
+        {
+          id: "c1",
+          type: "claim",
+          content: "Analyst briefing states adjusted ARR is €50M.",
+          source_ref: { document_seq: 7 },
+        },
+        { id: "c2", type: "claim", content: "Legal review found no issues." },
+      ],
+      [],
+    );
+    expect(edges.some((e) => e.source === "d1" && e.target === "c1")).toBe(
+      true,
+    );
+    expect(edges.some((e) => e.source === "d1" && e.target === "c2")).toBe(
+      false,
+    );
+  });
+
   it("links docs to related claims when claim_ids metadata is missing", () => {
     const edges = synthesizeStudioEdges(
       [

@@ -12,6 +12,11 @@ import {
   scopeIdForScenario,
 } from "../../src/scenarioScopes.js";
 import { ensureScenarioCatalogScope } from "../../src/studioCatalog.js";
+import { buildSituationSummary } from "../../src/watchdog.js";
+import {
+  getKnowledgeState,
+  loadUnresolvedContradictionDetails,
+} from "../../src/semanticGraph.js";
 import { FEED_URL } from "./config.js";
 import { authHeaders, readBody, sendJson, proxyGet, proxyPost } from "./http.js";
 import { SCENARIOS } from "./scenarios.js";
@@ -248,7 +253,6 @@ export async function handleSummary(res: ServerResponse): Promise<void> {
 /** GET /api/situation — watchdog situation summary with ranked questions */
 export async function handleSituation(res: ServerResponse): Promise<void> {
   try {
-    const { buildSituationSummary } = await import("../src/watchdog.js");
     const scopeId = getActiveScopeOrThrow();
     const situation = await buildSituationSummary(scopeId);
     sendJson(res, 200, situation);
@@ -260,35 +264,48 @@ export async function handleSituation(res: ServerResponse): Promise<void> {
 /** GET /api/knowledge — canonical knowledge state from semantic graph (single source of truth) */
 export async function handleKnowledge(res: ServerResponse): Promise<void> {
   try {
-    const { getKnowledgeState } = await import("../src/semanticGraph.js");
     const scopeId = getActiveScopeOrThrow();
     const knowledge = await getKnowledgeState(scopeId);
     sendJson(res, 200, knowledge);
   } catch (e) {
-    sendJson(res, 200, { counts: { claims: 0, goals: 0, contradictions: 0, risks: 0, contradictions_resolved: 0 }, claims: [], goals: [], contradictions: [], risks: [] });
+    sendJson(res, 502, {
+      error: String(e),
+      counts: {
+        claims: 0,
+        goals: 0,
+        contradictions: 0,
+        risks: 0,
+        contradictions_resolved: 0,
+      },
+      claims: [],
+      goals: [],
+      contradictions: [],
+      risks: [],
+    });
   }
 }
 
 /** GET /api/contradictions — unresolved contradictions with sides for HITL */
 export async function handleContradictions(res: ServerResponse): Promise<void> {
   try {
-    const { loadUnresolvedContradictionDetails } = await import("../src/semanticGraph.js");
     const scopeId = getActiveScopeOrThrow();
     const details = await loadUnresolvedContradictionDetails(scopeId);
     sendJson(res, 200, { contradictions: details });
   } catch (e) {
-    sendJson(res, 200, { contradictions: [] });
+    sendJson(res, 502, { error: String(e), contradictions: [] });
   }
 }
 
-/** GET /api/pending — proxy to MITL server */
+/** GET /api/pending — proxy to feed (same path as observability; feed forwards to MITL) */
 export async function handlePending(res: ServerResponse): Promise<void> {
   try {
     const scopeId = getActiveScopeOrThrow();
-    const data = await proxyGet(`${MITL_URL}/pending?scope_id=${encodeURIComponent(scopeId)}`);
+    const data = await proxyGet(
+      `${FEED_URL}/pending?scope_id=${encodeURIComponent(scopeId)}`,
+    );
     sendJson(res, 200, data as Record<string, unknown>);
-  } catch {
-    sendJson(res, 200, { pending: [] });
+  } catch (e) {
+    sendJson(res, 502, { error: String(e), pending: [] });
   }
 }
 
@@ -305,53 +322,34 @@ export async function handleFinalityResponse(req: IncomingMessage, res: ServerRe
   }
 }
 
-/** POST /api/resolution — proxy to feed /context/resolution */
+/** POST /api/resolution — proxy to feed /context/resolution (WAL + mark resolved + cascade). */
 export async function handleResolution(req: IncomingMessage, res: ServerResponse): Promise<void> {
   try {
     const raw = await readBody(req);
     const body = JSON.parse(raw) as Record<string, unknown>;
     const scopeId = getActiveScopeOrThrow();
-    const decision = typeof body.decision === "string" ? body.decision : typeof body.text === "string" ? body.text : "";
+    const decision =
+      typeof body.decision === "string"
+        ? body.decision
+        : typeof body.text === "string"
+          ? body.text
+          : "";
     const nodeIds = Array.isArray(body.node_ids) ? (body.node_ids as string[]) : [];
 
-    // Fire-and-forget to feed so it records the event in the WAL and triggers the pipeline
-    proxyPost(`${FEED_URL}/context/resolution`, { ...body, scope_id: scopeId }).catch(() => {});
+    // Single path through feed (same as Studio): records WAL, marks nodes, cascades duplicates.
+    const data = (await proxyPost(`${FEED_URL}/context/resolution`, {
+      ...body,
+      decision,
+      text: decision,
+      node_ids: nodeIds,
+      scope_id: scopeId,
+    })) as Record<string, unknown>;
 
-    // Call the resolution MCP directly to get LLM evaluation results back to the UI.
-    // When node_ids are provided (from the contradiction HITL modal), pass them so the
-    // MCP evaluates against those specific contradictions even if the resolver agent
-    // already marked them resolved in the background (race condition protection).
-    const mcpPort = process.env.RESOLUTION_MCP_PORT ?? "3006";
-    let evaluation: Record<string, unknown> = {};
-    try {
-      if (nodeIds.length > 0 && !decision.trim()) {
-        // Explicit A/B choice with no free-text — mark directly
-        const resolved: string[] = [];
-        for (const nodeId of nodeIds) {
-          const r = await fetch(`http://127.0.0.1:${mcpPort}/mark-resolved`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ scope_id: scopeId, node_id: nodeId, judgment: "resolved", reason: "HITL resolution (Choose A/B)" }),
-          });
-          if (r.ok) resolved.push(nodeId);
-        }
-        evaluation = { method: "explicit_node_ids", marked: resolved };
-      } else if (decision.trim()) {
-        // Free-text resolution — use LLM evaluation, passing node_ids if available
-        const payload: Record<string, unknown> = { scope_id: scopeId, resolution_text: decision.trim() };
-        if (nodeIds.length > 0) payload.node_ids = nodeIds;
-        const r = await fetch(`http://127.0.0.1:${mcpPort}/mark-resolved-by-text`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-        if (r.ok) evaluation = await r.json() as Record<string, unknown>;
-      }
-    } catch (e) {
-      evaluation = { error: String(e) };
-    }
-
-    sendJson(res, 200, { ok: true, evaluation });
+    const evaluation =
+      data && typeof data === "object" && data.evaluation && typeof data.evaluation === "object"
+        ? (data.evaluation as Record<string, unknown>)
+        : data;
+    sendJson(res, 200, { ok: true, evaluation, feed: data });
   } catch (e) {
     sendJson(res, 502, { error: String(e) });
   }

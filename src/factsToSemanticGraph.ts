@@ -23,12 +23,23 @@ import {
   appendEdge,
   updateNodeConfidence,
   updateNodeStatus,
+  updateNodeContent,
   queryNodesByCreator,
   type SemanticNode,
 } from "./semanticGraph.js";
 import { logger } from "./logger.js";
-import { canonicalizeClaimText } from "./canonicalValue.js";
+import { canonicalClaimKey, canonicalizeClaimText } from "./canonicalValue.js";
+import {
+  contradictionPairKey,
+  contradictionContentOverlap,
+  parseContradictionPair,
+} from "./contradictionPair.js";
+
+/** @deprecated use parseContradictionPair — kept for existing imports/tests */
+export const parseNliContradiction = parseContradictionPair;
+export { contradictionPairKey } from "./contradictionPair.js";
 import type { EquivalenceCandidate } from "./equivalenceGate.js";
+import { loadResolvedEquivalenceKeys } from "./equivalenceTrace.js";
 import { findRelatedNodeIds } from "./studioGraphEdges.js";
 
 const FACTS_SYNC_SOURCE = "facts-sync";
@@ -107,37 +118,6 @@ export function factsSourceRef(prov?: NodeProvenance | null): Record<string, unk
  *   - Prose: "Initial briefing claimed X, which contradicts Y"
  *   - Prose with "versus/vs/while/but": "X versus Y"
  */
-function parseNliContradiction(s: string): [string, string] | null {
-  const trimmed = s.trim();
-
-  const nli = /^NLI:\s*"(.*?)"\s+vs\s+"(.*?)"/s;
-  const m = trimmed.match(nli);
-  if (m) {
-    const a = m[1].replace(/\.\.\.$/, "").trim();
-    const b = m[2].replace(/\.\.\.$/, "").trim();
-    if (a && b) return [a, b];
-  }
-
-  const contradicts = /^(.*?)\s+contradicts?\s+(.*)$/i.exec(trimmed);
-  if (contradicts) return [contradicts[1].trim(), contradicts[2].trim()];
-
-  const whichContradicts = /(.+?),?\s+which\s+contradicts?\s+(.+)/i.exec(
-    trimmed,
-  );
-  if (whichContradicts)
-    return [whichContradicts[1].trim(), whichContradicts[2].trim()];
-
-  const versus = /(.+?)\s+(?:versus|vs\.?)\s+(.+)/i.exec(trimmed);
-  if (versus) return [versus[1].trim(), versus[2].trim()];
-
-  const butWhile = /(.+?),?\s+(?:but|while|whereas|however)\s+(.+)/i.exec(
-    trimmed,
-  );
-  if (butWhile) return [butWhile[1].trim(), butWhile[2].trim()];
-
-  return null;
-}
-
 /**
  * Find best-matching claim node id from content->nodeId map.
  * Uses exact match, prefix match, then token overlap as fallback.
@@ -176,7 +156,7 @@ export function findClaimNodeId(
     let overlap = 0;
     for (const w of fragWords) if (contentWords.has(w)) overlap++;
     const score = overlap / Math.max(fragWords.size, 1);
-    if (score > bestScore && score >= 0.3) {
+    if (score > bestScore && score >= 0.5) {
       bestScore = score;
       bestId = id;
     }
@@ -404,6 +384,7 @@ export async function syncFactsToSemanticGraph(
       "risk",
       client,
     );
+    const resolvedEquivKeys = await loadResolvedEquivalenceKeys(scopeId, client);
 
     // Track which existing nodes were matched (for stale detection)
     const matchedClaimIds = new Set<string>();
@@ -438,13 +419,22 @@ export async function syncFactsToSemanticGraph(
           matchedClaimIds.add(existing.node_id);
           await enrichNodeProvenance(existing.node_id, entry.prov, client);
           if (existing.content !== trimmed) {
-            equivalenceCandidates.push({
-              node_type: "claim",
-              existing_node_id: existing.node_id,
-              existing_content: existing.content,
-              new_content: trimmed,
-              ...(entry.dimension ? { dimension: entry.dimension } : {}),
-            });
+            const canonExisting = canonicalClaimKey(existing.content);
+            const canonNew = canonicalClaimKey(trimmed);
+            if (canonExisting === canonNew) {
+              await updateNodeContent(existing.node_id, trimmed, client);
+            } else {
+              const resolvedKey = `${existing.node_id}:${canonNew}`;
+              if (!resolvedEquivKeys.has(resolvedKey)) {
+                equivalenceCandidates.push({
+                  node_type: "claim",
+                  existing_node_id: existing.node_id,
+                  existing_content: existing.content,
+                  new_content: trimmed,
+                  ...(entry.dimension ? { dimension: entry.dimension } : {}),
+                });
+              }
+            }
           }
           if (confidence >= existing.confidence) {
             await updateNodeConfidence(existing.node_id, confidence, client);
@@ -603,64 +593,87 @@ export async function syncFactsToSemanticGraph(
     );
     const matchedContraIds = new Set<string>();
 
-    // Load resolved contradictions to skip re-creating them
-    let resolvedContents = new Set<string>();
+    // Load resolved contradictions to skip re-creating them (content + pair keys)
+    let resolvedContents: string[] = [];
+    const resolvedPairKeys = new Set<string>();
     try {
       const resolvedContras = await client.query(
         `SELECT content FROM nodes WHERE scope_id = $1 AND type = 'contradiction' AND status = 'resolved'
-         AND superseded_at IS NULL LIMIT 50`,
+         AND superseded_at IS NULL LIMIT 200`,
         [scopeId],
       );
-      resolvedContents = new Set(
-        resolvedContras.rows.map((r: { content: string }) =>
-          r.content.toLowerCase().trim(),
-        ),
+      resolvedContents = resolvedContras.rows.map((r: { content: string }) =>
+        r.content.toLowerCase().trim(),
       );
+      for (const content of resolvedContents) {
+        const key = contradictionPairKey(content);
+        if (key) resolvedPairKeys.add(key);
+      }
     } catch {
       // resolved query may fail in tests or if schema differs
     }
+
+    function matchesResolvedContradiction(str: string): boolean {
+      const pairKey = contradictionPairKey(str);
+      if (pairKey && resolvedPairKeys.has(pairKey)) return true;
+      const lowerStr = str.trim().toLowerCase();
+      if (resolvedContents.includes(lowerStr)) return true;
+      for (const resolved of resolvedContents) {
+        if (contradictionContentOverlap(lowerStr, resolved) >= 0.55) return true;
+      }
+      return false;
+    }
+
+    // Pair-key index so rephrased / truncated NLI strings do not create duplicates
+    const existingContraIdByPair = new Map<string, string>();
+    const existingContraStatusById = new Map<string, string>();
+    for (const node of existingContras) {
+      existingContraStatusById.set(node.node_id, node.status);
+      const key = contradictionPairKey(node.content);
+      if (key && !existingContraIdByPair.has(key)) {
+        existingContraIdByPair.set(key, node.node_id);
+      }
+    }
+    const seenPairKeysThisSync = new Set<string>();
 
     for (let ci = 0; ci < contradictions.length; ci++) {
       const raw = contradictions[ci];
       const str = typeof raw === "string" ? raw : String(raw);
       if (!str.trim()) continue;
 
-      let matchesResolved = false;
-      try {
-        const { isResolved } = await import("./resolutionService.js");
-        const result = await isResolved(str.trim(), scopeId);
-        matchesResolved = result.resolved;
-      } catch {
-        const lowerStr = str.trim().toLowerCase();
-        matchesResolved = resolvedContents.has(lowerStr);
-        if (!matchesResolved) {
-          const newWords = new Set(
-            lowerStr.split(/\s+/).filter((w) => w.length > 3),
-          );
-          for (const resolved of resolvedContents) {
-            const resWords = new Set(
-              resolved.split(/\s+/).filter((w: string) => w.length > 3),
-            );
-            let overlap = 0;
-            for (const w of newWords) if (resWords.has(w)) overlap++;
-            if (newWords.size > 0 && overlap / newWords.size >= 0.5) {
-              matchesResolved = true;
-              break;
-            }
-          }
+      const pairKey = contradictionPairKey(str);
+      if (pairKey) {
+        if (seenPairKeysThisSync.has(pairKey)) continue;
+        seenPairKeysThisSync.add(pairKey);
+      }
+
+      // Pair-key / lexical first (works without embeddings). Embedding check is secondary.
+      let matchesResolved = matchesResolvedContradiction(str);
+      if (!matchesResolved) {
+        try {
+          const { isResolved } = await import("./resolutionService.js");
+          const result = await isResolved(str.trim(), scopeId);
+          matchesResolved = result.resolved;
+        } catch {
+          /* embedding path optional */
         }
       }
       if (matchesResolved) continue;
 
       // Always create/upsert a contradiction node so it's counted in finality
-      const existingContra = matchExistingNode(existingContras, str.trim());
-      let contraNodeId: string | null = null;
-      if (existingContra) {
-        contraNodeId = existingContra.node_id;
-        matchedContraIds.add(existingContra.node_id);
-        await enrichNodeProvenance(existingContra.node_id, contradictionProv[ci], client);
-        if (existingContra.status !== "active") {
-          await updateNodeStatus(existingContra.node_id, "active", client);
+      const pairMatchedId = pairKey
+        ? existingContraIdByPair.get(pairKey)
+        : undefined;
+      const fuzzyMatched = matchExistingNode(existingContras, str.trim());
+      let contraNodeId: string | null = pairMatchedId ?? fuzzyMatched?.node_id ?? null;
+      if (contraNodeId) {
+        matchedContraIds.add(contraNodeId);
+        await enrichNodeProvenance(contraNodeId, contradictionProv[ci], client);
+        const status =
+          existingContraStatusById.get(contraNodeId) ?? fuzzyMatched?.status;
+        if (status && status !== "active") {
+          await updateNodeStatus(contraNodeId, "active", client);
+          existingContraStatusById.set(contraNodeId, "active");
         }
       } else {
         const contraSourceRef = factsSourceRef(contradictionProv[ci]);
@@ -681,11 +694,15 @@ export async function syncFactsToSemanticGraph(
           client,
         );
         nodesCreated++;
+        if (pairKey && contraNodeId) {
+          existingContraIdByPair.set(pairKey, contraNodeId);
+          existingContraStatusById.set(contraNodeId, "active");
+        }
       }
 
       // Link contradiction node to related claims (Studio graph topology).
       let linkedClaimIds: string[] = [];
-      const pair = parseNliContradiction(str);
+      const pair = parseContradictionPair(str);
       if (pair) {
         const aId = findClaimNodeId(claimContentToNodeId, pair[0]);
         const bId = findClaimNodeId(claimContentToNodeId, pair[1]);
@@ -701,7 +718,7 @@ export async function syncFactsToSemanticGraph(
           })),
           str,
           2,
-          0.2,
+          0.35,
         );
       }
       if (contraNodeId && linkedClaimIds.length) {

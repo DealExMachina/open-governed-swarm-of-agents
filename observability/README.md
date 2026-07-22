@@ -28,6 +28,23 @@ docker compose up -d otel-collector prometheus grafana
 | Swarm Governance | `swarm-governance` | Proposals, policy violations, agent latency, governance loop, throughput |
 | SGRS Core (Rust native) | `sgrs-core` | sgrs-core call latency (avg, p50/p95/p99) and call rate by operation |
 
+## Scope-aware metrics
+
+Several gauges include a `scope_id` label (governance mode, convergence, propagation, E17). The **Swarm Governance** dashboard exposes a **Scope** template variable sourced from `label_values(swarm_governance_mode_active, scope_id)`. Scope-scoped panels filter with `{scope_id=~"$scope_id"}`.
+
+Proposal, agent latency, LLM token, and state-transition metrics are still recorded globally (no `scope_id` label). Per-scope breakdown for those requires code changes in `src/metrics.ts`.
+
+The feed observability page (`/`) accepts `?scope_id=` and filters `/summary`, `/convergence`, and `/events` SSE for that scope. Demo default M&A scope is `deal-horizon`.
+
+## Document lineage APIs
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /studio/scopes/:id/documents/:seq/nodes` | Nodes whose `source_ref.document_seq` traces to WAL seq |
+| `GET /studio/nodes/:id/provenance?scope_id=` | Provenance summary for one graph node |
+
+Studio document rows are clickable to highlight derived nodes on the graph.
+
 ## SGRS dashboard metrics
 
 The SGRS dashboard queries `swarm_sgrs_call_ms_milliseconds` (with `_bucket`, `_count`, `_sum`), labeled by `operation`. Metric names follow OTEL Prometheus export: scope prefix + unit suffix (e.g. `_milliseconds`).

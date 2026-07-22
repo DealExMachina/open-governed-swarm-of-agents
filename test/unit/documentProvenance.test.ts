@@ -9,6 +9,7 @@ import {
   readNodeProvenance,
   describeNodeProvenance,
   queryNodeIdsByDocumentSeq,
+  listDocumentDerivedNodes,
   PROVENANCE_UNAVAILABLE_MESSAGE,
 } from "../../src/documentProvenance.js";
 
@@ -45,6 +46,23 @@ describe("documentProvenance (issue #6)", () => {
   it("reads resolution_seq provenance", () => {
     const prov = readNodeProvenance({ source: "resolution", resolution_seq: 99 });
     expect(prov.resolution_seq).toBe(99);
+  });
+
+  it("lists nodes derived from a document seq", async () => {
+    query.mockResolvedValueOnce({
+      rows: [
+        {
+          node_id: "c1",
+          type: "claim",
+          content: "claim text",
+          source_ref: { document_seq: 7, document_title: "brief.pdf" },
+        },
+      ],
+    });
+    const nodes = await listDocumentDerivedNodes("deal-horizon", 7);
+    expect(nodes).toHaveLength(1);
+    expect(nodes[0].provenance.exact).toBe(true);
+    expect(nodes[0].provenance.document_seq).toBe(7);
   });
 
   it("queries nodes by document_seq including multi-source membership", async () => {

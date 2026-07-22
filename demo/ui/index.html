@@ -1963,11 +1963,17 @@
       var marked = ev.marked || [];
       var evaluations = ev.evaluations || [];
       if (marked.length > 0) {
-        appendToStage(agentCardHtml('R', 'Resolver', marked.length + ' contradiction(s) resolved by your input', 'green'));
+        appendToStage(agentCardHtml('R', 'Resolver', marked.length + ' contradiction(s) resolved by your input (incl. duplicates)', 'green'));
         for (var mi = 0; mi < marked.length; mi++) {
           seenContradictionIds.add(marked[mi]);
         }
-        var remaining = evaluations.filter(function(e) { return !e.resolved || e.confidence < 0.7; });
+        // All HITL-selected ids are done once feed marks them (no LLM confidence gate)
+        for (var ai = 0; ai < _activeContraNodeIds.length; ai++) {
+          seenContradictionIds.add(_activeContraNodeIds[ai]);
+        }
+        var remaining = evaluations.filter(function(e) {
+          return e.node_id && !seenContradictionIds.has(e.node_id) && (!e.resolved || e.confidence < 0.7);
+        });
         if (remaining.length > 0) {
           var pendingDetails = remaining.map(function(e) {
             return (e.content || e.node_id || 'unknown').slice(0, 150);
@@ -1977,10 +1983,9 @@
             'amber'));
         }
       } else {
-        appendToStage(agentCardHtml('!', 'Watchdog', 'Resolution noted but no contradictions matched with high confidence. Continuing...', 'amber'));
+        appendToStage(agentCardHtml('!', 'Watchdog', 'Resolution noted but no contradictions were marked resolved. Continuing...', 'amber'));
       }
-      // Mark all current contras as seen so we don't re-prompt
-      evaluations.forEach(function(e) { if (e.node_id) seenContradictionIds.add(e.node_id); });
+      evaluations.forEach(function(e) { if (e.node_id && e.resolved) seenContradictionIds.add(e.node_id); });
     } catch(e) {
       appendToStage(agentCardHtml('!', 'System', 'Resolution submission failed: ' + e.message, 'red'));
     }
@@ -2843,6 +2848,35 @@
   // ── Summary refresh ──
   var lastKnowledge = null;
 
+  /** When /api/knowledge is unavailable, derive panel data from feed summary (same source as observability). */
+  function knowledgeFromSummary(summary) {
+    if (!summary) return null;
+    var facts = summary.facts || {};
+    var sg = summary.state_graph || {};
+    var nn = sg.nodes || {};
+    var claims = Array.isArray(facts.claims) ? facts.claims : [];
+    var goals = Array.isArray(facts.goals) ? facts.goals : [];
+    var risks = Array.isArray(facts.risks) ? facts.risks : [];
+    var contradictions = Array.isArray(facts.contradictions) ? facts.contradictions : [];
+    var claimCount = (nn.claim != null ? nn.claim : claims.length) || 0;
+    var goalCount = (nn.goal != null ? nn.goal : goals.length) || 0;
+    var riskCount = (nn.risk != null ? nn.risk : risks.length) || 0;
+    var contraOpen = nn.contradiction != null ? nn.contradiction : contradictions.length;
+    return {
+      counts: {
+        claims: claimCount,
+        goals: goalCount,
+        contradictions: contraOpen,
+        risks: riskCount,
+        contradictions_resolved: 0,
+      },
+      claims: claims,
+      goals: goals,
+      contradictions: contradictions,
+      risks: risks,
+    };
+  }
+
   async function refreshSummary() {
     try {
       var results = await Promise.all([
@@ -2851,6 +2885,7 @@
       ]);
       if (results[0]) lastSummary = results[0];
       if (results[1]) lastKnowledge = results[1];
+      else if (lastSummary) lastKnowledge = knowledgeFromSummary(lastSummary);
     } catch(_) { return; }
 
     if (!lastSummary) return;
@@ -2863,7 +2898,10 @@
     // Before any documents are processed, the convergence engine returns a vacuous
     // score (0/0 contradictions = 100% resolved, etc.) that misleads users. Show 0%
     // until the knowledge graph actually has content.
-    var knTotal = lastKnowledge ? ((lastKnowledge.counts || {}).claims || 0) + ((lastKnowledge.counts || {}).goals || 0) : 0;
+    var kc = (lastKnowledge && lastKnowledge.counts) ? lastKnowledge.counts : {};
+    var sgNodes = (lastSummary.state_graph && lastSummary.state_graph.nodes) ? lastSummary.state_graph.nodes : {};
+    var knTotal = (kc.claims || 0) + (kc.goals || 0);
+    if (knTotal === 0) knTotal = (sgNodes.claim || 0) + (sgNodes.goal || 0);
     var rawGs = fin.goal_score != null ? Math.round(fin.goal_score * 100) : 0;
     var gs = knTotal > 0 ? rawGs : 0;
     document.getElementById('rScore').textContent = gs + '%';
@@ -3006,387 +3044,6 @@
     }
     submitResolutionWithText(text, nodeIds).catch(function(e) { showError('Resolution failed: ' + e); });
   };
-})();
-</script>
-</body>
-</html>`;
-
-// ---------------------------------------------------------------------------
-// M&A Due Diligence View — progress and result only (no mechanism)
-// ---------------------------------------------------------------------------
-
-const MA_VIEW_DOC_COUNT = 5;
-
-const DEMO_MA_VIEW_HTML = /* html */ `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>M&A Due Diligence — Project Horizon</title>
-  <meta name="theme-color" content="#0b0d12">
-  <style>
-    :root {
-      --bg: #0b0d12; --surface: #13151c; --surface2: #1a1d27;
-      --border: #252836; --text: #e2e4f0; --muted: #6b7080;
-      --accent: #4f8ef7; --accent-dim: #1a2d55;
-      --green: #22c55e; --green-dim: #14532d;
-      --amber: #f59e0b; --amber-dim: #451a03;
-      --red: #ef4444; --red-dim: #450a0a;
-      --purple: #a78bfa; --purple-dim: #2e1065;
-      --radius: 8px;
-      --font: 'Inter','Segoe UI',system-ui,sans-serif;
-    }
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;min-height:100vh;display:flex;flex-direction:column}
-    .topbar{display:flex;align-items:center;justify-content:space-between;padding:0 1.25rem;height:48px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0}
-    .topbar a{font-size:0.75rem;color:var(--muted);text-decoration:none;padding:0.25rem 0.625rem;border:1px solid var(--border);border-radius:var(--radius)}
-    .topbar a:hover{color:var(--accent);border-color:var(--accent)}
-    .topbar-title{font-size:0.9375rem;font-weight:700;color:var(--text)}
-    .main{flex:1;overflow:auto;padding:1.5rem;max-width:900px;margin:0 auto;width:100%}
-    .section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1rem 1.25rem;margin-bottom:1rem}
-    .section-title{font-size:0.6875rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:0.75rem}
-    .progress-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:0.75rem;margin-bottom:1rem}
-    .progress-item{background:var(--surface2);border-radius:6px;padding:0.75rem;text-align:center}
-    .progress-num{font-size:1.25rem;font-weight:800;color:var(--text);display:block}
-    .progress-label{font-size:0.6875rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-top:2px}
-    .controls{display:flex;gap:0.75rem;flex-wrap:wrap;margin-bottom:1rem}
-    .btn{padding:0.6rem 1.25rem;font-size:0.875rem;font-weight:600;border:none;border-radius:var(--radius);cursor:pointer;font-family:var(--font)}
-    .btn-primary{background:var(--accent);color:#fff}
-    .btn-primary:hover{filter:brightness(1.1)}
-    .btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
-    .btn-secondary:hover{border-color:var(--accent);color:var(--accent)}
-    .btn:disabled{opacity:0.5;cursor:not-allowed}
-    .state-list{list-style:none}
-    .state-list li{padding:0.4rem 0;border-bottom:1px solid var(--border);font-size:0.8125rem;color:var(--text)}
-    .state-list li:last-child{border-bottom:none}
-    .state-list .resolved{color:var(--green)}
-    .state-list .unresolved{color:var(--amber)}
-    .hitl-panel{background:var(--purple-dim);border:1px solid var(--purple);border-radius:var(--radius);padding:1rem;margin-bottom:1rem}
-    .hitl-panel.hidden{display:none}
-    .hitl-title{font-size:0.875rem;font-weight:700;color:var(--purple);margin-bottom:0.5rem}
-    .hitl-options{display:flex;flex-wrap:wrap;gap:0.5rem;margin-top:0.75rem}
-    .report{display:none}
-    .report.visible{display:block}
-    .report h2{font-size:1rem;font-weight:700;color:var(--text);margin:1rem 0 0.5rem;padding-bottom:0.35rem;border-bottom:1px solid var(--border)}
-    .report h2:first-of-type{margin-top:0}
-    .report p,.report ul{font-size:0.875rem;color:var(--text);line-height:1.7;margin-bottom:0.5rem}
-    .report ul{margin-left:1.25rem}
-    .report-row{display:flex;justify-content:space-between;padding:0.25rem 0;font-size:0.8125rem}
-    .report-row .label{color:var(--muted)}
-    .empty{color:var(--muted);font-style:italic;font-size:0.8125rem}
-  </style>
-</head>
-<body>
-  <header class="topbar">
-    <span class="topbar-title">M&A Due Diligence — Project Horizon</span>
-    <a href="/demo">Back to demo</a>
-  </header>
-  <main class="main">
-    <div class="section">
-      <div class="section-title">Progress</div>
-      <div class="progress-grid">
-        <div class="progress-item"><span id="progress-docs" class="progress-num">0</span><span class="progress-label">Documents</span></div>
-        <div class="progress-item"><span id="progress-claims" class="progress-num">0</span><span class="progress-label">Facts verified</span></div>
-        <div class="progress-item"><span id="progress-contra" class="progress-num">0</span><span class="progress-label">Contradictions</span></div>
-        <div class="progress-item"><span id="progress-risks" class="progress-num">0</span><span class="progress-label">Risks flagged</span></div>
-      </div>
-      <div class="controls">
-        <button id="btn-run-all" class="btn btn-primary">Run all documents</button>
-        <button id="btn-next" class="btn btn-secondary">Next document</button>
-        <button id="btn-report" class="btn btn-secondary" style="display:none">View final report</button>
-      </div>
-    </div>
-    <div class="section">
-      <div class="section-title">Shared state</div>
-      <div id="shared-state">Loading...</div>
-    </div>
-    <div class="section">
-      <div class="section-title">Human confirmations</div>
-      <ul id="human-list" class="state-list"><li class="empty">None yet</li></ul>
-    </div>
-    <div id="hitl-panel" class="hitl-panel hidden">
-      <div class="hitl-title">Your decision is required</div>
-      <p id="hitl-message" style="font-size:0.8125rem;color:var(--text);margin-bottom:0.5rem"></p>
-      <div class="hitl-options">
-        <button class="btn btn-primary" data-option="approve_finality">Approve finality</button>
-        <button class="btn btn-secondary" id="btn-resolution">Provide resolution</button>
-        <button class="btn btn-secondary" data-option="escalate">Escalate</button>
-        <button class="btn btn-secondary" data-option="defer">Defer 7 days</button>
-      </div>
-      <div id="resolution-area" style="display:none;margin-top:0.75rem">
-        <textarea id="resolution-text" rows="3" placeholder="e.g. ARR confirmed at EUR 38M" style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:0.5rem;border-radius:6px;font-family:var(--font)"></textarea>
-        <button class="btn btn-primary" style="margin-top:0.5rem" id="btn-submit-resolution">Submit resolution</button>
-      </div>
-    </div>
-    <div id="report" class="report section">
-      <h2>Thesis</h2>
-      <p id="report-thesis" class="empty">—</p>
-      <h2>Caveats and main risks</h2>
-      <ul id="report-risks"></ul>
-      <h2>Documented human corrections and confirmations</h2>
-      <ul id="report-human"></ul>
-      <h2>High-level confidence</h2>
-      <div id="report-confidence"></div>
-      <h2>Next steps</h2>
-      <ul id="report-next"></ul>
-    </div>
-  </main>
-<script>
-(function() {
-  var DOC_COUNT = ${MA_VIEW_DOC_COUNT};
-  var docsFedCount = 0;
-  var lastSummary = null;
-  var pendingProposalId = null;
-  var pollInterval = null;
-
-  function el(id) { return document.getElementById(id); }
-  function esc(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
-
-  function refreshSummary() {
-    return fetch('/api/summary', { signal: AbortSignal.timeout(6000) }).then(function(r) { return r.ok ? r.json() : null; }).catch(function() { return null; });
-  }
-
-  function renderProgress(s) {
-    if (!s) return;
-    var kc = (lastKnowledge || {}).counts || {};
-    var docsNum = Math.min(docsFedCount, DOC_COUNT);
-    el('progress-docs').textContent = docsNum + ' / ' + DOC_COUNT;
-    el('progress-claims').textContent = kc.claims || 0;
-    var contraOpen = kc.contradictions || 0;
-    var contraResolved = kc.contradictions_resolved || 0;
-    el('progress-contra').textContent = contraResolved + ' resolved, ' + contraOpen + ' open';
-    el('progress-risks').textContent = kc.risks || 0;
-  }
-
-  function renderSharedState(s) {
-    var container = el('shared-state');
-    if (!s || !s.facts) { container.innerHTML = '<span class="empty">No data yet. Run documents to see shared state.</span>'; return; }
-    var facts = s.facts;
-    var claims = facts.claims || [];
-    var goals = facts.goals || [];
-    var risks = facts.risks || [];
-    var contra = s.contradictions || [];
-    var html = '';
-    if (claims.length) {
-      html += '<div style="margin-bottom:1rem"><div class="section-title">Facts verified (' + claims.length + ')</div><ul class="state-list">';
-      claims.forEach(function(c) { html += '<li>' + esc(String(c)) + '</li>'; });
-      html += '</ul></div>';
-    }
-    if (goals.length) {
-      html += '<div style="margin-bottom:1rem"><div class="section-title">Goals tracked (' + goals.length + ')</div><ul class="state-list">';
-      goals.forEach(function(g) { html += '<li>' + esc(typeof g === 'string' ? g : (g && g.text ? g.text : String(g))) + '</li>'; });
-      html += '</ul></div>';
-    }
-    if (risks.length) {
-      html += '<div style="margin-bottom:1rem"><div class="section-title">Risks flagged</div><ul class="state-list">';
-      risks.forEach(function(r) { html += '<li>' + esc(String(r).slice(0, 200)) + '</li>'; });
-      html += '</ul></div>';
-    }
-    if (contra.length) {
-      html += '<div><div class="section-title">Contradictions</div><ul class="state-list">';
-      contra.forEach(function(c) {
-        var status = c.status === 'resolved' ? 'resolved' : 'unresolved';
-        var text = (c.content || '').slice(0, 150);
-        if (c.resolution && (c.resolution.reason || c.resolution.by)) text += ' — ' + (c.resolution.reason || c.resolution.by);
-        html += '<li class="' + status + '">' + esc(text) + (text.length >= 150 ? '…' : '') + '</li>';
-      });
-      html += '</ul></div>';
-    }
-    if (!html) html = '<span class="empty">No items yet. Run documents to populate.</span>';
-    container.innerHTML = html;
-  }
-
-  function renderHumanConfirmations(s) {
-    var list = el('human-list');
-    var resolutions = [];
-    var decisions = [];
-    if (s && s.what_changed) {
-      (s.what_changed || []).filter(function(e) { return (e.type || '') === 'resolution'; }).forEach(function(e) {
-        var p = e.payload || {};
-        resolutions.push((p.decision || p.text || '').trim().slice(0, 200));
-      });
-    }
-    if (s && s.human_decisions && s.human_decisions.length) {
-      s.human_decisions.forEach(function(d) {
-        var label = (d.option || '').replace(/_/g, ' ');
-        var ts = d.created_at ? new Date(d.created_at).toLocaleString() : '';
-        decisions.push(label + (ts ? ' (' + ts + ')' : ''));
-      });
-    }
-    if (resolutions.length === 0 && decisions.length === 0) {
-      list.innerHTML = '<li class="empty">None yet</li>';
-      return;
-    }
-    list.innerHTML = '';
-    resolutions.forEach(function(r) { if (r) list.appendChild(function(){ var li = document.createElement('li'); li.textContent = 'Resolution: ' + r; return li; }()); });
-    decisions.forEach(function(d) { var li = document.createElement('li'); li.textContent = d; list.appendChild(li); });
-  }
-
-  function applySummary(s) {
-    lastSummary = s;
-    renderProgress(s);
-    renderSharedState(s);
-    renderHumanConfirmations(s);
-    var fin = (s && s.finality) ? s.finality : {};
-    var status = fin.status || '';
-    if (status === 'RESOLVED' || status === 'near_finality') el('btn-report').style.display = 'inline-block';
-  }
-
-  function checkPending() {
-    fetch('/api/pending').then(function(r) { return r.json(); }).then(function(data) {
-      var pending = (data.pending || []).filter(function(item) {
-        var prop = item.proposal || {};
-        var pl = prop.payload || {};
-        return (pl.type === 'finality_review' || prop.proposed_action === 'finality_review') && item.proposal_id;
-      });
-      if (pending.length > 0 && !pendingProposalId) {
-        pendingProposalId = pending[0].proposal_id;
-        var panel = el('hitl-panel');
-        panel.classList.remove('hidden');
-        var msg = el('hitl-message');
-        var payload = (pending[0].proposal || {}).payload || {};
-        var gs = payload.goal_score != null ? Math.round(payload.goal_score * 100) : '—';
-        msg.textContent = 'The due diligence has reached ' + gs + '% confidence. Choose how to proceed.';
-        panel.querySelectorAll('[data-option]').forEach(function(btn) {
-          btn.onclick = function() {
-            var opt = btn.getAttribute('data-option');
-            if (!pendingProposalId) return;
-            fetch('/api/finality-response', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ proposal_id: pendingProposalId, option: opt, days: 7 }) }).then(function() {
-              pendingProposalId = null;
-              panel.classList.add('hidden');
-              el('resolution-area').style.display = 'none';
-              refreshSummary().then(applySummary);
-            });
-          };
-        });
-        el('btn-resolution').onclick = function() { el('resolution-area').style.display = 'block'; };
-        el('btn-submit-resolution').onclick = function() {
-          var text = (el('resolution-text').value || '').trim();
-          if (!text || !pendingProposalId) return;
-          fetch('/api/resolution', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ decision: text, summary: text.slice(0, 120), text: text }) }).then(function() {
-            fetch('/api/finality-response', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ proposal_id: pendingProposalId, option: 'provide_resolution', days: 7 }) }).then(function() {
-              pendingProposalId = null;
-              el('hitl-panel').classList.add('hidden');
-              el('resolution-area').style.display = 'none';
-              el('resolution-text').value = '';
-              refreshSummary().then(applySummary);
-            });
-          });
-        };
-      }
-    });
-  }
-
-  function runPoll() {
-    refreshSummary().then(function(s) {
-      applySummary(s);
-      checkPending();
-    });
-  }
-
-  el('btn-run-all').onclick = function() {
-    var btn = el('btn-run-all');
-    btn.disabled = true;
-    fetch('/api/run-all', { method: 'POST' }).then(function() {
-      docsFedCount = DOC_COUNT;
-      runPoll();
-      var t = setInterval(runPoll, 4000);
-      setTimeout(function() { clearInterval(t); }, 120000);
-    });
-  };
-
-  el('btn-next').onclick = function() {
-    if (docsFedCount >= DOC_COUNT) return;
-    var btn = el('btn-next');
-    btn.disabled = true;
-    fetch('/api/step/' + docsFedCount, { method: 'POST' }).then(function() {
-      docsFedCount++;
-      if (docsFedCount >= DOC_COUNT) btn.style.display = 'none';
-      else btn.disabled = false;
-      runPoll();
-      var t = setInterval(runPoll, 4000);
-      setTimeout(function() { clearInterval(t); }, 60000);
-    });
-  };
-
-  el('btn-report').onclick = function() {
-    var s = lastSummary;
-    if (!s) return;
-    var fin = s.finality || {};
-    var facts = s.facts || {};
-    var risks = facts.risks || [];
-    var drift = s.drift || {};
-    var contra = s.contradictions || [];
-    var humanDecisions = s.human_decisions || [];
-    var whatChanged = s.what_changed || [];
-    var dims = fin.dimensions || {};
-    var gs = fin.goal_score != null ? Math.round(fin.goal_score * 100) : 0;
-    var status = fin.status || '';
-
-    var thesis = '';
-    if (status === 'RESOLVED' && gs >= 85) thesis = 'Proceed with confidence. The due diligence supports closing the acquisition within the evaluated range (e.g. EUR 270–290M) with documented resolutions.';
-    else if (status === 'RESOLVED' || gs >= 75) thesis = 'Proceed with caution. The due diligence supports a conditional path; address the caveats and next steps before closing.';
-    else if (risks.length > 0 || contra.some(function(c) { return c.status !== 'resolved'; })) thesis = 'Further diligence required. Resolve identified contradictions and mitigate risks before recommending proceed.';
-    else thesis = 'Review in progress. Run all documents and complete human review when prompted to reach a final position.';
-    el('report-thesis').textContent = thesis;
-    el('report-thesis').className = '';
-
-    var risksUl = el('report-risks');
-    risksUl.innerHTML = '';
-    (drift.notes || []).forEach(function(n) { var li = document.createElement('li'); li.textContent = n; risksUl.appendChild(li); });
-    (drift.types || []).forEach(function(t) { var li = document.createElement('li'); li.textContent = 'Drift: ' + t; risksUl.appendChild(li); });
-    risks.forEach(function(r) { var li = document.createElement('li'); li.textContent = r; risksUl.appendChild(li); });
-    if (risksUl.children.length === 0) { var li = document.createElement('li'); li.className = 'empty'; li.textContent = 'None documented.'; risksUl.appendChild(li); }
-
-    var humanUl = el('report-human');
-    humanUl.innerHTML = '';
-    whatChanged.filter(function(e) { return (e.type || '') === 'resolution'; }).forEach(function(e) {
-      var p = e.payload || {};
-      var t = (p.decision || p.text || '').trim();
-      if (t) { var li = document.createElement('li'); li.textContent = 'Resolution: ' + t; humanUl.appendChild(li); }
-    });
-    humanDecisions.forEach(function(d) {
-      var li = document.createElement('li');
-      li.textContent = (d.option || '').replace(/_/g, ' ') + (d.created_at ? ' — ' + new Date(d.created_at).toLocaleString() : '');
-      humanUl.appendChild(li);
-    });
-    if (humanUl.children.length === 0) { var li = document.createElement('li'); li.className = 'empty'; li.textContent = 'None recorded.'; humanUl.appendChild(li); }
-
-    var confDiv = el('report-confidence');
-    var claimPct = dims.claim_avg_confidence != null ? Math.round(dims.claim_avg_confidence * 100) : null;
-    var contraPct = dims.contradiction_resolution_ratio != null ? Math.round(dims.contradiction_resolution_ratio * 100) : null;
-    var goalPct = dims.goal_completion_ratio != null ? Math.round(dims.goal_completion_ratio * 100) : null;
-    var riskPct = dims.risk_score_inverse != null ? Math.round(dims.risk_score_inverse * 100) : null;
-    var parts = [];
-    if (claimPct != null) parts.push('Facts: ' + claimPct + '%');
-    if (contraPct != null) parts.push('Contradictions resolved: ' + contraPct + '%');
-    if (goalPct != null) parts.push('Objectives: ' + goalPct + '%');
-    if (riskPct != null) parts.push('Risk (inverse): ' + riskPct + '%');
-    confDiv.innerHTML = '<p>' + (parts.length ? parts.join('. ') : '—') + '</p>';
-    if (claimPct != null) confDiv.innerHTML += '<div class="report-row"><span class="label">How reliable are the facts?</span><span>' + claimPct + '%</span></div>';
-    if (contraPct != null) confDiv.innerHTML += '<div class="report-row"><span class="label">Are contradictions resolved?</span><span>' + contraPct + '%</span></div>';
-    if (goalPct != null) confDiv.innerHTML += '<div class="report-row"><span class="label">Are objectives completed?</span><span>' + goalPct + '%</span></div>';
-    if (riskPct != null) confDiv.innerHTML += '<div class="report-row"><span class="label">Is risk under control?</span><span>' + riskPct + '%</span></div>';
-
-    var nextUl = el('report-next');
-    nextUl.innerHTML = '';
-    (drift.suggested_actions || []).forEach(function(a) { var li = document.createElement('li'); li.textContent = a; nextUl.appendChild(li); });
-    contra.filter(function(c) { return c.status !== 'resolved'; }).forEach(function(c) {
-      var li = document.createElement('li');
-      li.textContent = 'Resolve contradiction: ' + (c.content || '').slice(0, 100) + '…';
-      nextUl.appendChild(li);
-    });
-    risks.forEach(function(r) { var li = document.createElement('li'); li.textContent = 'Mitigate risk: ' + String(r).slice(0, 80); nextUl.appendChild(li); });
-    if (nextUl.children.length === 0) { var li = document.createElement('li'); li.className = 'empty'; li.textContent = 'No further steps suggested.'; nextUl.appendChild(li); }
-
-    el('report').classList.add('visible');
-    el('report').scrollIntoView({ behavior: 'smooth' });
-  };
-
-  fetch('/api/select-scenario', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: 'ma' }) }).then(function() {
-    runPoll();
-  });
 })();
 </script>
 </body>

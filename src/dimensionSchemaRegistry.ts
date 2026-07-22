@@ -115,3 +115,66 @@ export function loadDimensionSchemaMap(): DimensionSchemaMap {
     );
   }
 }
+
+export interface StudioDimensionRow {
+  id: string;
+  type: string;
+  description?: string;
+  tolerance?: number;
+  embeddingThreshold?: number;
+  plausibility?: DimensionSchemaMap[string]["plausibility"];
+  warnings: string[];
+}
+
+/** Payload for Studio Configure → Dimensions (read-only until schema editor lands). */
+export function describeDimensionSchemaForStudio(): {
+  source: "default" | "override";
+  path: string | null;
+  dimensions: StudioDimensionRow[];
+  warnings: string[];
+} {
+  const path = process.env.DIMENSION_SCHEMA_PATH?.trim() || null;
+  const loaded = loadDimensionSchemaMap();
+  const warnings: string[] = [];
+  if (!path) {
+    warnings.push(
+      "Using built-in dimension schema. Set DIMENSION_SCHEMA_PATH (JSON/YAML) to override thresholds and plausibility per deployment.",
+    );
+  }
+
+  const dimensions: StudioDimensionRow[] = Object.entries(loaded)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([id, def]) => {
+      const rowWarnings: string[] = [];
+      if (def.type === "currency_range" && !def.plausibility) {
+        rowWarnings.push(
+          "No plausibility block — retention/valuation confusion gates are disabled for this dimension.",
+        );
+      }
+      return {
+        id,
+        type: def.type,
+        description: def.description,
+        tolerance: def.tolerance,
+        embeddingThreshold: def.embeddingThreshold,
+        plausibility: def.plausibility,
+        warnings: rowWarnings,
+      };
+    });
+
+  const missingPlausibility = dimensions.filter(
+    (d) => d.type === "currency_range" && !d.plausibility,
+  );
+  if (missingPlausibility.length > 0) {
+    warnings.push(
+      `${missingPlausibility.length} currency_range dimension(s) without plausibility config: ${missingPlausibility.map((d) => d.id).join(", ")}`,
+    );
+  }
+
+  return {
+    source: path ? "override" : "default",
+    path,
+    dimensions,
+    warnings,
+  };
+}

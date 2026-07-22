@@ -338,38 +338,111 @@ def _get_nli():
         return None
 
 
-def _detect_contradictions_nli(claims: List[str], max_pairs: int = 20) -> List[str]:
-    """Run NLI on claim pairs. Returns empty list if NLI unavailable."""
-    model = _get_nli()
-    if model is None or len(claims) < 2:
-        return []
+def _token_jaccard(a: str, b: str) -> float:
+    """Jaccard overlap on significant tokens (length > 2)."""
+    wa = {w for w in a.lower().split() if len(w) > 2}
+    wb = {w for w in b.lower().split() if len(w) > 2}
+    if not wa or not wb:
+        return 0.0
+    return len(wa & wb) / len(wa | wb)
+
+
+def _nli_candidate_pairs(
+    claims: List[str],
+    structured_claims: Optional[List[Dict[str, Any]]] = None,
+    max_pairs: int = 20,
+    min_jaccard: float = 0.25,
+) -> List[Tuple[str, str]]:
+    """Select claim pairs that share a dimension or enough lexical overlap.
+
+    Prefer structured_claims (same dimension only). Fall back to flat claims with
+    a Jaccard pre-filter so cross-topic pairs (ARR vs MDR, valuation vs retention)
+    never reach the cross-encoder.
+    """
     pairs: List[Tuple[str, str]] = []
-    for i in range(min(len(claims), 20)):
-        for j in range(i + 1, min(len(claims), 20)):
-            if len(pairs) >= max_pairs:
-                break
-            a, b = claims[i], claims[j]
-            if isinstance(a, str) and isinstance(b, str) and a.strip() and b.strip():
-                pairs.append((a, b))
+    seen: set[Tuple[str, str]] = set()
+
+    def _add(a: str, b: str) -> None:
         if len(pairs) >= max_pairs:
-            break
+            return
+        a, b = a.strip(), b.strip()
+        if not a or not b or a == b:
+            return
+        key = (a, b) if a <= b else (b, a)
+        if key in seen:
+            return
+        seen.add(key)
+        pairs.append((a, b))
+
+    structured = [
+        sc
+        for sc in (structured_claims or [])
+        if isinstance(sc, dict)
+        and isinstance(sc.get("dimension"), str)
+        and isinstance(sc.get("content"), str)
+        and sc["dimension"].strip()
+        and sc["content"].strip()
+    ]
+    if structured:
+        by_dim: Dict[str, List[str]] = {}
+        for sc in structured:
+            by_dim.setdefault(sc["dimension"].strip(), []).append(sc["content"].strip())
+        for contents in by_dim.values():
+            uniq = list(dict.fromkeys(contents))
+            for i in range(len(uniq)):
+                for j in range(i + 1, len(uniq)):
+                    if _token_jaccard(uniq[i], uniq[j]) >= min_jaccard * 0.5:
+                        _add(uniq[i], uniq[j])
+                    if len(pairs) >= max_pairs:
+                        return pairs
+        return pairs
+
+    flat = [c.strip() for c in claims if isinstance(c, str) and c.strip()][:20]
+    for i in range(len(flat)):
+        for j in range(i + 1, len(flat)):
+            if _token_jaccard(flat[i], flat[j]) >= min_jaccard:
+                _add(flat[i], flat[j])
+            if len(pairs) >= max_pairs:
+                return pairs
+    return pairs
+
+
+def _detect_contradictions_nli(
+    claims: List[str],
+    max_pairs: int = 20,
+    structured_claims: Optional[List[Dict[str, Any]]] = None,
+    min_confidence: float = 0.65,
+    min_margin: float = 0.15,
+) -> List[str]:
+    """Run bidirectional NLI on gated claim pairs. Empty if NLI unavailable.
+
+    Gates (in order):
+      1. Same dimension when structured_claims present, else Jaccard >= 0.25
+      2. Bidirectional ``nli_entailment`` (contradiction in either direction)
+      3. confidence >= min_confidence and margin over neutral >= min_margin
+    """
+    if _get_nli() is None:
+        return []
+    pairs = _nli_candidate_pairs(
+        claims, structured_claims=structured_claims, max_pairs=max_pairs
+    )
     if not pairs:
         return []
-    try:
-        scores = model.predict([(a, b) for a, b in pairs])
-        out: List[str] = []
-        for idx, (a, b) in enumerate(pairs):
-            s = scores[idx] if hasattr(scores, "__getitem__") else scores
-            if hasattr(s, "tolist"):
-                s = s.tolist()
-            if isinstance(s, (list, tuple)) and len(s) >= 3:
-                if s[0] > s[1] and s[0] > s[2] and s[0] > 0.5:
-                    out.append(f"NLI: \"{a[:100]}...\" vs \"{b[:100]}...\"")
-            elif isinstance(s, (list, tuple)) and len(s) >= 1 and float(s[0]) > 0.5:
-                out.append(f"NLI: \"{a[:100]}...\" vs \"{b[:100]}...\"")
-        return out
-    except Exception:
-        return []
+    out: List[str] = []
+    for a, b in pairs:
+        result = nli_entailment(a, b)
+        if result is None or result.get("label") != "contradiction":
+            continue
+        conf = float(result.get("confidence") or 0)
+        fwd = result.get("forward") or [0, 0, 0]
+        bwd = result.get("backward") or [0, 0, 0]
+        neutral = max(float(fwd[2]) if len(fwd) > 2 else 0.0, float(bwd[2]) if len(bwd) > 2 else 0.0)
+        if conf < min_confidence or (conf - neutral) < min_margin:
+            continue
+        # Stable truncated form for graph dedupe (pair order lexicographic)
+        left, right = (a, b) if a <= b else (b, a)
+        out.append(f'NLI: "{left[:100]}..." vs "{right[:100]}..."')
+    return out
 
 
 def _softmax3(vals: List[float]) -> List[float]:
@@ -798,8 +871,12 @@ def extract_facts_and_drift(
                 existing.add(e)
                 facts.entities.append(e)
 
-    # Optional NLI contradiction detection (requires requirements-full.txt + NLI_MODEL set)
-    nli_contradictions = _detect_contradictions_nli(facts.claims or [])
+    # Optional NLI contradiction detection (requires requirements-full.txt + NLI_MODEL set).
+    # Prefer structured_claims so pairs stay within the same dimension.
+    nli_contradictions = _detect_contradictions_nli(
+        facts.claims or [],
+        structured_claims=list(facts_dict.get("structured_claims") or []),
+    )
     if nli_contradictions:
         facts.contradictions = list(facts.contradictions or []) + nli_contradictions
 

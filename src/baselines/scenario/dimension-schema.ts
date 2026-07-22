@@ -68,6 +68,20 @@ export type DimensionType =
   | "integer_count"
   | "free_text";
 
+/**
+ * Optional plausibility gates for `currency_range` dimensions (e.g. enterprise valuation).
+ * Must be declared per scenario in dimension schema — never inferred silently at runtime.
+ * Studio Configure → Dimensions surfaces these values; override via DIMENSION_SCHEMA_PATH.
+ */
+export interface CurrencyRangePlausibility {
+  currency?: string;
+  enterpriseFloorEur?: number;
+  retentionCostBandMinEur?: number;
+  retentionCostBandMaxEur?: number;
+  priorEnterpriseMinEur?: number;
+  unitScaleMinEur?: number;
+}
+
 export interface DimensionSchemaDef {
   type: DimensionType;
   /**
@@ -83,6 +97,7 @@ export interface DimensionSchemaDef {
   embeddingThreshold?: number;
   /** Human-readable description of what this dimension tracks. */
   description?: string;
+  plausibility?: CurrencyRangePlausibility;
 }
 
 export type DimensionSchemaMap = Record<string, DimensionSchemaDef>;
@@ -101,7 +116,15 @@ export const S1_DIMENSION_SCHEMA: DimensionSchemaMap = {
   gross_margin: { type: "percentage", description: "Gross margin %" },
   valuation: {
     type: "currency_range",
-    description: "Indicative / revised enterprise valuation",
+    description: "Indicative / revised enterprise valuation (not retention or litigation costs)",
+    plausibility: {
+      currency: "EUR",
+      enterpriseFloorEur: 50_000_000,
+      retentionCostBandMinEur: 500_000,
+      retentionCostBandMaxEur: 25_000_000,
+      priorEnterpriseMinEur: 100_000_000,
+      unitScaleMinEur: 1_000_000,
+    },
   },
   customer_concentration: {
     type: "free_text",

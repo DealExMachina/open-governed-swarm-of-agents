@@ -20,6 +20,10 @@ import {
   loadUnresolvedContradictionDetails,
   type UnresolvedContradictionDetail,
 } from "./semanticGraph.js";
+import {
+  contradictionPairKey,
+  contradictionContentOverlap,
+} from "./contradictionPair.js";
 import { s3PutJson, s3GetText } from "./s3.js";
 import { logger } from "./logger.js";
 import { scopeResolutionsKey } from "./scopeStorage.js";
@@ -34,6 +38,8 @@ const SIMILARITY_THRESHOLD = 0.7;
 const RESOLUTION_MATCH_THRESHOLD = 0.55;
 const MARK_RESOLVED_BY_TEXT_MAX = 10;
 const LLM_RESOLVE_CONFIDENCE_THRESHOLD = 0.7;
+/** Near-duplicate active contradictions resolved together with the primary. */
+const CASCADE_OVERLAP_THRESHOLD = 0.55;
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -63,6 +69,8 @@ export interface MarkResolvedResult {
   ok: boolean;
   node_id: string;
   embedded: boolean;
+  /** Near-duplicate contradiction nodes also marked resolved. */
+  cascaded?: string[];
 }
 
 export interface MarkResolvedByTextParams {
@@ -154,6 +162,61 @@ export async function isResolved(
   return { resolved: false, similarity: 0 };
 }
 
+/**
+ * Mark near-duplicate active contradictions resolved when one is accepted.
+ * Matches by pair key (NLI / "A contradicts B") or high lexical overlap.
+ */
+export async function cascadeResolveDuplicateContradictions(
+  scopeId: string,
+  primaryNodeId: string,
+  primaryContent: string,
+  judgment: string,
+  reason: string,
+): Promise<string[]> {
+  const pool = getPool();
+  const pairKey = contradictionPairKey(primaryContent);
+  const actives = await pool.query(
+    `SELECT node_id, content FROM nodes
+     WHERE scope_id = $1 AND type = 'contradiction' AND status = 'active'
+       AND superseded_at IS NULL AND node_id <> $2::uuid
+     ORDER BY created_at DESC LIMIT 100`,
+    [scopeId, primaryNodeId],
+  );
+  const cascaded: string[] = [];
+  const cascadeReason = `${reason} (cascade-duplicate of ${primaryNodeId})`;
+  const resolutionRef = {
+    resolved_by: judgment,
+    resolution_reason: cascadeReason.slice(0, 500),
+    resolved_at: new Date().toISOString(),
+    source: "resolution-cascade",
+    cascade_of: primaryNodeId,
+  };
+
+  for (const row of actives.rows as Array<{ node_id: string; content: string }>) {
+    const otherKey = contradictionPairKey(row.content);
+    const samePair = !!pairKey && !!otherKey && pairKey === otherKey;
+    const overlap =
+      !samePair &&
+      contradictionContentOverlap(primaryContent, row.content) >=
+        CASCADE_OVERLAP_THRESHOLD;
+    if (!samePair && !overlap) continue;
+    await updateNodeStatus(row.node_id, "resolved");
+    await pool.query(
+      `UPDATE nodes SET source_ref = source_ref || $2::jsonb, updated_at = now(), version = version + 1 WHERE node_id = $1`,
+      [row.node_id, JSON.stringify(resolutionRef)],
+    );
+    cascaded.push(row.node_id);
+  }
+  if (cascaded.length > 0) {
+    logger.info("resolution-service: cascaded duplicate contradictions", {
+      primary: primaryNodeId,
+      cascaded,
+      pair_key: pairKey,
+    });
+  }
+  return cascaded;
+}
+
 async function markContradictionResolved(
   nodeId: string,
   scopeId: string,
@@ -161,7 +224,7 @@ async function markContradictionResolved(
   reason: string,
   s3: S3Client | null,
   bucket: string,
-): Promise<string | null> {
+): Promise<{ content: string | null; cascaded: string[] }> {
   const pool = getPool();
   const nodeRes = await pool.query(
     "SELECT content, metadata, source_ref FROM nodes WHERE node_id = $1",
@@ -178,6 +241,7 @@ async function markContradictionResolved(
   const metadata = (row?.metadata as Record<string, unknown> | undefined) ?? {};
   const claimSourceId = metadata.claim_source_id as string | undefined;
   const claimTargetId = metadata.claim_target_id as string | undefined;
+  let cascaded: string[] = [];
 
   await updateNodeStatus(nodeId, "resolved");
 
@@ -191,6 +255,23 @@ async function markContradictionResolved(
     `UPDATE nodes SET source_ref = source_ref || $2::jsonb, updated_at = now(), version = version + 1 WHERE node_id = $1`,
     [nodeId, JSON.stringify(resolutionRef)],
   );
+
+  if (content) {
+    try {
+      cascaded = await cascadeResolveDuplicateContradictions(
+        scopeId,
+        nodeId,
+        content,
+        judgment,
+        reason,
+      );
+    } catch (err) {
+      logger.warn("resolution-service: cascade failed", {
+        node_id: nodeId,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
 
   if (claimSourceId && claimTargetId) {
     try {
@@ -218,7 +299,11 @@ async function markContradictionResolved(
   }
 
   if (content) {
-    await embedAndPersistNode(nodeId, scopeId, content);
+    try {
+      await embedAndPersistNode(nodeId, scopeId, content);
+    } catch {
+      /* embedding optional for isResolved future matches */
+    }
   }
 
   if (s3 && content) {
@@ -251,7 +336,7 @@ async function markContradictionResolved(
     }
   }
 
-  return content;
+  return { content, cascaded };
 }
 
 export async function markResolved(
@@ -265,7 +350,7 @@ export async function markResolved(
     throw new Error("node_id required");
   }
 
-  const content = await markContradictionResolved(
+  const { content, cascaded } = await markContradictionResolved(
     params.node_id,
     scopeId,
     judgment,
@@ -277,8 +362,14 @@ export async function markResolved(
     node_id: params.node_id,
     judgment,
     reason: reason.slice(0, 80),
+    cascaded: cascaded.length,
   });
-  return { ok: true, node_id: params.node_id, embedded: !!content };
+  return {
+    ok: true,
+    node_id: params.node_id,
+    embedded: !!content,
+    cascaded,
+  };
 }
 
 /**
@@ -510,7 +601,7 @@ export async function markResolvedByText(
       ev.node_id
     ) {
       const reason = `HITL resolution (${method}, confidence=${(ev.confidence * 100).toFixed(0)}%): ${ev.reason}`;
-      await markContradictionResolved(
+      const { cascaded } = await markContradictionResolved(
         ev.node_id,
         scopeId,
         "resolved",
@@ -518,7 +609,7 @@ export async function markResolvedByText(
         s3,
         bucket,
       );
-      marked.push(ev.node_id);
+      marked.push(ev.node_id, ...cascaded);
     }
   }
 

@@ -23,6 +23,9 @@ import {
   handleStudioActivate,
   handleStudioReset,
   handleStudioResetAll,
+  handleStudioDimensionSchema,
+  handleStudioDocumentNodes,
+  handleStudioNodeProvenance,
 } from "./studioRoutes.js";
 
 export async function main(): Promise<void> {
@@ -55,6 +58,10 @@ export async function main(): Promise<void> {
         }
         if (req.method === "GET" && pathname === "/studio/corpora") {
           sendJson(res, 200, { corpora: listStudioCorpora() });
+          return;
+        }
+        if (req.method === "GET" && pathname === "/studio/dimension-schema") {
+          await handleStudioDimensionSchema(req, res);
           return;
         }
         if (
@@ -113,6 +120,29 @@ export async function main(): Promise<void> {
           await handleStudioElements(req, res);
           return;
         }
+        const docNodesMatch = pathname.match(
+          /^\/studio\/scopes\/([^/]+)\/documents\/(\d+)\/nodes$/,
+        );
+        if (req.method === "GET" && docNodesMatch) {
+          await handleStudioDocumentNodes(
+            req,
+            res,
+            decodeURIComponent(docNodesMatch[1]),
+            Number(docNodesMatch[2]),
+          );
+          return;
+        }
+        const nodeProvMatch = pathname.match(
+          /^\/studio\/nodes\/([^/]+)\/provenance$/,
+        );
+        if (req.method === "GET" && nodeProvMatch) {
+          await handleStudioNodeProvenance(
+            req,
+            res,
+            decodeURIComponent(nodeProvMatch[1]),
+          );
+          return;
+        }
         if (req.method === "GET" && pathname === "/summary") {
           const query = getQuery(req.url ?? "");
           const wantJson = query.raw === "1" || query.format === "json";
@@ -127,7 +157,7 @@ export async function main(): Promise<void> {
         }
         if (pathname.startsWith("/v1/")) {
           const { handleControlRequest } =
-            await import("./controlPlaneServer.js");
+            await import("../controlPlaneServer.js");
           await handleControlRequest(req, res);
           return;
         }

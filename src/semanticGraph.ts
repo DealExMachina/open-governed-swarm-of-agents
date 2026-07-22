@@ -7,6 +7,7 @@ import {
   synthesizeStudioEdges,
   type StudioLinkNode,
 } from "./studioGraphEdges.js";
+import { readNodeProvenance } from "./documentProvenance.js";
 
 export interface SemanticNode {
   node_id: string;
@@ -673,13 +674,16 @@ export async function loadUnresolvedContradictionDetails(
     });
   }
 
-  // 2. Find contradicts edges without a matching node — create missing nodes
+  // 2. Claim↔claim contradicts edges without a matching contradiction node.
+  // IMPORTANT: facts sync uses edge_type=contradicts with source=contradiction→target=claim.
+  // Those must NOT be backfilled (that produced "NLI… contradicts <claim>" duplicates).
   const edgeRes = await p.query(
     `SELECT e.source_id, e.target_id, n1.content AS claim_a, n2.content AS claim_b
      FROM edges e
      JOIN nodes n1 ON n1.node_id = e.source_id AND n1.scope_id = e.scope_id AND n1.superseded_at IS NULL
      JOIN nodes n2 ON n2.node_id = e.target_id AND n2.scope_id = e.scope_id AND n2.superseded_at IS NULL
      WHERE e.scope_id = $1 AND e.edge_type = 'contradicts' AND e.superseded_at IS NULL
+     AND n1.type = 'claim' AND n2.type = 'claim'
      AND (e.valid_to IS NULL OR e.valid_to > now())
      AND (
        (n1.valid_from IS NULL AND n1.valid_to IS NULL) OR (n2.valid_from IS NULL AND n2.valid_to IS NULL)
@@ -1339,6 +1343,20 @@ function jaccardSimilarity(a: Set<string>, b: Set<string>): number {
   return union === 0 ? 0 : intersection / union;
 }
 
+/** Update a node's content (e.g. after an approved equivalence merge). */
+export async function updateNodeContent(
+  nodeId: string,
+  content: string,
+  client?: pg.PoolClient,
+): Promise<void> {
+  const q: Queryable = client ?? getPool();
+  await q.query(
+    `UPDATE nodes SET content = $2, updated_at = now(), version = version + 1
+     WHERE node_id = $1`,
+    [nodeId, content],
+  );
+}
+
 /** Update a node's confidence (monotonic upsert: only if new confidence >= existing). */
 export async function updateNodeConfidence(
   nodeId: string,
@@ -1719,6 +1737,7 @@ export async function getStudioGraphElements(scopeId: string): Promise<{
       const type = String(r.type);
       const meta = r.metadata ?? {};
       const src = r.source_ref ?? {};
+      const provenance = readNodeProvenance(src);
       const data: Record<string, unknown> = {
         id: String(r.node_id),
         label: truncateStudioLabel(String(r.content || type)),
@@ -1728,6 +1747,25 @@ export async function getStudioGraphElements(scopeId: string): Promise<{
           desc: String(r.content || "").slice(0, 500),
         },
       };
+      if (
+        provenance.document_seq != null ||
+        provenance.document_title ||
+        provenance.resolution_seq != null
+      ) {
+        data.provenance = provenance;
+        const info = data.info as Record<string, unknown>;
+        if (provenance.document_title) {
+          info.origin = provenance.document_title;
+        } else if (provenance.document_seq != null) {
+          info.origin = `document seq ${provenance.document_seq}`;
+        } else if (provenance.resolution_seq != null) {
+          info.origin = `resolution seq ${provenance.resolution_seq}`;
+        }
+      }
+      if (type === "doc") {
+        const ctxSeq = meta.context_seq ?? src.context_seq;
+        if (ctxSeq != null) data.context_seq = Number(ctxSeq);
+      }
       if (type === "claim" && r.confidence != null) {
         data.conf = Number(r.confidence);
       }

@@ -49,10 +49,17 @@ import {
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DEMO_HTML = readFileSync(join(__dirname, "ui", "index.html"), "utf-8");
-const DEMO_MA_VIEW_HTML = readFileSync(
+const DEMO_MA_VIEW_HTML_RAW = readFileSync(
   join(__dirname, "ui", "ma-view.html"),
   "utf-8",
 );
+
+function renderMaViewHtml(): string {
+  return DEMO_MA_VIEW_HTML_RAW.replaceAll(
+    "${MA_VIEW_DOC_COUNT}",
+    String(SCENARIOS.ma.docs.length),
+  );
+}
 
 async function main(): Promise<void> {
   if (process.env.DEMO_SKIP_PREFLIGHT !== "1") {
@@ -99,7 +106,7 @@ async function main(): Promise<void> {
           demoState.activeScenarioId = "ma";
           demoState.activeDocs = SCENARIOS.ma.docs;
           res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
-          res.end(DEMO_MA_VIEW_HTML);
+          res.end(renderMaViewHtml());
           return;
         }
         if (req.method === "GET" && pathname === "/api/scenarios") {

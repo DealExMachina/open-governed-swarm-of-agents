@@ -96,6 +96,17 @@
     .badge.red { background: #ef444422; color: var(--red); }
     .badge.blue { background: #6366f122; color: var(--accent); }
     .conv-extra { margin-top: 0.75rem; font-size: 0.75rem; color: var(--muted); }
+    .scope-bar {
+      display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem;
+      padding: 0.625rem 0.875rem; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+      font-size: 0.8125rem;
+    }
+    .scope-bar label { color: var(--muted); }
+    .scope-bar select, .scope-bar input {
+      background: var(--surface2); color: var(--text); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 0.25rem 0.5rem; font-family: var(--font); font-size: 0.8125rem;
+    }
+    .scope-bar .hint { color: var(--muted); font-size: 0.75rem; }
   </style>
 </head>
 <body>
@@ -104,13 +115,26 @@
     <div class="links">
       <a href="/studio" target="_blank">SGRS Studio</a>
       <a href="http://localhost:3005" target="_blank">Demo UI (3005) — run the guided demo</a>
-      <a id="summaryLink" href="/summary?raw=1&scope_id=default" target="_blank">API /summary</a>
-      <a id="convergenceLink" href="/convergence?scope_id=default" target="_blank">API /convergence</a>
+      <a id="summaryLink" href="/summary?raw=1&scope_id=deal-horizon" target="_blank">API /summary</a>
+      <a id="convergenceLink" href="/convergence?scope_id=deal-horizon" target="_blank">API /convergence</a>
       <a href="http://localhost:3004" target="_blank">Grafana</a>
       <a href="http://localhost:9090" target="_blank">Prometheus</a>
     </div>
   </div>
   <div class="container">
+    <div class="scope-bar">
+      <label for="scopeSelect">Scope</label>
+      <select id="scopeSelect">
+        <option value="deal-horizon">deal-horizon (M&amp;A demo)</option>
+        <option value="meridian-holdings">meridian-holdings</option>
+        <option value="insurance-review">insurance-review</option>
+        <option value="green-bond-2026">green-bond-2026</option>
+        <option value="default">default</option>
+      </select>
+      <input id="scopeCustom" type="text" placeholder="custom scope id" style="min-width: 10rem;" />
+      <button type="button" class="btn" id="scopeApply">Apply</button>
+      <span class="hint">Filters summary, convergence, and live events</span>
+    </div>
     <div class="grid-4" id="kpiCards">
       <div class="card"><div class="label">State</div><div class="value info" id="kpiState">--</div><div class="sub" id="kpiEpoch">epoch --</div></div>
       <div class="card"><div class="label">Goal Score</div><div class="value" id="kpiGoal">--</div><div class="sub" id="kpiFinality">--</div></div>
@@ -138,10 +162,39 @@
   (function() {
     var esc = function(s) { if (s == null) return ''; var d = document.createElement('div'); d.textContent = s; return d.innerHTML; };
     var urlParams = new URLSearchParams(window.location.search);
-    var SCOPE_ID = urlParams.get('scope_id') || localStorage.getItem('observability_scope_id') || 'default';
+    var SCOPE_ID = urlParams.get('scope_id') || localStorage.getItem('observability_scope_id') || 'deal-horizon';
     localStorage.setItem('observability_scope_id', SCOPE_ID);
     document.getElementById('summaryLink').href = '/summary?raw=1&scope_id=' + encodeURIComponent(SCOPE_ID);
     document.getElementById('convergenceLink').href = '/convergence?scope_id=' + encodeURIComponent(SCOPE_ID);
+    var scopeSelect = document.getElementById('scopeSelect');
+    var scopeCustom = document.getElementById('scopeCustom');
+    if ([].some.call(scopeSelect.options, function(o) { return o.value === SCOPE_ID; })) {
+      scopeSelect.value = SCOPE_ID;
+    } else {
+      scopeCustom.value = SCOPE_ID;
+    }
+    function applyScope(nextScope) {
+      SCOPE_ID = nextScope.trim();
+      if (!SCOPE_ID) return;
+      localStorage.setItem('observability_scope_id', SCOPE_ID);
+      var next = new URL(window.location.href);
+      next.searchParams.set('scope_id', SCOPE_ID);
+      window.location.href = next.toString();
+    }
+    document.getElementById('scopeApply').addEventListener('click', function() {
+      applyScope(scopeCustom.value || scopeSelect.value);
+    });
+    scopeSelect.addEventListener('change', function() {
+      scopeCustom.value = '';
+    });
+
+    function eventScopeId(d) {
+      if (!d || typeof d !== 'object') return null;
+      if (typeof d.scope_id === 'string') return d.scope_id;
+      var payload = d.payload;
+      if (payload && typeof payload === 'object' && typeof payload.scope_id === 'string') return payload.scope_id;
+      return null;
+    }
 
     function loadSummary() {
       fetch('/summary?raw=1&scope_id=' + encodeURIComponent(SCOPE_ID)).then(function(r) { return r.json(); }).then(function(d) {
@@ -231,12 +284,16 @@
 
     var ul = document.getElementById('events');
     var sseStatus = document.getElementById('sseStatus');
-    var es = new EventSource('/events');
-    es.onopen = function() { sseStatus.textContent = 'Connected'; };
+    var es = new EventSource('/events?scope_id=' + encodeURIComponent(SCOPE_ID));
+    es.onopen = function() { sseStatus.textContent = 'Connected (scope ' + SCOPE_ID + ')'; };
     es.onerror = function() { sseStatus.textContent = 'Disconnected'; };
     es.onmessage = function(e) {
       try {
         var d = JSON.parse(e.data);
+        if (d.type !== 'feed_connected') {
+          var sid = eventScopeId(d);
+          if (sid && sid !== SCOPE_ID) return;
+        }
         var li = document.createElement('li');
         var type = d.type || 'event';
         var cls = type.includes('state') ? 'state' : type.includes('fact') ? 'facts' : type.includes('drift') ? 'drift' : type.includes('proposal') ? 'proposal' : type.includes('context') ? 'context' : '';

@@ -11,6 +11,9 @@ export const sseClients = new Set<ServerResponse>();
 
 export function startSseProxy(): void {
   const feedEventUrl = new URL(`${FEED_URL}/events`);
+  if (demoState.activeScopeId) {
+    feedEventUrl.searchParams.set("scope_id", demoState.activeScopeId);
+  }
   const req = httpRequest(
     {
       hostname: feedEventUrl.hostname,
@@ -69,17 +72,20 @@ export function sseEventScopeId(raw: unknown): string | null {
 export function sseBlockMatchesActiveScope(block: string): boolean {
   if (block.startsWith(":")) return true;
   const scope = demoState.activeScopeId;
-  if (!scope) return true;
+  if (!scope) return false;
   for (const line of block.split("\n")) {
     if (!line.startsWith("data:")) continue;
     const json = line.slice(5).trim();
     if (!json) continue;
     try {
-      const eventScope = sseEventScopeId(JSON.parse(json));
-      if (eventScope && eventScope !== scope) return false;
+      const parsed = JSON.parse(json) as Record<string, unknown>;
+      if (parsed.type === "feed_connected") return true;
+      const eventScope = sseEventScopeId(parsed);
+      if (!eventScope) return false;
+      return eventScope === scope;
     } catch {
-      /* non-JSON data lines — forward */
+      return false;
     }
   }
-  return true;
+  return false;
 }

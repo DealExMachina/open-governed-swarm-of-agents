@@ -589,6 +589,7 @@
         esc(d.label) +
         '</div><div class="sb-meta">' +
         esc((d.info && d.info.desc) || "") +
+        (d.info && d.info.origin ? '<br><span style="color:var(--muted)">origin: ' + esc(d.info.origin) + "</span>" : "") +
         "</div>";
       sbBlockers.appendChild(row);
     });
@@ -1024,18 +1025,73 @@
       const status = doc.status || "pending";
       const row = document.createElement("div");
       row.className = "doc-row status-" + status;
+      row.dataset.seq = doc.seq != null ? String(doc.seq) : "";
+      row.title = doc.seq != null ? "Show claims derived from document seq " + doc.seq : "";
+      row.style.cursor = doc.seq != null ? "pointer" : "default";
       row.innerHTML =
         '<div class="t">' +
         esc(doc.title || "document") +
         '</div><div class="m">' +
         esc(formatDocTime(doc.ingested_at)) +
-        '</div><div class="doc-status ' +
+        '</div>' +
+        (doc.seq != null
+          ? '<div class="seq">seq ' +
+            esc(String(doc.seq)) +
+            " · click to highlight lineage</div>"
+          : "") +
+        '<div class="doc-status ' +
         esc(status) +
         '">' +
         esc(docStatusLabel(status)) +
         "</div>";
+      if (doc.seq != null) {
+        row.addEventListener("click", () => highlightDocumentLineage(doc.seq, row));
+      }
       list.appendChild(row);
     });
+  }
+
+  async function highlightDocumentLineage(documentSeq, rowEl) {
+    const scopeId = currentScopeId();
+    if (!scopeId || documentSeq == null) return;
+    document.querySelectorAll(".docs-list .doc-row.lineage-active").forEach((el) => {
+      el.classList.remove("lineage-active");
+    });
+    if (rowEl) rowEl.classList.add("lineage-active");
+    try {
+      const res = await fetch(
+        baseUrl +
+          "/studio/scopes/" +
+          encodeURIComponent(scopeId) +
+          "/documents/" +
+          encodeURIComponent(String(documentSeq)) +
+          "/nodes",
+      );
+      if (!res.ok) throw new Error("lineage " + res.status);
+      const data = await res.json();
+      const nodeIds = (data.nodes || []).map((n) => n.node_id).filter(Boolean);
+      graphCyInstances().forEach((cy) => {
+        if (!cy) return;
+        cy.batch(() => {
+          cy.elements().removeClass("lineage-highlight");
+          nodeIds.forEach((id) => {
+            const el = cy.getElementById(id);
+            if (el.nonempty()) el.addClass("lineage-highlight");
+          });
+        });
+        if (nodeIds.length) {
+          cy.fit(cy.collection(nodeIds.map((id) => cy.getElementById(id)).filter((el) => el.nonempty())), 60);
+        }
+      });
+      setDocsStatus(
+        nodeIds.length
+          ? "Lineage: " + nodeIds.length + " node(s) from document seq " + documentSeq
+          : "No derived nodes yet for document seq " + documentSeq,
+        false,
+      );
+    } catch (e) {
+      setDocsStatus(String(e.message || e), true);
+    }
   }
 
   function setDocsStatus(message, isError) {
@@ -1280,6 +1336,107 @@
     document.querySelectorAll(".cfg-section[data-cfg]").forEach((panel) => {
       panel.hidden = panel.dataset.cfg !== sectionId;
     });
+    if (sectionId === "dimensions") {
+      loadConfigureDimensions().catch((e) => {
+        const wrap = document.getElementById("cfgDimTableWrap");
+        if (wrap) wrap.textContent = String(e.message || e);
+      });
+    }
+  }
+
+  function formatEurThreshold(n) {
+    if (n == null || !Number.isFinite(n)) return "—";
+    if (n >= 1_000_000) return "€" + (n / 1_000_000).toFixed(0) + "M";
+    if (n >= 1_000) return "€" + (n / 1_000).toFixed(0) + "K";
+    return "€" + n;
+  }
+
+  function formatPlausibilityCell(p) {
+    if (!p) return '<span class="cfg-dim-warn">not configured</span>';
+    const parts = [];
+    if (p.enterpriseFloorEur != null) {
+      parts.push("floor " + formatEurThreshold(p.enterpriseFloorEur));
+    }
+    if (p.retentionCostBandMinEur != null && p.retentionCostBandMaxEur != null) {
+      parts.push(
+        "retention band " +
+          formatEurThreshold(p.retentionCostBandMinEur) +
+          "–" +
+          formatEurThreshold(p.retentionCostBandMaxEur),
+      );
+    }
+    if (p.priorEnterpriseMinEur != null) {
+      parts.push("prior min " + formatEurThreshold(p.priorEnterpriseMinEur));
+    }
+    if (p.unitScaleMinEur != null) {
+      parts.push("unit scale min " + formatEurThreshold(p.unitScaleMinEur));
+    }
+    return parts.length ? esc(parts.join(" · ")) : "—";
+  }
+
+  function renderConfigureDimensions(data) {
+    const warnEl = document.getElementById("cfgDimWarnings");
+    const metaEl = document.getElementById("cfgDimMeta");
+    const wrap = document.getElementById("cfgDimTableWrap");
+    const navCount = document.getElementById("cfgDimNavCount");
+    if (!wrap || !data) return;
+
+    if (navCount) navCount.textContent = String(data.dimensions?.length ?? 0);
+
+    if (warnEl) {
+      warnEl.innerHTML = (data.warnings || [])
+        .map((w) => '<div class="cfg-warn-banner">' + esc(w) + "</div>")
+        .join("");
+    }
+
+    if (metaEl) {
+      const src =
+        data.source === "override"
+          ? "override: " + esc(data.path || "DIMENSION_SCHEMA_PATH")
+          : "built-in registry (set DIMENSION_SCHEMA_PATH to override)";
+      metaEl.textContent = "Source: " + src;
+    }
+
+    const rows = (data.dimensions || [])
+      .map((d) => {
+        const tol =
+          d.tolerance != null ? "±" + (d.tolerance * 100).toFixed(0) + "%" : "—";
+        const plaus =
+          d.type === "currency_range"
+            ? formatPlausibilityCell(d.plausibility)
+            : "—";
+        const rowWarn = (d.warnings || [])
+          .map((w) => '<div class="cfg-dim-warn">' + esc(w) + "</div>")
+          .join("");
+        return (
+          "<tr><td><code>" +
+          esc(d.id) +
+          "</code></td><td>" +
+          esc(d.type) +
+          "</td><td>" +
+          esc(d.description || "") +
+          "</td><td>" +
+          esc(tol) +
+          "</td><td>" +
+          plaus +
+          rowWarn +
+          "</td></tr>"
+        );
+      })
+      .join("");
+
+    wrap.innerHTML =
+      '<table class="cfg-dim-table"><thead><tr><th>Dimension</th><th>Type</th><th>Description</th><th>Tolerance</th><th>Plausibility</th></tr></thead><tbody>' +
+      rows +
+      "</tbody></table>";
+  }
+
+  async function loadConfigureDimensions() {
+    const res = await fetch(baseUrl + "/studio/dimension-schema");
+    if (!res.ok) throw new Error("dimension-schema HTTP " + res.status);
+    const data = await res.json();
+    renderConfigureDimensions(data);
+    return data;
   }
 
   function renderScopeResetList(listEl, catalog, activeScopeId) {

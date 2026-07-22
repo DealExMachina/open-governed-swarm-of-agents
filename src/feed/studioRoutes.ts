@@ -1,6 +1,8 @@
+import { randomUUID } from "crypto";
 import type { IncomingMessage, ServerResponse } from "http";
 import { toErrorString } from "../errors.js";
 import { getPool } from "../db.js";
+import { initState } from "../stateGraph.js";
 import { makeS3 } from "../s3.js";
 import { getStudioGraphElements } from "../semanticGraph.js";
 import {
@@ -10,9 +12,14 @@ import {
 import { loadCorpusDocuments, listStudioCorpora } from "../studioCorpora.js";
 import { resetScopeAndReinit } from "../scopeReset.js";
 import { reinitAllScenarioScopes } from "../studioScopeReinit.js";
+import { describeDimensionSchemaForStudio } from "../dimensionSchemaRegistry.js";
 import { scopeStoragePrefix } from "../scopeStorage.js";
 import { resolveUploadDocumentBody } from "../documentExtract.js";
 import { listScopeDocumentProgress } from "../studioDocumentProgress.js";
+import {
+  getNodeProvenanceDetail,
+  listDocumentDerivedNodes,
+} from "../documentProvenance.js";
 import { getQuery, readJsonBody, sendJson } from "./http.js";
 import { readScopeIdFromRequest, validateScopeAccess } from "./scope.js";
 import { ensureHatcheryBoundToScope } from "./runtime.js";
@@ -253,6 +260,14 @@ export async function handleStudioUploadDocs(
   }
 }
 
+/** GET /studio/dimension-schema — read-only dimension schema for Studio Configure. */
+export async function handleStudioDimensionSchema(
+  _req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  sendJson(res, 200, describeDimensionSchemaForStudio());
+}
+
 /** POST /studio/scopes/:id/activate — bind hatchery to this scope (no ingest). */
 export async function handleStudioActivate(
   _req: IncomingMessage,
@@ -313,6 +328,69 @@ export async function handleStudioResetAll(
   try {
     const result = await reinitAllScenarioScopes(getPool());
     sendJson(res, 200, { ok: true, ...result });
+  } catch (e) {
+    sendJson(res, 500, { error: toErrorString(e) });
+  }
+}
+
+/** GET /studio/scopes/:id/documents/:seq/nodes — nodes derived from a WAL context_doc seq. */
+export async function handleStudioDocumentNodes(
+  _req: IncomingMessage,
+  res: ServerResponse,
+  scopeId: string,
+  documentSeq: number,
+): Promise<void> {
+  const valid = await validateScopeAccess(scopeId);
+  if (!valid.ok) {
+    sendJson(res, valid.status, {
+      error: valid.error,
+      runtime_scope_id: RUNTIME_SCOPE_ID,
+    });
+    return;
+  }
+  if (!Number.isFinite(documentSeq) || documentSeq <= 0) {
+    sendJson(res, 400, { error: "invalid_document_seq" });
+    return;
+  }
+  try {
+    const nodes = await listDocumentDerivedNodes(scopeId, documentSeq);
+    sendJson(res, 200, {
+      scope_id: scopeId,
+      document_seq: documentSeq,
+      node_count: nodes.length,
+      nodes,
+    });
+  } catch (e) {
+    sendJson(res, 500, { error: toErrorString(e) });
+  }
+}
+
+/** GET /studio/nodes/:id/provenance?scope_id=… — document origin for one node. */
+export async function handleStudioNodeProvenance(
+  req: IncomingMessage,
+  res: ServerResponse,
+  nodeId: string,
+): Promise<void> {
+  const scopeId = readScopeIdFromRequest(req);
+  if (!scopeId) {
+    sendJson(res, 400, { error: "scope_required" });
+    return;
+  }
+  const valid = await validateScopeAccess(scopeId);
+  if (!valid.ok) {
+    sendJson(res, valid.status, {
+      error: valid.error,
+      runtime_scope_id: RUNTIME_SCOPE_ID,
+    });
+    return;
+  }
+  try {
+    const node = await getNodeProvenanceDetail(scopeId, nodeId);
+    if (!node) {
+      sendJson(res, 404, { error: "node_not_found", node_id: nodeId });
+      return;
+    }
+    sendJson(res, 200, { scope_id: scopeId, ...node });
   } catch (e) {
     sendJson(res, 500, { error: toErrorString(e) });
   }

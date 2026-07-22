@@ -143,25 +143,39 @@ export async function handleAddResolution(
       } = await import("../resolutionService.js");
       const s3ForResolution = S3_BUCKET ? makeS3() : null;
       if (nodeIds.length > 0) {
+        // HITL selected specific contradictions — mark them (and near-duplicates) resolved.
+        // Do not require LLM confidence: the human already chose these node_ids.
         const resolvedIds: string[] = [];
+        const reason = decision.trim()
+          ? `HITL resolution: ${decision.trim().slice(0, 400)}`
+          : "HITL resolution (explicit node selection)";
         for (const nodeId of nodeIds) {
           try {
-            await markResolvedSvc({
+            const r = await markResolvedSvc({
               scope_id: scopeId,
               node_id: nodeId,
               judgment: "resolved",
-              reason: "HITL resolution (Choose A/B)",
+              reason,
               s3Client: s3ForResolution,
               bucket: S3_BUCKET ?? undefined,
             });
-            resolvedIds.push(nodeId);
+            resolvedIds.push(nodeId, ...(r.cascaded ?? []));
           } catch (err) {
             process.stderr.write(
               `[feed] mark-resolved failed for ${nodeId}: ${err instanceof Error ? err.message : String(err)}\n`,
             );
           }
         }
-        evaluationResult = { method: "explicit_node_ids", marked: resolvedIds };
+        evaluationResult = {
+          method: "explicit_node_ids",
+          marked: [...new Set(resolvedIds)],
+          evaluations: nodeIds.map((id) => ({
+            node_id: id,
+            resolved: resolvedIds.includes(id),
+            confidence: 1,
+            reason,
+          })),
+        };
       } else {
         const result = await markResolvedByTextSvc({
           scope_id: scopeId,

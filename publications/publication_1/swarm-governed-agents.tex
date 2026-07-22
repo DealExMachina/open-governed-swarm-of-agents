@@ -29,7 +29,7 @@
   backgroundcolor=\color{gray!10}
 }
 
-\title{Coordination of Governed Agents Over Shared Context:\\Declarative Governance and Lyapunov-Tracked Finality}
+\title{Coordination of Governed Agents Over Shared Context:\\Declarative Governance and Dual-Condition Lattice Finality}
 
 \author{
   Jean-Baptiste D\'ezard\thanks{Source code: \url{https://github.com/DealExMachina/open-governed-swarm-of-agents}}\\
@@ -48,7 +48,7 @@
 \begin{abstract}
 The emergence of LLM-powered autonomous agents has exposed the limits of pipeline-based coordination: rigid DAGs cannot accommodate contradiction, evolving evidence, or formal convergence. We propose \emph{declarative governance over shared immutable context}, a paradigm where autonomous agents reason over a common semantic graph, propose state transitions, and reach consensus through formal convergence mechanisms---without predefined execution sequences.
 
-Seven architectural contributions enable this: (1)~an append-only event log providing tamper-proof, fully replayable context; (2)~a \emph{bitemporal} CRDT-inspired semantic graph with dual valid-time and transaction-time axes, enabling point-in-time reconstruction for regulatory audit; (3)~a \emph{product lattice} $\mathcal{M} = \mathcal{L} \times \mathcal{A}$ unifying governance levels (MASTER~$\leq$~MITL~$\leq$~YOLO) with a four-dimensional convergence rank, with explicit meet and join on both factors, and a deterministic \emph{reduction kernel} that maps every proposal to Accept/Reject/Escalate; the stalks of $\mathcal{A}$ carry Riesz-space structure, making the Lyapunov function $V = \|\mathbf{g}\|^2_\mathbf{w}$ monotone in the lattice order and enabling a positive/negative decomposition of evidence that underpins anti-compensation guarantees; (4)~per-dimension vector finality that prevents compensation attacks (where one dimension over-improves to mask failures in another), implemented as a conjunction of per-dimension thresholds ($\tau_d$, $\epsilon_d$) with gate refactoring (GA$^d$, GC$^d$ per-dimension; GB, GD, GE global), providing stronger guarantees than scalar disagreement-function tracking, with human-in-the-loop routing when convergence stalls; (5)~Ed25519-signed finality certificates embedding policy-version hashes for cryptographic non-repudiation; (6)~three-tier governance routing (deterministic rules, oversight agent, full LLM) with circuit-breaker fallback ensuring continuous operation without LLM availability; (7)~a native Rust evaluation engine (compiled via napi-rs) executing all deterministic governance and convergence logic with zero LLM tokens, while TypeScript orchestrates I/O.
+Seven architectural contributions enable this: (1)~an append-only event log providing tamper-proof, fully replayable context; (2)~a \emph{bitemporal} CRDT-inspired semantic graph with dual valid-time and transaction-time axes, enabling point-in-time reconstruction for regulatory audit; (3)~a \emph{product lattice} $\mathcal{M} = \mathcal{L} \times \mathcal{A}$ unifying governance levels (MASTER~$\leq$~MITL~$\leq$~YOLO) with a four-dimensional convergence rank, with explicit meet and join on both factors, and a deterministic \emph{reduction kernel} that maps every proposal to Accept/Reject/Escalate; the stalks of $\mathcal{A}$ carry Riesz-space structure, making the Lyapunov function $V = \|\mathbf{g}\|^2_\mathbf{w}$ monotone in the lattice order and enabling a positive/negative decomposition of evidence that underpins anti-compensation guarantees; (4)~\emph{dual-condition} finality over two orthogonal layers: on the semantic layer, per-dimension vector finality $F^*$ prevents compensation attacks (where one dimension over-improves to mask failures in another), implemented as a conjunction of per-dimension thresholds ($\tau_d$, $\epsilon_d$) with gate refactoring (GA$^d$, GC$^d$ per-dimension; GB, GD, GE global); on the propagation layer, reasoning roles coupled by a cellular sheaf reach agreement when the \emph{sheaf Dirichlet energy} $f(x) = x^\top L_{\mathcal{F}} x = \|\delta x\|^2$ falls below tolerance (its zero set is the global sections $H^0(G;\mathcal{F})$), so a scope resolves only when $F^*(t) \wedge [f(x) < \varepsilon_{\mathrm{prop}}]$---the scalar disagreement function $V(t)$ is retained as a convergence \emph{diagnostic} (rate, ETA, plateau, pressure), not the admissibility test, with human-in-the-loop routing when convergence stalls; (5)~Ed25519-signed finality certificates embedding policy-version hashes for cryptographic non-repudiation; (6)~three-tier governance routing (deterministic rules, oversight agent, full LLM) with circuit-breaker fallback ensuring continuous operation without LLM availability; (7)~a native Rust evaluation engine (compiled via napi-rs) executing all deterministic governance and convergence logic with zero LLM tokens, while TypeScript orchestrates I/O.
 
 Unlike orchestration frameworks (AutoGen, CrewAI, LangGraph) that wire agents into chains or graphs, our system lets agents independently reason over shared state and propose actions evaluated by the reduction kernel against the product lattice $\mathcal{M}$. The construction draws on classical information-flow lattice models \cite{denning1976} and termination theory \cite{baader1998}: every governance-approved transition must descend in~$\mathcal{M}$, guaranteeing termination of each convergence epoch. The kernel's determinism enables replay, audit, and formal verification independently of LLM stochasticity.
 
@@ -76,7 +76,7 @@ We propose a third path: \emph{declarative governance over shared context}. Rath
 
   \item \textbf{Product lattice and reduction kernel:} A product lattice $\mathcal{M} = \mathcal{L} \times \mathcal{A}$ unifies a governance-level chain $\mathcal{L}$ (MASTER~$\leq$~MITL~$\leq$~YOLO) with a four-dimensional convergence rank $\mathcal{A}$, both equipped with explicit meet and join~\cite{davey2002}. The stalks $\mathcal{A} = [0,1]^k$ are a Riesz space (vector lattice): $V(t) = \|\mathbf{g}(t)\|^2_\mathbf{w}$ is a lattice norm, monotone in the order; the drift chain $\mathcal{D}$ is connected to $\mathcal{L}$ by an anti-monotone map making the stabilising feedback explicit. A deterministic \emph{reduction kernel} evaluates every proposal against $\mathcal{M}$: policy rules check transition admissibility, the order verifies descent, and mode routing determines the verdict (Accept, Reject, or Escalate). This construction draws on classical lattice-based security models~\cite{denning1976,bell1973} and rewriting-system termination theory~\cite{baader1998}: every approved transition descends in~$\mathcal{M}$, guaranteeing epoch termination. XACML combining algorithms~\cite{xacml2013} resolve multi-policy conflicts. Every decision produces an immutable, policy-version-stamped audit record.
 
-  \item \textbf{Formal convergence with five gates and perpetual lifecycle:} A disagreement function $V(t)$ tracks distance to targets across four weighted dimensions (proven a genuine Lyapunov function for the restricted CRDT system in Section~\ref{sec:convergence-guarantee}). Monotonicity gates, evidence coverage, oscillation detection, quiescence, and minimum-content gates provide layered guarantees against premature finality. When autonomous convergence stalls, the system routes to structured human review with full context. Finality is certified with Ed25519-signed JWS certificates---but finality is not terminal: new evidence, regulatory changes, or periodic review triggers re-open convergence over the same graph, producing a chain of certified checkpoints that models the perpetual lifecycle of regulated knowledge.
+  \item \textbf{Dual-condition finality with layered gates and a perpetual lifecycle:} Finality spans two orthogonal layers. On the \emph{semantic layer}, vector finality $F^*$ requires every governance dimension to independently meet its threshold; monotonicity, evidence-coverage, oscillation, quiescence, and minimum-content gates guard against premature finality. On the \emph{propagation layer}, evidence diffuses on a cellular sheaf and the sheaf Dirichlet energy $f(x)$ certifies that the reasoning roles have reached a global section. A scope is RESOLVED only when both certify at once (the dual-condition $\wedge$-gate). The scalar disagreement function $V(t)$---a genuine Lyapunov function for the restricted CRDT system (Section~\ref{sec:convergence-guarantee})---is retained as an operational \emph{diagnostic} (rate, ETA, plateau) rather than the admissibility criterion. When autonomous convergence stalls, the system routes to structured human review. Finality is certified with Ed25519-signed JWS certificates---but finality is not terminal: new evidence, regulatory changes, or periodic review triggers re-open convergence over the same graph, producing a chain of certified checkpoints that models the perpetual lifecycle of regulated knowledge.
 
   \item \textbf{Three-tier governance routing:} Deterministic rule evaluation (zero LLM tokens), lightweight oversight agent, and full LLM-backed governance agent, with circuit-breaker fallback ensuring continuous operation without LLM availability.
 
@@ -95,7 +95,7 @@ The paper makes the following seven concrete contributions:
   \item An architectural paradigm---declarative governance over shared immutable context---that replaces predefined agent topologies with policy-driven coordination over a common semantic graph.
   \item A \emph{bitemporal CRDT-inspired semantic graph} with append-only event log, dual valid-time and transaction-time axes, and monotonicity invariants that make point-in-time reconstruction, temporal contradiction detection, and regulatory audit structurally native.
   \item A product lattice $\mathcal{M} = \mathcal{L} \times \mathcal{A}$ with explicit meet and join on both factors, where the stalks $\mathcal{A}$ carry Riesz-space structure: $V(t) = \|\mathbf{g}(t)\|^2_\mathbf{w}$ is a lattice norm, monotone in the order, and evidence decomposes into non-overlapping positive/negative parts. A deterministic reduction kernel guarantees epoch termination under $\delta_{\min}$-discretisation (Theorem~\ref{thm:termination}). See Remark~\ref{rem:algebraic-status} for the precise algebraic status and the Ghrist--Riess connection.
-  \item A formal convergence mechanism: a disagreement function $V(t)$ (Theorem~\ref{thm:lyapunov} establishes it as a genuine Lyapunov function for the restricted CRDT system), with five independent gates (monotonicity, evidence coverage, oscillation detection, quiescence, minimum content) that provide layered guarantees against premature finality.
+  \item A formal, dual-layer convergence mechanism. On the semantic layer, a disagreement function $V(t)$ (Theorem~\ref{thm:lyapunov} establishes it as a genuine Lyapunov function for the restricted CRDT system) drives five independent gates (monotonicity, evidence coverage, oscillation detection, quiescence, minimum content), with vector finality $F^*$ as the non-compensable admissibility predicate and $V(t)$ reframed as a diagnostic certificate. On the propagation layer, inter-role agreement is modelled as diffusion on a cellular sheaf whose exact Lyapunov function---the sheaf Dirichlet energy $f(x) = x^\top L_{\mathcal{F}} x$---vanishes precisely on the global sections $H^0(G;\mathcal{F})$ (Theorem~\ref{thm:dirichlet-contraction}); the two layers combine under a dual-condition ($\wedge$) finality gate.
   \item A perpetual finality lifecycle in which certified checkpoints---not terminal decisions---model the ongoing nature of regulated knowledge, with Ed25519-signed certificates binding each decision to the exact policy version that produced it.
   \item A three-tier governance routing architecture (deterministic rules, oversight agent, full LLM) with circuit-breaker fallback, ensuring continuous governance without LLM availability.
   \item Validation on two scenarios---M\&A due diligence and financial consolidation with dual temporality---demonstrating convergence, contradiction resolution, temporal restatement handling, and structured human review (test and benchmark details in Appendix).
@@ -159,6 +159,8 @@ Olfati-Saber and Murray \cite{olfati2004} established the Lyapunov consensus fra
 Ruan et al.\ \cite{ruan2025} introduced the Aegean consensus protocol for multi-agent reasoning, which detects incremental quorum convergence across concurrent agent executions with provable refinement monotonicity---solution quality is guaranteed non-decreasing. We adapt their monotonicity principle to our finality evaluator: Gate~A requires $\beta$ consecutive non-decreasing rounds before declaring convergence.
 
 Yazici et al.\ \cite{yazici2026opinion} study networked LLM agents in a DeGroot-style linear opinion model over diverse communication graphs (opinions extracted from message text). Disagreement decays exponentially and \emph{transient} convergence rates align with classical graph theory through the second-largest eigenvalue of the combination matrix; however, the \emph{limiting} consensus departs from DeGroot's network-centrality-weighted prediction---outcomes are largely insensitive to initial conditions and track topic and model bias. This cautions against equating ``LLM consensus'' with classical, centrality-optimal agreement even when mixing-time structure remains spectral.
+
+Classical consensus assumes every agent observes the same scalar state. Our reasoning roles instead observe \emph{different} subspaces of the evidence, so agreement must be measured relative to what each pair of roles actually shares---the setting of \emph{cellular sheaves}. Hansen and Ghrist~\cite{ghrist2022} develop a spectral theory in which the sheaf Laplacian $L_{\mathcal{F}} = \delta^\top\delta$ generalises the graph Laplacian, the Dirichlet energy $\|\delta x\|^2$ measures disagreement across restriction maps, and the kernel $H^0(G;\mathcal{F})$ is the space of \emph{global sections} (consistent assignments); Hansen and Ghrist~\cite{hansen2021opinion} instantiate this as opinion dynamics in which sheaf diffusion drives a network toward agreement on shared discourse. Our propagation layer (Section~\ref{sec:propagation-layer}) adopts this machinery directly: evidence diffuses along a role-graph sheaf, and finality on that layer is reaching a global section rather than crossing a scalar threshold.
 
 
 \subsection{CRDT Semantics and Monotonic State}
@@ -508,6 +510,25 @@ OpenFGA \cite{pang2019} enforces relationship-based access control at four level
 \section{Convergence Theory and Finality}
 %% ============================================================
 
+Finality is a statement about a \emph{lattice}, not a scalar threshold, and it spans two orthogonal layers that must each reach the bottom of their respective order (Table~\ref{tab:two-layer}). The \emph{semantic layer} asks whether the aggregate governance dimensions meet their targets; its admissibility test is the vector finality predicate $F^*$ (Section~\ref{sec:vector-finality}), for which the scalar Lyapunov function $V(t)$ is a diagnostic certificate. The \emph{propagation layer} asks whether the reasoning roles actually agree on their shared observations; its admissibility test is reaching a global section of a cellular sheaf, certified by the sheaf Dirichlet energy $f(x)$ (Section~\ref{sec:propagation-layer}). A scope is RESOLVED only when both layers certify simultaneously---the dual-condition $\wedge$-gate (Section~\ref{sec:dual-condition}).
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{p{2.4cm}p{4.6cm}p{4.6cm}}
+\toprule
+ & \textbf{Semantic layer} & \textbf{Propagation layer} \\
+\midrule
+State & dimension score vector $\mu(t) \in [0,1]^k$ & evidence state $x \in \mathbb{R}^{2D\cdot N}$ (support/refutation per role per dimension) \\
+Order & convergence-rank lattice $\mathcal{M} = \mathcal{L}\times\mathcal{A}$ & bilattice stalks over the role graph, coupled by a cellular sheaf \\
+Admissibility & vector finality $F^*(t)$: gap $(\tau-\mu)^+$ zero on every required dimension (non-compensable) & global section: $f(x) = x^\top L_{\mathcal{F}} x < \varepsilon_{\mathrm{prop}}$ \\
+Lyapunov role & $V(t)$ --- a \emph{diagnostic} scalar (rate, ETA, plateau) & $f(x)$ --- the \emph{exact} Lyapunov function of the diffusion \\
+\bottomrule
+\end{tabular}
+\caption{The two convergence layers. Admissibility for RESOLVED is $F^*(t) \wedge [f(x) < \varepsilon_{\mathrm{prop}}]$; the scalar $V(t)$ certifies \emph{how} the semantic layer is moving, not \emph{whether} it is admissible.}
+\label{tab:two-layer}
+\end{table}
+
 \subsection{The Finality Problem}
 
 Traditional systems declare finality by threshold: ``if confidence $> 0.95$, done.'' This is brittle: contradictions may emerge after the threshold is crossed, the system may cycle indefinitely, and there is no formal guarantee of stabilization. We replace threshold-based finality with \emph{stateful convergence tracking}.
@@ -543,6 +564,11 @@ Under $\Sigma_{\mathrm{CRDT}}$ (Definition~\ref{def:restricted-system}), $V(t)$ 
 \begin{proof}
 Non-negativity is immediate from the squared-distance form. $V = 0$ iff $\mu_d = \tau_d$ for all $d$. Each transition in $\Sigma_{\mathrm{CRDT}}$ satisfies the monotonicity constraints of Definition~\ref{def:monotonicity} by precondition~1: $\mu_d(\mathcal{G}_{t+1}) \geq \mu_d(\mathcal{G}_t)$ for all $d$. Since $\tau_d \geq \mu_d(\mathcal{G}_t)$ when targets are not yet met, each squared term $w_d(\tau_d - \mu_d)^2$ is non-increasing, so $V(t+1) \leq V(t)$. Strict progress on any dimension with nonzero weight yields $V(t+1) < V(t)$.
 \end{proof}
+
+\begin{remark}[$V(t)$ is a diagnostic, not the admissibility test]
+\label{rem:v-diagnostic}
+Theorem~\ref{thm:lyapunov} makes $V(t)$ a sound \emph{monitoring} instrument---its sign of change, exponential rate $\alpha$, ETA, and plateau EMA reveal whether the semantic layer is converging, stalled, or diverging, and drive routing to HITL or ESCALATED. It is deliberately \emph{not} the finality criterion: certifying RESOLVED on $V(t) \le \theta$ would re-expose the compensation attack of Section~\ref{sec:vector-finality}, since a scalar weighted sum lets a strong dimension mask a weak one. Admissibility is therefore the \emph{vector} predicate $F^*(t)$, conjoined with the propagation-layer condition of Section~\ref{sec:dual-condition}; $V(t)$ only describes the path taken to satisfy them.
+\end{remark}
 
 \paragraph{Full system behaviour.}
 Outside $\Sigma_{\mathrm{CRDT}}$---when cross-epoch document injection occurs---$V$ may increase. This is an exogenous input to the closed-loop system, not a trajectory of $\Sigma_{\mathrm{CRDT}}$, and does not contradict Theorem~\ref{thm:lyapunov}. The full system alternates between $\Sigma_{\mathrm{CRDT}}$ phases (where Theorem~\ref{thm:lyapunov} applies) and injection events (where $V$ may spike). Section~\ref{sec:convergence-rates} characterises both regimes and their interaction.
@@ -793,6 +819,58 @@ The dual-path implementation in the finality evaluator (Section~\ref{sec:vector-
   but not $F^*(t)$, enabling empirical measurement of compensation artifacts.
 \end{enumerate}
 
+\subsection{Propagation Layer: Sheaf Dirichlet Energy and Global Sections}
+\label{sec:propagation-layer}
+
+Vector finality certifies that the aggregate scores meet their targets. It does not certify that the reasoning roles that produced those scores actually \emph{agree}: a favourable average can conceal two roles that read the same evidence oppositely. The propagation layer closes this gap by measuring agreement directly.
+
+Let $G = (R, E)$ be the graph of $|R| = N$ reasoning roles. Each role $i$ holds an evidence vector $x_i \in \mathbb{R}^{2D}$ (support and refutation for each of $D$ dimensions), so the global state is $x \in \mathbb{R}^{2D \cdot N}$. The roles are coupled by a \emph{cellular sheaf} $\mathcal{F}$ over $G$: each edge $e = (i,j)$ carries restriction maps $\mathcal{F}_{i\trianglelefteq e}, \mathcal{F}_{j\trianglelefteq e}$ onto a shared edge stalk, encoding \emph{which dimensions the two roles jointly observe}. The coboundary $\delta$ assembles the per-edge discrepancies $\delta_e x = \mathcal{F}_{i\trianglelefteq e} x_i - \mathcal{F}_{j\trianglelefteq e} x_j$, and the \emph{sheaf Laplacian} is $L_{\mathcal{F}} = \delta^\top \delta$~\cite{ghrist2022}. Each cycle, the propagation agent runs one diffusion step
+\[
+x_{t+1} = \Pi_{\mathcal{A}}\!\left[(I - \alpha L_{\mathcal{F}})\, x_t + \varepsilon_t\right],
+\]
+where $\alpha > 0$ is the step size, $\varepsilon_t$ is fresh evidence, and $\Pi_{\mathcal{A}}$ projects back onto the admissible box.
+
+\begin{definition}[Sheaf Dirichlet Energy]
+\label{def:dirichlet}
+The Dirichlet energy of an evidence state $x$ is
+\[
+f(x) = x^\top L_{\mathcal{F}}\, x = \|\delta x\|^2 = \sum_{e \in E} \|\delta_e x\|^2 \; \geq \; 0,
+\]
+the total squared disagreement across all sheaf edges, restricted to the subspaces the incident roles share.
+\end{definition}
+
+\begin{theorem}[Contraction and Global Sections]
+\label{thm:dirichlet-contraction}
+For $0 < \alpha < 2/\lambda_{\max}(L_{\mathcal{F}})$, the noise-free diffusion $x_{t+1} = (I - \alpha L_{\mathcal{F}}) x_t$ is the gradient flow of $f$ and satisfies, on the orthogonal complement of $\ker L_{\mathcal{F}}$,
+\[
+f(x_{t+1}) \leq (1 - \alpha \lambda_2)^2\, f(x_t),
+\]
+where $\lambda_2$ is the smallest nonzero eigenvalue (spectral gap) of $L_{\mathcal{F}}$. Moreover $f(x) = 0$ iff $x \in \ker \delta = H^0(G;\mathcal{F})$, the space of \emph{global sections}: assignments on which every pair of connected roles agrees over their shared observed subspace.
+\end{theorem}
+
+\begin{proof}[Proof sketch]
+$f(x) = x^\top L_{\mathcal{F}} x$ with $L_{\mathcal{F}} \succeq 0$ and $\nabla f = 2 L_{\mathcal{F}} x$, so $x_{t+1} = x_t - \tfrac{\alpha}{2}\nabla f(x_t)$ is gradient descent on $f$. Diagonalising $L_{\mathcal{F}}$, each eigencomponent with eigenvalue $\lambda$ is scaled by $(1-\alpha\lambda)$ per step; components in $\ker L_{\mathcal{F}}$ are fixed, and the slowest-decaying nonzero mode has factor $(1-\alpha\lambda_2)$, giving the stated rate on $f = \|L_{\mathcal{F}}^{1/2} x\|^2$. The kernel characterisation $\ker L_{\mathcal{F}} = \ker \delta = H^0(G;\mathcal{F})$ is standard for the sheaf Laplacian~\cite{ghrist2022}.
+\end{proof}
+
+The propagation-layer analogue of ``all dimensions reach target'' is thus ``$f(x) = 0$'', i.e.\ reaching a global section; in practice we test $f(x) < \varepsilon_{\mathrm{prop}}$ for a small tolerance.
+
+\begin{remark}[Why not the variance proxy]
+\label{rem:omega-proxy}
+A tempting shortcut is the variance proxy $\Omega(x) = \sum_i \|x_i - \bar{x}\|^2$ (distance from the mean). This equals $f$ only on the constant complete sheaf, where $f(x) = N\,\Omega(x)$. On a \emph{projection} sheaf---the production default, where roles observe different dimensions---$\Omega$ counts disagreement on dimensions a role never observes and can stay strictly positive even after all \emph{reachable} disagreement has vanished (two roles observing disjoint dimensions have $f \to 0$ while $\Omega > 0$). Gating finality on $\Omega$ there makes RESOLVED either unreachable or spurious; the engine therefore computes $f$ directly from the Laplacian it already materialises each step, retains $\Omega$ only as a topology-health signal, and exposes the per-edge decomposition $\|\delta_e x\|^2$ for bottleneck attribution (the highest-energy edge is the most-disagreeing role pair).
+\end{remark}
+
+\subsection{Dual-Condition Finality}
+\label{sec:dual-condition}
+
+The two layers are independent and defend against distinct failure modes. Vector finality $F^*$ blocks the \emph{compensation attack} (a weak dimension hidden behind a strong one); the Dirichlet condition blocks \emph{premature consensus} (declaring done while roles still structurally disagree). Neither subsumes the other, so RESOLVED requires both to certify simultaneously---the dual-condition ($\wedge$) gate:
+\[
+\textsc{Resolved}(t) \;\iff\; F^*(t) \;\wedge\; \bigl[\, f(x_t) < \varepsilon_{\mathrm{prop}} \,\bigr].
+\]
+
+\begin{remark}[Backward compatibility]
+The propagation condition is additive and guarded. When the Dirichlet gate is disabled, or when no propagation history exists for a scope, $[f(x_t) < \varepsilon_{\mathrm{prop}}]$ defaults to true and the gate reduces to the semantic layer $F^*(t)$ alone. When $F^*$ holds but the propagation condition does not, the evaluator emits a \texttt{dirichlet\_hold} signal---semantics ready, roles still converging---for observability without falsely resolving. Configuration lives in \texttt{finality.yaml} under \texttt{dirichlet\_gate} (\texttt{enabled}, \texttt{epsilon\_prop}).
+\end{remark}
+
 \subsection{Convergence Rate and ETA}
 \label{sec:convergence-rates}
 
@@ -868,7 +946,7 @@ When goal score is in $[0.40, 0.92)$ and plateau is detected, the system queues 
 \toprule
 \textbf{State} & \textbf{Trigger} & \textbf{Action} \\
 \midrule
-RESOLVED & Vector finality $F^*(t)$ true (all dims $\geq \tau_d - \epsilon_d$, gates A--E) & JWS certificate issued \\
+RESOLVED & $F^*(t) \wedge [f(x_t) < \varepsilon_{\mathrm{prop}}]$: vector finality (gates A--E) and propagation global section & JWS certificate issued \\
 ACTIVE & Score $< 0.92$ or any gate unsatisfied & Continue processing \\
 ESCALATED & Risk $\geq 0.75$ or $\geq 3$ contradictions or $\alpha < -0.05$ & Human intervention \\
 BLOCKED & $\geq 5$ idle cycles + $\geq 300$s without updates + $\geq 1$ contradiction & Stalled \\
@@ -876,10 +954,11 @@ EXPIRED & No activity for 30 days & Process expired \\
 HITL Review & Score $\in [0.40, 0.92)$ + plateau or gate failure & Structured human decision \\
 \bottomrule
 \end{tabular}
-\caption{Finality states and their triggers. RESOLVED requires vector finality $F^*(t)$ (all dimensions
-within threshold tolerance, per-dimension gates A$^d$/C$^d$, global gates B/D/E per Definition~\ref{def:vector-finality}).
+\caption{Finality states and their triggers. RESOLVED requires the dual-condition gate $F^*(t) \wedge [f(x_t) < \varepsilon_{\mathrm{prop}}]$:
+semantic-layer vector finality $F^*(t)$ (all dimensions within threshold tolerance, per-dimension gates A$^d$/C$^d$, global gates B/D/E per Definition~\ref{def:vector-finality})
+\emph{and} propagation-layer convergence to a global section (Section~\ref{sec:dual-condition}).
 Upon RESOLVED, an Ed25519-signed finality certificate is emitted (Section~\ref{sec:certificates}).
-Fallback to scalar finality $F(t)$ (Definition~\ref{def:finality}) is available when per-dimension finality is disabled.}
+The propagation condition defaults to true when disabled or when no propagation history exists; fallback to scalar finality $F(t)$ (Definition~\ref{def:finality}) is available when per-dimension finality is disabled.}
 \label{tab:finality}
 \end{table}
 
@@ -1217,6 +1296,7 @@ Following the principled scoping methodology of de la Chica Rodriguez and Vera D
   \item \textbf{Formal Byzantine fault tolerance.} All agents are assumed cooperative. Exp.~8 demonstrates that adversarial agents can cause oscillating false finality (18 RESOLVED snapshots across 31 epochs with coordinated collusion), but cycle-based re-extraction limits each adversarial window to 1--2 extraction cycles. This is a practical defense, not a formal Byzantine guarantee: the system provides no proven $n \geq 3f+1$ tolerance. The monotonic confidence constraint limits downward manipulation but does not prevent upward inflation. Formal Byzantine-tolerant coordination \cite{lamport1982,castro1999,zheng2025} remains future work, though the empirical resilience is stronger than previously claimed.
   \item \textbf{Scalability beyond proof of concept.} Validation covers two scenarios (5 and 8 documents, $\sim$50 claims each, 7 agents). Whether convergence dynamics, governance throughput, or the Lyapunov function's behavior change qualitatively at production scale (thousands of claims, hundreds of agents) is unknown.
   \item \textbf{Machine-checked convergence proofs.} Proposition~\ref{prop:monotonic} is a proof sketch validated empirically. No formal verification tool or proof assistant has checked the convergence guarantee. An arbitrary sequence of approved transitions could, in principle, violate the proposition's preconditions in untested scenarios.
+  \item \textbf{Propagation layer validated in isolation.} The sheaf Dirichlet energy $f(x)$ and the dual-condition gate (Section~\ref{sec:dual-condition}) are implemented and unit-tested, and Theorem~\ref{thm:dirichlet-contraction} follows from standard sheaf-diffusion spectral analysis; however, the end-to-end effect of the $\wedge$-gate on finality timing across the benchmark suite is not yet reported---the convergence experiments here characterise the semantic-layer $V(t)$. Robustness of $f$ under bounded evidence noise (input-to-state stability) and machine-checked versions of the contraction bound are deferred to future work.
   \item \textbf{Convergence under real LLM stochasticity.} All convergence benchmarks use synthetic trajectories. Whether the oscillation detection (Gate~C) and trajectory quality score $Q$ perform correctly under the inherent stochasticity of real LLM reasoning traces is untested; $Q$ is domain-configurable with no formal justification (Appendix~\ref{sec:app-assumptions}).
   \item \textbf{Multi-iteration protocol self-modification.} Governance rules are declarative but static within a deployment. The system does not implement governed self-modification of its own coordination rules, as demonstrated by SECP \cite{delachica2026}. Whether the Lyapunov convergence mechanism can serve as a formal foundation for evaluating protocol modifications across multiple iterations is a promising but unvalidated direction.
   \item \textbf{Multi-scope and hierarchical finality.} Cross-scope governance, parent--child finality dependencies, and inter-scope certificate chains are designed in the architecture but not validated experimentally. A \emph{multi-temporal lattice tower}---unifying governance, convergence, evidence, and temporal structure in one algebraic story---is under active investigation. The motivating hunch, consistent with both external LLM consensus evidence~\cite{yazici2026opinion} and companion architectural work, is that \emph{monotone} audit-friendly records and \emph{faithful} multi-agent numerical agreement may require distinct mechanisms rather than a single protocol. Whether a product-style construction preserves the well-foundedness needed for epoch termination across layers remains open; details are reserved for follow-on publications.
@@ -1232,7 +1312,7 @@ Any claim beyond the narrow statement---``the architecture is implementable, pro
 
 \subsection{Summary of Contributions}
 
-This paper presents a paradigm for autonomous agent coordination based on declarative governance over shared immutable context. The seven core contributions are: (i)~a bitemporal CRDT-inspired semantic graph with append-only event log, dual time axes, and monotonicity invariants; (ii)~a disagreement function $V(t) = \|\mathbf{g}(t)\|^2_\mathbf{w}$ that is a genuine Lyapunov function for the restricted CRDT system ($\Sigma_{\mathrm{CRDT}}$), monotone in the lattice order, with five independent gates providing layered guarantees against premature finality; (iii)~a product lattice $\mathcal{M} = \mathcal{L} \times \mathcal{A}$ with explicit meet and join on both factors and Riesz-space stalks, with an Epoch Termination Theorem under $\delta_{\min}$-discretisation guaranteeing finite convergence via well-founded descent; (iv)~a deterministic Rust reduction kernel ensuring auditable, replayable governance independent of LLM stochasticity; (v)~perpetual finality with Ed25519-signed certificate chains; (vi)~three-tier governance routing with LLM-free fallback; and (vii)~validation on two domains---M\&A due diligence and financial consolidation with bitemporal restatement---demonstrating $V(t) \to 0$ at resolution epochs and domain-independent sawtooth dynamics across evidence epochs.
+This paper presents a paradigm for autonomous agent coordination based on declarative governance over shared immutable context. The seven core contributions are: (i)~a bitemporal CRDT-inspired semantic graph with append-only event log, dual time axes, and monotonicity invariants; (ii)~a dual-condition finality mechanism over two orthogonal layers---semantic vector finality $F^*$ (non-compensable, with five independent gates) and propagation-layer agreement certified by the sheaf Dirichlet energy $f(x) = x^\top L_{\mathcal{F}} x$ vanishing on the global sections $H^0(G;\mathcal{F})$ (Theorem~\ref{thm:dirichlet-contraction})---in which the disagreement function $V(t) = \|\mathbf{g}(t)\|^2_\mathbf{w}$, a genuine Lyapunov function for the restricted CRDT system ($\Sigma_{\mathrm{CRDT}}$) monotone in the lattice order, is retained as a convergence diagnostic rather than the admissibility test; (iii)~a product lattice $\mathcal{M} = \mathcal{L} \times \mathcal{A}$ with explicit meet and join on both factors and Riesz-space stalks, with an Epoch Termination Theorem under $\delta_{\min}$-discretisation guaranteeing finite convergence via well-founded descent; (iv)~a deterministic Rust reduction kernel ensuring auditable, replayable governance independent of LLM stochasticity; (v)~perpetual finality with Ed25519-signed certificate chains; (vi)~three-tier governance routing with LLM-free fallback; and (vii)~validation on two domains---M\&A due diligence and financial consolidation with bitemporal restatement---demonstrating $V(t) \to 0$ at resolution epochs and domain-independent sawtooth dynamics across evidence epochs.
 
 \subsection{Positioning Relative to Self-Evolving Coordination}
 
