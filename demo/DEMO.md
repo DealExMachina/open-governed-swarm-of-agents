@@ -93,6 +93,23 @@ ollama pull qwen3:8b
 
 ## Setup
 
+### Quick preflight
+
+```bash
+pnpm run demo:preflight
+pnpm run ensure-bucket && pnpm run ensure-schema && pnpm run ensure-stream
+export GOVERNANCE_PATH="$(pwd)/demo/scenario/governance-demo.yaml"
+pnpm run swarm:start   # terminal 1
+pnpm run feed          # terminal 2
+pnpm run demo          # terminal 3 — http://localhost:3005
+```
+
+- **Grafana:** http://localhost:3004 (needs `otel-collector`, `prometheus`, `grafana` from compose).
+- **Skip demo preflight:** `DEMO_SKIP_PREFLIGHT=1 pnpm run demo`.
+- **Troubleshooting:** Demo stalls on step 1 → run `pnpm run demo:preflight` and use **`swarm:start`**, not facts-only `swarm`. Grafana empty → `docker compose up -d otel-collector` and run swarm activity.
+
+### Full setup
+
 ```bash
 cp .env.example .env
 # Edit .env: set OPENAI_API_KEY or OLLAMA_BASE_URL

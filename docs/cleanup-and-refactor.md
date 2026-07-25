@@ -8,7 +8,7 @@ This document records what was cleaned in the current pass, what remains, how di
 
 ## Verdict
 
-The repo is a healthy research + product monorepo with clear license/package boundaries, but it has accumulated **flat `src/` and `scripts/` layouts**, **god-file servers**, **prepared-but-unwired corpora**, and **missing `docs/benchmarks/manifests/`** referenced by baseline code. Safe dead-file cleanup is small; the real payoff is structural refactor, not mass deletion.
+The repo is a healthy research + product monorepo with clear license/package boundaries. **Scripts taxonomy**, **`public/` assets**, and **S1–S5 benchmark manifests** are done on `dev`. Remaining smells: **flat `src/`**, **god-file modules** (semantic graph / finality / Studio HTML), and **corpora that have manifests but are not yet wired into drivers/Studio** (see open PRs #28–#29). Safe dead-file cleanup is small; the real payoff is structural refactor, not mass deletion.
 
 ---
 

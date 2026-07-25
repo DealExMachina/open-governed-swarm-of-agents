@@ -45,9 +45,15 @@ export function loadCorpusDocuments(
   const sub = CORPUS_DIRS[id];
   if (!sub) return [];
   const dir = join(SCENARIO_ROOT, sub);
-  const files = readdirSync(dir)
-    .filter((f) => f.endsWith(".txt"))
-    .sort();
+  let files: string[] = [];
+  try {
+    files = readdirSync(dir)
+      .filter((f) => f.endsWith(".txt"))
+      .sort();
+  } catch {
+    // Dist / API-only images may omit demo/scenario; degrade to empty.
+    return [];
+  }
   return files.map((f) => ({
     title: f.replace(/\.txt$/, ""),
     body: readFileSync(join(dir, f), "utf-8"),

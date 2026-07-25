@@ -41,8 +41,8 @@ flowchart TB
 
 | Aspect | Tested / Validated | Theoretical / Assumed |
 |--------|-------------------|-----------------------|
-| State graph transitions (CAS, cycle) | Rust/kernel tests + E2E spot checks; TS unit tests unavailable until `test/` exists | Linearizability under concurrent writers (single-row CAS, no multi-node contention test) |
-| Governance rules (YAML evaluation) | Intended TS tests (missing); Rust governance tests; E2E verification | That rule set is complete for production drift taxonomies |
+| State graph transitions (CAS, cycle) | Rust/kernel tests + E2E spot checks; TS Vitest suite under `test/` (coverage still partial for CAS paths) | Linearizability under concurrent writers (single-row CAS, no multi-node contention test) |
+| Governance rules (YAML evaluation) | Partial TS coverage + Rust governance tests; E2E verification | That rule set is complete for production drift taxonomies |
 | Governance modes (MASTER/MITL/YOLO) | Rust + E2E seed + verification script | That three modes cover all real operational needs |
 | Oversight agent (LLM-backed) | No TS suite; deterministic fallbacks exercised in E2E/manual | LLM-backed oversight quality (accept/escalate decisions) |
 | Convergence tracker (Lyapunov V, pressure, monotonicity, plateau, Gate C oscillation/trajectory) | `benchmark-convergence.ts` (~11 scenarios, pure math) + Rust/kernel alignment | That synthetic snapshot trajectories represent real LLM-generated fact sequences |
@@ -350,8 +350,10 @@ Two Phase-2 follow-on checks were added to close the Extract/escalation gap:
   while cutting escalation load (`4.01` vs `7.71`) and removing unnecessary
   escalations in this profile.
 
-See [docs/experiments/e19-e20/README.md](experiments/e19-e20/README.md) and
-artifacts under `artifacts/experiments/e19` and `artifacts/experiments/e20`.
+Protocol drivers: `scripts/experiments/exp-e19-extract-loss.ts`,
+`scripts/experiments/exp-e20-escalation-necessity.ts`
+(no shipped `docs/experiments/e19-e20/` tree in this snapshot). Artifacts, when generated,
+are local/gitignored — not published under `artifacts/experiments/`.
 
 ### 9.2 Snapshot scope note
 
@@ -362,19 +364,22 @@ experiments.
 
 ## 10. Stage 1 experiments (exp1--exp9) and domain demos
 
-Stage 1 experiments require Docker and test the full agent pipeline. Defined protocols, gitignored results.
+Stage 1 experiments require Docker and test the full agent pipeline. Drivers live under `scripts/`
+(`run-experiment.sh`, `drive-experiment.ts`, `drive-exp8-adversarial.ts`, `drive-exp9-confluence.ts`);
+results directories are gitignored. Issue numbers below are **not** live GitHub trackers
+(those IDs were reused for unrelated work) — treat the column as historical labels only.
 
-| Experiment | Goal | Issue |
-|------------|------|-------|
-| 1. Convergence dynamics | Multi-iteration V(t) trajectories, varying contradiction density | [#12](https://github.com/DealExMachina/open-governed-swarm-of-agents/issues/12) |
-| 2. Scalability | Vary claims, contradictions, agents; measure rounds, tokens, audit events | [#13](https://github.com/DealExMachina/open-governed-swarm-of-agents/issues/13) |
-| 3. Finality robustness | Adversarial evidence (spike-and-drop, oscillation, stale) | [#14](https://github.com/DealExMachina/open-governed-swarm-of-agents/issues/14) |
-| 4. Multi-level governance | L1/L2/L3 escalation, decision distribution | [#15](https://github.com/DealExMachina/open-governed-swarm-of-agents/issues/15) |
-| 5. Coverage-autonomy trade-off | YOLO vs MITL vs MASTER on identical document set | [#16](https://github.com/DealExMachina/open-governed-swarm-of-agents/issues/16) (closed) |
-| 6. Monotonic progress + discretization | Assumptions #3, #1; full pipeline + resolver | [#20](https://github.com/DealExMachina/open-governed-swarm-of-agents/issues/20) |
-| 7. Tier 2/3 governance, Tier-3 reachability | Assumption #4; tier coverage | [#21](https://github.com/DealExMachina/open-governed-swarm-of-agents/issues/21) |
-| 8. Cooperative agent model | Assumption #5; adversarial defense | [#22](https://github.com/DealExMachina/open-governed-swarm-of-agents/issues/22) |
-| 9. Local confluence | Assumption #2; CRDT + eventual consistency | [#23](https://github.com/DealExMachina/open-governed-swarm-of-agents/issues/23) |
+| Experiment | Goal | Historical label |
+|------------|------|------------------|
+| 1. Convergence dynamics | Multi-iteration V(t) trajectories, varying contradiction density | stage1-exp1 |
+| 2. Scalability | Vary claims, contradictions, agents; measure rounds, tokens, audit events | stage1-exp2 |
+| 3. Finality robustness | Adversarial evidence (spike-and-drop, oscillation, stale) | stage1-exp3 |
+| 4. Multi-level governance | L1/L2/L3 escalation, decision distribution | stage1-exp4 |
+| 5. Coverage-autonomy trade-off | YOLO vs MITL vs MASTER on identical document set | stage1-exp5 |
+| 6. Monotonic progress + discretization | Assumptions #3, #1; full pipeline + resolver | stage1-exp6 |
+| 7. Tier 2/3 governance, Tier-3 reachability | Assumption #4; tier coverage | stage1-exp7 |
+| 8. Cooperative agent model | Assumption #5; adversarial defense | stage1-exp8 |
+| 9. Local confluence | Assumption #2; CRDT + eventual consistency | stage1-exp9 |
 
 **Domain demos:** 4 scenarios validated (M&A Project Horizon, Financial consolidation, Insurance onboarding, European Green Bond).
 
