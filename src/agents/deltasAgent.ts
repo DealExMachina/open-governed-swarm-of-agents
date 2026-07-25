@@ -13,6 +13,9 @@ import { logger } from "../logger.js";
 import { loadPropagationConfig } from "../config/propagation.js";
 import { scopeDeltasKey } from "../scopeStorage.js";
 import { recordDeltasExtracted } from "../metrics.js";
+import { getActiveTenantId } from "../billingContext.js";
+import { recordBillableDeltas } from "../billing/deltaLedger.js";
+import { toErrorString } from "../errors.js";
 const MATERIAL_THRESHOLD = 0.05;
 
 export interface TimeInterval {
@@ -188,10 +191,32 @@ export async function runDeltasAgent(
 
   recordDeltasExtracted(scopeId, deltas);
 
+  // Net-new billable-delta accounting: persist only genuinely new material
+  // change to the ledger and meter it (prepaid burn-down + overage). Never let
+  // a billing error break the agent pipeline.
+  let billable = 0;
+  try {
+    const tenantId =
+      (payload.tenant_id as string | undefined) ?? getActiveTenantId();
+    const result = await recordBillableDeltas(
+      tenantId ?? null,
+      scopeId,
+      latest.epoch,
+      deltas,
+    );
+    billable = result.billable;
+  } catch (e) {
+    logger.warn("billable_delta_accounting_failed", {
+      scope_id: scopeId,
+      error: toErrorString(e),
+    });
+  }
+
   logger.info("deltas extracted", {
     epoch: latest.epoch,
     delta_count: deltas.length,
+    billable_delta_count: billable,
   });
 
-  return { deltas, wrote: [scopeDeltasKey(scopeId)] };
+  return { deltas, wrote: [scopeDeltasKey(scopeId)], billable };
 }

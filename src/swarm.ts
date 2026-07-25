@@ -17,6 +17,7 @@ import { createSwarmEvent } from "./events.js";
 import { loadHatcheryConfig } from "./hatcheryConfig.js";
 import { AgentHatchery } from "./hatchery.js";
 import { startRuntimeControlResponder } from "./runtimeControlRpc.js";
+import { startBillingMetricsExporter } from "./billing/metricsExporter.js";
 
 const BUCKET = process.env.S3_BUCKET!;
 const AGENT_ID =
@@ -130,6 +131,7 @@ async function main(): Promise<void> {
     process.on("SIGINT", () => void hatcheryShutdown("SIGINT"));
 
     await hatchery.start();
+    startBillingMetricsExporter();
     try {
       stopRuntimeResponder = await startRuntimeControlResponder(hatchery);
       const pool = (await import("./db.js")).getPool();

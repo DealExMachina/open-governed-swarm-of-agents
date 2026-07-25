@@ -36,6 +36,22 @@ Organized as four infrastructure pillars plus one application view:
 | NATS | `nats-infra` | Connections, message/byte throughput, memory/CPU, JetStream job-bus stats |
 | Postgres | `postgres-state` | Governed state store: connections vs max, transactions, cache hit ratio, table sizes/bloat |
 | S3 / MinIO | `minio-s3` | Cluster health, capacity, per-bucket objects/size, S3 API throughput, node drives |
+| Delta Billing | `swarm-delta-billing` | Per-tenant prepaid balance/burn-down, overage, projected spend, and per-scope billable deltas (delta-tokens as currency) |
+
+## Delta billing metrics
+
+Deltas can be billed as a currency ("delta-tokens"). The billing exporter
+(`src/billing/metricsExporter.ts`, started by the hatchery) snapshots the durable
+ledger into observable gauges: `swarm.billing.delta_token_balance`,
+`swarm.billing.delta_tokens_consumed`, `swarm.billing.overage_tokens`,
+`swarm.billing.overage_cents`, `swarm.billing.prepaid_tokens`, and
+`swarm.billing.billable_deltas` (per tenant/scope). Net-new billable deltas are
+also counted via `swarm_billable_deltas_total{tenant,scope,channel}` (distinct
+from the raw `swarm_deltas_extracted_total`). Stable, suffix-free names for the
+gauges plus per-tenant aggregates (`swarm:billable_deltas:rate5m:by_tenant`,
+`swarm:prepaid_burndown:by_tenant`) live in the `swarm_billing_gauges` /
+`swarm_billing_tenant` groups of `prometheus-rules.yml`. See the demo runbook at
+`docs/demos/billing/README.md`.
 
 ## Scope-aware metrics
 

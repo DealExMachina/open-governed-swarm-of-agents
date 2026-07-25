@@ -41,6 +41,7 @@ let e17EpsilonLinf: OtelGauge | null = null;
 let propagationStepsTotal: OtelCounter | null = null;
 let progressActivationsTotal: OtelCounter | null = null;
 let deltasExtractedCounter: OtelCounter | null = null;
+let billableDeltasCounter: OtelCounter | null = null;
 
 function ensureInstruments() {
   const meter = getMeter();
@@ -237,7 +238,14 @@ function ensureInstruments() {
   if (deltasExtractedCounter == null) {
     deltasExtractedCounter = meter.createCounter("swarm.deltas.extracted", {
       description:
-        "Material evidence deltas extracted per scope and channel (billable unit of work)",
+        "Material evidence deltas extracted per scope and channel (raw, re-emitted each cycle)",
+      unit: "1",
+    });
+  }
+  if (billableDeltasCounter == null) {
+    billableDeltasCounter = meter.createCounter("swarm.billable_deltas", {
+      description:
+        "Net-new billable deltas per tenant, scope, and channel (the metered currency)",
       unit: "1",
     });
   }
@@ -534,6 +542,36 @@ export function recordDeltasExtracted(
   }
 }
 
+/**
+ * Record net-new billable deltas (the metered currency) per tenant/scope/channel.
+ * Distinct from recordDeltasExtracted (raw produced deltas): this only counts
+ * deltas that were persisted to the delta_events ledger for billing.
+ */
+export function recordBillableDeltasMetric(
+  scopeId: string,
+  tenantId: string | null,
+  deltas: ReadonlyArray<{ channel: string }>,
+): void {
+  try {
+    ensureInstruments();
+    if (deltas.length === 0) return;
+    const tenant = tenantId ?? "none";
+    const byChannel = new Map<string, number>();
+    for (const d of deltas) {
+      byChannel.set(d.channel, (byChannel.get(d.channel) ?? 0) + 1);
+    }
+    for (const [channel, count] of byChannel) {
+      billableDeltasCounter?.add(count, {
+        scope_id: scopeId,
+        tenant: tenant,
+        channel,
+      });
+    }
+  } catch {
+    // no-op
+  }
+}
+
 /** Reset instruments (for tests). */
 export function _resetSwarmMetrics(): void {
   proposalCount = null;
@@ -563,4 +601,5 @@ export function _resetSwarmMetrics(): void {
   propagationStepsTotal = null;
   progressActivationsTotal = null;
   deltasExtractedCounter = null;
+  billableDeltasCounter = null;
 }

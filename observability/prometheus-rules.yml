@@ -72,3 +72,37 @@ groups:
         expr: >-
           sum by (role, scope_id) (rate(swarm_agent_latency_ms_milliseconds_sum[5m]))
           / clamp_min(sum by (role, scope_id) (rate(swarm_agent_latency_ms_milliseconds_count[5m])), 1)
+
+  # ---------------------------------------------------------------------------
+  # Delta billing: stable, suffix-free names for the billing observable gauges
+  # (unit="1" gauges get a "_ratio" suffix from the OTEL exporter — same reason
+  # as swarm_stable_gauges above). Dashboards query ONLY these stable names.
+  # ---------------------------------------------------------------------------
+  - name: swarm_billing_gauges
+    rules:
+      - record: swarm_billing_prepaid_tokens
+        expr: max without(__name__) ({__name__=~"swarm_billing_prepaid_tokens(_ratio)?"})
+      - record: swarm_billing_delta_tokens_consumed
+        expr: max without(__name__) ({__name__=~"swarm_billing_delta_tokens_consumed(_ratio)?"})
+      - record: swarm_billing_delta_token_balance
+        expr: max without(__name__) ({__name__=~"swarm_billing_delta_token_balance(_ratio)?"})
+      - record: swarm_billing_overage_tokens
+        expr: max without(__name__) ({__name__=~"swarm_billing_overage_tokens(_ratio)?"})
+      - record: swarm_billing_overage_cents
+        expr: max without(__name__) ({__name__=~"swarm_billing_overage_cents(_ratio)?"})
+      - record: swarm_billing_billable_deltas
+        expr: max without(__name__) ({__name__=~"swarm_billing_billable_deltas(_ratio)?"})
+
+  # ---------------------------------------------------------------------------
+  # Per-tenant billing aggregates for the Delta Billing dashboard.
+  # ---------------------------------------------------------------------------
+  - name: swarm_billing_tenant
+    rules:
+      # Net-new billable delta production rate per tenant (currency flow).
+      - record: swarm:billable_deltas:rate5m:by_tenant
+        expr: sum by (tenant) (rate(swarm_billable_deltas_total[5m]))
+      # Prepaid burn-down fraction per tenant (0 = full, 1 = exhausted).
+      - record: swarm:prepaid_burndown:by_tenant
+        expr: >-
+          sum by (tenant) (swarm_billing_delta_tokens_consumed)
+          / clamp_min(sum by (tenant) (swarm_billing_prepaid_tokens), 1)
