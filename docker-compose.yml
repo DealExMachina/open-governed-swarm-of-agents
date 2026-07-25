@@ -8,6 +8,9 @@ services:
     environment:
       MINIO_ROOT_USER: ${S3_ACCESS_KEY:-minioadmin}
       MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:-minioadmin}
+      # Expose Prometheus metrics without a bearer token so the local
+      # observability stack can scrape /minio/v2/metrics/* directly.
+      MINIO_PROMETHEUS_AUTH_TYPE: public
     volumes:
       - minio_data:/data
 
@@ -66,10 +69,44 @@ services:
       - "4318:4318"   # OTLP HTTP
       - "8889:8889"   # Prometheus scrape endpoint
 
+  # Exposes NATS server + JetStream monitoring (:8222 JSON) as Prometheus metrics on :7777.
+  nats-exporter:
+    image: natsio/prometheus-nats-exporter:latest
+    command: ["-varz", "-connz", "-subz", "-jsz=all", "http://nats:8222"]
+    ports:
+      - "7777:7777"
+    depends_on:
+      nats:
+        condition: service_healthy
+
+  # Exposes PostgreSQL stats (pg_stat_database, connections, locks, sizes) on :9187.
+  postgres-exporter:
+    image: quay.io/prometheuscommunity/postgres-exporter:latest
+    environment:
+      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER:-swarm}:${POSTGRES_PASSWORD:-swarm}@postgres:5432/${POSTGRES_DB:-swarm}?sslmode=disable"
+      PG_EXPORTER_AUTO_DISCOVER_DATABASES: "true"
+    ports:
+      - "9187:9187"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   prometheus:
     image: prom/prometheus:latest
+    # Demo-stage retention: Prometheus auto-purges TSDB blocks older than 3d or
+    # beyond 1GB, whichever comes first. --web.enable-lifecycle allows reloading
+    # scrape/rule config without a container restart (POST /-/reload).
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=3d"
+      - "--storage.tsdb.retention.size=1GB"
+      - "--web.enable-lifecycle"
+      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+      - "--web.console.templates=/usr/share/prometheus/consoles"
     volumes:
       - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./observability/prometheus-rules.yml:/etc/prometheus/prometheus-rules.yml
       - prometheus_data:/prometheus
     ports:
       - "9090:9090"

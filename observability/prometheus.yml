@@ -2,8 +2,42 @@ global:
   scrape_interval: 15s
   evaluation_interval: 15s
 
+# Recording rules expose stable, collector-suffix-independent metric names
+# (e.g. swarm_convergence_goal_score) so dashboards do not break when the OTEL
+# Prometheus exporter changes unit suffixes (it currently appends _ratio to
+# unit="1" gauges). See prometheus-rules.yml.
+rule_files:
+  - /etc/prometheus/prometheus-rules.yml
+
 scrape_configs:
+  # Swarm application metrics (OTLP -> collector -> Prometheus exposition).
   - job_name: otel-collector
     metrics_path: /metrics
     static_configs:
       - targets: ["otel-collector:8889"]
+
+  # NATS server + JetStream (via prometheus-nats-exporter).
+  - job_name: nats
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["nats-exporter:7777"]
+
+  # PostgreSQL (via postgres_exporter).
+  - job_name: postgres
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["postgres-exporter:9187"]
+
+  # MinIO / S3 cluster + node metrics (native Prometheus endpoints, public auth).
+  - job_name: minio-cluster
+    metrics_path: /minio/v2/metrics/cluster
+    static_configs:
+      - targets: ["s3:9000"]
+  - job_name: minio-node
+    metrics_path: /minio/v2/metrics/node
+    static_configs:
+      - targets: ["s3:9000"]
+  - job_name: minio-bucket
+    metrics_path: /minio/v2/metrics/bucket
+    static_configs:
+      - targets: ["s3:9000"]

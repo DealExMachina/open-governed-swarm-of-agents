@@ -3,6 +3,7 @@
  * Requires initTelemetry() to have been called (NodeSDK sets global meter provider from env).
  */
 import { getMeter } from "./telemetry.js";
+import { getActiveScopeId } from "./billingContext.js";
 import type { ConvergenceState } from "./convergenceTracker.js";
 import type { PropagationMetrics } from "./evidenceStateManager.js";
 
@@ -39,6 +40,7 @@ let e17EpsilonL2: OtelGauge | null = null;
 let e17EpsilonLinf: OtelGauge | null = null;
 let propagationStepsTotal: OtelCounter | null = null;
 let progressActivationsTotal: OtelCounter | null = null;
+let deltasExtractedCounter: OtelCounter | null = null;
 
 function ensureInstruments() {
   const meter = getMeter();
@@ -232,6 +234,13 @@ function ensureInstruments() {
       },
     );
   }
+  if (deltasExtractedCounter == null) {
+    deltasExtractedCounter = meter.createCounter("swarm.deltas.extracted", {
+      description:
+        "Material evidence deltas extracted per scope and channel (billable unit of work)",
+      unit: "1",
+    });
+  }
 }
 
 /** Record pressure-directed activation filter outcome for Exp 1, Exp 4. */
@@ -265,12 +274,18 @@ export function recordSemanticGraphQueryMs(
   }
 }
 
-/** Record LLM token usage by role, direction (input/output), and model. */
+/**
+ * Record LLM token usage by role, direction (input/output), model, and scope.
+ * `scopeId` defaults to the active billing scope so token spend can be
+ * attributed per run/scope (billing currency) without threading it through
+ * every call site.
+ */
 export function recordLLMTokens(
   role: string,
   direction: "input" | "output",
   count: number,
   model?: string,
+  scopeId?: string,
 ): void {
   try {
     ensureInstruments();
@@ -278,6 +293,7 @@ export function recordLLMTokens(
       role,
       direction,
       model: model ?? "default",
+      scope_id: scopeId ?? getActiveScopeId(),
     });
   } catch {
     // no-op
@@ -285,10 +301,18 @@ export function recordLLMTokens(
 }
 
 /** Record a single LLM invocation (call count, not tokens). */
-export function recordLLMCall(role: string, model?: string): void {
+export function recordLLMCall(
+  role: string,
+  model?: string,
+  scopeId?: string,
+): void {
   try {
     ensureInstruments();
-    llmCallsCounter?.add(1, { role, model: model ?? "default" });
+    llmCallsCounter?.add(1, {
+      role,
+      model: model ?? "default",
+      scope_id: scopeId ?? getActiveScopeId(),
+    });
   } catch {
     // no-op
   }
@@ -357,10 +381,22 @@ export function recordPolicyViolation(): void {
   }
 }
 
-export function recordAgentLatency(role: string, latencyMs: number): void {
+/**
+ * Record agent activation wall-clock latency (the run cost driver).
+ * `scopeId` defaults to the active billing scope so wall time is attributable
+ * per run/scope.
+ */
+export function recordAgentLatency(
+  role: string,
+  latencyMs: number,
+  scopeId?: string,
+): void {
   try {
     ensureInstruments();
-    agentLatencyHistogram?.record(latencyMs, { role });
+    agentLatencyHistogram?.record(latencyMs, {
+      role,
+      scope_id: scopeId ?? getActiveScopeId(),
+    });
   } catch {
     // no-op
   }
@@ -458,10 +494,41 @@ export function recordE17ProfileMetrics(
 }
 
 /** Record agent activation for progress telemetry (productive vs wasted). */
-export function recordProgressMetrics(role: string, productive: boolean): void {
+export function recordProgressMetrics(
+  role: string,
+  productive: boolean,
+  scopeId?: string,
+): void {
   try {
     ensureInstruments();
-    progressActivationsTotal?.add(1, { role, productive: String(productive) });
+    progressActivationsTotal?.add(1, {
+      role,
+      productive: String(productive),
+      scope_id: scopeId ?? getActiveScopeId(),
+    });
+  } catch {
+    // no-op
+  }
+}
+
+/**
+ * Record material evidence deltas extracted for a scope (billable currency).
+ * Increments the cumulative counter per channel (support/refutation).
+ */
+export function recordDeltasExtracted(
+  scopeId: string,
+  deltas: ReadonlyArray<{ channel: string }>,
+): void {
+  try {
+    ensureInstruments();
+    if (deltas.length === 0) return;
+    const byChannel = new Map<string, number>();
+    for (const d of deltas) {
+      byChannel.set(d.channel, (byChannel.get(d.channel) ?? 0) + 1);
+    }
+    for (const [channel, count] of byChannel) {
+      deltasExtractedCounter?.add(count, { scope_id: scopeId, channel });
+    }
   } catch {
     // no-op
   }
@@ -495,4 +562,5 @@ export function _resetSwarmMetrics(): void {
   e17EpsilonLinf = null;
   propagationStepsTotal = null;
   progressActivationsTotal = null;
+  deltasExtractedCounter = null;
 }

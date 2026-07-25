@@ -1,6 +1,10 @@
 # Observability
 
-Prometheus scrapes the OpenTelemetry collector at `otel-collector:8889`. Grafana is provisioned with the Prometheus datasource and file-based dashboards from `grafana/dashboards/`.
+Prometheus scrapes the swarm application (via the OpenTelemetry collector at `otel-collector:8889`) plus the backing infrastructure: NATS (`nats-exporter:7777`), PostgreSQL (`postgres-exporter:9187`), and MinIO/S3 (native `/minio/v2/metrics/*` endpoints). Grafana is provisioned with the Prometheus datasource and file-based dashboards from `grafana/dashboards/`.
+
+## Metric name stability
+
+The OTEL Prometheus exporter appends a unit suffix to instruments; for unit=`1` gauges it currently appends `_ratio` (e.g. `swarm.convergence.goal_score` -> `swarm_convergence_goal_score_ratio`). Because that suffix depends on the collector version, `prometheus-rules.yml` re-exposes each affected gauge under a **stable, suffix-free name** (`swarm_convergence_goal_score`, `swarm_governance_mode_active`, ...). Dashboards query only the stable names. If a future collector changes suffixes, edit `prometheus-rules.yml` only — dashboards stay intact.
 
 ## Quick start
 
@@ -23,16 +27,36 @@ docker compose up -d otel-collector prometheus grafana
 
 ## Dashboards
 
+Organized as four infrastructure pillars plus one application view:
+
 | Dashboard | UID | Description |
 |-----------|-----|-------------|
-| Swarm Governance | `swarm-governance` | Proposals, policy violations, agent latency, governance loop, throughput |
+| Runs & Scopes | `swarm-runs` | Per-scope convergence, agent wall time, activations, and token consumption; collapsible governance-activity row |
 | SGRS Core (Rust native) | `sgrs-core` | sgrs-core call latency (avg, p50/p95/p99) and call rate by operation |
+| NATS | `nats-infra` | Connections, message/byte throughput, memory/CPU, JetStream job-bus stats |
+| Postgres | `postgres-state` | Governed state store: connections vs max, transactions, cache hit ratio, table sizes/bloat |
+| S3 / MinIO | `minio-s3` | Cluster health, capacity, per-bucket objects/size, S3 API throughput, node drives |
 
 ## Scope-aware metrics
 
-Several gauges include a `scope_id` label (governance mode, convergence, propagation, E17). The **Swarm Governance** dashboard exposes a **Scope** template variable sourced from `label_values(swarm_governance_mode_active, scope_id)`. Scope-scoped panels filter with `{scope_id=~"$scope_id"}`.
+Most run metrics carry a `scope_id` label so spend and progress can be attributed per run/scope: convergence, propagation, governance mode, E17, **agent wall-time latency**, **LLM tokens/calls**, **progress activations**, and **deltas**. The **Runs & Scopes** dashboard exposes a **Scope** template variable (`label_values(swarm_convergence_goal_score, scope_id)`) and every scope-scoped panel filters with `{scope_id=~"$scope_id"}`.
 
-Proposal, agent latency, LLM token, and state-transition metrics are still recorded globally (no `scope_id` label). Per-scope breakdown for those requires code changes in `src/metrics.ts`.
+`scope_id` defaults to the active billing scope (`getActiveScopeId()` in `src/billingContext.ts`, set per scope by the hatchery/control plane), so record helpers attach it without threading it through every call site. Note: in the single-process hatchery the active scope is a module-global — accurate when one scope is processed at a time (the demo case); truly concurrent multi-scope attribution would need context propagation.
+
+Proposal, governance-path, and state-transition counters remain global (no `scope_id`).
+
+## Billing currency: deltas and tokens
+
+Two units are metered per scope for billing:
+
+- **Deltas** (`swarm_deltas_extracted_total{scope_id,channel}`) — cumulative material evidence deltas produced by the deltas agent (support/refutation). This is the primary unit of value produced by a run.
+- **Tokens** (`swarm_llm_tokens_total{scope_id,role,direction,model}`) — metered LLM cost when a model is used.
+
+Convenience recording rules (group `swarm_billing` in `prometheus-rules.yml`): `swarm:deltas:rate5m` (deltas/sec per scope), `swarm:llm_tokens:rate5m:by_scope`, and `swarm:agent_wall_ms:mean5m:by_scope`. The Runs & Scopes dashboard's **Billing Currency** row surfaces cumulative deltas, delta production rate, deltas-by-channel, total tokens, and tokens-per-delta (cost efficiency).
+
+## Run liveness
+
+The **Run Liveness** row answers "is the swarm processing right now?" — because gauges (goal score, epoch, etc.) retain their last value in the collector and look identical whether a run is active or idle. It shows Active Scopes (5m), Activations/min, Job Bus Δ (new JetStream messages via `delta(jetstream_stream_last_seq)`, which idle heartbeat does not advance), and per-scope activation rate. Empty = 0 (idle), never "No data".
 
 The feed observability page (`/`) accepts `?scope_id=` and filters `/summary`, `/convergence`, and `/events` SSE for that scope. Demo default M&A scope is `deal-horizon`.
 

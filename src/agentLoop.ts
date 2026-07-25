@@ -219,8 +219,8 @@ export async function runAgentLoop(opts: AgentLoopOptions): Promise<void> {
         bus,
       );
       const latencyMs = Date.now() - startMs;
-      recordAgentLatency(role, latencyMs);
-      await recordActivation(role, true, latencyMs);
+      recordAgentLatency(role, latencyMs, scopeId);
+      await recordActivation(role, true, latencyMs, undefined, scopeId);
 
       let payload: Record<string, unknown>;
       try {

@@ -1,0 +1,74 @@
+groups:
+  # ---------------------------------------------------------------------------
+  # Stability layer: canonical, collector-suffix-independent metric names.
+  #
+  # The OTEL Prometheus exporter appends a unit suffix to instruments. For
+  # unit="1" gauges it currently appends "_ratio" (e.g. swarm.convergence.goal_score
+  # -> swarm_convergence_goal_score_ratio). That suffix is a function of the
+  # collector version, so dashboards that hard-code it silently break on upgrade.
+  #
+  # These rules re-expose each gauge under a stable, suffix-free name. The regex
+  # matches with or without the "_ratio" suffix and `max without(__name__)`
+  # collapses any transient duplication safely. Dashboards query ONLY the stable
+  # names below; if a future collector changes suffixes, edit this file only.
+  # ---------------------------------------------------------------------------
+  - name: swarm_stable_gauges
+    rules:
+      - record: swarm_convergence_goal_score
+        expr: max without(__name__) ({__name__=~"swarm_convergence_goal_score(_ratio)?"})
+      - record: swarm_convergence_lyapunov_v
+        expr: max without(__name__) ({__name__=~"swarm_convergence_lyapunov_v(_ratio)?"})
+      - record: swarm_convergence_rate
+        expr: max without(__name__) ({__name__=~"swarm_convergence_rate(_ratio)?"})
+      - record: swarm_convergence_trajectory_quality
+        expr: max without(__name__) ({__name__=~"swarm_convergence_trajectory_quality(_ratio)?"})
+      - record: swarm_convergence_epoch
+        expr: max without(__name__) ({__name__=~"swarm_convergence_epoch(_ratio)?"})
+      - record: swarm_convergence_estimated_rounds
+        expr: max without(__name__) ({__name__=~"swarm_convergence_estimated_rounds(_ratio)?"})
+      - record: swarm_governance_mode_active
+        expr: max without(__name__) ({__name__=~"swarm_governance_mode_active(_ratio)?"})
+      - record: swarm_propagation_contraction
+        expr: max without(__name__) ({__name__=~"swarm_propagation_contraction_ratio(_ratio)?"})
+      - record: swarm_propagation_disagreement_after
+        expr: max without(__name__) ({__name__=~"swarm_propagation_disagreement_after(_ratio)?"})
+      - record: swarm_propagation_perturbation_norm
+        expr: max without(__name__) ({__name__=~"swarm_propagation_perturbation_norm(_ratio)?"})
+      - record: swarm_e17_epsilon_l2
+        expr: max without(__name__) ({__name__=~"swarm_e17_epsilon_l2(_ratio)?"})
+      - record: swarm_e17_epsilon_linf
+        expr: max without(__name__) ({__name__=~"swarm_e17_epsilon_linf(_ratio)?"})
+
+  # ---------------------------------------------------------------------------
+  # Run/scope convenience aggregates for the Runs & Scopes dashboard.
+  # ---------------------------------------------------------------------------
+  - name: swarm_runs
+    rules:
+      # Mean LLM tokens per minute across all roles (input + output).
+      - record: swarm:llm_tokens:rate5m
+        expr: sum(rate(swarm_llm_tokens_total[5m]))
+      # Mean agent activation wall time (ms) by role.
+      - record: swarm:agent_wall_ms:mean5m
+        expr: >-
+          sum by (role) (rate(swarm_agent_latency_ms_milliseconds_sum[5m]))
+          / clamp_min(sum by (role) (rate(swarm_agent_latency_ms_milliseconds_count[5m])), 1)
+
+  # ---------------------------------------------------------------------------
+  # Billing currency: per-scope aggregates. Deltas are the primary unit of
+  # value (material evidence changes produced by a run); LLM tokens are the
+  # metered cost when a model is used. Both carry a scope_id so spend/value can
+  # be attributed per run/scope and later per tenant.
+  # ---------------------------------------------------------------------------
+  - name: swarm_billing
+    rules:
+      # Delta production rate per scope (currency flow, deltas/sec over 5m).
+      - record: swarm:deltas:rate5m
+        expr: sum by (scope_id) (rate(swarm_deltas_extracted_total[5m]))
+      # LLM token consumption rate per scope (tokens/sec over 5m).
+      - record: swarm:llm_tokens:rate5m:by_scope
+        expr: sum by (scope_id) (rate(swarm_llm_tokens_total[5m]))
+      # Mean agent activation wall time (ms) by role AND scope.
+      - record: swarm:agent_wall_ms:mean5m:by_scope
+        expr: >-
+          sum by (role, scope_id) (rate(swarm_agent_latency_ms_milliseconds_sum[5m]))
+          / clamp_min(sum by (role, scope_id) (rate(swarm_agent_latency_ms_milliseconds_count[5m])), 1)

@@ -583,6 +583,7 @@ export async function recordActivation(
   productive: boolean,
   latencyMs: number,
   pool?: pg.Pool,
+  scopeId?: string,
 ): Promise<void> {
   const p = pool ?? getPool();
   await ensureFilterTable(p);
@@ -617,7 +618,7 @@ export async function recordActivation(
 
   try {
     const { recordProgressMetrics } = await import("./metrics.js");
-    recordProgressMetrics(agentRole, productive);
+    recordProgressMetrics(agentRole, productive, scopeId);
   } catch {
     /* metrics may be unavailable */
   }
