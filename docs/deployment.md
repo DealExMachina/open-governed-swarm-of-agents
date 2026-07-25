@@ -63,13 +63,23 @@ docker compose -f docker-compose.yml -f docker-compose.public-images.yml up -d
 
 Requires Docker Compose **v2.24+** (supports `!reset` merge keys so the feed service drops local `build` and bind mounts).
 
-The facts-worker service still uses a public base image (`python:3.11-slim`) and a **bind mount** of `workers/facts-worker` in the default compose file. For air-gapped installs without mounts, build a dedicated worker image separately (not bundled here).
+**Default compose** runs facts-worker from `python:3.11-slim` with a **bind mount** of `workers/facts-worker` (live edit; pip install on start).
+
+**Public / air-gapped** overlay builds (or pulls) a dedicated worker image from [`workers/facts-worker/Dockerfile`](../workers/facts-worker/Dockerfile) — Python 3.11, port **8010**, copies `app.py`, `rlm_facts.py`, and extraction schema assets. Override with `FACTS_WORKER_IMAGE`. Optional NER/NLI bake-in: `FACTS_WORKER_BUILD_FULL=1`.
+
+```bash
+# Build worker only
+docker build -t swarm-facts-worker -f workers/facts-worker/Dockerfile workers/facts-worker
+
+# Or let the public-images overlay build it
+docker compose -f docker-compose.yml -f docker-compose.public-images.yml up -d --build facts-worker
+```
 
 ---
 
 ## Public base images
 
-Compose already relies on upstream images (e.g. Postgres + pgvector, NATS, MinIO, Grafana). Only the **feed** service uses a custom image in this workflow.
+Compose already relies on upstream images (e.g. Postgres + pgvector, NATS, MinIO, Grafana). Custom images in the public-images workflow: **feed** (GHCR) and **facts-worker** (local Dockerfile or `FACTS_WORKER_IMAGE`).
 
 ---
 

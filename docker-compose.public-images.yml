@@ -1,7 +1,9 @@
-# Use prebuilt feed image from GHCR (no local build, no repo bind mount).
+# Use prebuilt images (no local build for feed; no bind mounts for feed/facts-worker).
 # Requires Docker Compose v2.24+ for merge `!reset`.
 #
 #   export SWARM_FEED_IMAGE=ghcr.io/dealexmachina/swarm-feed:latest
+#   # Optional local/published worker image (defaults to building from Dockerfile):
+#   # export FACTS_WORKER_IMAGE=swarm-facts-worker
 #   docker compose -f docker-compose.yml -f docker-compose.public-images.yml up -d
 #
 # See docs/deployment.md
@@ -15,3 +17,15 @@ services:
     ports: !reset []
     environment:
       FEED_HOST: "0.0.0.0"
+
+  facts-worker:
+    image: ${FACTS_WORKER_IMAGE:-swarm-facts-worker}
+    build:
+      context: ./workers/facts-worker
+      dockerfile: Dockerfile
+      args:
+        BUILD_FULL: ${FACTS_WORKER_BUILD_FULL:-0}
+    working_dir: /app
+    volumes: !reset []
+    # Image CMD already runs uvicorn on 8010; drop compose pip-install command.
+    command: !reset null

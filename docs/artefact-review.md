@@ -40,9 +40,10 @@ After rebase onto `origin/dev`, the tip has **`public/`**, taxonomized **`script
 
 | Finding | Impact |
 |---------|--------|
-| **GHCR feed omits `demo/scenario`** (`.dockerignore` + no COPY) | Studio HTML boots; corpus load would 500 before this cycle’s degrade fix; still no corpora in image (D2) |
-| **`workers/facts-worker/Dockerfile`** unused + incomplete vs compose (`python:3.11` bind-mount, port 8010; Dockerfile 3.12/8000, missing schema files) | Building the Dockerfile as written would fail; compose does not use it |
+| **GHCR feed omits `demo/scenario`** (`.dockerignore` + no COPY) | Studio HTML boots; corpus load degrades to empty; still no corpora in image (D2) |
 | **Cleanup PRs #27–#29 conflict with tip** | Soft cleanup / wiring / Studio split cannot land without rebase |
+
+~~**D10 facts-worker Dockerfile**~~ — **fixed**: aligned to Python 3.11 / port 8010 / full runtime COPY; wired via `docker-compose.public-images.yml` (`FACTS_WORKER_IMAGE`). Default compose still bind-mounts for live edit.
 
 ### Already fixed by `dev` (supersedes cycle-1 `main` findings)
 
@@ -72,7 +73,7 @@ After rebase onto `origin/dev`, the tip has **`public/`**, taxonomized **`script
 | **D7. `docs/dashboard-test-suite-spec.md`** | Link / archive / delete | **(B)** — still 0 inbound links |
 | **D8. Dual PDFs** | Keep both venue variants | **Keep both** |
 | **D9. Orphan research scripts** | Archive/delete zero-caller benchmarks (`benchmark-*-agents`, `benchmark-gateway-load`, `benchmark-multi-scope`, `test-llm-paths`, `describe-scope-graph`) | **Owner call** — low risk if research not needed in-tree |
-| **D10. Facts-worker Dockerfile** | Delete / fix+wire compose / leave unused | **Delete or fix** — do not leave half-broken |
+| ~~**D10. Facts-worker Dockerfile**~~ | — | **Done** — Dockerfile fixed + public-images overlay |
 
 ### Explicitly not deleted
 
@@ -82,7 +83,8 @@ After rebase onto `origin/dev`, the tip has **`public/`**, taxonomized **`script
 
 - [ ] Rebase/land #27 → #28 → #29 on `dev` (resolve conflicts first)
 - [ ] Resolve D1 (`dev` → `main`) and close stale #24
-- [ ] Owner call on D2 (corpora in GHCR) and D10 (facts-worker Dockerfile)
+- [x] Fix D10 (facts-worker Dockerfile + public-images overlay)
+- [ ] Owner call on D2 (corpora in GHCR)
 - [ ] Owner call on D5 / D9 orphans
 - [ ] Archive or link `dashboard-test-suite-spec.md` (D7)
 - [ ] Re-scan markdown links after #27–#29 land

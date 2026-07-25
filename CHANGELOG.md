@@ -26,6 +26,7 @@ Kernel crate `sgrs-core` bumped **0.1.0 -> 0.2.0** (propagation-layer Lyapunov +
 
 - Artefact review: dead experiment protocol links, stale Vitest/issue references, and demo preflight folded into `demo/DEMO.md` (archive stub redirect-only).
 - `loadCorpusDocuments` degrades to `[]` when `demo/scenario` is absent (GHCR/API-only feed images no longer 500).
+- **Facts-worker Dockerfile (D10):** Python 3.11, port 8010, copy extraction schema assets; `docker-compose.public-images.yml` builds/runs it without bind mount (`FACTS_WORKER_IMAGE`).
 
 ### Changed
 
