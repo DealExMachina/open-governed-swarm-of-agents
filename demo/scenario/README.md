@@ -1,6 +1,6 @@
 # Demo and experiment corpora
 
-Document sets under `demo/scenario/`. Each folder is a corpus of `.txt` files injected into a scope for demos, experiments, or forthcoming benchmark manifests.
+Document sets under `demo/scenario/`. Each folder is a corpus of `.txt` files injected into a scope for demos, experiments, or benchmark manifests (S1–S5 YAML under [`docs/benchmarks/manifests/`](../../docs/benchmarks/manifests/); driver/Studio wiring for s2–s5 is still open — see PR #28).
 
 | Corpus | Docs | Status | Wired by |
 |--------|-----:|--------|----------|

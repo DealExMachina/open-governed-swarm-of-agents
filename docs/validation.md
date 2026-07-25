@@ -350,7 +350,8 @@ Two Phase-2 follow-on checks were added to close the Extract/escalation gap:
   while cutting escalation load (`4.01` vs `7.71`) and removing unnecessary
   escalations in this profile.
 
-Protocol drivers: `scripts/exp-e19-extract-loss.ts`, `scripts/exp-e20-escalation-necessity.ts`
+Protocol drivers: `scripts/experiments/exp-e19-extract-loss.ts`,
+`scripts/experiments/exp-e20-escalation-necessity.ts`
 (no shipped `docs/experiments/e19-e20/` tree in this snapshot). Artifacts, when generated,
 are local/gitignored — not published under `artifacts/experiments/`.
 

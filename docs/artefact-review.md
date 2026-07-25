@@ -1,6 +1,6 @@
 # Artefact review ledger
 
-> Back to [README](../README.md) | Related: [codebase-hygiene.md](codebase-hygiene.md).
+> Back to [README](../README.md) | Related: [codebase-hygiene.md](codebase-hygiene.md), [cleanup-and-refactor.md](cleanup-and-refactor.md).
 
 Recurring review of **old, redundant, or inconsistent artefacts**. Each cycle records what was verified, what was changed safely, and which decisions need an owner. Scope is technical (components and invasiveness), not calendar estimates.
 
@@ -8,11 +8,12 @@ Recurring review of **old, redundant, or inconsistent artefacts**. Each cycle re
 
 ## How to run a cycle
 
-1. Diff `main` against active cleanup branches / open PRs before deleting anything already in flight.
-2. Check internal markdown links and paths claimed by docs vs the tree on disk.
-3. Separate **safe slim-down** (zero/few importers, redirects only) from **needs decision** (corpora, Docker story, branch merge).
-4. Prefer fixing dead links and contradictions over mass deletion.
-5. Append a new cycle section below; update [codebase-hygiene.md](codebase-hygiene.md) when layout reality changes.
+1. Fetch/rebase onto the intended tip (`origin/dev` while cleanup lands there; `origin/main` after catch-up).
+2. Diff against open cleanup PRs before deleting anything already in flight.
+3. Check internal markdown links and paths claimed by docs vs the tree on disk.
+4. Separate **safe slim-down** from **needs decision**.
+5. Prefer fixing dead links and contradictions over mass deletion.
+6. Append a new cycle section below; update hygiene / cleanup docs when layout reality changes.
 
 ---
 
@@ -20,62 +21,74 @@ Recurring review of **old, redundant, or inconsistent artefacts**. Each cycle re
 
 | PR | Base | Status | Notes |
 |----|------|--------|-------|
-| [#24](https://github.com/DealExMachina/open-governed-swarm-of-agents/pull/24) | `main` | Open (draft) | Cleanup plan, placeholders, scripts taxonomy, S1–S5 manifests |
-| [#26](https://github.com/DealExMachina/open-governed-swarm-of-agents/pull/26) | `dev` | Merged into `dev` | Studio/observability → `public/`; GHCR image copies `public/` |
-| [#27](https://github.com/DealExMachina/open-governed-swarm-of-agents/pull/27) | `dev` | Open | Soft cleanup: archive stub, ma-extended archive, skills docs |
-| [#28](https://github.com/DealExMachina/open-governed-swarm-of-agents/pull/28) | `dev` | Open | Manifest wiring, semantic-graph split, exp harness |
-| [#29](https://github.com/DealExMachina/open-governed-swarm-of-agents/pull/29) | `dev` | Open | Studio HTML → CSS/JS split |
-
-`docs/cleanup-and-refactor.md` and `public/` exist on **`dev`**, not on `main` (as of this cycle).
+| [#24](https://github.com/DealExMachina/open-governed-swarm-of-agents/pull/24) | `main` | Open (draft) | Overlaps content already on `dev` — prefer close/retarget after `dev` → `main` |
+| [#26](https://github.com/DealExMachina/open-governed-swarm-of-agents/pull/26) | `dev` | Merged | Studio/observability → `public/`; GHCR copies `public/` |
+| [#27](https://github.com/DealExMachina/open-governed-swarm-of-agents/pull/27) | `dev` | Open (conflicts) | Soft cleanup: delete archive stub, archive ma-extended, skills docs |
+| [#28](https://github.com/DealExMachina/open-governed-swarm-of-agents/pull/28) | `dev` | Open (conflicts) | Wire s1–s5 drivers, split semantic-graph/finality/studio, exp-harness |
+| [#29](https://github.com/DealExMachina/open-governed-swarm-of-agents/pull/29) | `dev` | Open (conflicts) | Studio HTML → CSS/JS split |
+| [#30](https://github.com/DealExMachina/open-governed-swarm-of-agents/pull/30) | retarget `dev` | Open | This ledger + post-rebase consistency fixes |
 
 ---
 
-## Cycle 2026-07-25
+## Cycle 2026-07-25 (rebased onto `origin/dev`)
 
 ### Verdict
 
-`main` still carries the pre-`public/` layout and several doc/link contradictions. The larger slim-down and structural refactor already live on **`dev`**. Highest leverage for consistency is **reconciling `main` ↔ `dev`**, not starting a parallel cleanup stack.
+After rebase onto `origin/dev`, the tip has **`public/`**, taxonomized **`scripts/`**, and **S1–S5 manifests**. Relative markdown links: **0 broken**. Remaining work is owner decisions + finishing open PRs #27–#29 (all currently **conflicting** with tip), not another parallel cleanup stack.
 
-### Critical findings
+### Critical (still open on tip)
 
 | Finding | Impact |
 |---------|--------|
-| **GHCR feed image (`Dockerfile.feed.dist`) omitted Studio assets** while `.dockerignore` excluded `prototype/` | Dist image could not load `src/feed.ts` (top-level `readFileSync` of Studio HTML/JS). Fixed in this cycle on `main` by shipping `prototype/`. `dev` already moved assets to `public/` + `COPY public`. |
-| **`docs/benchmarks/manifests/` missing on `main`** | `pnpm run check:benchmark-manifests` and `registry.ts` point at absent YAML. Present on `dev` / PR #24. |
-| **Branch divergence** | Cleanup + asset move landed on `dev`; `main` docs still describe `prototype/studio-preview`. |
+| **GHCR feed omits `demo/scenario`** (`.dockerignore` + no COPY) | Studio HTML boots; corpus load would 500 before this cycle’s degrade fix; still no corpora in image (D2) |
+| **`workers/facts-worker/Dockerfile`** unused + incomplete vs compose (`python:3.11` bind-mount, port 8010; Dockerfile 3.12/8000, missing schema files) | Building the Dockerfile as written would fail; compose does not use it |
+| **Cleanup PRs #27–#29 conflict with tip** | Soft cleanup / wiring / Studio split cannot land without rebase |
 
-### Executed this cycle (safe)
+### Already fixed by `dev` (supersedes cycle-1 `main` findings)
 
-- Ship `prototype/` in `Dockerfile.feed.dist`; stop dockerignoring it (feed boot on GHCR).
-- Remove obsolete `test/.gitkeep` / `test/.placeholder.ts`; drop ESLint include.
-- Fold archive demo preflight into `demo/DEMO.md`; leave `docs/archive/demo.md` as redirect-only.
-- Fix broken relative links in `docs/demos/ma` and `docs/demos/green-bond`.
-- Align hygiene / validation / CONTRIBUTING / convergence docs with the real `test/` tree.
-- Demote dead experiment protocol links (`exp-load`, `e19-e20`) and misleading Stage‑1 GitHub issue IDs in `validation.md`.
-- Archive orphan `docs/investigation-3d-knowledge-mesh.md` → `docs/archive/` (zero inbound links).
+- Studio at `public/studio/`; GHCR `COPY public`
+- Scripts under `ops/` / `checks/` / `demo/` / `experiments/` / `benchmarks/`
+- S1–S5 manifests present; `check:benchmark-manifests` path exists
+- Vitest placeholders removed; demo/feed module splits landed
 
-### Needs human decision
+### Executed this rebase cycle (safe)
+
+- Rebase artefact-review branch onto `origin/dev`; drop obsolete `prototype/` dist fix in favor of `public/`
+- `loadCorpusDocuments` returns `[]` when scenario dirs missing (no 500 on API-only images)
+- Fix validation e19/e20 script paths to `scripts/experiments/`
+- Refresh cleanup Verdict, scenario README, hygiene corpus wording, README “prototypes” phrasing, CHANGELOG Docker note
+- Keep archive investigation + redirect stub; demote dead experiment protocol links (from cycle 1, retained)
+
+### Needs human decision (updated)
 
 | Decision | Options | Recommendation |
 |----------|---------|----------------|
-| **D1. `main` vs `dev` cleanup** | (A) Merge `dev` → `main` after open #27–#29 settle; (B) Retarget/close stale #24 and cherry-pick only what’s still needed on `main`; (C) Dual-maintain both layouts | **(A)** once #27–#29 are reviewed — avoids parallel artefact stories |
-| **D2. Dist image corpora** | (A) `COPY demo/scenario` (or a slim subset) into GHCR feed; (B) API-only image without Studio corpora; (C) Lazy-load assets so missing corpora degrade gracefully | **(C)+(A subset)** if Studio-in-GHCR is a product goal; otherwise document API-only |
-| **D3. Unwired corpora** (`docs-aml-kyc`, `docs-energy-grid`, `docs-clinical-trial`, `docs-solvency2`, `docs-ma-extended`) | (A) Keep until manifests/drivers land; (B) Archive under `docs/archive/scenario/`; (C) Delete after publication sign-off | **(A)** for s2–s5-related trees until #24/#28 merge; **(B)** for `docs-ma-extended` (already proposed in #27) |
-| **D4. Root `skills/*.md`** | (A) Ship playbooks; (B) Document intentionally unshipped; (C) Remove loader path | **(B)** (matches #27) — do not invent placeholder markdown that changes prompts |
-| **D5. `src/combiningAlgorithms.ts`** | (A) Wire into policy engine + tests; (B) Delete as dead; (C) Keep documented-only | **Owner call** — architecture still cites it; zero importers today |
-| **D6. `sgrs-core/migrations/` copies** | (A) Delete unused duplicates; (B) Keep with README “reference only”; (C) Wire Rust build to them | **(B)** short-term (dev already adds READMEs); **(A)** once confirmed no native consumer |
-| **D7. `docs/dashboard-test-suite-spec.md`** | (A) Link from hygiene/README; (B) Archive; (C) Delete if scripts are source of truth | **(B)** or **(A)** — zero inbound links today |
-| **D8. Dual publication PDFs** | Keep both venue variants vs one PDF + both TeX | **Keep both** — hashes/TeX differ (not duplicate bloat) |
+| **D1. `main` vs `dev`** | (A) Finish #27–#29 on `dev`, merge `dev` → `main`, close/retarget #24; (B) cherry-pick only; (C) dual-maintain | **(A)** |
+| **D2. Dist corpora** | (A) `COPY demo/scenario` (or subset); (B) document API-only Studio; (C) graceful empty (done) + optional COPY | **(B) or (A subset)** — graceful empty is now in tree |
+| **D3. Corpora** | Keep s2–s5 until #28 wires drivers; archive `docs-ma-extended` (#27) | **Keep s2–s5; archive ma-extended via #27** |
+| **D4. Skills** | Ship / intentionally unshipped / remove loader | **(B)** via #27 wording |
+| **D5. `combiningAlgorithms.ts` + `experiment-harness.ts`** | Wire / delete / keep | **Owner call** — still zero importers |
+| **D6. `sgrs-core/migrations/`** | Delete identical copies / keep annotated / wire Rust | **(B)** short-term |
+| **D7. `docs/dashboard-test-suite-spec.md`** | Link / archive / delete | **(B)** — still 0 inbound links |
+| **D8. Dual PDFs** | Keep both venue variants | **Keep both** |
+| **D9. Orphan research scripts** | Archive/delete zero-caller benchmarks (`benchmark-*-agents`, `benchmark-gateway-load`, `benchmark-multi-scope`, `test-llm-paths`, `describe-scope-graph`) | **Owner call** — low risk if research not needed in-tree |
+| **D10. Facts-worker Dockerfile** | Delete / fix+wire compose / leave unused | **Delete or fix** — do not leave half-broken |
 
 ### Explicitly not deleted
 
-Live on `main`: `prototype/studio-preview/`, `src/observability.html`, `seed-docs/`, wired demo corpora, research scripts called by `run-experiment.sh`, `packages/sgrs-client*`, root `migrations/`, dual `Dockerfile.feed` / `.dist` (by design).
+`public/studio/**`, wired demo corpora, s2–s5 corpora (manifest-backed), `seed-docs/`, `packages/sgrs-client*`, root `migrations/`, dual feed Dockerfiles, research scripts used by `run-experiment.sh`.
 
 ### Next cycle checklist
 
-- [ ] Resolve D1 (`dev` → `main` or retarget #24).
-- [ ] After `public/` lands on `main`, remove `prototype/` from dist Dockerfile and docs.
-- [ ] Decide D2 (corpora in GHCR image).
-- [ ] Link or archive `dashboard-test-suite-spec.md`.
-- [ ] Owner call on `combiningAlgorithms.ts` and `scripts/lib/experiment-harness.ts` (zero importers on `main`).
-- [ ] Re-scan markdown links after any merge from `dev`.
+- [ ] Rebase/land #27 → #28 → #29 on `dev` (resolve conflicts first)
+- [ ] Resolve D1 (`dev` → `main`) and close stale #24
+- [ ] Owner call on D2 (corpora in GHCR) and D10 (facts-worker Dockerfile)
+- [ ] Owner call on D5 / D9 orphans
+- [ ] Archive or link `dashboard-test-suite-spec.md` (D7)
+- [ ] Re-scan markdown links after #27–#29 land
+
+---
+
+## Cycle 2026-07-25 (original, on `main` — historical)
+
+First pass targeted `main` before rebase. Key finding was `main`↔`dev` divergence and GHCR omitting Studio when assets lived under `prototype/`. Superseded by the rebased cycle above once this branch sits on `origin/dev`.

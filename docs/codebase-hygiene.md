@@ -60,7 +60,7 @@ For the full cleanup backlog, corpus wiring matrix, and refactor phases, see **[
 
 ## Scenario corpora
 
-Wiring status for every `demo/scenario/docs-*` folder is maintained in [`demo/scenario/README.md`](../demo/scenario/README.md). Unwired corpora (`docs-aml-kyc`, `docs-energy-grid`, `docs-ma-extended`) are prepared assets, not orphans for deletion.
+Wiring status for every `demo/scenario/docs-*` folder is maintained in [`demo/scenario/README.md`](../demo/scenario/README.md). S2–S5 corpora have shipped manifests but are not yet in `drive-experiment` / Studio; `docs-ma-extended` remains prepared-only (archive candidate in PR #27).
 
 ---
 

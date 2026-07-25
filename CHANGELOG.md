@@ -24,10 +24,8 @@ Kernel crate `sgrs-core` bumped **0.1.0 -> 0.2.0** (propagation-layer Lyapunov +
 
 ### Fixed
 
-- GHCR feed image (`Dockerfile.feed.dist`): include `prototype/` so Studio assets required by `src/feed.ts` are present (`.dockerignore` no longer excludes `prototype`).
-- Broken relative links in `docs/demos/ma` and `docs/demos/green-bond`; dead experiment protocol links and stale Vitest/issue references in validation/hygiene/CONTRIBUTING.
-- Fold demo preflight/troubleshooting into `demo/DEMO.md`; archive stub is redirect-only.
-- Remove obsolete `test/.gitkeep` / `test/.placeholder.ts`.
+- Artefact review: dead experiment protocol links, stale Vitest/issue references, and demo preflight folded into `demo/DEMO.md` (archive stub redirect-only).
+- `loadCorpusDocuments` degrades to `[]` when `demo/scenario` is absent (GHCR/API-only feed images no longer 500).
 
 ### Changed
 

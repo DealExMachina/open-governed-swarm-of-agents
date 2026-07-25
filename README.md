@@ -123,7 +123,7 @@ Agents --> shared bitemporal state --> governance kernel --> finality certificat
 |---|---|
 | Deploy, connect to cloud, or self-host | [Deployment guide](docs/deployment.md) |
 | Understand the terminology | [Beginner Tutorial: Lattice-State Graph](docs/tutorials/lattice-state-graph-beginner.md) |
-| Missing files, E2E caveats, prototypes | [Codebase hygiene](docs/codebase-hygiene.md) |
+| Missing files, E2E caveats, known gaps | [Codebase hygiene](docs/codebase-hygiene.md) |
 | Cleanup backlog and refactor phases | [Cleanup and refactor](docs/cleanup-and-refactor.md) |
 | Artefact slim-down / review decisions | [Artefact review ledger](docs/artefact-review.md) |
 | Comparative benchmark manifests (s1–s5) | [Benchmark scenarios](docs/benchmarks/README.md) |
@@ -334,7 +334,7 @@ pnpm run test:dashboard:regression               # Dashboard regression checks
 ./scripts/ops/run-e2e.sh                             # Docker E2E (applies a subset of migrations — prefer ensure-schema for full DB)
 ```
 
-The repository includes a **Vitest** suite under `test/` (architecture boundaries, logger, errors, DB helpers). **CI** runs `pnpm test` after installing dependencies, building `sgrs-core`, and compiling TypeScript. **Rust** still carries the deepest automated coverage for the kernel (`sgrs-core`). See [docs/codebase-hygiene.md](docs/codebase-hygiene.md) for E2E vs. `ensure-schema` and prototype code.
+The repository includes a **Vitest** suite under `test/` (architecture boundaries, logger, errors, DB helpers). **CI** runs `pnpm test` after installing dependencies, building `sgrs-core`, and compiling TypeScript. **Rust** still carries the deepest automated coverage for the kernel (`sgrs-core`). See [docs/codebase-hygiene.md](docs/codebase-hygiene.md) for E2E vs. `ensure-schema` and other known gaps.
 
 **What's proven (high level):** Convergence math (benchmark + Rust), kernel load benchmark, propagation experiments in `sgrs-core`, governance path audit script after E2E seed, plus targeted TypeScript unit tests in CI.
 
