@@ -110,4 +110,6 @@ npx tsx scripts/benchmarks/benchmark-sgrs-load.ts --instances=4 --ops=50000
 - Vary agent scaling: default vs scaled (2x workers).
 - Measure: CAS rejections, state transitions/min, bootstrap-to-first-transition, V(t) monotonicity.
 
-**Scripts:** `scripts/experiments/loadgen-inject.ts`, `scripts/experiments/run-load-experiment.sh`. See [docs/experiments/exp-load/README.md](experiments/exp-load/README.md).
+**Scripts:** `scripts/experiments/loadgen-inject.ts`, `scripts/experiments/run-load-experiment.sh`.
+There is no shipped `docs/experiments/exp-load/` protocol tree in this snapshot — treat as script-driven;
+results under `docs/experiments/*/results/` are gitignored.

@@ -12,6 +12,7 @@ Kernel crate `sgrs-core` bumped **0.1.0 -> 0.2.0** (propagation-layer Lyapunov +
 
 ### Added
 
+- `docs/artefact-review.md` — recurring artefact slim-down ledger (findings, decisions, open cleanup PRs).
 - **Sheaf Dirichlet energy** `f(x) = xᵀL_F x = ‖δx‖²` in `sgrs-core` (`propagation/dirichlet.rs`): the true propagation-layer Lyapunov function, its per-edge decomposition, and the global-section characterization `{x : f(x) = 0} = ker(δ) = H⁰(G;F)`. Contracts at rate `(1 - αλ₂)²`.
 - Propagation steps now report `dirichlet_before` / `dirichlet_after` (NAPI DTO + TS `PropagationStepResult`), plus direct `dirichletEnergy` / `dirichletEnergyByEdge` bridges and `PropagationEngine.getDirichletEnergy`.
 - **Dual-condition (∧) finality gate**: RESOLVED requires `[f(x) < ε_prop] ∧ F*(t)` — propagation-layer consensus (global section) AND semantic-layer vector finality (non-compensable). Configured via `finality.yaml: dirichlet_gate`. Additive and backward-compatible: falls back to the semantic layer alone when disabled or when no propagation history exists. Emits a `dirichlet_hold` signal when semantics are ready but propagation is still converging.
@@ -20,6 +21,13 @@ Kernel crate `sgrs-core` bumped **0.1.0 -> 0.2.0** (propagation-layer Lyapunov +
 - `demo/scenario/README.md` corpus wiring matrix; READMEs for root and `sgrs-core` migration trees.
 - `scripts/README.md` documenting the scripts taxonomy.
 - Benchmark manifests **s1–s5** under `docs/benchmarks/manifests/` (S1 via `builtinRef`; S2–S5 wire Solvency II, clinical trial, AML/KYC, energy-grid corpora).
+
+### Fixed
+
+- GHCR feed image (`Dockerfile.feed.dist`): include `prototype/` so Studio assets required by `src/feed.ts` are present (`.dockerignore` no longer excludes `prototype`).
+- Broken relative links in `docs/demos/ma` and `docs/demos/green-bond`; dead experiment protocol links and stale Vitest/issue references in validation/hygiene/CONTRIBUTING.
+- Fold demo preflight/troubleshooting into `demo/DEMO.md`; archive stub is redirect-only.
+- Remove obsolete `test/.gitkeep` / `test/.placeholder.ts`.
 
 ### Changed
 

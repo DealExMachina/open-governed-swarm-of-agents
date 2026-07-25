@@ -1,5 +1,7 @@
 # Investigation: 3D Knowledge Mesh Visualization
 
+> Archived 2026-07-25 (artefact review). Speculative UX note; not implemented and previously unlinked from the docs index. See [artefact-review.md](../artefact-review.md).
+
 ## Concept
 
 A 3D force-directed visualization of the semantic graph that builds up in real time as agents process documents. The user sees a **fabric being woven** — each fact, contradiction, risk, and goal appears as a node in 3D space, edges form between them as relationships are discovered, and the mesh tightens as contradictions get resolved and convergence progresses.

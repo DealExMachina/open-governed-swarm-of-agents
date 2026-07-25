@@ -101,15 +101,20 @@ const x = 5; // x is 5
 - **Integration tests**: Required for agent loops and policy evaluation
 - **Coverage target**: >60% for critical paths (agent loop, convergence, governance)
 
-Test files live in `test/unit/` following the same structure as `src/`:
+Test files live in `test/unit/`, `test/baselines/`, and related trees. Prefer matching
+an existing module name (e.g. `logger.test.ts`, `db.test.ts`) rather than inventing
+coverage that is not present yet:
 
 ```bash
-# Example test structure
-test/unit/
-├── db.test.ts
-├── logger.test.ts
-├── governance.test.ts
-└── convergenceTracker.test.ts
+# Illustrative layout (see the tree on disk for the current suite)
+test/
+├── setup.ts
+├── architecture-boundary.test.ts
+├── unit/
+│   ├── db.test.ts
+│   ├── logger.test.ts
+│   └── …
+└── baselines/
 ```
 
 **Running tests:**

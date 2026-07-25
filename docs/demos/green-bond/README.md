@@ -22,7 +22,7 @@ bash scripts/experiments/run-experiment.sh green-bond
 
 ## Results
 
-Results in `docs/experiments/green-bond/results/<timestamp>/`. See [docs/experiments.md](../experiments.md) for the propagation trajectory table and ISS observations.
+Results in `docs/experiments/green-bond/results/<timestamp>/` (gitignored). See [docs/experiments.md](../../experiments.md) for the propagation trajectory table and ISS observations.
 
 ## Scope isolation
 

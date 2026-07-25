@@ -504,4 +504,4 @@ Source: [`src/finalityEvaluator.ts`](../src/finalityEvaluator.ts) (`propConverge
 
 ---
 
-*Source files: [`src/convergenceTracker.ts`](../src/convergenceTracker.ts), [`src/finalityEvaluator.ts`](../src/finalityEvaluator.ts), [`src/hitlFinalityRequest.ts`](../src/hitlFinalityRequest.ts), [`finality.yaml`](../finality.yaml), [`scripts/benchmarks/benchmark-convergence.ts`](../scripts/benchmarks/benchmark-convergence.ts), [`test/unit/convergenceTracker.test.ts`](../test/unit/convergenceTracker.test.ts).*
+*Source files: [`src/convergenceTracker.ts`](../src/convergenceTracker.ts), [`src/finalityEvaluator.ts`](../src/finalityEvaluator.ts), [`src/hitlFinalityRequest.ts`](../src/hitlFinalityRequest.ts), [`finality.yaml`](../finality.yaml), [`scripts/benchmarks/benchmark-convergence.ts`](../scripts/benchmarks/benchmark-convergence.ts). Dedicated `convergenceTracker` Vitest coverage is not shipped yet — see [validation.md](validation.md).*

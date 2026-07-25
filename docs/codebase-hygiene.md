@@ -14,7 +14,10 @@ For the full cleanup backlog, corpus wiring matrix, and refactor phases, see **[
 |------|-------------|------------|
 | **`skills/`** (root) | `src/skills/loader.ts` loads `skills/<id>.md` | Skill text is **skipped** (empty string). Agents still run; prompts have no skill appendix. DEMO.md previously named files like `00-swarm-protocol.md` — add them under `skills/` to enable. |
 | **`docs/benchmarks/manifests/`** | `src/baselines/manifest/registry.ts` (`s1`–`s5`) | Shipped — see [`docs/benchmarks/README.md`](benchmarks/README.md). Validate with `pnpm run check:benchmark-manifests`. |
-| **`test/`** | `vitest.config.ts` (`test/**/*.test.ts`, `test/setup.ts`) | **`pnpm test`** reports *no test files* and exits non-zero. |
+
+**Present:** `test/` holds Vitest unit/architecture suites; `pnpm test` runs in CI after `build:rust` and `pnpm build`.
+
+> Recurring review ledger: [artefact-review.md](artefact-review.md). Cleanup backlog: [cleanup-and-refactor.md](cleanup-and-refactor.md).
 
 ---
 
@@ -74,6 +77,7 @@ Wiring status for every `demo/scenario/docs-*` folder is maintained in [`demo/sc
 |------|--------|
 | **Skill markdown files** | **Dead data path** until `skills/` exists: `loadSkillFile` always hits `catch` and returns `""`. |
 | **Vitest entrypoint** | **`test/`** holds unit and architecture tests; **`pnpm test`** runs in CI after `build:rust` and `pnpm build`. Placeholders (`.gitkeep` / `.placeholder.ts`) were removed once real tests landed. E2E remains out of CI (see [validation.md](validation.md)). |
+| **`src/combiningAlgorithms.ts`** | Documented in architecture; **no runtime importers or tests** — candidate for wire-up or removal (see [artefact-review.md](artefact-review.md)). |
 | **Causal contribution → evidence state** | Documented in validation as **not implemented by design** (audit-only DAG); do not assume runtime wiring from TS `emitContribution` to full evidence-state consumers. |
 
 ---
@@ -87,5 +91,6 @@ Full tree: `cargo test` from `sgrs-core/` (2026-04-30): **413 tests passed**, **
 ## When updating docs
 
 1. Prefer **`pnpm run demo:preflight`** over ad-hoc Docker commands for demo smoke.
-2. Point walkthroughs at **`demo/DEMO.md`** (canonical); **`docs/archive/demo.md`** is a short redirect + troubleshooting only.
-3. Do not cite **Vitest file-by-file tables** unless `test/` exists and matches the table (see [validation.md](validation.md)).
+2. Point walkthroughs at **`demo/DEMO.md`** (canonical); **`docs/archive/demo.md`** is a redirect stub only.
+3. When citing Vitest coverage, match files that actually exist under `test/` (see [validation.md](validation.md)).
+4. After each artefact-review cycle, update [artefact-review.md](artefact-review.md) before deleting live paths.

@@ -16,7 +16,7 @@ pnpm run demo
 bash scripts/experiments/run-experiment.sh demo-baseline
 ```
 
-Archived overview: [docs/archive/demo.md](../archive/demo.md). Step-by-step guide: [demo/DEMO.md](../../demo/DEMO.md).
+Canonical walkthrough: [demo/DEMO.md](../../../demo/DEMO.md). Archived redirect stub: [docs/archive/demo.md](../../archive/demo.md).
 
 ## Scope isolation
 

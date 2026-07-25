@@ -19,4 +19,4 @@ Demo surfaces use server-minted sessions and strict scope routing. To avoid cros
 - For shell walkthroughs, set `DEMO_SCOPE_ID` explicitly.
 - Feed/MITL demo paths reject missing scope with `scope_required`.
 
-See [`docs/archive/demo.md`](../archive/demo.md) for a **short preflight stub** only. For financial vs M&A consistency, see [COMPARISON-financial-vs-ma.md](COMPARISON-financial-vs-ma.md).
+Preflight and troubleshooting live in [`demo/DEMO.md`](../../demo/DEMO.md) (Setup → Quick preflight). [`docs/archive/demo.md`](../archive/demo.md) is a redirect stub only. For financial vs M&A consistency, see [COMPARISON-financial-vs-ma.md](COMPARISON-financial-vs-ma.md).
