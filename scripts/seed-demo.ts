@@ -6,6 +6,10 @@
  * produces observable governance events, drift transitions, and finality
  * progression in sequence — useful for live demos.
  *
+ * Document set comes from the S1 manifest (docs/benchmarks/manifests/s1-project-horizon.yaml),
+ * not a directory scan — so a stray .txt file left in demo/scenario/docs/ can never get fed
+ * into a "Project Horizon" run without being deliberately added to that manifest first.
+ *
  * Usage:
  *   pnpm run seed:demo                                    # deal-horizon, 20s gap
  *   DEMO_SCOPE_ID=default DEMO_DELAY_MS=5000 pnpm run seed:demo
@@ -14,9 +18,7 @@
  * After seeding, check the feed at http://localhost:3002 or GET /summary.
  */
 import "dotenv/config";
-import { readFileSync, readdirSync } from "fs";
-import { join, dirname } from "path";
-import { fileURLToPath } from "url";
+import { basename } from "path";
 import { S3Client } from "@aws-sdk/client-s3";
 import { appendEvent } from "../src/contextWal.js";
 import { createSwarmEvent } from "../src/events.js";
@@ -26,9 +28,8 @@ import { resetScopeAndReinit } from "../src/scopeReset.js";
 import { scopeStoragePrefix } from "../src/scopeStorage.js";
 import { DEFAULT_DEMO_MA_SCOPE_ID } from "../src/scenarioScopes.js";
 import { requestRuntimeControl } from "../src/runtimeControlRpc.js";
+import { loadAllDocuments } from "../src/baselines/scenario/ma-scenario.js";
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const DEMO_DOCS_DIR = join(__dirname, "..", "demo", "scenario", "docs");
 const DELAY_MS = parseInt(process.env.DEMO_DELAY_MS ?? "20000", 10);
 const SINGLE_DOC = process.env.DEMO_DOC ?? "";
 const RESET_BEFORE_SEED = process.env.DEMO_RESET_BEFORE_SEED ?? "1";
@@ -90,16 +91,16 @@ async function main(): Promise<void> {
     console.warn("  Start hatchery: pnpm run swarm:start");
   }
 
-  const allFiles = readdirSync(DEMO_DOCS_DIR)
-    .filter((f) => f.endsWith(".txt"))
-    .sort();
+  const allDocs = loadAllDocuments(); // S1 manifest, in epoch order
 
-  const files = SINGLE_DOC
-    ? allFiles.filter((f) => f.startsWith(SINGLE_DOC))
-    : allFiles;
+  const docs = SINGLE_DOC
+    ? allDocs.filter((d) => basename(d.path).startsWith(SINGLE_DOC))
+    : allDocs;
 
-  if (files.length === 0) {
-    console.error(`No matching .txt files in ${DEMO_DOCS_DIR} (filter: "${SINGLE_DOC || "*"}")`);
+  if (docs.length === 0) {
+    console.error(
+      `No matching documents in the S1 manifest (filter: "${SINGLE_DOC || "*"}")`,
+    );
     process.exit(1);
   }
 
@@ -107,14 +108,16 @@ async function main(): Promise<void> {
 
   console.log(`\nProject Horizon — M&A Demo Seed`);
   console.log(`Scope: ${DEMO_SCOPE_ID}`);
-  console.log(`Feeding ${files.length} document(s) from ${DEMO_DOCS_DIR}`);
+  console.log(
+    `Feeding ${docs.length} document(s) from the S1 manifest (docs/benchmarks/manifests/s1-project-horizon.yaml)`,
+  );
   console.log(`Delay between documents: ${DELAY_MS}ms\n`);
 
-  for (let i = 0; i < files.length; i++) {
-    const file = files[i];
-    const filePath = join(DEMO_DOCS_DIR, file);
-    const text = readFileSync(filePath, "utf-8");
-    const title = file.replace(".txt", "").replace(/-/g, " ").replace(/^\d+ /, "");
+  for (let i = 0; i < docs.length; i++) {
+    const doc = docs[i];
+    const file = basename(doc.path);
+    const text = doc.text;
+    const title = doc.title;
 
     const event = createSwarmEvent(
       "context_doc",
@@ -125,13 +128,13 @@ async function main(): Promise<void> {
     const seq = await appendEvent(event as unknown as Record<string, unknown>);
     await bus.publishEvent(event);
 
-    console.log(`[${i + 1}/${files.length}] ${file}`);
+    console.log(`[${i + 1}/${docs.length}] ${file}`);
     console.log(`       title : ${title}`);
     console.log(`       seq   : ${seq}`);
     console.log(`       chars : ${text.length}`);
     console.log(`       time  : ${new Date().toISOString()}`);
 
-    if (i < files.length - 1) {
+    if (i < docs.length - 1) {
       console.log(`\n  Waiting ${DELAY_MS / 1000}s before next document (let agents process)...\n`);
       await delay(DELAY_MS);
     }

@@ -96,7 +96,14 @@ async function extractClaimsOffline(
   return { claims, tokensUsed: 0 };
 }
 
-async function extractClaimsWithLlm(
+/**
+ * Framework-agnostic LLM extraction: raw HTTP call to Ollama (native) or an
+ * OpenAI-compatible cloud endpoint, parsing a JSON claims array out of the
+ * response. Shared across topologies that don't have their own SDK client
+ * (Agentica, and SGRS in scripts/benchmark-comparative.ts) so every system's
+ * extraction step uses the identical prompt/parsing contract.
+ */
+export async function extractClaimsWithLlm(
   role: AgentRole,
   doc: ScenarioDocument,
   docText: string,

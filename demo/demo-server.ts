@@ -23,8 +23,9 @@ import {
 } from "http";
 import { checkAllServices } from "../scripts/check-services.js";
 import { readFileSync, readdirSync } from "fs";
-import { join, dirname } from "path";
+import { basename, join, dirname } from "path";
 import { fileURLToPath } from "url";
+import { loadAllDocuments } from "../src/baselines/scenario/ma-scenario.js";
 import {
   S3Client,
 } from "@aws-sdk/client-s3";
@@ -101,6 +102,25 @@ function loadDocsFromDir(dir: string): DemoDoc[] {
     });
 }
 
+/**
+ * The M&A scenario doubles as the S1 (Project Horizon) benchmark, so its documents come
+ * from that manifest rather than a directory scan -- a stray .txt file in
+ * demo/scenario/docs/ must never silently become part of this demo's document set.
+ */
+function loadMaScenarioDocs(): DemoDoc[] {
+  return loadAllDocuments().map((doc, index) => {
+    const lines = doc.text.split("\n").filter((l) => l.trim());
+    const excerpt = lines.slice(4, 10).join(" ").slice(0, 300);
+    return {
+      index,
+      filename: basename(doc.path),
+      title: doc.title,
+      body: doc.text,
+      excerpt,
+    };
+  });
+}
+
 function buildInsuranceDocsForDemo(): DemoDoc[] {
   const corpus = [
     { title: "01 Product and application", text: "INSURANCE APPLICATION -- Property and contents.\n\nProduct: Home and contents insurance. Applicant: Jean Dupont. Date of application: 2025-03-01. Coverage type: Buildings and contents, standard perils (fire, theft, water damage). Policy term: 12 months. Sum insured requested: Buildings 200,000 EUR, Contents 50,000 EUR.\n\nGoal: Verify onboarding conditions and issue a binding quote." },
@@ -153,7 +173,7 @@ const SCENARIOS: Record<string, { meta: ScenarioMeta; docs: DemoDoc[] }> = {
         { n: 4, title: "Legal & Compliance Review", sub: "Resolution paths", role: "Legal Advisory", insight: "Resolution paths identified. Haber buyout EUR 800K-1.2M. Revised valuation EUR 270-290M." },
       ],
     },
-    docs: loadDocsFromDir(join(__dirname, "scenario", "docs")),
+    docs: loadMaScenarioDocs(),
   },
   financial: {
     meta: {

@@ -45,6 +45,9 @@ function mergePackage(
   if (overlay.evaluation !== undefined) {
     out.evaluation = overlay.evaluation;
   }
+  if (overlay.dimensionSchema !== undefined) {
+    out.dimensionSchema = overlay.dimensionSchema;
+  }
   return out;
 }
 
@@ -98,6 +101,7 @@ export function loadBenchmarkPackageFromFile(
     roleDimensionMap:
       data.roleDimensionMap as BenchmarkScenarioPackage["roleDimensionMap"],
     evaluation: data.evaluation,
+    dimensionSchema: data.dimensionSchema,
   };
 }
 

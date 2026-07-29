@@ -53,13 +53,18 @@ import {
 } from "../src/baselines/scenario/ma-scenario.js";
 import { runMastraTopology } from "../src/baselines/scenario/mastra-topology.js";
 import { runLangGraphTopology } from "../src/baselines/scenario/langgraph-topology.js";
-import { runAgenticaTopology } from "../src/baselines/scenario/agentica-topology.js";
+import {
+  runAgenticaTopology,
+  extractClaimsWithLlm,
+} from "../src/baselines/scenario/agentica-topology.js";
 import type { PRDMetrics } from "../src/baselines/state-diff-contracts.js";
 import { computeBenchmarkMetrics } from "../src/baselines/scenario/compute-benchmark-metrics.js";
 import {
   resolveBenchmarkOllamaInference,
   type BenchmarkOllamaInference,
 } from "../src/baselines/scenario/benchmark-ollama-inference.js";
+import { logBenchmarkLlmAgentStep } from "../src/baselines/scenario/benchmark-llm-progress.js";
+import { loadDocumentTextForPackage } from "../src/baselines/scenario/ma-scenario.js";
 
 // ---------------------------------------------------------------------------
 // CLI Parsing
@@ -154,6 +159,7 @@ function finalizeBenchmarkLlmRouting(
 async function runSgrsSystem(
   config: BenchmarkConfig,
   seed: number,
+  inference: BenchmarkOllamaInference,
   pkg: BenchmarkScenarioPackage,
 ): Promise<SystemResult> {
   const { evaluateKernel, canTransition, evaluateRules } = await import("../src/sgrsAdapter.js");
@@ -181,11 +187,12 @@ async function runSgrsSystem(
   >();
   const claimHistory: Array<{ dimension: string; content: string; agentId: string; epoch: number }> = [];
   const stateSnapshots: Record<number, Array<{ dimension: string; content: string }>> = {};
-  const totalTokens = 0;
+  let totalTokens = 0;
 
   for (const doc of docs) {
     const epochStart = performance.now();
     const epochClaims: SystemResult["epochs"][0]["claims"] = [];
+    const docText = config.skipLlm ? "" : loadDocumentTextForPackage(pkg, doc);
     let contradictions = 0;
     let reversions = 0;
 
@@ -225,13 +232,35 @@ async function runSgrsSystem(
       // If governance blocks, SGRS does NOT silently overwrite — it flags
       const governed = kernelResult.verdict === "ALLOWED" && transitionResult.allowed;
 
-      const relevantClaims = doc.expectedClaims
-        .filter((c) => (roleMap[role.id] || []).includes(c.dimension))
-        .map((c) => ({
-          dimension: c.dimension,
-          content: c.content,
-          confidence: Math.min(1, c.confidence + (rng() * 0.2 - 0.1)),
-        }));
+      // Extraction: scripted lookup in --skip-llm (governance-only ablation), real LLM
+      // extraction otherwise -- same prompt/parsing contract as the other three baselines
+      // (extractClaimsWithLlm), so SGRS's fact extraction is judged on equal footing
+      // rather than by manifest lookup while baselines face a real model.
+      let relevantClaims: Array<{
+        dimension: string;
+        content: string;
+        confidence: number;
+      }>;
+      if (config.skipLlm) {
+        relevantClaims = doc.expectedClaims
+          .filter((c) => (roleMap[role.id] || []).includes(c.dimension))
+          .map((c) => ({
+            dimension: c.dimension,
+            content: c.content,
+            confidence: Math.min(1, c.confidence + (rng() * 0.2 - 0.1)),
+          }));
+      } else {
+        logBenchmarkLlmAgentStep("sgrs", doc, role.id);
+        const extraction = await extractClaimsWithLlm(
+          role,
+          doc,
+          docText,
+          inference,
+          config.maxTokens,
+        );
+        totalTokens += extraction.tokensUsed;
+        relevantClaims = extraction.claims;
+      }
 
       for (const claim of relevantClaims) {
         epochClaims.push({
@@ -334,7 +363,7 @@ async function runSystem(
 ): Promise<SystemResult> {
   switch (systemName) {
     case "sgrs":
-      return runSgrsSystem(config, seed, pkg);
+      return runSgrsSystem(config, seed, inference, pkg);
     case "mastra":
       return runMastraTopology({
         inference,
@@ -398,6 +427,7 @@ function printComparison(
   allMetrics: Map<string, PRDMetrics[]>,
   allTimings: Map<string, number[]>,
   pkg: BenchmarkScenarioPackage,
+  skipLlm: boolean,
 ): void {
   const systems = Array.from(allMetrics.keys());
   const labelW = 38;
@@ -494,6 +524,13 @@ function printComparison(
       "Note: M5 counts scenario documents processed in this harness (same for all systems). " +
       'PRD "convergence steps" / finality depth is not instrumented here; use convergence or load benchmarks.',
   );
+  if (skipLlm) {
+    console.log(
+      "GOVERNANCE-ONLY ABLATION: facts were copied from ground truth, not extracted. " +
+      "M1/C2/C3/M7 above reflect contradiction-governance and state-merge behavior over " +
+      "pre-scripted claims, not fact-extraction quality. Re-run with --llm for an extraction comparison.",
+    );
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -517,6 +554,15 @@ async function main(): Promise<void> {
   console.log("  Seeds: " + config.numSeeds);
   console.log("  Model: " + config.model);
   console.log("  Skip LLM: " + config.skipLlm);
+  if (config.skipLlm) {
+    console.log(
+      "  ** GOVERNANCE-ONLY ABLATION ** — claim content is copied verbatim from the manifest's\n" +
+      "  expectedClaims (ground truth), not extracted from document text by any system, SGRS\n" +
+      "  included. M1/C2/C3/M7 in this mode measure contradiction-governance and state-merge\n" +
+      "  logic over pre-scripted facts, NOT fact-extraction quality — do not report these numbers\n" +
+      "  as an extraction comparison. Pass --llm for a real-extraction run.",
+    );
+  }
   console.log(
     `  Ollama inference: ${inference.mode} — OpenAI-compat ${inference.openAICompatBaseUrl} — native ${inference.nativeHost}`,
   );
@@ -561,7 +607,7 @@ async function main(): Promise<void> {
     console.log("");
   }
 
-  printComparison(allMetrics, allTimings, pkg);
+  printComparison(allMetrics, allTimings, pkg, config.skipLlm);
 }
 
 main().catch((err) => {

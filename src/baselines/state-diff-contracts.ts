@@ -13,6 +13,11 @@
  * Used in Benchmark PRD Section 4.2.
  */
 
+import {
+  dimensionValuesEquivalent,
+  type DimensionSchemaMap,
+} from "./scenario/dimension-schema.js";
+
 // ---------------------------------------------------------------------------
 // Contract definitions
 // ---------------------------------------------------------------------------
@@ -82,18 +87,34 @@ export function evaluateC1(facts: StateFact[]): ContractResult {
 
 /**
  * The injected false claims at t=0 should not appear in the shared state
- * at convergence. Measured via string match on known false claims.
+ * at convergence. Each false claim is scoped to its dimension, then compared
+ * for semantic equivalence (not raw substring match) against any fact on that
+ * same dimension — so a system that avoids the false claim by paraphrasing
+ * the correct value isn't penalized, and a fact on an unrelated dimension that
+ * happens to share a substring can't produce a false positive. Falls back to
+ * exact/substring string match when no dimension schema is supplied (legacy
+ * scenarios without a typed schema).
  */
 export function evaluateC2(
   facts: StateFact[],
-  injectedFalseClaims: string[],
+  injectedFalseClaims: Array<{ dimension: string; content: string }>,
+  schemaMap?: DimensionSchemaMap,
 ): ContractResult {
   const found: string[] = [];
   for (const falseClaim of injectedFalseClaims) {
-    const match = facts.find(
-      (f) => f.content === falseClaim || f.content.includes(falseClaim),
-    );
-    if (match) found.push(falseClaim);
+    const match = facts.find((f) => {
+      if (f.dimension !== falseClaim.dimension) return false;
+      return schemaMap
+        ? dimensionValuesEquivalent(
+            f.dimension,
+            f.content,
+            falseClaim.content,
+            schemaMap,
+          )
+        : f.content === falseClaim.content ||
+            f.content.includes(falseClaim.content);
+    });
+    if (match) found.push(falseClaim.content);
   }
 
   return {
@@ -112,31 +133,41 @@ export function evaluateC2(
 // ---------------------------------------------------------------------------
 
 /**
- * The shared state at epoch E can be exactly reconstructed from the
- * system's log, without access to later epoch data.
+ * The shared state at epoch E can be reconstructed from the system's log,
+ * without access to later epoch data.
  *
- * Measured: edit distance between reconstructed and ground-truth epoch state.
+ * Measured: edit distance between reconstructed and ground-truth epoch state,
+ * per dimension. A dimension counts as reconstructed if its value is
+ * semantically equivalent to ground truth (not necessarily byte-identical) --
+ * a real extractor's paraphrase of the same fact should not be scored as a
+ * miss. A dimension present in the reconstruction but absent from ground
+ * truth (a hallucinated dimension) still counts as "extra".
  */
 export function evaluateC3(
   reconstructedState: StateFact[],
   groundTruthState: StateFact[],
+  schemaMap?: DimensionSchemaMap,
 ): ContractResult {
-  // Compare by creating sorted content sets
-  const reconstructedSet = new Set(
-    reconstructedState.map((f) => `${f.dimension}:${f.content}`),
-  );
-  const groundTruthSet = new Set(
-    groundTruthState.map((f) => `${f.dimension}:${f.content}`),
-  );
+  const reconByDim = new Map<string, string>();
+  for (const f of reconstructedState) reconByDim.set(f.dimension, f.content);
+  const gtByDim = new Map<string, string>();
+  for (const f of groundTruthState) gtByDim.set(f.dimension, f.content);
 
-  // Edit distance: symmetric difference
   let missing = 0;
   let extra = 0;
-  for (const item of groundTruthSet) {
-    if (!reconstructedSet.has(item)) missing++;
+  for (const [dimension, gtContent] of gtByDim) {
+    const reconContent = reconByDim.get(dimension);
+    if (reconContent === undefined) {
+      missing++;
+      continue;
+    }
+    const equivalent = schemaMap
+      ? dimensionValuesEquivalent(dimension, gtContent, reconContent, schemaMap)
+      : gtContent === reconContent;
+    if (!equivalent) missing++;
   }
-  for (const item of reconstructedSet) {
-    if (!groundTruthSet.has(item)) extra++;
+  for (const dimension of reconByDim.keys()) {
+    if (!gtByDim.has(dimension)) extra++;
   }
   const editDistance = missing + extra;
 
@@ -145,8 +176,8 @@ export function evaluateC3(
     passed: editDistance === 0,
     details:
       editDistance === 0
-        ? `Exact reconstruction (${groundTruthSet.size} facts)`
-        : `Edit distance ${editDistance}: ${missing} missing, ${extra} extra`,
+        ? `Exact reconstruction (${gtByDim.size} facts)`
+        : `Edit distance ${editDistance}: ${missing} missing/mismatched, ${extra} extra`,
     score: editDistance,
   };
 }
@@ -216,7 +247,7 @@ export function evaluateSystem(
   epoch: number,
   currentState: StateFact[],
   opts: {
-    injectedFalseClaims?: string[];
+    injectedFalseClaims?: Array<{ dimension: string; content: string }>;
     reconstructedState?: StateFact[];
     groundTruthState?: StateFact[];
     expectedPreservedFacts?: Array<{
@@ -224,6 +255,7 @@ export function evaluateSystem(
       regulationVersion: string;
       validTime: number;
     }>;
+    dimensionSchema?: DimensionSchemaMap;
   },
 ): SystemEvaluation {
   const startTime = performance.now();
@@ -234,12 +266,20 @@ export function evaluateSystem(
 
   // C2: If false claims provided
   if (opts.injectedFalseClaims && opts.injectedFalseClaims.length > 0) {
-    contracts.push(evaluateC2(currentState, opts.injectedFalseClaims));
+    contracts.push(
+      evaluateC2(currentState, opts.injectedFalseClaims, opts.dimensionSchema),
+    );
   }
 
   // C3: If reconstruction data provided
   if (opts.reconstructedState && opts.groundTruthState) {
-    contracts.push(evaluateC3(opts.reconstructedState, opts.groundTruthState));
+    contracts.push(
+      evaluateC3(
+        opts.reconstructedState,
+        opts.groundTruthState,
+        opts.dimensionSchema,
+      ),
+    );
   }
 
   // C4: If bitemporal data provided

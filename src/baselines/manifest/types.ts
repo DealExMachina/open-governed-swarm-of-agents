@@ -4,6 +4,7 @@ import type {
   ScenarioDocument,
   RoleDimensionMap,
 } from "../scenario/types.js";
+import type { DimensionSchemaMap } from "../scenario/dimension-schema.js";
 
 export interface BenchmarkScenarioEvaluation {
   /** Optional regulation label per document epoch (keys may be string or number from YAML). */
@@ -31,6 +32,9 @@ export interface BenchmarkScenarioPackage {
   agentRoles: AgentRole[];
   roleDimensionMap: RoleDimensionMap;
   evaluation?: BenchmarkScenarioEvaluation;
+  /** Per-dimension typed schema for semantic-equivalence comparison (C2/C3/M1).
+   *  Dimensions absent from this map fall back to normalised-string comparison. */
+  dimensionSchema?: DimensionSchemaMap;
 }
 
 /** Raw YAML shape before normalization (documents may omit optional fields). */
@@ -47,4 +51,5 @@ export interface ManifestYamlV1 {
   agentRoles?: AgentRole[];
   roleDimensionMap?: RoleDimensionMap;
   evaluation?: BenchmarkScenarioEvaluation;
+  dimensionSchema?: DimensionSchemaMap;
 }

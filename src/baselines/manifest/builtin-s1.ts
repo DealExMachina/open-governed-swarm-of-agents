@@ -9,6 +9,7 @@ import type {
   RoleDimensionMap,
   ScenarioDocument,
 } from "../scenario/types.js";
+import { S1_DIMENSION_SCHEMA } from "../scenario/dimension-schema.js";
 import type { BenchmarkScenarioPackage } from "./types.js";
 
 export const S1_ROLE_DIMENSION_MAP: RoleDimensionMap = {
@@ -20,12 +21,13 @@ export const S1_ROLE_DIMENSION_MAP: RoleDimensionMap = {
     "customer_concentration",
   ],
   legal: ["patents", "ip_dispute", "patent_litigation", "ip_resolution"],
-  compliance: ["gross_margin", "key_person_risk"],
+  compliance: ["gross_margin", "key_person_risk", "compliance_debt"],
   risk: [
     "key_person_risk",
     "code_concentration",
     "customer_concentration",
     "patent_litigation",
+    "third_party_dependency",
   ],
   market: ["clients", "customer_concentration", "valuation"],
 };
@@ -84,8 +86,8 @@ const S1_DOCUMENTS: ScenarioDocument[] = [
     expectedClaims: [
       {
         dimension: "arr",
-        content: "ARR €38M (adjusted, auditor-verified)",
-        confidence: 0.9,
+        content: "ARR €38M (adjusted, pending FY2024 external audit)",
+        confidence: 0.8,
         source: "doc-02",
       },
       {
@@ -94,12 +96,18 @@ const S1_DOCUMENTS: ScenarioDocument[] = [
         confidence: 0.85,
         source: "doc-02",
       },
+      {
+        dimension: "gross_margin",
+        content: "Gross margin revised to ~66% (from 72%, R&D reclassified out of COGS)",
+        confidence: 0.75,
+        source: "doc-02",
+      },
     ],
     contradictions: [
       {
         dimension: "arr",
         oldValue: "ARR €50M (FY 2024, self-reported)",
-        newValue: "ARR €38M (adjusted, auditor-verified)",
+        newValue: "ARR €38M (adjusted, pending FY2024 external audit)",
         severity: "high",
         description:
           "ARR overstatement of €12M (24% discrepancy) — revenue recognition issue",
@@ -111,6 +119,14 @@ const S1_DOCUMENTS: ScenarioDocument[] = [
         severity: "high",
         description:
           "Patent IP ownership disputed — not clean as initially claimed",
+      },
+      {
+        dimension: "gross_margin",
+        oldValue: "Gross margin 72%",
+        newValue: "Gross margin revised to ~66%",
+        severity: "medium",
+        description:
+          "Gross margin restated downward after reclassifying capitalized R&D out of COGS offsets",
       },
     ],
   },
@@ -130,6 +146,20 @@ const S1_DOCUMENTS: ScenarioDocument[] = [
         dimension: "code_concentration",
         content: "61% of codebase authored by departing staff",
         confidence: 0.85,
+        source: "doc-03",
+      },
+      {
+        dimension: "compliance_debt",
+        content:
+          "EU MDR compliance debt: cold-chain module unmodernized since Q3 2023, 6-9 months remediation effort required",
+        confidence: 0.8,
+        source: "doc-03",
+      },
+      {
+        dimension: "third_party_dependency",
+        content:
+          "Third-party data provider exclusivity risk: one of three providers in discussions with Axion Corp for an exclusivity arrangement",
+        confidence: 0.7,
         source: "doc-03",
       },
     ],
@@ -175,7 +205,7 @@ const S1_DOCUMENTS: ScenarioDocument[] = [
       },
       {
         dimension: "customer_concentration",
-        oldValue: "47 enterprise clients (stable)",
+        oldValue: "47 enterprise clients",
         newValue: "Largest client (21.6% of ARR) evaluating alternatives",
         severity: "medium",
         description:
@@ -191,7 +221,7 @@ const S1_DOCUMENTS: ScenarioDocument[] = [
     expectedClaims: [
       {
         dimension: "valuation",
-        content: "Revised valuation €270-290M (down 37% from €420M)",
+        content: "Revised valuation €270-290M (down from original €400-430M offer range)",
         confidence: 0.85,
         source: "doc-05",
       },
@@ -206,7 +236,7 @@ const S1_DOCUMENTS: ScenarioDocument[] = [
       {
         dimension: "valuation",
         oldValue: "Indicative valuation €420M (8.4x ARR)",
-        newValue: "Revised valuation €270-290M (down 37%)",
+        newValue: "Revised valuation €270-290M (down from original €400-430M offer range)",
         severity: "high",
         description:
           "Fundamental valuation revision based on corrected ARR and risks",
@@ -216,11 +246,25 @@ const S1_DOCUMENTS: ScenarioDocument[] = [
 ];
 
 const S1_GROUND_TRUTH: GroundTruth = {
-  resolvedDimensions: ["arr", "valuation", "ip_resolution"],
-  unresolvableDimensions: ["patent_litigation", "key_person_risk"],
+  // "Unresolvable" = doc-05, the scenario's own final document, still lists the dimension
+  // as an open item (e.g. "Remaining open items: FY 2024 external audit sign-off and
+  // confirmation of PharmaCo International renewal intent") or only offers a *recommended*
+  // resolution ("must be completed before deal close"), not a confirmed one. This is not a
+  // claim that these could never be resolved — only that no document in this 5-doc corpus
+  // confirms it. compliance_debt/third_party_dependency are introduced by doc-03 and never
+  // closed out within this corpus (see docs-exp6 for a dedicated resolution-arc scenario).
+  resolvedDimensions: ["valuation"],
+  unresolvableDimensions: [
+    "arr",
+    "ip_resolution",
+    "patent_litigation",
+    "key_person_risk",
+    "compliance_debt",
+    "third_party_dependency",
+  ],
   falseClaims: [
-    "ARR €50M (FY 2024, self-reported)",
-    "No material concerns identified",
+    { dimension: "arr", content: "ARR €50M (FY 2024, self-reported)" },
+    { dimension: "key_person_risk", content: "No material concerns identified" },
   ],
   epoch0State: [
     { dimension: "arr", content: "ARR €50M (FY 2024, self-reported)" },
@@ -234,12 +278,14 @@ const S1_GROUND_TRUTH: GroundTruth = {
     },
   ],
   expectedValuation: { min: 270, max: 290 },
+  // Cumulative count of distinct dimensions that have ever carried a contradiction,
+  // through this epoch (matches the ContradictionSpec entries on each document above).
   contradictionsByEpoch: {
     0: 0,
-    1: 2,
-    2: 3,
-    3: 5,
-    4: 5,
+    1: 3, // doc-02: arr, patents, gross_margin
+    2: 4, // doc-03: + key_person_risk
+    3: 6, // doc-04: + patent_litigation, customer_concentration
+    4: 7, // doc-05: + valuation
   },
 };
 
@@ -302,7 +348,7 @@ export function buildS1ProjectHorizonPackage(
     manifestVersion: "1",
     id: "s1-project-horizon",
     prdScenario: "S1",
-    version: "1.0.0",
+    version: "1.0.1", // ground-truth fidelity fixes; still 5 documents (see commit history)
     docsRootRelative: "demo/scenario",
     repoRoot,
     documents: S1_DOCUMENTS,
@@ -310,5 +356,6 @@ export function buildS1ProjectHorizonPackage(
     agentRoles: S1_AGENT_ROLES,
     roleDimensionMap: S1_ROLE_DIMENSION_MAP,
     evaluation: undefined,
+    dimensionSchema: S1_DIMENSION_SCHEMA,
   };
 }

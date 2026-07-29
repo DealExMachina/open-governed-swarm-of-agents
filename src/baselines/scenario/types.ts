@@ -30,7 +30,10 @@ export interface ContradictionSpec {
 export interface GroundTruth {
   resolvedDimensions: string[];
   unresolvableDimensions: string[];
-  falseClaims: string[];
+  /** Each false claim is tagged with its dimension so C2/M1 can compare against
+   *  facts on that same dimension using the scenario's semantic-equivalence
+   *  rules, instead of substring-matching a bare string against any content. */
+  falseClaims: Array<{ dimension: string; content: string }>;
   epoch0State: Array<{ dimension: string; content: string }>;
   expectedValuation: { min: number; max: number };
   contradictionsByEpoch: Record<number, number>;

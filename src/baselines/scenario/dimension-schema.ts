@@ -132,6 +132,14 @@ export const S1_DIMENSION_SCHEMA: DimensionSchemaMap = {
     type: "integer_count",
     description: "Number of enterprise clients",
   },
+  compliance_debt: {
+    type: "free_text",
+    description: "Regulatory compliance remediation debt",
+  },
+  third_party_dependency: {
+    type: "free_text",
+    description: "Third-party vendor/data dependency risk",
+  },
 };
 
 // ---------------------------------------------------------------------------

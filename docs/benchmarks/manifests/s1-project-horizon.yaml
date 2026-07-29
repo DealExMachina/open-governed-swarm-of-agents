@@ -1,0 +1,10 @@
+# Benchmark scenario manifest (PRD v0.2)
+# Loaded via src/baselines/manifest/registry.ts
+# Validate: pnpm run check:benchmark-manifests
+
+manifestVersion: '1'
+id: s1-project-horizon
+prdScenario: S1
+version: 1.0.1
+docsRootRelative: demo/scenario
+builtinRef: s1-project-horizon

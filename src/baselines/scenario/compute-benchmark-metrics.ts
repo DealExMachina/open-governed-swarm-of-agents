@@ -8,6 +8,7 @@ import {
   type StateFact,
   type PRDMetrics,
 } from "../state-diff-contracts.js";
+import { dimensionValuesEquivalent } from "./dimension-schema.js";
 import type { SystemResult } from "./types.js";
 
 /**
@@ -22,7 +23,18 @@ export function computeBenchmarkMetrics(
 
   const falseClaims = groundTruth.falseClaims;
   const falseClaimsInState = falseClaims.filter((fc) =>
-    result.finalState.some((f) => f.content === fc),
+    result.finalState.some(
+      (f) =>
+        f.dimension === fc.dimension &&
+        (pkg.dimensionSchema
+          ? dimensionValuesEquivalent(
+              fc.dimension,
+              fc.content,
+              f.content,
+              pkg.dimensionSchema,
+            )
+          : f.content === fc.content),
+    ),
   );
   metrics.m1_error_amplification =
     falseClaims.length > 0 ? falseClaimsInState.length / falseClaims.length : 0;
@@ -50,7 +62,11 @@ export function computeBenchmarkMetrics(
   }));
 
   const c1 = evaluateC1(stateFacts);
-  const c2 = evaluateC2(stateFacts, groundTruth.falseClaims);
+  const c2 = evaluateC2(
+    stateFacts,
+    groundTruth.falseClaims,
+    pkg.dimensionSchema,
+  );
 
   const epoch0Reconstructed: StateFact[] = (result.stateSnapshots[0] || []).map(
     (f) => ({
@@ -68,7 +84,11 @@ export function computeBenchmarkMetrics(
     agentId: "ground-truth",
     epoch: 0,
   }));
-  const c3 = evaluateC3(epoch0Reconstructed, epoch0GroundTruth);
+  const c3 = evaluateC3(
+    epoch0Reconstructed,
+    epoch0GroundTruth,
+    pkg.dimensionSchema,
+  );
 
   const c4Expected = pkg.evaluation?.c4ExpectedPreservedFacts;
   const contracts = [c1, c2, c3];
