@@ -7,9 +7,18 @@ pnpm run feed
 # http://localhost:3002/studio?scope_id=default
 ```
 
-The page loads live graph elements from `GET /studio/elements?scope_id=…` on the same host (`/studio/app.js`). Without seeded graph data it falls back to the embedded Horizon demo graph.
+The page loads live graph elements from `GET /studio/elements?scope_id=…` on the same host. Without seeded graph data it falls back to the embedded Horizon demo graph.
 
-**Static-only:** `npx --yes serve public/studio` (mock graph + manual `window.STUDIO_CONTROL`).
+| File | URL | Role |
+|------|-----|------|
+| `index.html` | `/studio` | Markup + tiny `STUDIO_CONTROL` bootstrap |
+| `styles.css` | `/studio/styles.css` | Theme / layout |
+| `studio-app.js` | `/studio/app.js` | Live scopes, graph reload, HITL, configure |
+| `graph-boot.js` | `/studio/graph.js` | Cytoscape init, layout, hover → `studio:ready` |
+
+Load order: `app.js` registers for `studio:ready`, then `graph.js` boots and dispatches.
+
+**Static-only:** `npx --yes serve public` then open `/studio/` (paths are absolute `/studio/...`). Or set `window.STUDIO_CONTROL` manually.
 
 For the full governed demo pipeline, see [`../../demo/DEMO.md`](../../demo/DEMO.md).
 
@@ -26,7 +35,7 @@ Overlapping **shapes** (nodes, diamonds, edges crossing stacked labels) and **te
 
 When in doubt, move detail **off** the graph and keep the canvas **sparse**.
 
-## Implemented in `index.html`
+## Implemented in `graph-boot.js` / `studio-app.js`
 
 - **Preset layered layout** (docs → claims → contradictions → resolutions → risks → goals) instead of force-directed placement.
 - **Business graph:** node labels stay hidden; use **hover cards** for copy (claims unchanged style).

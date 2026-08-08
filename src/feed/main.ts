@@ -8,7 +8,13 @@ import { listStudioCorpora } from "../studioCorpora.js";
 import { FEED_PORT, RUNTIME_SCOPE_ID } from "./config.js";
 import { getPathname, getQuery, sendJson } from "./http.js";
 import { readScopeIdFromRequest, validateScopeAccess } from "./scope.js";
-import { INDEX_HTML, STUDIO_HTML, STUDIO_APP_JS } from "./assets.js";
+import {
+  INDEX_HTML,
+  STUDIO_HTML,
+  STUDIO_CSS,
+  STUDIO_GRAPH_JS,
+  STUDIO_APP_JS,
+} from "./assets.js";
 import { handleAddDoc, handleAddResolution } from "./contextRoutes.js";
 import { handleGetPending, handleFinalityResponse } from "./mitlRoutes.js";
 import { handleSummary, handleConvergence } from "./summaryRoutes.js";
@@ -43,9 +49,25 @@ export async function main(): Promise<void> {
           res.end(STUDIO_HTML);
           return;
         }
+        if (req.method === "GET" && pathname === "/studio/styles.css") {
+          res.writeHead(200, {
+            "Content-Type": "text/css; charset=utf-8",
+          });
+          res.end(STUDIO_CSS);
+          return;
+        }
         if (req.method === "GET" && pathname === "/studio/app.js") {
-          res.writeHead(200, { "Content-Type": "application/javascript" });
+          res.writeHead(200, {
+            "Content-Type": "application/javascript; charset=utf-8",
+          });
           res.end(STUDIO_APP_JS);
+          return;
+        }
+        if (req.method === "GET" && pathname === "/studio/graph.js") {
+          res.writeHead(200, {
+            "Content-Type": "application/javascript; charset=utf-8",
+          });
+          res.end(STUDIO_GRAPH_JS);
           return;
         }
         if (req.method === "GET" && pathname === "/studio/scopes") {
