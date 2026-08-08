@@ -118,7 +118,7 @@ demo/
 | File | ~Lines | Issue |
 |------|-------:|-------|
 | `demo/demo-server.ts` | thin entry | Logic in `demo/server/`; UI in `demo/ui/` |
-| `public/studio/index.html` | 3100+ | Oversized static document |
+| `public/studio/index.html` | ~750 | Shell markup; CSS + graph boot extracted |
 | `src/semanticGraph.ts` | 1800+ | Persistence + queries + Studio shaping |
 | `sgrs-core/src/bridge.rs` | 1600+ | Broad N-API surface |
 | `src/feed.ts` | thin entry | Routes under `src/feed/`; static via `assets.ts` |
