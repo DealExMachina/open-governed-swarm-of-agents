@@ -1,70 +1,76 @@
-# What is a delta? — canonical elevator pitch
+# What is a delta?
 
-**Audience:** business users, FinOps buyers, investors  
-**Length:** ~30–45 seconds spoken / half a page read  
-**Related:** [`PRD-delta-finops.md`](./PRD-delta-finops.md),
-[`elevator-pitch-gtm-stripe-metronome.md`](./elevator-pitch-gtm-stripe-metronome.md)
-
----
-
-## Spoken (elevator)
-
-A **delta** is a unit of *governed progress* — one material, auditable change in
-what the system believes about a case, after evidence has been checked under
-policy.
-
-We don’t sell AI chatter. We sell **deltas**: net-new evidence that actually
-moved the needle on a scope — a reconciled figure, a cleared contradiction, a
-supported claim — attributed to your tenant and run.
-
-If the case is too contradictory, **governance holds the gate**: zero deltas.
-You still see the token cost. That is FinOps with a spine: spend without value
-is visible; value only mints when the evidence is good enough to stand on.
-
-Tokens are the **cost of producing** deltas. Deltas are what you **buy**.
+Short note for buyers and investors. Related:
+[`PRD-delta-finops.md`](./PRD-delta-finops.md),
+[`elevator-pitch-gtm-stripe-metronome.md`](./elevator-pitch-gtm-stripe-metronome.md).
 
 ---
 
-## Written (one paragraph)
+## In one breath
 
-A **delta** is the billable unit of value in a governed multi-agent run: one
-net-new, material change in evidence (support or refutation on a business
-dimension) that passed the drift/policy gate and was attributed to a
-`(tenant, scope)`. It is not an LLM token, not a chat message, and not a raw
-model opinion. Reprocessing the same evidence does not mint again. High drift
-mints nothing. Investors and buyers should hear: **we monetize certified
-progress under policy; tokens are COGS we help clients drive down.**
+A **delta** is a recorded change in the case scoreboard — for or against a
+topic — after the file has been checked for contradictions. We bill those
+changes. We do not bill model tokens or chat length.
 
----
-
-## Investor one-liner
-
-> **Delta = governed evidence change you can invoice; tokens = COGS.**
+If the file is too inconsistent, the gate stays shut and nothing is billed as
+a delta. Token spend is still visible; it is the cost of the run, not the
+product unit.
 
 ---
 
-## Business-user one-liner
+## One-liners
 
-> **A delta is one real update to the case file that compliance would accept —
-> not another AI reply.**
+| For | Line |
+|-----|------|
+| Investor | Delta = billed change on the case scoreboard; tokens = cost to get there. |
+| Buyer | You pay when the file’s scores move under the rules — not per reply. |
 
 ---
 
-## What a delta is / is not
+## Is / is not
 
 | Is | Is not |
 |----|--------|
-| Net-new material evidence change | LLM input/output tokens |
-| Governance-gated (policy must allow) | Guaranteed on every run |
-| Attributed to tenant + scope | Anonymous model usage |
-| Auditable ledger line | Vague “AI insight” |
-| Reprocessing same evidence → $0 | Double-billed retries |
+| A new, non-trivial score change on a topic | An LLM token |
+| Allowed only when the contradiction gate is open | Guaranteed every run |
+| Tied to a tenant and a scope | Anonymous “AI usage” |
+| A ledger row you can replay | A free-text summary |
+| Unchanged file → no new charge | Billing every loop of the agents |
 
 ---
 
-## Optional close (pricing hook)
+## How one is produced
 
-On today’s calibration, a valid delta costs roughly **~1–2¢** in frontier LLM
-COGS and lists around **~7¢** at an 80% gross margin — so the product is priced
-on **outcomes under governance**, with observability so clients cut bills by
-using better models and tighter agents, not by arguing over token invoices.
+Models help pull claims out of documents. After that, the path is mostly
+bookkeeping:
+
+1. Claims sit on a **scoreboard** (topics; how much evidence backs or
+   challenges each).
+2. If contradictions are high, a **gate** blocks further progress. No deltas.
+3. If the gate opens, scores are updated by a fixed procedure (numbers in,
+   numbers out — same inputs, same result).
+4. Small moves are ignored so noise does not become a line item. A clear move
+   becomes a delta.
+5. Billing compares to the last charged state. Same scores again → no new
+   charge.
+
+The model is upstream reading. The unit you buy is the scoreboard move that
+passed the gate and the cutoff.
+
+```
+documents → claims on the board → gate (contradictions)
+  → if closed: 0 deltas
+  → if open: update scores → keep clear moves → charge only what is new
+```
+
+This is not a vote by the model on “how valuable” the run felt. It is a
+diff on stored scores, under rules you can inspect.
+
+---
+
+## Pricing note (separate from the definition)
+
+On our current demos, a settled delta sits around a few thousand tokens of
+model use. At common frontier rates and an 80% gross-margin target on that
+cost alone, list lands near **~$0.07** per delta. Infra and human review are
+extra; treat the figure as a working number, not a promise.
