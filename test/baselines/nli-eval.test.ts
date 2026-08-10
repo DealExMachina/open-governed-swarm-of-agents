@@ -80,7 +80,7 @@ describe("resolveActionFromVerdict", () => {
     expect(reason).toBe("accrual_prefilter:hitl");
   });
 
-  it("typed non-equivalent routes to HITL", () => {
+  it("typed non-equivalent with NLI contradiction blocks merge", () => {
     const v: NliVerdict = {
       label: "contradiction",
       confidence: 0.99,
@@ -93,8 +93,56 @@ describe("resolveActionFromVerdict", () => {
       "ARR €38M",
       "arr",
     );
-    expect(action).toBe("hitl");
-    expect(reason).toBe("typed_diff_hitl");
+    expect(action).toBe("block_contradiction");
+    expect(reason).toContain("nli_contradiction");
+  });
+
+  it("canonically equal typed paraphrase auto_merges without NLI", () => {
+    const v: NliVerdict = {
+      label: "neutral",
+      confidence: 0.99,
+      available: true,
+    };
+    const { action } = resolveActionFromVerdict(
+      v,
+      min,
+      "Group SCR ratio 142% at Q4 2025",
+      "Solvency Capital Requirement ratio of 142% for the group at Q4 2025",
+      "scr_ratio",
+    );
+    expect(action).toBe("auto_merge");
+  });
+
+  it("word-form percentage paraphrase auto_merges via canonical parser", () => {
+    const v: NliVerdict = {
+      label: "equivalent",
+      confidence: 0.98,
+      available: true,
+    };
+    const { action } = resolveActionFromVerdict(
+      v,
+      min,
+      "Gross margin 72%",
+      "Reported gross margin of seventy-two percent",
+      "gross_margin",
+    );
+    expect(action).toBe("auto_merge");
+  });
+
+  it("blocks merge when NLI contradicts despite typed parser false-positive", () => {
+    const v: NliVerdict = {
+      label: "contradiction",
+      confidence: 1,
+      available: true,
+    };
+    const { action } = resolveActionFromVerdict(
+      v,
+      min,
+      "Revenue grew by 10 percent year over year",
+      "Revenue fell by 10 percent year over year",
+      "arr",
+    );
+    expect(action).toBe("block_contradiction");
   });
 
   it("hitl on neutral", () => {

@@ -173,7 +173,7 @@ export function resolveActionFromVerdict(
       schemaMap,
     });
     if (!routing.propose && routing.reason === "canonical_equal_skip") {
-      return { action: "no_merge", reason: routing.reason };
+      return { action: "auto_merge", reason: routing.reason };
     }
     if (routing.reason === "nli_contradiction_block") {
       return {

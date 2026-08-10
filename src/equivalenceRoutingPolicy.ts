@@ -78,6 +78,27 @@ export function resolveGenericEquivalenceRouting(
   const schemaMap = ctx?.schemaMap;
   const def = schemaFor(dimension, schemaMap);
 
+  const legacyPrefilter = classifyAccrualPrefilter(prior, next, ctx);
+  if (legacyPrefilter) {
+    return {
+      propose: true,
+      verdict: ACCRUAL_HITL_VERDICT,
+      prefilter: legacyPrefilter,
+      reason: "accrual_prefilter_hitl",
+      skipNli: true,
+    };
+  }
+
+  // NLI contradiction overrides canonical typed equality (parser may false-positive).
+  if (verdict?.label === "contradiction") {
+    return {
+      propose: false,
+      verdict,
+      reason: "nli_contradiction_block",
+      skipNli: false,
+    };
+  }
+
   if (dimension && schemaMap) {
     if (dimensionValuesEquivalent(dimension, prior, next, schemaMap)) {
       return {
@@ -88,24 +109,32 @@ export function resolveGenericEquivalenceRouting(
       };
     }
     if (isTypedDimension(def)) {
+      if (!verdict) {
+        return {
+          propose: false,
+          verdict: { label: "neutral", confidence: 0, available: false },
+          reason: "typed_diff_hitl",
+          skipNli: false,
+        };
+      }
+      if (
+        verdict.label === "equivalent" &&
+        dimensionValuesEquivalent(dimension, prior, next, schemaMap)
+      ) {
+        return {
+          propose: true,
+          verdict,
+          reason: "nli_equiv_propose",
+          skipNli: false,
+        };
+      }
       return {
         propose: true,
         verdict: HITL_VERDICT,
         reason: "typed_diff_hitl",
-        skipNli: true,
+        skipNli: false,
       };
     }
-  }
-
-  const legacyPrefilter = classifyAccrualPrefilter(prior, next, ctx);
-  if (legacyPrefilter) {
-    return {
-      propose: true,
-      verdict: ACCRUAL_HITL_VERDICT,
-      prefilter: legacyPrefilter,
-      reason: "accrual_prefilter_hitl",
-      skipNli: true,
-    };
   }
 
   if (!verdict) {

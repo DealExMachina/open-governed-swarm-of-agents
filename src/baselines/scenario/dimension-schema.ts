@@ -333,6 +333,13 @@ export function parsePercentage(raw: string): CanonicalPercentage | null {
   // "45% CAGR (2021-2024)" — extract first number before %
   const m = s.match(/([\d.]+)\s*%/) ?? s.match(/([\d.]+)\s*percent/i);
   if (m) return { type: "percentage", value: parseFloat(m[1]) };
+  // Word form: "seventy-two percent", "Reported gross margin of seventy-two percent"
+  if (/\bpercent\b/i.test(s) || /%/.test(s)) {
+    const wordVal = wordsToNumber(s);
+    if (wordVal !== null && wordVal >= 0 && wordVal <= 100) {
+      return { type: "percentage", value: wordVal };
+    }
+  }
   // "0.72" style (0-1 scale)
   const frac = s.match(/^(0\.\d+)$/);
   if (frac) return { type: "percentage", value: parseFloat(frac[1]) * 100 };
