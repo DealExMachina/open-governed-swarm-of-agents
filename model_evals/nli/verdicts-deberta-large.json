@@ -1,0 +1,1267 @@
+{
+  "backend": "deberta",
+  "model": "cross-encoder/nli-deberta-v3-large",
+  "gold_path": "test/fixtures/nli-gold-set.yaml",
+  "pair_count": 57,
+  "latency_ms": {
+    "mean": 77.99,
+    "p50": 62.06,
+    "max": 769.9
+  },
+  "verdicts": [
+    {
+      "id": "s1-arr-paraphrase-01",
+      "scenario": "s1",
+      "dimension": "arr",
+      "category": "paraphrase",
+      "prior": "ARR \u20ac50M (FY 2024, self-reported)",
+      "next": "annual recurring revenue of approximately fifty million euros",
+      "label": "neutral",
+      "confidence": 0.9993,
+      "available": true,
+      "latency_ms": 769.9,
+      "forward": [
+        0.0,
+        0.0331,
+        0.9668
+      ],
+      "backward": [
+        0.0001,
+        0.0005,
+        0.9993
+      ]
+    },
+    {
+      "id": "s1-valuation-paraphrase-01",
+      "scenario": "s1",
+      "dimension": "valuation",
+      "category": "paraphrase",
+      "prior": "Indicative valuation \u20ac420M (8.4x ARR)",
+      "next": "Enterprise value estimated at four hundred twenty million euros",
+      "label": "neutral",
+      "confidence": 0.9849,
+      "available": true,
+      "latency_ms": 93.47,
+      "forward": [
+        0.0,
+        0.9959,
+        0.0041
+      ],
+      "backward": [
+        0.0,
+        0.0151,
+        0.9849
+      ]
+    },
+    {
+      "id": "s1-margin-paraphrase-01",
+      "scenario": "s1",
+      "dimension": "gross_margin",
+      "category": "paraphrase",
+      "prior": "Gross margin 72%",
+      "next": "Reported gross margin of seventy-two percent",
+      "label": "equivalent",
+      "confidence": 0.9961,
+      "available": true,
+      "latency_ms": 82.78,
+      "forward": [
+        0.0,
+        0.9961,
+        0.0038
+      ],
+      "backward": [
+        0.0001,
+        0.9983,
+        0.0016
+      ]
+    },
+    {
+      "id": "s1-patents-paraphrase-01",
+      "scenario": "s1",
+      "dimension": "patents",
+      "category": "paraphrase",
+      "prior": "7 patents granted, 2 pending",
+      "next": "Seven granted patents and two applications pending",
+      "label": "equivalent",
+      "confidence": 0.9935,
+      "available": true,
+      "latency_ms": 88.22,
+      "forward": [
+        0.0,
+        0.9935,
+        0.0064
+      ],
+      "backward": [
+        0.0001,
+        0.9975,
+        0.0024
+      ]
+    },
+    {
+      "id": "s1-arr-fp-trap-01",
+      "scenario": "s1",
+      "dimension": "arr",
+      "category": "false_positive_trap",
+      "prior": "ARR \u20ac50M (FY 2024, self-reported)",
+      "next": "ARR \u20ac38M (adjusted, auditor-verified)",
+      "label": "contradiction",
+      "confidence": 1.0,
+      "available": true,
+      "latency_ms": 59.96,
+      "forward": [
+        0.9996,
+        0.0,
+        0.0004
+      ],
+      "backward": [
+        1.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "id": "s1-valuation-fp-trap-01",
+      "scenario": "s1",
+      "dimension": "valuation",
+      "category": "false_positive_trap",
+      "prior": "Indicative valuation \u20ac420M (8.4x ARR)",
+      "next": "Revised valuation \u20ac270-290M (down 37% from \u20ac420M)",
+      "label": "contradiction",
+      "confidence": 0.9851,
+      "available": true,
+      "latency_ms": 87.59,
+      "forward": [
+        0.0796,
+        0.0001,
+        0.9203
+      ],
+      "backward": [
+        0.9851,
+        0.0022,
+        0.0128
+      ]
+    },
+    {
+      "id": "s1-clients-fp-trap-01",
+      "scenario": "s1",
+      "dimension": "clients",
+      "category": "false_positive_trap",
+      "prior": "47 enterprise clients",
+      "next": "50 enterprise clients after Q4 expansion",
+      "label": "contradiction",
+      "confidence": 0.5198,
+      "available": true,
+      "latency_ms": 79.7,
+      "forward": [
+        0.0012,
+        0.0001,
+        0.9988
+      ],
+      "backward": [
+        0.5198,
+        0.0016,
+        0.4786
+      ]
+    },
+    {
+      "id": "s1-margin-fp-trap-01",
+      "scenario": "s1",
+      "dimension": "gross_margin",
+      "category": "false_positive_trap",
+      "prior": "Gross margin 72%",
+      "next": "Gross margin 65% after cost reclassification",
+      "label": "contradiction",
+      "confidence": 0.9993,
+      "available": true,
+      "latency_ms": 80.7,
+      "forward": [
+        0.0139,
+        0.0001,
+        0.986
+      ],
+      "backward": [
+        0.9993,
+        0.0001,
+        0.0006
+      ]
+    },
+    {
+      "id": "s1-concerns-contradiction-01",
+      "scenario": "s1",
+      "dimension": "key_person_risk",
+      "category": "contradiction",
+      "prior": "No material concerns identified",
+      "next": "CTO + 2 senior engineers departing Q4/Q1",
+      "label": "neutral",
+      "confidence": 0.8437,
+      "available": true,
+      "latency_ms": 75.8,
+      "forward": [
+        0.1514,
+        0.0049,
+        0.8437
+      ],
+      "backward": [
+        0.4904,
+        0.0002,
+        0.5094
+      ]
+    },
+    {
+      "id": "s1-arr-contradiction-01",
+      "scenario": "s1",
+      "dimension": "arr",
+      "category": "contradiction",
+      "prior": "Revenue grew by 10 percent year over year",
+      "next": "Revenue fell by 10 percent year over year",
+      "label": "contradiction",
+      "confidence": 0.9999,
+      "available": true,
+      "latency_ms": 77.18,
+      "forward": [
+        0.9999,
+        0.0,
+        0.0001
+      ],
+      "backward": [
+        0.9999,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "id": "s1-litigation-contradiction-01",
+      "scenario": "s1",
+      "dimension": "patent_litigation",
+      "category": "contradiction",
+      "prior": "No active patent litigation",
+      "next": "Axion Corp filed patent suit on EP3847291",
+      "label": "contradiction",
+      "confidence": 1.0,
+      "available": true,
+      "latency_ms": 57.59,
+      "forward": [
+        0.9989,
+        0.0002,
+        0.0009
+      ],
+      "backward": [
+        1.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "id": "s1-arr-refutation-01",
+      "scenario": "s1",
+      "dimension": "arr",
+      "category": "refutation",
+      "prior": "ARR \u20ac50M (FY 2024, self-reported)",
+      "next": "Auditor confirmed ARR was materially overstated; true ARR is \u20ac38M",
+      "label": "contradiction",
+      "confidence": 0.9999,
+      "available": true,
+      "latency_ms": 77.91,
+      "forward": [
+        0.9457,
+        0.0,
+        0.0543
+      ],
+      "backward": [
+        0.9999,
+        0.0,
+        0.0001
+      ]
+    },
+    {
+      "id": "s1-ip-refutation-01",
+      "scenario": "s1",
+      "dimension": "ip_dispute",
+      "category": "refutation",
+      "prior": "Clean IP title on all core patents",
+      "next": "2 patents co-ownership dispute with Dr. Klaus Haber confirmed by counsel",
+      "label": "contradiction",
+      "confidence": 0.9999,
+      "available": true,
+      "latency_ms": 84.59,
+      "forward": [
+        0.9368,
+        0.0098,
+        0.0534
+      ],
+      "backward": [
+        0.9999,
+        0.0,
+        0.0001
+      ]
+    },
+    {
+      "id": "s1-keyperson-hitl-01",
+      "scenario": "s1",
+      "dimension": "key_person_risk",
+      "category": "ambiguous_hitl",
+      "prior": "CTO departing",
+      "next": "CTO and 2 senior engineers departing Q4/Q1",
+      "label": "neutral",
+      "confidence": 0.9998,
+      "available": true,
+      "latency_ms": 57.79,
+      "forward": [
+        0.0001,
+        0.0001,
+        0.9998
+      ],
+      "backward": [
+        0.001,
+        0.9656,
+        0.0334
+      ]
+    },
+    {
+      "id": "s1-customer-hitl-01",
+      "scenario": "s1",
+      "dimension": "customer_concentration",
+      "category": "ambiguous_hitl",
+      "prior": "Top client represents significant revenue share",
+      "next": "Largest client (\u20ac8.2M ARR = 21.6%) evaluating alternatives",
+      "label": "neutral",
+      "confidence": 0.9999,
+      "available": true,
+      "latency_ms": 79.18,
+      "forward": [
+        0.0,
+        0.0001,
+        0.9999
+      ],
+      "backward": [
+        0.0,
+        0.9929,
+        0.007
+      ]
+    },
+    {
+      "id": "s1-ip-resolution-hitl-01",
+      "scenario": "s1",
+      "dimension": "ip_resolution",
+      "category": "ambiguous_hitl",
+      "prior": "IP dispute under negotiation",
+      "next": "Axion settlement \u20ac1.5-2M, Haber buyout \u20ac800K-1.2M",
+      "label": "contradiction",
+      "confidence": 0.9927,
+      "available": true,
+      "latency_ms": 59.38,
+      "forward": [
+        0.9927,
+        0.0011,
+        0.0063
+      ],
+      "backward": [
+        0.0014,
+        0.0005,
+        0.9982
+      ]
+    },
+    {
+      "id": "s2-scr-paraphrase-01",
+      "scenario": "s2",
+      "dimension": "scr_ratio",
+      "category": "paraphrase",
+      "prior": "Group SCR ratio 142% at Q4 2025",
+      "next": "Solvency Capital Requirement ratio of 142% for the group at Q4 2025",
+      "label": "neutral",
+      "confidence": 0.9916,
+      "available": true,
+      "latency_ms": 60.11,
+      "forward": [
+        0.0064,
+        0.002,
+        0.9916
+      ],
+      "backward": [
+        0.1308,
+        0.1137,
+        0.7555
+      ]
+    },
+    {
+      "id": "s2-funds-paraphrase-01",
+      "scenario": "s2",
+      "dimension": "own_funds",
+      "category": "paraphrase",
+      "prior": "Total eligible own funds EUR 890M",
+      "next": "Eligible own funds total EUR 890 million",
+      "label": "equivalent",
+      "confidence": 0.9988,
+      "available": true,
+      "latency_ms": 77.83,
+      "forward": [
+        0.0,
+        0.9988,
+        0.0011
+      ],
+      "backward": [
+        0.0,
+        0.9988,
+        0.0011
+      ]
+    },
+    {
+      "id": "s2-scr-fp-trap-01",
+      "scenario": "s2",
+      "dimension": "scr_ratio",
+      "category": "false_positive_trap",
+      "prior": "Group SCR ratio 142% at Q4 2025",
+      "next": "Group SCR ratio 98% at Q4 2025 after recalculation",
+      "label": "contradiction",
+      "confidence": 0.9998,
+      "available": true,
+      "latency_ms": 58.61,
+      "forward": [
+        0.9453,
+        0.0001,
+        0.0546
+      ],
+      "backward": [
+        0.9998,
+        0.0,
+        0.0002
+      ]
+    },
+    {
+      "id": "s2-scr-contradiction-01",
+      "scenario": "s2",
+      "dimension": "scr_ratio",
+      "category": "contradiction",
+      "prior": "SCR ratio exceeds regulatory minimum of 100%",
+      "next": "SCR ratio falls below 100% regulatory minimum",
+      "label": "contradiction",
+      "confidence": 0.9999,
+      "available": true,
+      "latency_ms": 60.25,
+      "forward": [
+        0.9999,
+        0.0,
+        0.0001
+      ],
+      "backward": [
+        0.9999,
+        0.0,
+        0.0001
+      ]
+    },
+    {
+      "id": "s2-orsa-refutation-01",
+      "scenario": "s2",
+      "dimension": "orsa_summary",
+      "category": "refutation",
+      "prior": "Internal model approved for SCR subset with conditions",
+      "next": "NCA rejected internal model approval pending remediation",
+      "label": "contradiction",
+      "confidence": 0.9997,
+      "available": true,
+      "latency_ms": 62.06,
+      "forward": [
+        0.9997,
+        0.0,
+        0.0003
+      ],
+      "backward": [
+        0.0021,
+        0.0037,
+        0.9942
+      ]
+    },
+    {
+      "id": "s2-guideline-hitl-01",
+      "scenario": "s2",
+      "dimension": "guideline_update",
+      "category": "ambiguous_hitl",
+      "prior": "Regulatory framework unchanged from prior quarter",
+      "next": "EIOPA Q&A affects matching adjustment eligibility",
+      "label": "contradiction",
+      "confidence": 0.9986,
+      "available": true,
+      "latency_ms": 56.72,
+      "forward": [
+        0.0149,
+        0.0124,
+        0.9728
+      ],
+      "backward": [
+        0.9986,
+        0.0001,
+        0.0014
+      ]
+    },
+    {
+      "id": "s3-protocol-paraphrase-01",
+      "scenario": "s3",
+      "dimension": "protocol_version",
+      "category": "paraphrase",
+      "prior": "Phase II/III oncology protocol v3.1 approved",
+      "next": "Oncology trial protocol version 3.1 approved for Phase II/III",
+      "label": "equivalent",
+      "confidence": 0.9981,
+      "available": true,
+      "latency_ms": 63.76,
+      "forward": [
+        0.0,
+        0.9981,
+        0.0019
+      ],
+      "backward": [
+        0.0,
+        0.9988,
+        0.0011
+      ]
+    },
+    {
+      "id": "s3-gcp-paraphrase-01",
+      "scenario": "s3",
+      "dimension": "gcp_status",
+      "category": "paraphrase",
+      "prior": "GCP compliance verified at all active sites",
+      "next": "Good Clinical Practice compliance confirmed across active sites",
+      "label": "equivalent",
+      "confidence": 0.9981,
+      "available": true,
+      "latency_ms": 58.0,
+      "forward": [
+        0.0,
+        0.9988,
+        0.0011
+      ],
+      "backward": [
+        0.0,
+        0.9981,
+        0.0018
+      ]
+    },
+    {
+      "id": "s3-enrollment-fp-trap-01",
+      "scenario": "s3",
+      "dimension": "enrollment_stats",
+      "category": "false_positive_trap",
+      "prior": "120 patients enrolled across 8 sites",
+      "next": "95 patients enrolled after 3 site closures",
+      "label": "contradiction",
+      "confidence": 1.0,
+      "available": true,
+      "latency_ms": 60.78,
+      "forward": [
+        0.9971,
+        0.0001,
+        0.0028
+      ],
+      "backward": [
+        1.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "id": "s3-safety-contradiction-01",
+      "scenario": "s3",
+      "dimension": "safety_signal",
+      "category": "contradiction",
+      "prior": "No Grade 3 or higher adverse events reported",
+      "next": "Two Grade 3 adverse events reported at lead site",
+      "label": "contradiction",
+      "confidence": 0.9048,
+      "available": true,
+      "latency_ms": 77.63,
+      "forward": [
+        0.1858,
+        0.0002,
+        0.814
+      ],
+      "backward": [
+        0.9048,
+        0.0007,
+        0.0945
+      ]
+    },
+    {
+      "id": "s3-endpoint-refutation-01",
+      "scenario": "s3",
+      "dimension": "endpoint_metrics",
+      "category": "refutation",
+      "prior": "Primary endpoint met with statistical significance",
+      "next": "Interim analysis shows primary endpoint not met; trial halted",
+      "label": "contradiction",
+      "confidence": 1.0,
+      "available": true,
+      "latency_ms": 56.9,
+      "forward": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "backward": [
+        0.9946,
+        0.0001,
+        0.0052
+      ]
+    },
+    {
+      "id": "s3-ae-hitl-01",
+      "scenario": "s3",
+      "dimension": "ae_rate",
+      "category": "ambiguous_hitl",
+      "prior": "Adverse event rate within expected range",
+      "next": "Grade 2 adverse event rate elevated at one site pending review",
+      "label": "neutral",
+      "confidence": 0.9989,
+      "available": true,
+      "latency_ms": 57.35,
+      "forward": [
+        0.001,
+        0.0001,
+        0.9989
+      ],
+      "backward": [
+        0.0033,
+        0.0033,
+        0.9934
+      ]
+    },
+    {
+      "id": "s4-cdd-paraphrase-01",
+      "scenario": "s4",
+      "dimension": "cdd_level",
+      "category": "paraphrase",
+      "prior": "Standard CDD completed for corporate entity",
+      "next": "Standard Customer Due Diligence completed for the corporate client",
+      "label": "equivalent",
+      "confidence": 0.9907,
+      "available": true,
+      "latency_ms": 57.04,
+      "forward": [
+        0.0003,
+        0.9907,
+        0.0091
+      ],
+      "backward": [
+        0.0001,
+        0.9968,
+        0.0031
+      ]
+    },
+    {
+      "id": "s4-ubo-paraphrase-01",
+      "scenario": "s4",
+      "dimension": "ownership_chain",
+      "category": "paraphrase",
+      "prior": "UBO identified to 25% threshold",
+      "next": "Ultimate beneficial owner identified at 25 percent ownership threshold",
+      "label": "equivalent",
+      "confidence": 0.8928,
+      "available": true,
+      "latency_ms": 56.87,
+      "forward": [
+        0.0001,
+        0.8928,
+        0.1071
+      ],
+      "backward": [
+        0.0001,
+        0.9967,
+        0.0032
+      ]
+    },
+    {
+      "id": "s4-sanctions-fp-trap-01",
+      "scenario": "s4",
+      "dimension": "sanctions_status",
+      "category": "false_positive_trap",
+      "prior": "Initial screening clear on primary entities",
+      "next": "Confirmed sanctions match on beneficial owner",
+      "label": "contradiction",
+      "confidence": 0.9703,
+      "available": true,
+      "latency_ms": 64.16,
+      "forward": [
+        0.9703,
+        0.0001,
+        0.0296
+      ],
+      "backward": [
+        0.0017,
+        0.0009,
+        0.9974
+      ]
+    },
+    {
+      "id": "s4-risk-fp-trap-01",
+      "scenario": "s4",
+      "dimension": "risk_rating",
+      "category": "false_positive_trap",
+      "prior": "Residual risk rated medium-low after controls",
+      "next": "Residual risk rated high after typology match",
+      "label": "contradiction",
+      "confidence": 0.9997,
+      "available": true,
+      "latency_ms": 57.79,
+      "forward": [
+        0.9997,
+        0.0,
+        0.0003
+      ],
+      "backward": [
+        0.9995,
+        0.0,
+        0.0005
+      ]
+    },
+    {
+      "id": "s4-sanctions-contradiction-01",
+      "scenario": "s4",
+      "dimension": "sanctions_status",
+      "category": "contradiction",
+      "prior": "Sanctions screening returned no matches",
+      "next": "Sanctions screening returned positive match on UBO",
+      "label": "contradiction",
+      "confidence": 0.9999,
+      "available": true,
+      "latency_ms": 56.59,
+      "forward": [
+        0.9999,
+        0.0,
+        0.0001
+      ],
+      "backward": [
+        0.9999,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "id": "s4-edd-refutation-01",
+      "scenario": "s4",
+      "dimension": "edd_trigger",
+      "category": "refutation",
+      "prior": "No EDD trigger at onboarding",
+      "next": "EDD mandatory \u2014 PEP exposure confirmed on control person",
+      "label": "contradiction",
+      "confidence": 0.9999,
+      "available": true,
+      "latency_ms": 61.74,
+      "forward": [
+        0.999,
+        0.0002,
+        0.0007
+      ],
+      "backward": [
+        0.9999,
+        0.0,
+        0.0001
+      ]
+    },
+    {
+      "id": "s4-alias-hitl-01",
+      "scenario": "s4",
+      "dimension": "sanctions_status",
+      "category": "ambiguous_hitl",
+      "prior": "Initial screening clear on primary entities",
+      "next": "False positive cleared on secondary alias",
+      "label": "contradiction",
+      "confidence": 0.9943,
+      "available": true,
+      "latency_ms": 62.39,
+      "forward": [
+        0.987,
+        0.0001,
+        0.013
+      ],
+      "backward": [
+        0.9943,
+        0.0003,
+        0.0054
+      ]
+    },
+    {
+      "id": "s4-ownership-hitl-01",
+      "scenario": "s4",
+      "dimension": "ownership_chain",
+      "category": "ambiguous_hitl",
+      "prior": "UBO identified to 25% threshold",
+      "next": "Intermediate holding added in non-high-risk jurisdiction",
+      "label": "neutral",
+      "confidence": 0.9998,
+      "available": true,
+      "latency_ms": 58.41,
+      "forward": [
+        0.0017,
+        0.0034,
+        0.9949
+      ],
+      "backward": [
+        0.0001,
+        0.0001,
+        0.9998
+      ]
+    },
+    {
+      "id": "s5-cip-paraphrase-01",
+      "scenario": "s5",
+      "dimension": "nerc_cip_ref",
+      "category": "paraphrase",
+      "prior": "CIP-002 BES categorization current",
+      "next": "NERC CIP-002 Bulk Electric System categorization is up to date",
+      "label": "neutral",
+      "confidence": 0.7536,
+      "available": true,
+      "latency_ms": 80.92,
+      "forward": [
+        0.0,
+        0.2463,
+        0.7536
+      ],
+      "backward": [
+        0.0004,
+        0.9862,
+        0.0134
+      ]
+    },
+    {
+      "id": "s5-patch-paraphrase-01",
+      "scenario": "s5",
+      "dimension": "patch_status",
+      "category": "paraphrase",
+      "prior": "Critical patches applied within SLA",
+      "next": "All critical security patches deployed within required SLA window",
+      "label": "neutral",
+      "confidence": 0.9993,
+      "available": true,
+      "latency_ms": 58.34,
+      "forward": [
+        0.0,
+        0.0007,
+        0.9993
+      ],
+      "backward": [
+        0.0001,
+        0.9924,
+        0.0075
+      ]
+    },
+    {
+      "id": "s5-frequency-fp-trap-01",
+      "scenario": "s5",
+      "dimension": "frequency_stability",
+      "category": "false_positive_trap",
+      "prior": "CPS1 and CPS2 within NERC targets",
+      "next": "CPS1 violation recorded for 3 consecutive hours",
+      "label": "neutral",
+      "confidence": 0.9998,
+      "available": true,
+      "latency_ms": 61.56,
+      "forward": [
+        0.0002,
+        0.0,
+        0.9998
+      ],
+      "backward": [
+        0.0087,
+        0.0023,
+        0.989
+      ]
+    },
+    {
+      "id": "s5-patch-contradiction-01",
+      "scenario": "s5",
+      "dimension": "patch_status",
+      "category": "contradiction",
+      "prior": "All critical patches applied within SLA",
+      "next": "12 critical patches overdue beyond SLA deadline",
+      "label": "contradiction",
+      "confidence": 0.9937,
+      "available": true,
+      "latency_ms": 62.44,
+      "forward": [
+        0.1334,
+        0.0,
+        0.8666
+      ],
+      "backward": [
+        0.9937,
+        0.0003,
+        0.006
+      ]
+    },
+    {
+      "id": "s5-settlement-refutation-01",
+      "scenario": "s5",
+      "dimension": "settlement_exposure",
+      "category": "refutation",
+      "prior": "Settlement exposure within approved budget line",
+      "next": "Settlement exposure exceeds budget by $4.2M after curtailment event",
+      "label": "contradiction",
+      "confidence": 1.0,
+      "available": true,
+      "latency_ms": 63.98,
+      "forward": [
+        0.116,
+        0.0001,
+        0.884
+      ],
+      "backward": [
+        1.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "id": "s5-retention-hitl-01",
+      "scenario": "s5",
+      "dimension": "evidence_retention",
+      "category": "ambiguous_hitl",
+      "prior": "Evidence retention policy compliant",
+      "next": "7-year retention requirement applies to new cyber asset class",
+      "label": "neutral",
+      "confidence": 0.9995,
+      "available": true,
+      "latency_ms": 59.89,
+      "forward": [
+        0.0004,
+        0.0,
+        0.9995
+      ],
+      "backward": [
+        0.0007,
+        0.0069,
+        0.9924
+      ]
+    },
+    {
+      "id": "generic-paraphrase-pct-01",
+      "scenario": "cross",
+      "dimension": "metric",
+      "category": "paraphrase",
+      "prior": "Compliance rate 94%",
+      "next": "Ninety-four percent compliance rate achieved",
+      "label": "equivalent",
+      "confidence": 0.9978,
+      "available": true,
+      "latency_ms": 65.2,
+      "forward": [
+        0.0,
+        0.9985,
+        0.0014
+      ],
+      "backward": [
+        0.0,
+        0.9978,
+        0.0021
+      ]
+    },
+    {
+      "id": "generic-fp-same-subject-01",
+      "scenario": "cross",
+      "dimension": "status",
+      "category": "false_positive_trap",
+      "prior": "Vendor certified ISO 27001",
+      "next": "Vendor ISO 27001 certification expired last month",
+      "label": "contradiction",
+      "confidence": 0.999,
+      "available": true,
+      "latency_ms": 60.06,
+      "forward": [
+        0.999,
+        0.0001,
+        0.001
+      ],
+      "backward": [
+        0.007,
+        0.9844,
+        0.0086
+      ]
+    },
+    {
+      "id": "generic-contradiction-01",
+      "scenario": "cross",
+      "dimension": "status",
+      "category": "contradiction",
+      "prior": "Control operating effectively",
+      "next": "Control operating ineffectively with material weakness",
+      "label": "contradiction",
+      "confidence": 0.9998,
+      "available": true,
+      "latency_ms": 62.39,
+      "forward": [
+        0.9998,
+        0.0,
+        0.0002
+      ],
+      "backward": [
+        0.9998,
+        0.0,
+        0.0001
+      ]
+    },
+    {
+      "id": "generic-refutation-01",
+      "scenario": "cross",
+      "dimension": "finding",
+      "category": "refutation",
+      "prior": "No findings raised in external audit",
+      "next": "External audit raised 3 material findings including data integrity",
+      "label": "contradiction",
+      "confidence": 1.0,
+      "available": true,
+      "latency_ms": 56.8,
+      "forward": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "backward": [
+        1.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "id": "generic-hitl-scope-01",
+      "scenario": "cross",
+      "dimension": "scope",
+      "category": "ambiguous_hitl",
+      "prior": "Assessment covers core production systems",
+      "next": "Assessment extended to include disaster recovery environment",
+      "label": "contradiction",
+      "confidence": 0.9966,
+      "available": true,
+      "latency_ms": 64.29,
+      "forward": [
+        0.0021,
+        0.0,
+        0.9978
+      ],
+      "backward": [
+        0.9966,
+        0.0001,
+        0.0033
+      ]
+    },
+    {
+      "id": "s3-enrollment-accrual-01",
+      "scenario": "s3",
+      "dimension": "enrollment_stats",
+      "category": "ambiguous_hitl",
+      "prior": "85 patients enrolled at 6 active sites",
+      "next": "120 patients enrolled after 2 new sites activated",
+      "label": "contradiction",
+      "confidence": 0.9999,
+      "available": true,
+      "latency_ms": 57.01,
+      "forward": [
+        0.9996,
+        0.0,
+        0.0004
+      ],
+      "backward": [
+        0.9999,
+        0.0,
+        0.0001
+      ]
+    },
+    {
+      "id": "s3-dlt-hitl-01",
+      "scenario": "s3",
+      "dimension": "safety_signal",
+      "category": "ambiguous_hitl",
+      "prior": "No dose-limiting toxicities observed in cohort 1",
+      "next": "One possible DLT under review at dose level 2",
+      "label": "neutral",
+      "confidence": 0.9978,
+      "available": true,
+      "latency_ms": 64.62,
+      "forward": [
+        0.002,
+        0.0001,
+        0.9978
+      ],
+      "backward": [
+        0.0141,
+        0.0005,
+        0.9854
+      ]
+    },
+    {
+      "id": "s3-endpoint-paraphrase-01",
+      "scenario": "s3",
+      "dimension": "endpoint_metrics",
+      "category": "paraphrase",
+      "prior": "Primary endpoint: progression-free survival at 12 months",
+      "next": "PFS at 12 months is the primary efficacy endpoint",
+      "label": "equivalent",
+      "confidence": 0.597,
+      "available": true,
+      "latency_ms": 62.14,
+      "forward": [
+        0.0448,
+        0.597,
+        0.3582
+      ],
+      "backward": [
+        0.2318,
+        0.7414,
+        0.0268
+      ]
+    },
+    {
+      "id": "s3-protocol-fp-trap-01",
+      "scenario": "s3",
+      "dimension": "protocol_version",
+      "category": "false_positive_trap",
+      "prior": "Protocol v3.1 approved for Phase II/III",
+      "next": "Protocol v4.0 amendment submitted after safety review",
+      "label": "contradiction",
+      "confidence": 0.9894,
+      "available": true,
+      "latency_ms": 62.37,
+      "forward": [
+        0.0024,
+        0.0,
+        0.9975
+      ],
+      "backward": [
+        0.9894,
+        0.0002,
+        0.0104
+      ]
+    },
+    {
+      "id": "s4-pep-hitl-01",
+      "scenario": "s4",
+      "dimension": "pep_exposure",
+      "category": "ambiguous_hitl",
+      "prior": "No PEP exposure identified in initial screening",
+      "next": "Indirect PEP link identified via 15% shareholder",
+      "label": "contradiction",
+      "confidence": 0.9999,
+      "available": true,
+      "latency_ms": 61.53,
+      "forward": [
+        0.0004,
+        0.0,
+        0.9996
+      ],
+      "backward": [
+        0.9999,
+        0.0,
+        0.0001
+      ]
+    },
+    {
+      "id": "s4-velocity-hitl-01",
+      "scenario": "s4",
+      "dimension": "transaction_profile",
+      "category": "ambiguous_hitl",
+      "prior": "Transaction velocity within expected range for sector",
+      "next": "Velocity spike in cross-border wires flagged for analyst review",
+      "label": "contradiction",
+      "confidence": 0.9654,
+      "available": true,
+      "latency_ms": 58.49,
+      "forward": [
+        0.0458,
+        0.0002,
+        0.954
+      ],
+      "backward": [
+        0.9654,
+        0.0004,
+        0.0342
+      ]
+    },
+    {
+      "id": "s4-cdd-paraphrase-02",
+      "scenario": "s4",
+      "dimension": "cdd_level",
+      "category": "paraphrase",
+      "prior": "Enhanced due diligence completed",
+      "next": "EDD procedures completed for high-risk client segment",
+      "label": "neutral",
+      "confidence": 0.9996,
+      "available": true,
+      "latency_ms": 58.08,
+      "forward": [
+        0.0,
+        0.0004,
+        0.9996
+      ],
+      "backward": [
+        0.0002,
+        0.9899,
+        0.0099
+      ]
+    },
+    {
+      "id": "s4-sar-refutation-01",
+      "scenario": "s4",
+      "dimension": "sar_decision",
+      "category": "refutation",
+      "prior": "No SAR filing required at this stage",
+      "next": "SAR filing mandatory \u2014 typology match exceeds internal threshold",
+      "label": "contradiction",
+      "confidence": 1.0,
+      "available": true,
+      "latency_ms": 62.41,
+      "forward": [
+        0.9991,
+        0.0001,
+        0.0009
+      ],
+      "backward": [
+        1.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "id": "s4-geographic-contradiction-01",
+      "scenario": "s4",
+      "dimension": "geographic_risk",
+      "category": "contradiction",
+      "prior": "No high-risk jurisdiction in control path",
+      "next": "Beneficial owner resident in FATF grey-list jurisdiction",
+      "label": "contradiction",
+      "confidence": 0.9999,
+      "available": true,
+      "latency_ms": 61.86,
+      "forward": [
+        0.9877,
+        0.0026,
+        0.0097
+      ],
+      "backward": [
+        0.9999,
+        0.0,
+        0.0001
+      ]
+    },
+    {
+      "id": "s4-media-hitl-01",
+      "scenario": "s4",
+      "dimension": "media_hit",
+      "category": "ambiguous_hitl",
+      "prior": "No adverse media identified",
+      "next": "Unverified adverse media mention requires analyst confirmation",
+      "label": "contradiction",
+      "confidence": 0.9906,
+      "available": true,
+      "latency_ms": 64.05,
+      "forward": [
+        0.0001,
+        0.0006,
+        0.9993
+      ],
+      "backward": [
+        0.9906,
+        0.0018,
+        0.0076
+      ]
+    }
+  ]
+}

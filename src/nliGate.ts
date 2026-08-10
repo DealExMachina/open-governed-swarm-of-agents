@@ -2,7 +2,7 @@
  * Runtime NLI entailment gate (Couche 3 of the idempotent-extraction design).
  *
  * Calls the facts-worker `/nli` endpoint (cross-encoder NLI, e.g.
- * cross-encoder/nli-deberta-v3-small) to decide whether two claim strings that
+ * cross-encoder/nli-deberta-v3-base) to decide whether two claim strings that
  * differ lexically actually express the same fact. The worker runs the check
  * *bidirectionally* (A=>B and B=>A) and only reports "equivalent" on mutual
  * entailment; contradictions take priority.

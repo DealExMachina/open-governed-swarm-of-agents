@@ -1,0 +1,18 @@
+{
+  "architectures": [
+    "LfmNliClassifier"
+  ],
+  "base_model_id": "LiquidAI/LFM2.5-Encoder-230M",
+  "hidden_size": 1024,
+  "num_labels": 3,
+  "id2label": {
+    "0": "contradiction",
+    "1": "entailment",
+    "2": "neutral"
+  },
+  "label2id": {
+    "contradiction": 0,
+    "entailment": 1,
+    "neutral": 2
+  }
+}

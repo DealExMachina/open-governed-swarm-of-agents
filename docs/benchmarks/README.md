@@ -12,6 +12,10 @@ Manifests under [`manifests/`](manifests/) are the single source of truth for co
 
 Registry: `src/baselines/manifest/registry.ts`.
 
+## NLI model smoke (LiquidAI encoders)
+
+See [`nli-model-eval.md`](nli-model-eval.md) for offline evaluation of NLI backends against the frozen gold set (`pnpm run nli:smoke`).
+
 ## Validate
 
 ```bash
