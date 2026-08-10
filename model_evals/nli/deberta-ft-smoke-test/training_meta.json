@@ -1,0 +1,20 @@
+{
+  "base_model": "cross-encoder/nli-deberta-v3-base",
+  "datasets": [
+    "mnli",
+    "anli",
+    "wanli",
+    "fever",
+    "paraphrase"
+  ],
+  "train_rows": 256,
+  "eval_rows": 64,
+  "epochs": 1,
+  "batch_size": 8,
+  "lr": 1e-05,
+  "label_order": [
+    "contradiction",
+    "entailment",
+    "neutral"
+  ]
+}

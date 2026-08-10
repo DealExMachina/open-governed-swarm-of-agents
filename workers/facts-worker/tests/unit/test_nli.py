@@ -50,6 +50,13 @@ def test_logits_are_softmaxed(monkeypatch):
     assert r["label"] == "equivalent"
 
 
+def test_row_to_probs_respects_label_order(monkeypatch):
+    # Model outputs [entailment, neutral, contradiction] instead of DeBERTa order
+    monkeypatch.setattr(rlm_facts, "_nli_label_order", [2, 0, 1])
+    probs = rlm_facts._row_to_probs([0.1, 0.2, 0.7])
+    assert probs == [0.7, 0.1, 0.2]  # -> [contradiction, entailment, neutral]
+
+
 def test_unavailable_returns_none(monkeypatch):
     monkeypatch.setattr(rlm_facts, "_get_nli", lambda: None)
     assert rlm_facts.nli_entailment("a", "b") is None

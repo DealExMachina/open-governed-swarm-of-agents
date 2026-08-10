@@ -319,10 +319,32 @@ def _extract_entities_gliner(context: List[Dict[str, Any]]) -> List[str]:
 # -----------------------------
 
 _nli_model = None
+_nli_label_order: Optional[List[int]] = None  # indices into model output -> [contradiction, entailment, neutral]
+
+
+def _canonical_nli_indices(id2label: Dict[Any, Any]) -> List[int]:
+    """Map model output columns to [contradiction, entailment, neutral] order."""
+    by_name: Dict[str, int] = {}
+    for idx, name in id2label.items():
+        key = str(name).lower()
+        by_name[key] = int(idx)
+    contradiction = next(
+        (by_name[k] for k in by_name if "contradict" in k),
+        0,
+    )
+    entailment = next(
+        (by_name[k] for k in by_name if "entail" in k or "equivalent" in k),
+        1 if len(by_name) > 1 else 0,
+    )
+    neutral = next(
+        (by_name[k] for k in by_name if "neutral" in k or "unrelated" in k),
+        2 if len(by_name) > 2 else max(by_name.values(), default=2),
+    )
+    return [contradiction, entailment, neutral]
 
 
 def _get_nli():
-    global _nli_model
+    global _nli_model, _nli_label_order
     if _nli_model is not None:
         return _nli_model
     if os.getenv("SKIP_NLI", "1").lower() in ("1", "true", "yes"):
@@ -332,7 +354,12 @@ def _get_nli():
         return None
     try:
         from sentence_transformers import CrossEncoder
-        _nli_model = CrossEncoder(nli_id)
+        _nli_model = CrossEncoder(nli_id, trust_remote_code=True)
+        id2label = getattr(getattr(_nli_model, "config", None), "id2label", None) or {}
+        if id2label:
+            _nli_label_order = _canonical_nli_indices(id2label)
+        else:
+            _nli_label_order = [0, 1, 2]
         return _nli_model
     except Exception:
         return None
@@ -454,11 +481,12 @@ def _softmax3(vals: List[float]) -> List[float]:
     return [e / tot for e in exps]
 
 
-def _row_to_probs(row: Any) -> List[float]:
+def _row_to_probs(row: Any, label_order: Optional[List[int]] = None) -> List[float]:
     """Normalise a CrossEncoder prediction row to [contradiction, entailment, neutral] probabilities.
 
     Handles numpy arrays, logits (needs softmax) and already-normalised rows.
     Binary/relatedness models (single score) are mapped to an entailment probability.
+    ``label_order`` reindexes model outputs when id2label order differs from DeBERTa default.
     """
     if hasattr(row, "tolist"):
         row = row.tolist()
@@ -468,11 +496,16 @@ def _row_to_probs(row: Any) -> List[float]:
     if len(row) < 3:
         p = max(0.0, min(1.0, row[0]))
         return [1.0 - p, p, 0.0]
-    head = row[:3]
-    s = sum(head)
-    if 0.99 <= s <= 1.01 and all(0.0 <= x <= 1.0 for x in head):
-        return head
-    return _softmax3(head)
+    head = row[: len(row)]
+    s = sum(head[:3])
+    if 0.99 <= s <= 1.01 and all(0.0 <= x <= 1.0 for x in head[:3]):
+        probs = head[:3]
+    else:
+        probs = _softmax3(head[:3])
+    order = label_order or _nli_label_order or [0, 1, 2]
+    if len(order) >= 3 and max(order) < len(probs):
+        return [probs[order[0]], probs[order[1]], probs[order[2]]]
+    return probs[:3]
 
 
 def nli_entailment(a: str, b: str) -> Optional[Dict[str, Any]]:
