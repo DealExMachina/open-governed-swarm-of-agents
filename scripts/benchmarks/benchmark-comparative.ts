@@ -2,7 +2,7 @@
 /**
  * Comparative Benchmark Runner — Benchmark PRD Main Deliverable (B-3)
  *
- * Runs SGRS vs Mastra vs LangGraph vs Agentica on the identical M&A scenario
+ * Runs SGRS vs Mastra vs LangGraph on the identical M&A scenario
  * (S1), then evaluates all systems using the same metrics (M1-M8) and
  * state-diff contracts (C1-C4).
  *
@@ -19,7 +19,7 @@
  *   --model=M       Ollama model tag (preset default; with OLLAMA_API_KEY unset, local onboarding may coerce)
  *   --llm           Force LLM on (overrides preset skipLlm)
  *   --skip-llm      Offline mode: no LLM calls (governance-only; wins over --llm)
- *   --systems=S     Comma-separated systems to run (default: sgrs,mastra,langgraph,agentica)
+ *   --systems=S     Comma-separated systems to run (default: sgrs,mastra,langgraph)
  *   --agents=N      Override agent count
  *   --scenario=s1   Manifest registry key: s1|s2|s3|s4|s5 (PRD v0.2 demo corpora)
  *   --manifest=PATH Repo-relative path to a custom .yaml manifest (overrides --scenario)
@@ -28,7 +28,7 @@
  *   Loads repo-root `.env` automatically (same as other tooling scripts).
  *   OLLAMA_API_KEY     If set, use Ollama Cloud OpenAI-compatible API (default base https://ollama.com).
  *   OLLAMA_BASE_URL    Optional origin or .../v1 for cloud or local Ollama host.
- *   OLLAMA_CLOUD_MODEL When API key is set and --model= is omitted, default model (else mistral-large-3:675b-cloud, onboarded).
+ *   OLLAMA_CLOUD_MODEL When API key is set and --model= is omitted, default model (else gemma4:31b-cloud, onboarded).
  *
  * Output:
  *   Comparative table of M1-M8 metrics across all systems
@@ -53,10 +53,10 @@ import {
 } from "../../src/baselines/scenario/ma-scenario.js";
 import { runMastraTopology } from "../../src/baselines/scenario/mastra-topology.js";
 import { runLangGraphTopology } from "../../src/baselines/scenario/langgraph-topology.js";
-import { runAgenticaTopology } from "../../src/baselines/scenario/agentica-topology.js";
 import type { PRDMetrics } from "../../src/baselines/state-diff-contracts.js";
 import { computeBenchmarkMetrics } from "../../src/baselines/scenario/compute-benchmark-metrics.js";
 import {
+  DEFAULT_BENCHMARK_CLOUD_MODEL,
   resolveBenchmarkOllamaInference,
   type BenchmarkOllamaInference,
 } from "../../src/baselines/scenario/benchmark-ollama-inference.js";
@@ -82,7 +82,7 @@ function parseArgs(): RunConfig {
   let agentsOverride: number | null = null;
   let skipLlm = false;
   let forceLlm = false;
-  let systems = ["sgrs", "mastra", "langgraph", "agentica"];
+  let systems = ["sgrs", "mastra", "langgraph"];
   let scenarioKey = "s1";
   let manifestRel: string | null = null;
 
@@ -140,7 +140,7 @@ function finalizeBenchmarkLlmRouting(
   let next: BenchmarkConfig = { ...config };
   if (!next.skipLlm && process.env.OLLAMA_API_KEY?.trim() && !modelWasOverridden) {
     next.model =
-      process.env.OLLAMA_CLOUD_MODEL?.trim() || "mistral-large-3:675b-cloud";
+      process.env.OLLAMA_CLOUD_MODEL?.trim() || DEFAULT_BENCHMARK_CLOUD_MODEL;
   }
   const inference = resolveBenchmarkOllamaInference(next.model);
   next = { ...next, model: inference.model };
@@ -156,8 +156,8 @@ async function runSgrsSystem(
   seed: number,
   pkg: BenchmarkScenarioPackage,
 ): Promise<SystemResult> {
-  const { evaluateKernel, canTransition, evaluateRules } = await import("../src/sgrsAdapter.js");
-  const { loadPolicies, getGovernanceForScope } = await import("../src/governance.js");
+  const { evaluateKernel, canTransition, evaluateRules } = await import("../../src/sgrsAdapter.js");
+  const { loadPolicies, getGovernanceForScope } = await import("../../src/governance.js");
   const pathMod = await import("path");
 
   const rng = mulberry32(seed);
@@ -353,16 +353,6 @@ async function runSystem(
         maxTokens: config.maxTokens,
         package: pkg,
       });
-    case "agentica":
-      return runAgenticaTopology({
-        model: config.model,
-        inference,
-        numAgents: config.numAgents,
-        skipLlm: config.skipLlm,
-        seed,
-        maxTokens: config.maxTokens,
-        package: pkg,
-      });
     default:
       throw new Error(`Unknown system: ${systemName}`);
   }
@@ -522,7 +512,7 @@ async function main(): Promise<void> {
   );
   if (!config.skipLlm) {
     console.log(
-      "  Note: With LLM on, each framework issues many sequential requests. Local CPU first-call load can be slow; Ollama Cloud uses hosted models. Watch [mastra]/[langgraph]/[agentica] progress lines. Set BENCHMARK_LLM_PROGRESS=0 to silence them.",
+      "  Note: With LLM on, each framework issues many sequential requests. Local CPU first-call load can be slow; Ollama Cloud uses hosted models. Watch [mastra]/[langgraph] progress lines. Set BENCHMARK_LLM_PROGRESS=0 to silence them.",
     );
   }
   console.log("");

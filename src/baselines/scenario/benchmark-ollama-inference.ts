@@ -5,11 +5,14 @@
  * defaults to https://ollama.com. Uses `/v1/chat/completions` with Bearer auth.
  *
  * Model onboarding: `model_evals/onboarding-policy.json` lists qualified cloud ids including
- * `ollama/mistral-large-3:675b-cloud` (default for comparative benchmark when API key is set) and
- * `ollama/gemma3:27b-cloud` (override via `OLLAMA_CLOUD_MODEL` if you prefer).
+ * `ollama/gemma4:31b-cloud` (v2 fair matrix default when API key is set) and others
+ * (override via `OLLAMA_CLOUD_MODEL` if you prefer).
  */
 
 import { enforceModelOnboarding } from "../../modelOnboarding.js";
+
+/** v2 fair matrix default when `OLLAMA_API_KEY` is set and `--model=` is omitted. */
+export const DEFAULT_BENCHMARK_CLOUD_MODEL = "gemma4:31b-cloud";
 
 export type BenchmarkOllamaMode = "local" | "cloud";
 
@@ -42,7 +45,7 @@ function ensureOpenAICompatV1Base(originOrV1: string): {
 }
 
 /**
- * Resolve endpoint + onboarded model for benchmark LLM systems (Mastra, LangGraph, Agentica).
+ * Resolve endpoint + onboarded model for benchmark LLM systems (Mastra, LangGraph, SGRS).
  */
 export function resolveBenchmarkOllamaInference(
   requestedModel: string,
@@ -53,7 +56,7 @@ export function resolveBenchmarkOllamaInference(
       process.env.OLLAMA_BASE_URL?.trim() || OLLAMA_CLOUD_DEFAULT_ORIGIN;
     const { openAICompatBaseUrl, originWithoutV1 } =
       ensureOpenAICompatV1Base(hostInput);
-    const fallback = "mistral-large-3:675b-cloud";
+    const fallback = DEFAULT_BENCHMARK_CLOUD_MODEL;
     const model = enforceModelOnboarding(
       "ollama",
       requestedModel,

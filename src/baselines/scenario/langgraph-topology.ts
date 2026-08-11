@@ -51,7 +51,7 @@ function tokensFromResponseMetadata(message: BaseMessage): number {
 }
 
 /**
- * Best-effort token count for benchmark M6 (aligned with Mastra/Agentica when possible).
+ * Best-effort token count for benchmark M6 (aligned with Mastra when possible).
  * Prefers LangChain `usage_metadata` from ChatOpenAI / ChatOllama; falls back to char/4 estimate.
  */
 function tokensFromLlmInvoke(

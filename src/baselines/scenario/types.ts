@@ -68,7 +68,7 @@ export interface EpochResult {
 }
 
 export interface SystemResult {
-  system: "sgrs" | "mastra" | "langgraph" | "agentica";
+  system: "sgrs" | "mastra" | "langgraph";
   seed: number;
   numAgents: number;
   elapsedMs: number;

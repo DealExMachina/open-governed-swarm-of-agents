@@ -240,7 +240,7 @@ Extract all relevant claims for your role. Return JSON array of claims.`;
 // ---------------------------------------------------------------------------
 
 export interface MastraTopologyConfig {
-  /** Endpoint + model (local Ollama vs Ollama Cloud); same object as LangGraph/Agentica baselines. */
+  /** Endpoint + model (local Ollama vs Ollama Cloud); same object as LangGraph baselines. */
   inference: BenchmarkOllamaInference;
   numAgents: number;
   skipLlm: boolean;
