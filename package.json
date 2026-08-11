@@ -110,7 +110,6 @@
     "@opentelemetry/instrumentation-http": "^0.217.0",
     "@opentelemetry/sdk-metrics": "^2.5.1",
     "@opentelemetry/sdk-node": "^0.217.0",
-    "@symbolica/agentica": "^0.4.1",
     "dotenv": "^16.4.5",
     "jose": "^6.1.3",
     "mammoth": "^1.12.0",
