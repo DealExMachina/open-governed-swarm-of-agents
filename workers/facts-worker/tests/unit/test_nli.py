@@ -26,6 +26,42 @@ def test_equivalent_requires_mutual_entailment(monkeypatch):
 def test_one_directional_entailment_is_not_equivalent(monkeypatch):
     # forward entails, backward is neutral -> not mutual -> neutral
     monkeypatch.setattr(rlm_facts, "_get_nli", lambda: _FakeModel([[0.05, 0.90, 0.05], [0.10, 0.30, 0.60]]))
+    monkeypatch.delenv("NLI_ENTAILMENT_MODE", raising=False)
+    r = rlm_facts.nli_entailment("a", "b")
+    assert r["label"] == "neutral"
+
+
+def test_onesided_safe_accepts_strong_one_way_entailment(monkeypatch):
+    monkeypatch.setenv("NLI_ENTAILMENT_MODE", "onesided_safe")
+    monkeypatch.setattr(
+        rlm_facts,
+        "_get_nli",
+        lambda: _FakeModel([[0.005, 0.993, 0.002], [0.01, 0.01, 0.98]]),
+    )
+    r = rlm_facts.nli_entailment("a", "b")
+    assert r["label"] == "equivalent"
+    assert r["confidence"] >= 0.9
+
+
+def test_onesided_safe_rejects_extreme_asymmetry_without_high_conf(monkeypatch):
+    monkeypatch.setenv("NLI_ENTAILMENT_MODE", "onesided_safe")
+    monkeypatch.setattr(
+        rlm_facts,
+        "_get_nli",
+        lambda: _FakeModel([[0.05, 0.90, 0.05], [0.10, 0.02, 0.88]]),
+    )
+    r = rlm_facts.nli_entailment("a", "b")
+    assert r["label"] == "neutral"
+
+
+def test_onesided_safe_rejects_when_contradiction_at_cap(monkeypatch):
+    monkeypatch.setenv("NLI_ENTAILMENT_MODE", "onesided_safe")
+    monkeypatch.setenv("NLI_ONESIDED_MAX_CONTRADICTION", "0.3")
+    monkeypatch.setattr(
+        rlm_facts,
+        "_get_nli",
+        lambda: _FakeModel([[0.35, 0.55, 0.10], [0.10, 0.20, 0.70]]),
+    )
     r = rlm_facts.nli_entailment("a", "b")
     assert r["label"] == "neutral"
 

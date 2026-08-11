@@ -110,6 +110,7 @@ Before swapping `NLI_MODEL` in the facts-worker:
 
 - `CrossEncoder(..., trust_remote_code=True)` for custom HF NLI checkpoints
 - `_row_to_probs()` reads `config.id2label` instead of assuming DeBERTa label order
+- `NLI_ENTAILMENT_MODE=onesided_safe` relaxes mutual entailment when max(contradiction) < `NLI_ONESIDED_MAX_CONTRADICTION` (default 0.3) and either min(other-direction entailment) >= `NLI_ONESIDED_MIN_OTHER` (0.03) or max(entailment) >= `NLI_ONESIDED_HIGH_CONF` (0.992). Default remains `mutual`. Gold-set with onesided_safe: 80.7% accuracy, 0% falseMerge, 13.3% missedMerge (vs 78.9% / 0% / 20% mutual).
 
 Live worker eval (optional):
 

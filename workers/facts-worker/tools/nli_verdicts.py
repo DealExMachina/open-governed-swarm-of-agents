@@ -55,20 +55,10 @@ def _softmax3(vals: List[float]) -> List[float]:
 def _label_from_probs(
     fwd: List[float], bwd: List[float]
 ) -> Tuple[str, float]:
-    """Mirror rlm_facts.nli_entailment label selection."""
-    contradiction = max(fwd[0], bwd[0])
-    entail = min(fwd[1], bwd[1])
-    neutral = max(fwd[2], bwd[2])
+    """Mirror rlm_facts.nli_entailment label selection (respects NLI_ENTAILMENT_MODE)."""
+    import rlm_facts
 
-    if (
-        contradiction > 0.5
-        and contradiction >= fwd[1]
-        and contradiction >= bwd[1]
-    ):
-        return "contradiction", contradiction
-    if entail > 0.5 and entail >= fwd[0] and entail >= bwd[0]:
-        return "equivalent", entail
-    return "neutral", neutral
+    return rlm_facts._label_from_bidirectional_probs(fwd, bwd)
 
 
 class DebertaBackend:

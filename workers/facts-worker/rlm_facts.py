@@ -508,6 +508,77 @@ def _row_to_probs(row: Any, label_order: Optional[List[int]] = None) -> List[flo
     return probs[:3]
 
 
+def _nli_entailment_mode() -> str:
+    """``mutual`` (default) or ``onesided_safe`` — see ``_label_from_bidirectional_probs``."""
+    mode = (os.getenv("NLI_ENTAILMENT_MODE") or "mutual").strip().lower()
+    if mode in ("onesided_safe", "onesided", "one_sided"):
+        return "onesided_safe"
+    return "mutual"
+
+
+def _nli_onesided_max_contradiction() -> float:
+    raw = os.getenv("NLI_ONESIDED_MAX_CONTRADICTION", "0.3")
+    try:
+        return max(0.0, min(1.0, float(raw)))
+    except ValueError:
+        return 0.3
+
+
+def _nli_onesided_min_other_entailment() -> float:
+    raw = os.getenv("NLI_ONESIDED_MIN_OTHER", "0.03")
+    try:
+        return max(0.0, min(1.0, float(raw)))
+    except ValueError:
+        return 0.03
+
+
+def _nli_onesided_high_confidence() -> float:
+    raw = os.getenv("NLI_ONESIDED_HIGH_CONF", "0.992")
+    try:
+        return max(0.0, min(1.0, float(raw)))
+    except ValueError:
+        return 0.992
+
+
+def _label_from_bidirectional_probs(
+    fwd: List[float],
+    bwd: List[float],
+    *,
+    mode: Optional[str] = None,
+) -> tuple[str, float]:
+    """Map bidirectional [contradiction, entailment, neutral] probs to label + confidence."""
+    contradiction = max(fwd[0], bwd[0])
+    mutual_entail = min(fwd[1], bwd[1])
+    max_entail = max(fwd[1], bwd[1])
+    neutral = max(fwd[2], bwd[2])
+
+    if (
+        contradiction > 0.5
+        and contradiction >= fwd[1]
+        and contradiction >= bwd[1]
+    ):
+        return "contradiction", contradiction
+
+    resolved_mode = mode or _nli_entailment_mode()
+    if resolved_mode == "onesided_safe":
+        cap = _nli_onesided_max_contradiction()
+        min_other = _nli_onesided_min_other_entailment()
+        high_conf = _nli_onesided_high_confidence()
+        onesided_ok = mutual_entail >= min_other or max_entail >= high_conf
+        if (
+            max_entail > 0.5
+            and max_entail >= fwd[0]
+            and max_entail >= bwd[0]
+            and contradiction < cap
+            and onesided_ok
+        ):
+            return "equivalent", max_entail
+    elif mutual_entail > 0.5 and mutual_entail >= fwd[0] and mutual_entail >= bwd[0]:
+        return "equivalent", mutual_entail
+
+    return "neutral", neutral
+
+
 def nli_entailment(a: str, b: str) -> Optional[Dict[str, Any]]:
     """Bidirectional NLI entailment between two claims.
 
@@ -517,9 +588,11 @@ def nli_entailment(a: str, b: str) -> Optional[Dict[str, Any]]:
       - ``confidence``: float in [0, 1]
       - ``forward`` / ``backward``: [contradiction, entailment, neutral] probs
 
-    "equivalent" requires *mutual* entailment (A=>B and B=>A). Contradiction in
-    either direction takes priority (safety-first). Label order matches
-    cross-encoder/nli-deberta-v3-* : index 0 contradiction, 1 entailment, 2 neutral.
+    Default (``NLI_ENTAILMENT_MODE=mutual``): "equivalent" requires *mutual*
+    entailment (A=>B and B=>A). ``onesided_safe`` accepts one strong direction
+    when max(contradiction) < ``NLI_ONESIDED_MAX_CONTRADICTION`` (default 0.3)
+    and min(other direction) >= ``NLI_ONESIDED_MIN_OTHER`` (0.03) or
+    max(entailment) >= ``NLI_ONESIDED_HIGH_CONF`` (0.992).
     """
     model = _get_nli()
     if model is None or not (a or "").strip() or not (b or "").strip():
@@ -531,16 +604,7 @@ def nli_entailment(a: str, b: str) -> Optional[Dict[str, Any]]:
 
     fwd = _row_to_probs(raw[0])
     bwd = _row_to_probs(raw[1])
-    contradiction = max(fwd[0], bwd[0])
-    entail = min(fwd[1], bwd[1])  # mutual entailment => equivalent
-    neutral = max(fwd[2], bwd[2])
-
-    if contradiction > 0.5 and contradiction >= fwd[1] and contradiction >= bwd[1]:
-        label, confidence = "contradiction", contradiction
-    elif entail > 0.5 and entail >= fwd[0] and entail >= bwd[0]:
-        label, confidence = "equivalent", entail
-    else:
-        label, confidence = "neutral", neutral
+    label, confidence = _label_from_bidirectional_probs(fwd, bwd)
 
     return {
         "label": label,
