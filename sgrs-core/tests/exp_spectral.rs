@@ -1,3 +1,5 @@
+#![cfg(feature = "exp-harness")]
+
 //! E1: Spectral Topology Sensitivity
 //!
 //! Validates:

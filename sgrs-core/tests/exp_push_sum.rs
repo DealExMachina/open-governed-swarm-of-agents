@@ -1,3 +1,5 @@
+#![cfg(feature = "exp-harness")]
+
 //! E12: Push-Sum Gossip — Correctness and Impossibility Verification
 //!
 //! Verifies the push-sum protocol (Kempe, Dobra & Gehrke, STOC 2003) on

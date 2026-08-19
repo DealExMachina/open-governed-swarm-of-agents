@@ -16,11 +16,11 @@ pnpm run demo
 bash scripts/experiments/run-experiment.sh demo-baseline
 ```
 
-Canonical walkthrough: [demo/DEMO.md](../../../demo/DEMO.md). Archived redirect stub: [docs/archive/demo.md](../../archive/demo.md).
+Step-by-step guide: [demo/DEMO.md](../../demo/DEMO.md).
 
 ## Scope isolation
 
-Each demo scenario has a dedicated Studio catalog scope (see `src/scenarioScopes.ts`):
+Each demo scenario has a dedicated Studio catalog scope (see `src/studio/scenarioScopes.ts`):
 
 | Scenario | Scope id |
 |---|---|

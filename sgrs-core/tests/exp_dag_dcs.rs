@@ -1,3 +1,5 @@
+#![cfg(feature = "exp-harness")]
+
 //! E5: Causal DAG DCS Order Independence
 //!
 //! Validates:

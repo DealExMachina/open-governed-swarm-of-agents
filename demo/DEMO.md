@@ -136,6 +136,21 @@ To use the M&A-specific governance rules for this demo, set the governance path 
 export GOVERNANCE_PATH="$(pwd)/demo/scenario/governance-demo.yaml"
 ```
 
+**Quick preflight** (recommended before a first demo):
+
+```bash
+pnpm run demo:preflight
+pnpm run ensure-bucket && pnpm run ensure-schema && pnpm run ensure-stream
+export GOVERNANCE_PATH="$(pwd)/demo/scenario/governance-demo.yaml"
+pnpm run swarm:start   # terminal 1 — prefer hatchery over facts-only `swarm`
+pnpm run feed          # terminal 2
+pnpm run demo          # terminal 3 — http://localhost:3005
+```
+
+- **Grafana:** http://localhost:3004 (needs `otel-collector`, `prometheus`, `grafana` from compose).
+- **Skip demo preflight:** `DEMO_SKIP_PREFLIGHT=1 pnpm run demo`.
+- **Troubleshooting:** Demo stalls on step 1 → re-run `pnpm run demo:preflight` and use **`swarm:start`**, not facts-only `swarm`. Grafana empty → `docker compose up -d otel-collector` and generate swarm activity.
+
 **Run order:** Start services in this order (each in its own terminal, or run feed and demo after the swarm is up):
 
 1. Docker: `docker compose up -d postgres s3 nats facts-worker`
@@ -456,13 +471,13 @@ The governance mode is a one-line change. The agents, the semantic graph, and th
 
 ## Agent skills — behavioral guarantees
 
-`src/skills/loader.ts` appends markdown snippets from a repository-root **`skills/`** directory (files like `00-swarm-protocol.md` referenced in the registry). **If `skills/` is missing, loading silently returns empty text** — agents still run without the extra playbooks. Add the directory and files to enable the documented behavior.
+`src/skills/loader.ts` can append markdown from a repository-root **`skills/`** directory (`00-swarm-protocol.md`, `01-bitemporal.md`, `02-contradictions-hitl.md` per `src/skills/registry.ts`). **`skills/` is intentionally unshipped** until authored playbooks exist: missing files load as empty string, so agents run without skill appendices. Do not invent placeholder markdown — it would silently change prompts and experiment baselines.
 
-To compare runs with and without composed skills, set `SKILLS_DISABLED=1`. The `exp-skills` experiment in `scripts/experiments/run-experiment.sh` writes under `docs/experiments/exp-skills/results/` (gitignored); there is no bundled protocol README — see [docs/codebase-hygiene.md](../docs/codebase-hygiene.md).
+To A/B runs with composition forced off, set `SKILLS_DISABLED=1`. The `exp-skills` experiment in `scripts/experiments/run-experiment.sh` is only meaningful once real `skills/*.md` files exist; results land under `docs/experiments/exp-skills/results/` (gitignored). See [docs/codebase-hygiene.md](../docs/codebase-hygiene.md).
 
 ### Observable skill effects when `skills/` is present
 
-| Step | Without skills | With skills |
+| Step | Without skills | With skills (once authored) |
 |------|---------------|-------------|
 | Step 2 (ARR contradiction) | Drift agent may report high drift without explicit HITL recommendation | Drift agent explicitly recommends human resolution in notes; flags `contradiction` type |
 | Step 4 (patent dispute) | Resolver may mark contradictions "resolved" based on partial evidence | Resolver marks as `confirmed` with `requires_hitl: true` when resolution requires legal judgment |
@@ -578,6 +593,5 @@ The summary API and demo UI expose governance and finality context so reviewers 
 | `src/agents/governanceAgent.ts` | Governance agent -- the policy enforcement point |
 | `src/finalityEvaluator.ts` | Finality scoring and HITL routing |
 | `src/semanticGraph.ts` | Semantic graph operations |
-| `src/skills/loader.ts` | Skill markdown composition (**no-op when `skills/` absent**) |
-| `src/skills/loader.ts` | Skill composition into agent instructions |
+| `src/skills/loader.ts` | Skill composition (**no-op while `skills/` unshipped**) |
 | `src/skills/registry.ts` | Skill-to-role mapping |

@@ -359,6 +359,42 @@ case "$EXP_ID" in
     echo "[Exp] Green Bond: EUGBS lifecycle (38 docs, ${ROUNDS} rounds, drain=${DRAIN}s)"
     run_single_experiment "green-bond" "" "green-bond-eugbs"
     ;;
+  s1)
+    # Benchmark manifest S1 (Project Horizon) — 5 packaged docs
+    ROUNDS="${ROUNDS:-5}"
+    INTERVAL="${INTERVAL:-20}"
+    DRAIN="${DRAIN:-180}"
+    echo "[Exp] Benchmark S1 via docs/benchmarks/manifests (${ROUNDS} rounds)"
+    run_single_experiment "s1" "" "benchmark-s1-project-horizon"
+    ;;
+  s2)
+    ROUNDS="${ROUNDS:-15}"
+    INTERVAL="${INTERVAL:-20}"
+    DRAIN="${DRAIN:-180}"
+    echo "[Exp] Benchmark S2 Solvency II via manifest (${ROUNDS} rounds)"
+    run_single_experiment "s2" "" "benchmark-s2-solvency2"
+    ;;
+  s3)
+    ROUNDS="${ROUNDS:-18}"
+    INTERVAL="${INTERVAL:-20}"
+    DRAIN="${DRAIN:-180}"
+    echo "[Exp] Benchmark S3 clinical trial via manifest (${ROUNDS} rounds)"
+    run_single_experiment "s3" "" "benchmark-s3-clinical-trial"
+    ;;
+  s4)
+    ROUNDS="${ROUNDS:-15}"
+    INTERVAL="${INTERVAL:-20}"
+    DRAIN="${DRAIN:-180}"
+    echo "[Exp] Benchmark S4 AML/KYC via manifest (${ROUNDS} rounds)"
+    run_single_experiment "s4" "" "benchmark-s4-aml-kyc"
+    ;;
+  s5)
+    ROUNDS="${ROUNDS:-15}"
+    INTERVAL="${INTERVAL:-20}"
+    DRAIN="${DRAIN:-180}"
+    echo "[Exp] Benchmark S5 energy grid via manifest (${ROUNDS} rounds)"
+    run_single_experiment "s5" "" "benchmark-s5-energy-grid"
+    ;;
   exp5)
     echo "[Exp] Exp5: coverage-autonomy trade-off — running 3 governance modes"
     for mode in YOLO MITL MASTER; do
@@ -618,7 +654,7 @@ case "$EXP_ID" in
     exit 0
     ;;
   *)
-    echo "[Exp] Unknown experiment: $EXP_ID. Use exp1, exp2, exp3, exp4, exp5, exp6, exp7, exp8, exp9, exp1-sweep, exp-ab, exp-skills, insurance, noisy, financial, green-bond, demo-baseline."
+    echo "[Exp] Unknown experiment: $EXP_ID. Use exp1, exp2, exp3, exp4, exp5, exp6, exp7, exp8, exp9, exp1-sweep, exp-ab, exp-skills, insurance, noisy, financial, green-bond, demo-baseline, s1, s2, s3, s4, s5."
     exit 1
     ;;
 esac

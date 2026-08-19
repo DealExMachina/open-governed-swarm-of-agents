@@ -84,7 +84,7 @@ flowchart TB
 | Agents (facts, drift, planner, status, governance) | Pipeline contracts with mocked storage |
 | Telemetry / metrics | No-throw instrumentation |
 
-**Rust:** Primary automated coverage for the kernel remains `cargo test --manifest-path sgrs-core/Cargo.toml` (library + integration crates under `sgrs-core/tests/`).
+**Rust:** Primary automated coverage for the kernel remains `cargo test --manifest-path sgrs-core/Cargo.toml` (library + `prop_*` / `scenarios` under `sgrs-core/tests/`). Publication harnesses `tests/exp_*.rs` require `--features exp-harness`.
 
 See [codebase-hygiene.md](codebase-hygiene.md).
 

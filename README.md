@@ -124,7 +124,7 @@ Agents --> shared bitemporal state --> governance kernel --> finality certificat
 | Deploy, connect to cloud, or self-host | [Deployment guide](docs/deployment.md) |
 | Understand the terminology | [Beginner Tutorial: Lattice-State Graph](docs/tutorials/lattice-state-graph-beginner.md) |
 | Missing files, E2E caveats, known gaps | [Codebase hygiene](docs/codebase-hygiene.md) |
-| Cleanup backlog and refactor phases | [Cleanup and refactor](docs/cleanup-and-refactor.md) |
+| Cleanup backlog and refactor phases | [Cleanup and refactor](docs/cleanup-and-refactor.md) · [Refactor execution plan](docs/refactor-execution-plan.md) |
 | Artefact slim-down / review decisions | [Artefact review ledger](docs/artefact-review.md) |
 | Comparative benchmark manifests (s1–s5) | [Benchmark scenarios](docs/benchmarks/README.md) |
 | Run the M&A demo (5 docs, contradictions, HITL) | [Demo Guide](demo/DEMO.md) |

@@ -1,3 +1,5 @@
+#![cfg(feature = "exp-harness")]
+
 //! E4: Bilattice Contradiction vs Ignorance
 //!
 //! Validates:

@@ -1,6 +1,6 @@
 # Cleanup plan and refactor assessment
 
-> Produced by the Cleanup Agent review. Related: [codebase-hygiene.md](codebase-hygiene.md), [architecture.md](architecture.md).
+> Produced by the Cleanup Agent review. Related: [codebase-hygiene.md](codebase-hygiene.md), [architecture.md](architecture.md), [refactor-execution-plan.md](refactor-execution-plan.md).
 
 This document records what was cleaned in the current pass, what remains, how directories are organized, and a phased refactor assessment. Scope is technical (components and invasiveness), not calendar estimates.
 
@@ -8,7 +8,7 @@ This document records what was cleaned in the current pass, what remains, how di
 
 ## Verdict
 
-The repo is a healthy research + product monorepo with clear license/package boundaries. **Scripts taxonomy**, **`public/` assets**, and **S1–S5 benchmark manifests** are done on `dev`. Remaining smells: **flat `src/`**, **god-file modules** (semantic graph / finality / Studio HTML), and **corpora that have manifests but are not yet wired into drivers/Studio** (see open PRs #28–#29). Safe dead-file cleanup is small; the real payoff is structural refactor, not mass deletion.
+The repo is a healthy research + product monorepo with clear license/package boundaries. Scripts are taxonomized, S1–S5 manifests drive experiments and Studio, `feed` / `semantic-graph` / `studio` / `finality` are modularized behind thin barrels, and soft cleanup (#27) is done. Remaining payoff: Studio HTML split (#29), secondary hotspots (`governanceAgent`, `bridge.rs`), and `dev` → `main` convergence.
 
 ---
 
@@ -19,7 +19,7 @@ The repo is a healthy research + product monorepo with clear license/package bou
 | Deleted | `test/.gitkeep` | Directory has real tests; placeholder no longer needed |
 | Deleted | `test/.placeholder.ts` | Same; was only keeping ESLint/TS aware of an empty tree |
 | Updated | `tsconfig.eslint.json` | Dropped explicit `.placeholder.ts` include |
-| Moved | `workers/facts-worker/test_nli.py` → `tests/unit/test_nli.py` | Orphaned at worker root; peers already live under `tests/unit/` |
+| Moved | `workers/facts-worker/test_nli.py` → `workers/facts-worker/tests/unit/` | Orphaned at worker root; peers already live under `tests/unit/` |
 | Fixed | `agents-swarm-governed.code-workspace` | Removed broken `../agents-swarm-governed` folder entry |
 | Added | `migrations/README.md`, `sgrs-core/migrations/README.md` | Clarify parallel migration trees |
 | Added | `demo/scenario/README.md` | Corpus wiring status matrix |
@@ -48,11 +48,11 @@ The repo is a healthy research + product monorepo with clear license/package bou
 
 | Item | Recommendation |
 |------|----------------|
-| `docs/archive/demo.md` | Keep as redirect stub, or delete after updating `docs/demos/*` and hygiene links |
-| Empty Python `tests/__init__.py` files | Optional; low value, conventional for some runners |
-| Unwired corpora (`docs-ma-extended`) | Extended M&A corpus still without a driver/manifest; keep until publication confirms unused |
+| ~~`docs/archive/demo.md`~~ | **done** — deleted; preflight/troubleshooting in [`demo/DEMO.md`](../demo/DEMO.md) |
+| Empty Python `tests/__init__.py` files | **keep** — conventional markers; not worth deleting |
+| ~~Unwired corpora (`docs-ma-extended`)~~ | **done** — archived at [`docs/archive/scenario/docs-ma-extended/`](archive/scenario/docs-ma-extended/) |
 | ~~Missing `docs/benchmarks/manifests/*.yaml`~~ | **done** — S1–S5 manifests shipped under [`docs/benchmarks/`](benchmarks/README.md) |
-| Missing root `skills/*.md` | Dead data path until skill markdown is added (`src/skills/loader.ts`) |
+| ~~Missing root `skills/*.md`~~ | **done (doc)** — unshipped by design; loader kept; no placeholder markdown |
 | ~~`Dockerfile.feed.dist` omits Studio assets~~ | **done** — image copies `public/` |
 
 ---
@@ -61,7 +61,7 @@ The repo is a healthy research + product monorepo with clear license/package bou
 
 ```
 /
-├── src/                 # TS orchestration (flat ~78 top-level modules) ← primary smell
+├── src/                 # TS orchestration — feed/, semantic-graph/, studio/, finality/ extracted; rest still flat
 ├── sgrs-core/           # Rust kernel + N-API (well modularized internally)
 ├── packages/            # MIT clients (TS + Python)
 ├── workers/facts-worker # Python extraction / NLI
@@ -84,26 +84,26 @@ The repo is a healthy research + product monorepo with clear license/package bou
 
 ### What does not
 
-1. **`src/` is a junk drawer** — feed HTTP, semantic graph SQL, finality, Studio helpers, billing, hatchery, and agents share one flat namespace.
-2. ~~**`scripts/` mixes production ops with one-off research**~~ — **done**: files live under `ops/`, `checks/`, `demo/`, `experiments/`, `benchmarks/` (see [`scripts/README.md`](../scripts/README.md)).
+1. **`src/` still has flat modules** — billing, hatchery, agents share top-level namespace; domains partially extracted.
+2. ~~**`scripts/` mixes production ops with one-off research**~~ — **done**: files live under `ops/`, `checks/`, `demo/`, `experiments/`, `benchmarks/`.
 3. ~~**`prototype/` naming lies**~~ — **done**: Studio + observability live under `public/`.
-4. **Scenario corpora lack manifests** — wiring is hardcoded across `demo-server.ts`, `studioCorpora.ts`, and `drive-experiment.ts` (S1–S5 YAML manifests exist; demo wiring still open).
-5. ~~**Static HTML lives beside TS**~~ — **done**: assets under `public/`, loaded via `src/feed/assets.ts`.
+4. ~~**Scenario corpora lack manifest wiring**~~ — **done**: S1–S5 via manifests + `run-experiment.sh` + Studio ids; demo UI picker unchanged.
+5. ~~**Static HTML lives beside TS**~~ — **done**: assets under `public/`; monolithic HTML split still open (#29).
 
 ### Target layout (incremental)
 
 ```
 src/
   server/          # feed routes, control plane mount, MITL
-  semantic-graph/  # nodes, edges, snapshots, provenance
-  finality/        # evaluator, certificates, HITL requests
-  studio/          # catalog, corpora, graph edges, progress
+  semantic-graph/  # nodes, edges, snapshots, provenance  ← done
+  finality/        # evaluator, certificates, HITL requests  ← done
+  studio/          # catalog, corpora, graph edges, progress  ← done
   runtime/         # hatchery, swarm, watchdog, event bus
   governance/      # policy, resolution, obligations
   agents/          # (already exists)
 scripts/
   ops/ checks/ demo/ experiments/ benchmarks/ lib/   # taxonomized
-public/ or assets/
+public/
   studio/ observability.html
 demo/
   server/ ui/ scenario/corpora/<id>/
@@ -118,16 +118,16 @@ demo/
 | File | ~Lines | Issue |
 |------|-------:|-------|
 | `demo/demo-server.ts` | thin entry | Logic in `demo/server/`; UI in `demo/ui/` |
-| `public/studio/index.html` | ~750 | Shell markup; CSS + graph boot extracted |
-| `src/semanticGraph.ts` | 1800+ | Persistence + queries + Studio shaping |
+| `public/studio/index.html` | ~750 | Shell markup; CSS + graph boot extracted (#29) |
+| `src/semanticGraph.ts` | barrel | Logic under `src/semantic-graph/` |
 | `sgrs-core/src/bridge.rs` | 1600+ | Broad N-API surface |
 | `src/feed.ts` | thin entry | Routes under `src/feed/`; static via `assets.ts` |
 | `src/agents/governanceAgent.ts` | 1300+ | Tools + finality consumer + proposals |
-| `src/finalityEvaluator.ts` | 1250+ | Config + gates + certificates + blockers |
+| `src/finalityEvaluator.ts` | barrel | Logic under `src/finality/` |
 
 ### Duplication patterns
 
-- Scenario metadata triplicated (demo server / Studio corpora / experiment drivers).
+- ~~Scenario metadata triplicated~~ — reduced: S1–S5 share manifest loader; product demos still use directory scans.
 - HTTP/SSE helpers duplicated between feed and demo server.
 - Parallel migration numbering without cross-links (now documented via READMEs).
 
@@ -135,12 +135,14 @@ demo/
 
 | Phase | Scope | Invasiveness | Risk |
 |-------|-------|--------------|------|
-| **P0 — Manifests** | ~~Add `docs/benchmarks/manifests/` for `s1`–`s5`~~ **done** (demo/experiment list generation from manifests still open) | Remaining: wire demos to manifests | Low–medium |
-| **P1 — Split demo server** | ~~Extract `demo/server/` + `demo/ui/`~~ **done** (`pnpm run demo` entry unchanged) | — | — |
-| **P2 — Static assets** | ~~Move Studio + observability HTML to `public/`; update feed + `Dockerfile.feed.dist`~~ **done** | — | — |
-| **P3 — Split `feed.ts`** | ~~Module boundaries under `src/feed/`~~ **done** (`pnpm run feed` entry + re-exports preserved). `semanticGraph.ts` still open. | — | — |
-| **P4 — Scripts taxonomy** | ~~Move files into `scripts/{ops,experiments,...}`; update `package.json` scripts~~ **done** | — | — |
-| **P5 — Rust test classes** | Fast invariants vs publication `exp_*` harness (ignore/feature-gate heavy tests) | Medium in `sgrs-core/tests` | Low for product path |
+| **P0 — Manifests** | ~~Add manifests + wire experiments/Studio~~ **done** | — | — |
+| **P1 — Split demo server** | ~~Extract `demo/server/` + `demo/ui/`~~ **done** | — | — |
+| **P2 — Static assets** | ~~Move Studio + observability HTML to `public/`~~ **done** | — | — |
+| **P3 — Split feed + graph** | ~~`src/feed/` + `src/semantic-graph/`~~ **done** | — | — |
+| **P4 — Scripts taxonomy** | ~~`scripts/{ops,experiments,...}`~~ **done** | — | — |
+| **P5 — Rust test classes** | ~~`exp-harness` feature gates `tests/exp_*.rs`~~ **done** | — | — |
+
+See also the execution backlog: [`refactor-execution-plan.md`](refactor-execution-plan.md).
 
 ### Explicit non-goals for cleanup PRs
 
@@ -153,10 +155,11 @@ demo/
 
 ## Suggested follow-up tickets
 
-1. ~~Ship `docs/benchmarks/manifests/s1`–`s5` so `registry.ts` resolves.~~ **done**
-2. Wire or archive `docs-ma-extended`; optionally drive S2–S5 through `run-experiment.sh` using manifests.
-3. Add root `skills/` markdown or remove dead loader path from docs/DEMO claims.
+1. ~~Ship `docs/benchmarks/manifests/s1`–`s5`.~~ **done**
+2. ~~Drive S1–S5 via `run-experiment.sh` / Studio corpora.~~ **done**
+3. ~~Soft cleanup / skills docs / archive ma-extended.~~ **done**
 4. ~~Include Studio assets in `Dockerfile.feed.dist`.~~ **done** (`COPY public`)
-5. ~~Split `demo-server.ts`.~~ **done** (`demo/server/` + `demo/ui/`)
-6. ~~Organize `scripts/` into role-based subdirectories with updated npm entries.~~ **done**
-7. Split `semanticGraph.ts`; optionally wire demos to S1–S5 manifests.
+5. ~~Split `demo-server.ts` / `feed.ts` / `semanticGraph.ts`.~~ **done**
+6. ~~Organize `scripts/`.~~ **done**
+7. ~~`src/studio/` + `src/finality/` domains.~~ **done** (barrels). Next: Studio HTML split (#29); secondary hotspots (`governanceAgent`, `bridge.rs`).
+

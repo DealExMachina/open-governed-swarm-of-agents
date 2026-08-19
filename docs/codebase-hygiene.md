@@ -12,7 +12,7 @@ For the full cleanup backlog, corpus wiring matrix, and refactor phases, see **[
 
 | Path | Expected by | If missing |
 |------|-------------|------------|
-| **`skills/`** (root) | `src/skills/loader.ts` loads `skills/<id>.md` | Skill text is **skipped** (empty string). Agents still run; prompts have no skill appendix. DEMO.md previously named files like `00-swarm-protocol.md` — add them under `skills/` to enable. |
+| **`skills/`** (root) | `src/skills/loader.ts` loads `skills/<id>.md` | **Intentionally unshipped** until real playbooks are authored. Missing files → empty string; agents run without skill appendices. Do not add placeholder markdown (changes prompts / `exp-skills` baselines). |
 | **`docs/benchmarks/manifests/`** | `src/baselines/manifest/registry.ts` (`s1`–`s5`) | Shipped — see [`docs/benchmarks/README.md`](benchmarks/README.md). Validate with `pnpm run check:benchmark-manifests`. |
 
 **Present:** `test/` holds Vitest unit/architecture suites; `pnpm test` runs in CI after `build:rust` and `pnpm build`.
@@ -60,7 +60,7 @@ For the full cleanup backlog, corpus wiring matrix, and refactor phases, see **[
 
 ## Scenario corpora
 
-Wiring status for every `demo/scenario/docs-*` folder is maintained in [`demo/scenario/README.md`](../demo/scenario/README.md). S2–S5 corpora have shipped manifests but are not yet in `drive-experiment` / Studio; `docs-ma-extended` remains prepared-only (archive candidate in PR #27).
+Wiring status for every `demo/scenario/docs-*` folder is maintained in [`demo/scenario/README.md`](../demo/scenario/README.md). Benchmark corpora (`docs-aml-kyc`, `docs-energy-grid`, etc.) are wired via [`docs/benchmarks/manifests/`](benchmarks/README.md). The extended M&A set lives under [`docs/archive/scenario/docs-ma-extended/`](archive/scenario/docs-ma-extended/) until a driver adopts it.
 
 ---
 
@@ -75,7 +75,7 @@ Wiring status for every `demo/scenario/docs-*` folder is maintained in [`demo/sc
 
 | Area | Detail |
 |------|--------|
-| **Skill markdown files** | **Dead data path** until `skills/` exists: `loadSkillFile` always hits `catch` and returns `""`. |
+| **Skill markdown files** | **Optional / unshipped by design:** loader + registry stay; empty `skills/` → no-op. `exp-skills` needs real files to be meaningful. |
 | **Vitest entrypoint** | **`test/`** holds unit and architecture tests; **`pnpm test`** runs in CI after `build:rust` and `pnpm build`. Placeholders (`.gitkeep` / `.placeholder.ts`) were removed once real tests landed. E2E remains out of CI (see [validation.md](validation.md)). |
 | **`src/combiningAlgorithms.ts`** | Documented in architecture; **no runtime importers or tests** — candidate for wire-up or removal (see [artefact-review.md](artefact-review.md)). |
 | **Causal contribution → evidence state** | Documented in validation as **not implemented by design** (audit-only DAG); do not assume runtime wiring from TS `emitContribution` to full evidence-state consumers. |
@@ -91,6 +91,6 @@ Full tree: `cargo test` from `sgrs-core/` (2026-04-30): **413 tests passed**, **
 ## When updating docs
 
 1. Prefer **`pnpm run demo:preflight`** over ad-hoc Docker commands for demo smoke.
-2. Point walkthroughs at **`demo/DEMO.md`** (canonical); **`docs/archive/demo.md`** is a redirect stub only.
+2. Point walkthroughs at **`demo/DEMO.md`** (canonical; includes preflight + troubleshooting).
 3. When citing Vitest coverage, match files that actually exist under `test/` (see [validation.md](validation.md)).
 4. After each artefact-review cycle, update [artefact-review.md](artefact-review.md) before deleting live paths.

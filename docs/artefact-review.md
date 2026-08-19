@@ -23,8 +23,8 @@ Recurring review of **old, redundant, or inconsistent artefacts**. Each cycle re
 |----|------|--------|-------|
 | [#24](https://github.com/DealExMachina/open-governed-swarm-of-agents/pull/24) | `main` | Open (draft) | Overlaps content already on `dev` — prefer close/retarget after `dev` → `main` |
 | [#26](https://github.com/DealExMachina/open-governed-swarm-of-agents/pull/26) | `dev` | Merged | Studio/observability → `public/`; GHCR copies `public/` |
-| [#27](https://github.com/DealExMachina/open-governed-swarm-of-agents/pull/27) | `dev` | Open (conflicts) | Soft cleanup: delete archive stub, archive ma-extended, skills docs |
-| [#28](https://github.com/DealExMachina/open-governed-swarm-of-agents/pull/28) | `dev` | Open (conflicts) | Wire s1–s5 drivers, split semantic-graph/finality/studio, exp-harness |
+| [#27](https://github.com/DealExMachina/open-governed-swarm-of-agents/pull/27) | `dev` | **Landed on tip** (2026-07-25) | Soft cleanup: delete archive stub, archive ma-extended, skills docs |
+| [#28](https://github.com/DealExMachina/open-governed-swarm-of-agents/pull/28) | `dev` | **Landed on tip** (2026-07-25) | Wire s1–s5 drivers, split semantic-graph/finality/studio, exp-harness |
 | [#29](https://github.com/DealExMachina/open-governed-swarm-of-agents/pull/29) | `dev` | Open (conflicts) | Studio HTML → CSS/JS split |
 | [#30](https://github.com/DealExMachina/open-governed-swarm-of-agents/pull/30) | retarget `dev` | Open | This ledger + post-rebase consistency fixes |
 
@@ -41,7 +41,7 @@ After rebase onto `origin/dev`, the tip has **`public/`**, taxonomized **`script
 | Finding | Impact |
 |---------|--------|
 | **GHCR feed omits `demo/scenario`** (`.dockerignore` + no COPY) | Studio HTML boots; corpus load degrades to empty; still no corpora in image (D2) |
-| **Cleanup PRs #27–#29 conflict with tip** | Soft cleanup / wiring / Studio split cannot land without rebase |
+| **Cleanup PRs #29 conflict with tip** | Studio HTML split cannot land without rebase |
 
 ~~**D10 facts-worker Dockerfile**~~ — **fixed**: aligned to Python 3.11 / port 8010 / full runtime COPY; wired via `docker-compose.public-images.yml` (`FACTS_WORKER_IMAGE`). Default compose still bind-mounts for live edit.
 
@@ -66,8 +66,8 @@ After rebase onto `origin/dev`, the tip has **`public/`**, taxonomized **`script
 |----------|---------|----------------|
 | **D1. `main` vs `dev`** | (A) Finish #27–#29 on `dev`, merge `dev` → `main`, close/retarget #24; (B) cherry-pick only; (C) dual-maintain | **(A)** |
 | **D2. Dist corpora** | (A) `COPY demo/scenario` (or subset); (B) document API-only Studio; (C) graceful empty (done) + optional COPY | **(B) or (A subset)** — graceful empty is now in tree |
-| **D3. Corpora** | Keep s2–s5 until #28 wires drivers; archive `docs-ma-extended` (#27) | **Keep s2–s5; archive ma-extended via #27** |
-| **D4. Skills** | Ship / intentionally unshipped / remove loader | **(B)** via #27 wording |
+| **D3. Corpora** | Keep s2–s5 until #28 wires drivers; archive `docs-ma-extended` | **Keep s2–s5; ma-extended archived** |
+| **D4. Skills** | Ship / intentionally unshipped / remove loader | **(B) unshipped by design** — done on tip |
 | **D5. `combiningAlgorithms.ts` + `experiment-harness.ts`** | Wire / delete / keep | **Owner call** — still zero importers |
 | **D6. `sgrs-core/migrations/`** | Delete identical copies / keep annotated / wire Rust | **(B)** short-term |
 | **D7. `docs/dashboard-test-suite-spec.md`** | Link / archive / delete | **(B)** — still 0 inbound links |
@@ -81,7 +81,9 @@ After rebase onto `origin/dev`, the tip has **`public/`**, taxonomized **`script
 
 ### Next cycle checklist
 
-- [ ] Rebase/land #27 → #28 → #29 on `dev` (resolve conflicts first)
+- [x] Land #27 soft cleanup on `dev`
+- [x] Land #28 refactor wave on `dev`
+- [ ] Rebase/land #29 on `dev`
 - [ ] Resolve D1 (`dev` → `main`) and close stale #24
 - [x] Fix D10 (facts-worker Dockerfile + public-images overlay)
 - [ ] Owner call on D2 (corpora in GHCR)

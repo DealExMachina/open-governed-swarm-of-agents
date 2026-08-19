@@ -1,3 +1,5 @@
+#![cfg(feature = "exp-harness")]
+
 //! E8-T: Hybrid Pipeline & Tarski Laplacian — Topology Sensitivity
 //!
 //! Publication-grade experiments extending E8 across 5 topology families

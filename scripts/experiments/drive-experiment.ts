@@ -12,10 +12,12 @@
  *   pnpm tsx scripts/experiments/drive-experiment.ts --corpus=exp2 --claims=50 --rho=0.3
  *   pnpm tsx scripts/experiments/drive-experiment.ts --corpus=exp3 --pattern=spike-and-drop
  *   pnpm tsx scripts/experiments/drive-experiment.ts --corpus=demo --resolve-at=4
+ *   pnpm tsx scripts/experiments/drive-experiment.ts --corpus=s2   # benchmark manifest S2–S5 (or s1)
  *
  * Options:
- *   --corpus        Corpus to use: exp1, exp2, exp3, demo, noisy, financial, insurance, green-bond, tier3
- *   --rounds        Max rounds (default: 10)
+ *   --corpus        Corpus: exp1, exp2, exp3, demo, noisy, financial, insurance, green-bond, tier3, s1–s5
+ *   --scenario      Alias for --corpus when using benchmark keys s1–s5
+ *   --rounds        Max rounds (default: 10; for s1–s5 defaults to manifest document count when omitted)
  *   --interval      Seconds between document injections (default: 20)
  *   --resolve-at    Round at which to inject a resolution (default: none)
  *   --contradictions For exp1: number of contradicting docs (0,1,3,5)
@@ -33,16 +35,24 @@ import { makeEventBus } from "../../src/eventBus.js";
 import { loadState } from "../../src/stateGraph.js";
 import { appendEdge } from "../../src/semanticGraph.js";
 import { getPool } from "../../src/db.js";
+import {
+  loadBenchmarkPackageForScenario,
+} from "../../src/baselines/manifest/index.js";
+import { loadDocumentTextForPackage } from "../../src/baselines/scenario/ma-scenario.js";
 import { readFileSync, readdirSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+const REPO_ROOT = join(__dirname, "..", "..");
 const SCOPE_ID = process.env.SCOPE_ID ?? "default";
+
+const BENCHMARK_SCENARIO_KEYS = new Set(["s1", "s2", "s3", "s4", "s5"]);
 
 interface DriverConfig {
   corpus: string;
-  rounds: number;
+  /** When set, overrides default rounds; null means “use corpus default”. */
+  rounds: number | null;
   intervalSec: number;
   resolveAtRounds: number[];
   contradictions: number;
@@ -58,13 +68,20 @@ function parseArgs(): DriverConfig {
     const a = process.argv.find((x) => x.startsWith(`--${prefix}=`));
     return a ? a.split("=").slice(1).join("=") : def;
   };
+  const has = (prefix: string) =>
+    process.argv.some((x) => x.startsWith(`--${prefix}=`));
   const resolveRaw = get("resolve-at", "");
   const resolveAtRounds = resolveRaw
     ? resolveRaw.split(",").map((s) => parseInt(s.trim(), 10)).filter((n) => !isNaN(n))
     : [];
+  const scenario = get("scenario", "");
+  const corpusRaw = get("corpus", scenario || "demo");
+  const corpus = scenario && BENCHMARK_SCENARIO_KEYS.has(scenario)
+    ? scenario
+    : corpusRaw;
   return {
-    corpus: get("corpus", "demo"),
-    rounds: parseInt(get("rounds", "10"), 10),
+    corpus,
+    rounds: has("rounds") ? parseInt(get("rounds", "10"), 10) : null,
     intervalSec: parseInt(get("interval", "20"), 10),
     resolveAtRounds,
     contradictions: parseInt(get("contradictions", "3"), 10),
@@ -73,6 +90,18 @@ function parseArgs(): DriverConfig {
     pattern: get("pattern", "spike-and-drop"),
     drainSec: parseInt(get("drain", "0"), 10),
   };
+}
+
+/** Load ordered corpus from docs/benchmarks/manifests/{s1…s5}. */
+function loadManifestCorpus(
+  scenarioKey: string,
+): Array<{ title: string; text: string; epoch?: number }> {
+  const pkg = loadBenchmarkPackageForScenario(REPO_ROOT, scenarioKey);
+  return pkg.documents.map((d) => ({
+    title: d.title,
+    text: loadDocumentTextForPackage(pkg, d),
+    epoch: d.epoch,
+  }));
 }
 
 function delay(ms: number): Promise<void> {
@@ -359,13 +388,22 @@ async function main(): Promise<void> {
     case "tier3":
       corpus = loadTier3Corpus();
       break;
+    case "s1":
+    case "s2":
+    case "s3":
+    case "s4":
+    case "s5":
+      corpus = loadManifestCorpus(config.corpus);
+      break;
     case "demo":
     default:
       corpus = loadDemoCorpus();
       break;
   }
 
-  const rounds = config.rounds;
+  const rounds =
+    config.rounds ??
+    (BENCHMARK_SCENARIO_KEYS.has(config.corpus) ? corpus.length : 10);
   if (rounds > corpus.length) {
     console.log(`Corpus: ${corpus.length} docs, will inject ${rounds} rounds (cycling), ${config.intervalSec}s apart`);
   } else {

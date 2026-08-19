@@ -1,3 +1,5 @@
+#![cfg(feature = "exp-harness")]
+
 //! E9: Tarski vs Linear Pareto Cost — Scaling with n
 //!
 //! Sweeps n = 3..20 across 4 topologies (chain, ring, star, complete) and compares:
