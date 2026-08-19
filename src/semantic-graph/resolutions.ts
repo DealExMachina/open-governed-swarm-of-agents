@@ -127,7 +127,9 @@ export async function appendResolutionGoal(
       source_ref: {
         source: "resolution",
         decision_preview: decision.trim().slice(0, 200),
-        ...(typeof resolutionSeq === "number" ? { resolution_seq: resolutionSeq } : {}),
+        ...(typeof resolutionSeq === "number"
+          ? { resolution_seq: resolutionSeq }
+          : {}),
       },
       metadata: {},
       created_by: "resolution",

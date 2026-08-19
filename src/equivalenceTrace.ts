@@ -8,17 +8,10 @@
  */
 
 import type pg from "pg";
-import {
-  appendNode,
-  appendEdge,
-  updateNodeContent,
-} from "./semanticGraph.js";
+import { appendNode, appendEdge, updateNodeContent } from "./semanticGraph.js";
 import { runInTransaction } from "./db.js";
 import { logger } from "./logger.js";
-import {
-  canonicalClaimKey,
-  canonicalizeClaimText,
-} from "./canonicalValue.js";
+import { canonicalClaimKey, canonicalizeClaimText } from "./canonicalValue.js";
 import type { EquivalencePayload } from "./equivalenceGate.js";
 
 export const EQUIVALENCE_TRACE_SOURCE = "equivalence-gate";

@@ -54,7 +54,9 @@ function makeMockClient() {
 
 describe("factsToSemanticGraph provenance (issue #6)", () => {
   beforeEach(() => {
-    runInTransaction.mockImplementation(async (fn: (client: unknown) => Promise<unknown>) => fn(makeMockClient()));
+    runInTransaction.mockImplementation(
+      async (fn: (client: unknown) => Promise<unknown>) => fn(makeMockClient()),
+    );
     appendNode.mockResolvedValue("node-uuid");
     appendEdge.mockResolvedValue("edge-uuid");
     updateNodeConfidence.mockResolvedValue(undefined);
@@ -66,22 +68,43 @@ describe("factsToSemanticGraph provenance (issue #6)", () => {
 
   it("threads document_seq/title/hash from provenance into new claim/goal/risk source_ref", async () => {
     queryNodesByCreator.mockResolvedValue([]);
-    const { syncFactsToSemanticGraph } = await import("../../src/factsToSemanticGraph.js");
+    const { syncFactsToSemanticGraph } =
+      await import("../../src/factsToSemanticGraph.js");
     const result = await syncFactsToSemanticGraph("scope-1", {
       claims: ["Claim A"],
       goals: ["Goal 1"],
       risks: ["Risk one"],
       confidence: 0.9,
       provenance: {
-        claims: [{ document_seq: 42, document_title: "doc.pdf", document_content_hash: "abc123" }],
-        goals: [{ document_seq: 42, document_title: "doc.pdf", document_content_hash: "abc123" }],
-        risks: [{ document_seq: 42, document_title: "doc.pdf", document_content_hash: "abc123" }],
+        claims: [
+          {
+            document_seq: 42,
+            document_title: "doc.pdf",
+            document_content_hash: "abc123",
+          },
+        ],
+        goals: [
+          {
+            document_seq: 42,
+            document_title: "doc.pdf",
+            document_content_hash: "abc123",
+          },
+        ],
+        risks: [
+          {
+            document_seq: 42,
+            document_title: "doc.pdf",
+            document_content_hash: "abc123",
+          },
+        ],
       },
     });
 
     const byType = Object.fromEntries(
       appendNode.mock.calls
-        .map((c) => c[0] as { type: string; source_ref: Record<string, unknown> })
+        .map(
+          (c) => c[0] as { type: string; source_ref: Record<string, unknown> },
+        )
         .map((n) => [n.type, n.source_ref]),
     );
     expect(byType.claim).toEqual({
@@ -97,7 +120,8 @@ describe("factsToSemanticGraph provenance (issue #6)", () => {
 
   it("includes document_seqs only when an item has more than one source", async () => {
     queryNodesByCreator.mockResolvedValue([]);
-    const { syncFactsToSemanticGraph } = await import("../../src/factsToSemanticGraph.js");
+    const { syncFactsToSemanticGraph } =
+      await import("../../src/factsToSemanticGraph.js");
     await syncFactsToSemanticGraph("scope-1", {
       claims: ["Single source", "Multi source"],
       confidence: 0.9,
@@ -110,8 +134,12 @@ describe("factsToSemanticGraph provenance (issue #6)", () => {
     });
 
     const refs = appendNode.mock.calls
-      .map((c) => c[0] as { content: string; source_ref: Record<string, unknown> })
-      .filter((n) => n.content === "Single source" || n.content === "Multi source");
+      .map(
+        (c) => c[0] as { content: string; source_ref: Record<string, unknown> },
+      )
+      .filter(
+        (n) => n.content === "Single source" || n.content === "Multi source",
+      );
     const single = refs.find((n) => n.content === "Single source")!.source_ref;
     const multi = refs.find((n) => n.content === "Multi source")!.source_ref;
     expect(single).not.toHaveProperty("document_seqs");
@@ -120,24 +148,40 @@ describe("factsToSemanticGraph provenance (issue #6)", () => {
 
   it("falls back to plain facts source_ref when no provenance is supplied", async () => {
     queryNodesByCreator.mockResolvedValue([]);
-    const { syncFactsToSemanticGraph } = await import("../../src/factsToSemanticGraph.js");
+    const { syncFactsToSemanticGraph } =
+      await import("../../src/factsToSemanticGraph.js");
     const result = await syncFactsToSemanticGraph("scope-1", {
       claims: ["Claim A"],
       confidence: 0.9,
     });
-    const claimRef = (appendNode.mock.calls[0][0] as { source_ref: Record<string, unknown> }).source_ref;
+    const claimRef = (
+      appendNode.mock.calls[0][0] as { source_ref: Record<string, unknown> }
+    ).source_ref;
     expect(claimRef).toEqual({ source: "facts" });
     expect(result.nodesWithProvenance).toBe(0);
   });
 
   it("backfills provenance onto an existing node that lacks document_seq", async () => {
     const client = makeMockClient();
-    runInTransaction.mockImplementation(async (fn: (c: unknown) => Promise<unknown>) => fn(client));
-    queryNodesByCreator.mockImplementation(async (_s: string, _c: string, type?: string) => {
-      if (type === "claim") return [makeNode({ node_id: "claim-1", content: "Claim A", confidence: 0.8, source_ref: {} })];
-      return [];
-    });
-    const { syncFactsToSemanticGraph } = await import("../../src/factsToSemanticGraph.js");
+    runInTransaction.mockImplementation(
+      async (fn: (c: unknown) => Promise<unknown>) => fn(client),
+    );
+    queryNodesByCreator.mockImplementation(
+      async (_s: string, _c: string, type?: string) => {
+        if (type === "claim")
+          return [
+            makeNode({
+              node_id: "claim-1",
+              content: "Claim A",
+              confidence: 0.8,
+              source_ref: {},
+            }),
+          ];
+        return [];
+      },
+    );
+    const { syncFactsToSemanticGraph } =
+      await import("../../src/factsToSemanticGraph.js");
     await syncFactsToSemanticGraph("scope-1", {
       claims: ["Claim A"],
       confidence: 0.9,
@@ -145,9 +189,13 @@ describe("factsToSemanticGraph provenance (issue #6)", () => {
     });
 
     const enrichCall = client.query.mock.calls.find(
-      (c: unknown[]) => typeof c[0] === "string" && (c[0] as string).includes("source_ref = source_ref || $2::jsonb"),
+      (c: unknown[]) =>
+        typeof c[0] === "string" &&
+        (c[0] as string).includes("source_ref = source_ref || $2::jsonb"),
     );
     expect(enrichCall).toBeTruthy();
-    expect(JSON.parse((enrichCall![1] as unknown[])[1] as string)).toMatchObject({ document_seq: 55 });
+    expect(
+      JSON.parse((enrichCall![1] as unknown[])[1] as string),
+    ).toMatchObject({ document_seq: 55 });
   });
 });

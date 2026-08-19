@@ -116,7 +116,8 @@ export const S1_DIMENSION_SCHEMA: DimensionSchemaMap = {
   gross_margin: { type: "percentage", description: "Gross margin %" },
   valuation: {
     type: "currency_range",
-    description: "Indicative / revised enterprise valuation (not retention or litigation costs)",
+    description:
+      "Indicative / revised enterprise valuation (not retention or litigation costs)",
     plausibility: {
       currency: "EUR",
       enterpriseFloorEur: 50_000_000,

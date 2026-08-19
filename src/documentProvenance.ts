@@ -41,7 +41,8 @@ export interface ProvenanceDescription {
 
 function asNumber(v: unknown): number | undefined {
   if (typeof v === "number" && Number.isFinite(v)) return v;
-  if (typeof v === "string" && v.trim() !== "" && !Number.isNaN(Number(v))) return Number(v);
+  if (typeof v === "string" && v.trim() !== "" && !Number.isNaN(Number(v)))
+    return Number(v);
   return undefined;
 }
 
@@ -54,10 +55,13 @@ export function readNodeProvenance(
   const seq = asNumber(ref.document_seq);
   if (seq !== undefined) out.document_seq = seq;
   if (Array.isArray(ref.document_seqs)) {
-    const seqs = ref.document_seqs.map(asNumber).filter((n): n is number => n !== undefined);
+    const seqs = ref.document_seqs
+      .map(asNumber)
+      .filter((n): n is number => n !== undefined);
     if (seqs.length) out.document_seqs = seqs;
   }
-  if (typeof ref.document_title === "string") out.document_title = ref.document_title;
+  if (typeof ref.document_title === "string")
+    out.document_title = ref.document_title;
   if (typeof ref.document_content_hash === "string") {
     out.document_content_hash = ref.document_content_hash;
   }
@@ -99,7 +103,11 @@ export async function queryNodeIdsByDocumentSeq(
          (source_ref->>'document_seq') = $2
          OR source_ref @> $3::jsonb
        )`,
-    [scopeId, String(documentSeq), JSON.stringify({ document_seqs: [documentSeq] })],
+    [
+      scopeId,
+      String(documentSeq),
+      JSON.stringify({ document_seqs: [documentSeq] }),
+    ],
   );
   return res.rows.map((r: { node_id: string }) => r.node_id);
 }
@@ -126,7 +134,11 @@ export async function listDocumentDerivedNodes(
          OR source_ref @> $3::jsonb
        )
      ORDER BY type, created_at ASC`,
-    [scopeId, String(documentSeq), JSON.stringify({ document_seqs: [documentSeq] })],
+    [
+      scopeId,
+      String(documentSeq),
+      JSON.stringify({ document_seqs: [documentSeq] }),
+    ],
   );
   return res.rows.map(
     (r: {

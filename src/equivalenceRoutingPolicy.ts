@@ -146,15 +146,6 @@ export function resolveGenericEquivalenceRouting(
     };
   }
 
-  if (verdict.label === "contradiction") {
-    return {
-      propose: false,
-      verdict,
-      reason: "nli_contradiction_block",
-      skipNli: false,
-    };
-  }
-
   if (shouldProposeEquivalence(verdict)) {
     return {
       propose: true,

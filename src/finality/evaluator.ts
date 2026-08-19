@@ -557,8 +557,7 @@ async function emitSessionFinalized(scopeId: string): Promise<void> {
   }
   try {
     const score = await computeGoalScoreForScope(scopeId);
-    const { markStudioCatalogResolved } =
-      await import("./report.js");
+    const { markStudioCatalogResolved } = await import("./report.js");
     await markStudioCatalogResolved(scopeId, score);
   } catch {
     /* catalog optional */
@@ -639,8 +638,7 @@ export async function evaluateFinality(
 ): Promise<FinalityResult | null> {
   // Human-approved finality: skip re-HITL and treat as RESOLVED
   try {
-    const { getLatestFinalityDecision } =
-      await import("./decisions.js");
+    const { getLatestFinalityDecision } = await import("./decisions.js");
     const latest = await getLatestFinalityDecision(scopeId);
     if (latest?.option === "approve_finality") {
       await emitSessionFinalized(scopeId);

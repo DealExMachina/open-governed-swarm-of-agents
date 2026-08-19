@@ -192,7 +192,10 @@ export async function cascadeResolveDuplicateContradictions(
     cascade_of: primaryNodeId,
   };
 
-  for (const row of actives.rows as Array<{ node_id: string; content: string }>) {
+  for (const row of actives.rows as Array<{
+    node_id: string;
+    content: string;
+  }>) {
     const otherKey = contradictionPairKey(row.content);
     const samePair = !!pairKey && !!otherKey && pairKey === otherKey;
     const overlap =

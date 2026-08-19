@@ -44,7 +44,10 @@ describe("documentProvenance (issue #6)", () => {
   });
 
   it("reads resolution_seq provenance", () => {
-    const prov = readNodeProvenance({ source: "resolution", resolution_seq: 99 });
+    const prov = readNodeProvenance({
+      source: "resolution",
+      resolution_seq: 99,
+    });
     expect(prov.resolution_seq).toBe(99);
   });
 
@@ -72,6 +75,10 @@ describe("documentProvenance (issue #6)", () => {
     const [sql, params] = query.mock.calls[0];
     expect(sql).toContain("source_ref->>'document_seq'");
     expect(sql).toContain("source_ref @> $3::jsonb");
-    expect(params).toEqual(["scope-1", "42", JSON.stringify({ document_seqs: [42] })]);
+    expect(params).toEqual([
+      "scope-1",
+      "42",
+      JSON.stringify({ document_seqs: [42] }),
+    ]);
   });
 });

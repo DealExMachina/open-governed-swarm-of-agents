@@ -30,7 +30,9 @@ export function sendJson(
   res.end(JSON.stringify(data));
 }
 
-export function readJsonBody(req: IncomingMessage): Promise<Record<string, unknown>> {
+export function readJsonBody(
+  req: IncomingMessage,
+): Promise<Record<string, unknown>> {
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
     req.on("data", (chunk) => chunks.push(chunk as Buffer));

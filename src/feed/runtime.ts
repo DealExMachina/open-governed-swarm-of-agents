@@ -55,9 +55,7 @@ let _feedBus: EventBus | null = null;
 export async function getFeedBus(): Promise<EventBus> {
   if (!_feedBus) {
     _feedBus = await makeEventBus();
-    await _feedBus.ensureStream(NATS_STREAM, [
-      "swarm.events.>",
-    ]);
+    await _feedBus.ensureStream(NATS_STREAM, ["swarm.events.>"]);
   }
   return _feedBus;
 }
