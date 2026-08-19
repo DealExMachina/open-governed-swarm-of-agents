@@ -1,5 +1,3 @@
-import { chromium } from "playwright";
-
 type CheckResult = {
   id: string;
   name: string;
@@ -47,6 +45,20 @@ async function postJson(url: string, body: unknown): Promise<unknown> {
     throw new Error(`HTTP ${response.status} from ${url}`);
   }
   return response.json();
+}
+
+async function fetchHtmlText(url: string): Promise<string> {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status} from ${url}`);
+  }
+  const html = await response.text();
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 async function run(): Promise<void> {
@@ -176,55 +188,39 @@ async function run(): Promise<void> {
     record("DASH-SMOKE-006", "Demo situation API shape", false, String(error));
   }
 
-  // UI checks with Playwright (DASH-SMOKE-002 / 003)
-  let browserClosed = false;
-  const browser = await chromium.launch({ headless: true });
+  // DASH-SMOKE-002 — static labels in observability.html (no browser needed)
   try {
-    const page = await browser.newPage();
+    const text = (await fetchHtmlText(`${FEED_URL}/`)).toUpperCase();
+    const required = ["STATE", "GOAL SCORE", "DRIFT", "SERVICE HEALTH", "LIVE EVENTS"];
+    const missing = required.filter((token) => !text.includes(token));
+    const ok = missing.length === 0;
+    record(
+      "DASH-SMOKE-002",
+      "Feed dashboard key widgets render",
+      ok,
+      ok ? "all required panels visible" : `missing panels: ${missing.join(", ")}`,
+    );
+  } catch (error) {
+    record("DASH-SMOKE-002", "Feed dashboard key widgets render", false, String(error));
+  }
 
-    // DASH-SMOKE-002
-    try {
-      await page.goto(`${FEED_URL}/`, { waitUntil: "domcontentloaded", timeout: 30000 });
-      await page.waitForTimeout(1000);
-      const text = (await page.locator("body").innerText()).toUpperCase();
-      const required = ["STATE", "GOAL SCORE", "DRIFT", "SERVICE HEALTH", "LIVE EVENTS"];
-      const missing = required.filter((token) => !text.includes(token));
-      const ok = missing.length === 0;
-      record(
-        "DASH-SMOKE-002",
-        "Feed dashboard key widgets render",
-        ok,
-        ok ? "all required panels visible" : `missing panels: ${missing.join(", ")}`,
-      );
-    } catch (error) {
-      record("DASH-SMOKE-002", "Feed dashboard key widgets render", false, String(error));
-    }
-
-    // DASH-SMOKE-003
-    try {
-      await page.goto(`${DEMO_URL}/`, { waitUntil: "domcontentloaded", timeout: 30000 });
-      await page.waitForTimeout(1000);
-      const bodyText = await page.locator("body").innerText();
-      const hasPicker = bodyText.includes("Choose one of four scenarios below");
-      const scenarios = (await checkJson(`${DEMO_URL}/api/scenarios`)) as Array<{ id?: string }>;
-      const ids = new Set(scenarios.map((s) => s.id).filter(Boolean));
-      const requiredIds = ["ma", "financial", "insurance", "green-bond"];
-      const missingIds = requiredIds.filter((id) => !ids.has(id));
-      const ok = hasPicker && missingIds.length === 0;
-      record(
-        "DASH-SMOKE-003",
-        "Demo scenario picker + scenario list",
-        ok,
-        `picker=${hasPicker}, scenarios=${Array.from(ids).join(", ")}, missing=${missingIds.join(", ") || "none"}`,
-      );
-    } catch (error) {
-      record("DASH-SMOKE-003", "Demo scenario picker + scenario list", false, String(error));
-    }
-  } finally {
-    if (!browserClosed) {
-      await browser.close();
-      browserClosed = true;
-    }
+  // DASH-SMOKE-003
+  try {
+    const bodyText = await fetchHtmlText(`${DEMO_URL}/`);
+    const hasPicker = bodyText.includes("Choose one of four scenarios below");
+    const scenarios = (await checkJson(`${DEMO_URL}/api/scenarios`)) as Array<{ id?: string }>;
+    const ids = new Set(scenarios.map((s) => s.id).filter(Boolean));
+    const requiredIds = ["ma", "financial", "insurance", "green-bond"];
+    const missingIds = requiredIds.filter((id) => !ids.has(id));
+    const ok = hasPicker && missingIds.length === 0;
+    record(
+      "DASH-SMOKE-003",
+      "Demo scenario picker + scenario list",
+      ok,
+      `picker=${hasPicker}, scenarios=${Array.from(ids).join(", ")}, missing=${missingIds.join(", ") || "none"}`,
+    );
+  } catch (error) {
+    record("DASH-SMOKE-003", "Demo scenario picker + scenario list", false, String(error));
   }
 
   const failed = results.filter((r) => !r.ok);
