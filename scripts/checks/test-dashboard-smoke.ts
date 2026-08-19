@@ -37,6 +37,18 @@ async function checkJson(url: string): Promise<unknown> {
   return response.json();
 }
 
+async function postJson(url: string, body: unknown): Promise<unknown> {
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status} from ${url}`);
+  }
+  return response.json();
+}
+
 async function run(): Promise<void> {
   // DASH-SMOKE-001
   try {
@@ -143,8 +155,9 @@ async function run(): Promise<void> {
     );
   }
 
-  // DASH-SMOKE-006
+  // DASH-SMOKE-006 — requires an active demo session (scope) before /api/situation
   try {
+    await postJson(`${DEMO_URL}/api/select-scenario`, { id: "ma" });
     const situation = (await checkJson(`${DEMO_URL}/api/situation`)) as {
       goal_score?: unknown;
       status?: unknown;
