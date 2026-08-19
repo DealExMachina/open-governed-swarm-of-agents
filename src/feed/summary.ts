@@ -23,10 +23,7 @@ import {
   loadAllContradictionsWithResolutions,
   getKnowledgeState,
 } from "../semanticGraph.js";
-import {
-  scopeDriftKey,
-  scopeFactsKey,
-} from "../scopeStorage.js";
+import { scopeDriftKey, scopeFactsKey } from "../scopeStorage.js";
 import {
   getLatestFinalityDecision,
   getAllFinalityDecisions,

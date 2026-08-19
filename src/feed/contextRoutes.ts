@@ -128,7 +128,13 @@ export async function handleAddResolution(
     const bus = await getFeedBus();
     await bus.publishEvent(event);
     try {
-      await appendResolutionGoal(scopeId, decision.trim(), summary.trim(), undefined, seq);
+      await appendResolutionGoal(
+        scopeId,
+        decision.trim(),
+        summary.trim(),
+        undefined,
+        seq,
+      );
     } catch (err) {
       process.stderr.write(
         `[feed] appendResolutionGoal failed: ${err instanceof Error ? err.message : String(err)}\n`,

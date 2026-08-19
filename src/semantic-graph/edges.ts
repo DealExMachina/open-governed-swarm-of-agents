@@ -1,6 +1,10 @@
 import pg from "pg";
 import { getPool } from "../db.js";
-import type { AppendEdgeInput, QueryEdgesOptions, SemanticEdge } from "./types.js";
+import type {
+  AppendEdgeInput,
+  QueryEdgesOptions,
+  SemanticEdge,
+} from "./types.js";
 import {
   buildEdgeViewCondition,
   CURRENT_VIEW_EDGES,

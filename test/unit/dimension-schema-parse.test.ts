@@ -11,7 +11,9 @@ describe("parsePercentage — word forms", () => {
       type: "percentage",
       value: 72,
     });
-    expect(parsePercentage("Reported gross margin of seventy-two percent")).toEqual({
+    expect(
+      parsePercentage("Reported gross margin of seventy-two percent"),
+    ).toEqual({
       type: "percentage",
       value: 72,
     });

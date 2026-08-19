@@ -21,20 +21,18 @@ describe("contradictionPairKey", () => {
   });
 
   it("does not collapse unrelated pairs", () => {
-    const arr =
-      'NLI: "ARR is €38M..." vs "ARR is €50M..."';
-    const mdr =
-      'NLI: "ARR is €38M..." vs "Allocated €2.5M for EU MDR..."';
+    const arr = 'NLI: "ARR is €38M..." vs "ARR is €50M..."';
+    const mdr = 'NLI: "ARR is €38M..." vs "Allocated €2.5M for EU MDR..."';
     expect(contradictionPairKey(arr)).not.toBe(contradictionPairKey(mdr));
   });
 
   it("parses prose contradicts form", () => {
-    const pair = parseContradictionPair(
-      "ARR is €50M contradicts ARR is €38M",
-    );
+    const pair = parseContradictionPair("ARR is €50M contradicts ARR is €38M");
     expect(pair?.[0]).toContain("€50M");
     expect(pair?.[1]).toContain("€38M");
-    expect(contradictionPairKey("ARR is €50M contradicts ARR is €38M")).toBeTruthy();
+    expect(
+      contradictionPairKey("ARR is €50M contradicts ARR is €38M"),
+    ).toBeTruthy();
   });
 
   it("detects near-duplicate contradiction prose", () => {

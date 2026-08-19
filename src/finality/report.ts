@@ -3,10 +3,7 @@
  */
 import { getPool } from "../db.js";
 import { getKnowledgeState } from "../semanticGraph.js";
-import {
-  computeGoalScoreForScope,
-  loadFinalitySnapshot,
-} from "./evaluator.js";
+import { computeGoalScoreForScope, loadFinalitySnapshot } from "./evaluator.js";
 import { getLatestFinalityDecision } from "./decisions.js";
 import { getStudioCatalogScope } from "../studioCatalog.js";
 

@@ -1,6 +1,10 @@
 import pg from "pg";
 import { getPool } from "../db.js";
-import type { AppendNodeInput, QueryNodesOptions, SemanticNode } from "./types.js";
+import type {
+  AppendNodeInput,
+  QueryNodesOptions,
+  SemanticNode,
+} from "./types.js";
 import {
   buildNodeViewCondition,
   CURRENT_VIEW_NODES,
@@ -132,6 +136,20 @@ export async function queryNodes(
     created_by: r.created_by,
     version: Number(r.version),
   }));
+}
+
+/** Update a node's content (e.g. after an approved equivalence merge). */
+export async function updateNodeContent(
+  nodeId: string,
+  content: string,
+  client?: pg.PoolClient,
+): Promise<void> {
+  const q: Queryable = client ?? getPool();
+  await q.query(
+    `UPDATE nodes SET content = $2, updated_at = now(), version = version + 1
+     WHERE node_id = $1`,
+    [nodeId, content],
+  );
 }
 
 /** Update a node's confidence (monotonic upsert: only if new confidence >= existing). */

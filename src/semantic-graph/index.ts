@@ -16,6 +16,7 @@ export {
   queryNodesByCreator,
   supersedeNode,
   updateNodeConfidence,
+  updateNodeContent,
   updateNodeStatus,
 } from "./nodes.js";
 

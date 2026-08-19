@@ -9,10 +9,7 @@ import {
   EPHEMERAL_SCOPE_IDS,
   SCENARIO_SCOPES,
 } from "./scenarioScopes.js";
-import {
-  deleteCatalogScope,
-  ensureScenarioCatalogScope,
-} from "./catalog.js";
+import { deleteCatalogScope, ensureScenarioCatalogScope } from "./catalog.js";
 import { resetScopeAndReinit } from "../scopeReset.js";
 import { makeS3 } from "../s3.js";
 import { scopeStoragePrefix } from "../scopeStorage.js";
