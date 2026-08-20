@@ -2,11 +2,11 @@ name: Security Audit
 
 on:
   push:
-    branches: ["main", "claude/**"]
+    branches: ["main", "dev", "claude/**"]
   pull_request:
     branches: ["main"]
   schedule:
-    - cron: "0 0 * * 0"  # Weekly on Sunday
+    - cron: "0 0 * * 0" # Weekly on Sunday
 
 jobs:
   audit:
@@ -16,10 +16,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Run npm audit
-        run: npm audit --audit-level=high
-        continue-on-error: true
+      - uses: pnpm/action-setup@v2
+        with:
+          version: "10.30.1"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run pnpm audit
+        run: pnpm audit --audit-level=high
 
       - uses: actions/dependency-review-action@v4
         if: github.event_name == 'pull_request'
-        continue-on-error: true
