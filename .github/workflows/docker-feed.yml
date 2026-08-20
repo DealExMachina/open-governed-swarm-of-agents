@@ -30,9 +30,6 @@ concurrency:
   group: docker-feed-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  REGISTRY_IMAGE: ghcr.io/${{ github.repository_owner }}/swarm-feed
-
 jobs:
   # Native per-arch builds: compiling sgrs-core (Rust/NAPI) under QEMU arm64
   # hits SIGILL. Use ubuntu-24.04-arm for linux/arm64 instead of qemu-user.
@@ -54,6 +51,9 @@ jobs:
         run: |
           platform=${{ matrix.platform }}
           echo "PLATFORM_PAIR=${platform//\//-}" >> "$GITHUB_ENV"
+          # GHCR requires lowercase image paths; repository_owner may be mixed-case.
+          owner="$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')"
+          echo "REGISTRY_IMAGE=ghcr.io/${owner}/swarm-feed" >> "$GITHUB_ENV"
 
       - name: Docker metadata
         id: meta
@@ -102,6 +102,11 @@ jobs:
     needs: [build]
     timeout-minutes: 10
     steps:
+      - name: Normalize image name
+        run: |
+          owner="$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')"
+          echo "REGISTRY_IMAGE=ghcr.io/${owner}/swarm-feed" >> "$GITHUB_ENV"
+
       - name: Download digests
         uses: actions/download-artifact@v4
         with:
