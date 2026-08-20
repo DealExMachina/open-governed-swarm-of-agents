@@ -2,6 +2,8 @@
 # Zero-shot LFM2.5-Encoder-230M vs DeBERTa v3 large — same NLI gold harness.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+# shellcheck source=scripts/wait-for-facts-worker-nli.sh
+source "$ROOT/scripts/wait-for-facts-worker-nli.sh"
 cd "$ROOT"
 
 OUT_DIR="model_evals/liquidai-encoders"
@@ -20,23 +22,14 @@ docker compose run -d --name asg-facts-liquid-nli --no-deps \
   -e LIQUID_NLI_DEVICE=cpu \
   -e OPENAI_API_KEY="${OPENAI_API_KEY:-sk-dummy}" \
   facts-worker \
-  sh -c "pip install -q -r requirements-full.txt && uvicorn app:app --host 0.0.0.0 --port 8010" \
+  sh -c "pip install -q fastapi uvicorn pydantic torch transformers sentence-transformers 2>/dev/null; uvicorn app:app --host 0.0.0.0 --port 8010" \
   2>/dev/null || docker start asg-facts-liquid-nli 2>/dev/null || true
 
 echo "Waiting for Liquid encoder load (first run downloads weights)…"
-for i in $(seq 1 120); do
-  if curl -sf "http://127.0.0.1:${PORT}/health" | grep -q '"nli"'; then
-    echo "NLI ready."
-    curl -sf "http://127.0.0.1:${PORT}/health" | python3 -m json.tool
-    break
-  fi
-  sleep 5
-  if [ "$i" -eq 120 ]; then
-    echo "Timeout waiting for Liquid NLI worker"
-    docker logs asg-facts-liquid-nli 2>&1 | tail -30
-    exit 1
-  fi
-done
+wait_for_facts_worker_nli "http://127.0.0.1:${PORT}" 120 5 || {
+  docker logs asg-facts-liquid-nli 2>&1 | tail -30
+  exit 1
+}
 
 echo "== Gold set eval =="
 START=$(date +%s)

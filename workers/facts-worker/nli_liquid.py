@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 import os
+from pathlib import Path
 from typing import Any, List, Optional, Tuple
 
 import numpy as np
@@ -115,9 +116,11 @@ def _resolve_checkpoint() -> Optional[str]:
     ckpt = os.getenv("LIQUID_NLI_CHECKPOINT", "").strip()
     if ckpt and os.path.isdir(ckpt):
         return ckpt
-    default = os.path.join(os.path.dirname(__file__), "checkpoints", "nli-mnli-probe")
-    if os.path.isdir(default) and os.path.isfile(os.path.join(default, "config.json")):
-        return default
+    base = os.path.join(os.path.dirname(__file__), "checkpoints")
+    for name in ("nli-domain-v3-calibrated", "nli-mnli-probe"):
+        candidate = os.path.join(base, name)
+        if os.path.isdir(candidate) and os.path.isfile(os.path.join(candidate, "nli_config.json")):
+            return candidate
     return None
 
 
@@ -152,16 +155,15 @@ def _load_finetuned_model() -> Optional[LiquidNliModel]:
     if not ckpt:
         logger.warning("LIQUID_NLI_MODE=finetuned but no checkpoint found")
         return None
-    import torch
-    from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
+    from lfm2_nli_classifier import load_nli_checkpoint
+
+    device = os.getenv("LIQUID_NLI_DEVICE", "cpu")
     base_id = os.getenv("LIQUID_NLI_MODEL", "LiquidAI/LFM2.5-Encoder-230M").strip()
     logger.info("Loading Liquid fine-tuned NLI checkpoint from %s (base=%s)", ckpt, base_id)
-    tokenizer = AutoTokenizer.from_pretrained(ckpt, trust_remote_code=True)
-    model = AutoModelForSequenceClassification.from_pretrained(ckpt, trust_remote_code=True)
-    device = os.getenv("LIQUID_NLI_DEVICE", "cpu")
-    model.to(device)
-    return LiquidNliModel(model, tokenizer, device)
+    predictor, _cfg = load_nli_checkpoint(Path(ckpt), device)
+    # LiquidNliModel and Lfm2NliPredictor share the same predict() contract
+    return predictor  # type: ignore[return-value]
 
 
 def get_liquid_nli_model() -> Optional[LiquidZeroShotNliModel | LiquidNliModel]:

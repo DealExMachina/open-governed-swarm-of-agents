@@ -2,7 +2,7 @@
 # Scenarios s2 (solvency) and s5 (energy) only.
 
 schemaVersion: "1"
-minConfidenceDefault: 0.7
+minConfidenceDefault: 0.77
 purpose: held_out_pipeline_validation
 
 pairs:

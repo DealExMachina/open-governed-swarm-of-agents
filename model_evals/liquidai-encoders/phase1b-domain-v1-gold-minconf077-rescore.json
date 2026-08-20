@@ -1,0 +1,28 @@
+{
+  "generatedAt": "2026-08-20T10:20:20.377Z",
+  "sourceEval": "model_evals/liquidai-encoders/phase1b-domain-v1-gold.json",
+  "pairCount": 57,
+  "thresholds": [
+    0.77
+  ],
+  "confidenceSweep": [
+    {
+      "minConfidence": 0.77,
+      "accuracy": 0.5263157894736842,
+      "falseMergeRate": 0,
+      "missedMergeRate": 1,
+      "hitlRoutingAccuracy": 0.5,
+      "accrualOverBlockRate": 0.46153846153846156,
+      "blockRecall": 0.6470588235294118
+    }
+  ],
+  "bestZeroFalseMerge": {
+    "minConfidence": 0.77,
+    "accuracy": 0.5263157894736842,
+    "falseMergeRate": 0,
+    "missedMergeRate": 1,
+    "hitlRoutingAccuracy": 0.5,
+    "accrualOverBlockRate": 0.46153846153846156,
+    "blockRecall": 0.6470588235294118
+  }
+}

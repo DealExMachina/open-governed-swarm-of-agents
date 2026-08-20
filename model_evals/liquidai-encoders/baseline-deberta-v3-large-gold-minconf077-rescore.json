@@ -1,0 +1,38 @@
+{
+  "generatedAt": "2026-08-20T15:39:13.773Z",
+  "sourceEval": "model_evals/liquidai-encoders/baseline-deberta-v3-large-gold.json",
+  "pairCount": 57,
+  "thresholds": [
+    0.7,
+    0.77
+  ],
+  "confidenceSweep": [
+    {
+      "minConfidence": 0.7,
+      "accuracy": 0.6666666666666666,
+      "falseMergeRate": 0,
+      "missedMergeRate": 0.6,
+      "hitlRoutingAccuracy": 0.5,
+      "accrualOverBlockRate": 0.46153846153846156,
+      "blockRecall": 0.9411764705882353
+    },
+    {
+      "minConfidence": 0.77,
+      "accuracy": 0.6666666666666666,
+      "falseMergeRate": 0,
+      "missedMergeRate": 0.6,
+      "hitlRoutingAccuracy": 0.5,
+      "accrualOverBlockRate": 0.46153846153846156,
+      "blockRecall": 0.9411764705882353
+    }
+  ],
+  "bestZeroFalseMerge": {
+    "minConfidence": 0.7,
+    "accuracy": 0.6666666666666666,
+    "falseMergeRate": 0,
+    "missedMergeRate": 0.6,
+    "hitlRoutingAccuracy": 0.5,
+    "accrualOverBlockRate": 0.46153846153846156,
+    "blockRecall": 0.9411764705882353
+  }
+}

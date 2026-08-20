@@ -1,0 +1,363 @@
+schemaVersion: '1'
+generated_at: '2026-08-20T11:12:53Z'
+source_gold_json: model_evals/liquidai-encoders/phase1d-domain-v2-gold-minconf077.json
+note: Train-only hard negatives from gold harness failures. Included in train.jsonl
+  only; bypasses regression text exclusion.
+pairs:
+- id: gf-s1-arr-paraphrase-01
+  a: ARR €50M (FY 2024, self-reported)
+  b: annual recurring revenue of approximately fifty million euros
+  dimension: arr
+  label: equivalent
+  source_scenario: s1
+  source_doc: test/fixtures/nli-gold-set.yaml
+  lang: en
+  train_only: true
+  source: gold_failure_mined
+  gold_pair_id: s1-arr-paraphrase-01
+  gold_category: paraphrase
+  failure_kind: routing_miss
+  eval_expected: auto_merge
+  eval_resolved: no_merge
+  eval_nli_label: equivalent
+  eval_nli_confidence: 0.6191813087250256
+- id: gf-s1-valuation-paraphrase-01
+  a: Indicative valuation €420M (8.4x ARR)
+  b: Enterprise value estimated at four hundred twenty million euros
+  dimension: valuation
+  label: equivalent
+  source_scenario: s1
+  source_doc: test/fixtures/nli-gold-set.yaml
+  lang: en
+  train_only: true
+  source: gold_failure_mined
+  gold_pair_id: s1-valuation-paraphrase-01
+  gold_category: paraphrase
+  failure_kind: routing_miss
+  eval_expected: auto_merge
+  eval_resolved: no_merge
+  eval_nli_label: neutral
+  eval_nli_confidence: 0.454394697494023
+- id: gf-s1-margin-paraphrase-01
+  a: Gross margin 72%
+  b: Reported gross margin of seventy-two percent
+  dimension: gross_margin
+  label: equivalent
+  source_scenario: s1
+  source_doc: test/fixtures/nli-gold-set.yaml
+  lang: en
+  train_only: true
+  source: gold_failure_mined
+  gold_pair_id: s1-margin-paraphrase-01
+  gold_category: paraphrase
+  failure_kind: routing_miss
+  eval_expected: auto_merge
+  eval_resolved: hitl
+  eval_nli_label: equivalent
+  eval_nli_confidence: 0.7888819666728508
+- id: gf-s1-arr-contradiction-01
+  a: Revenue grew by 10 percent year over year
+  b: Revenue fell by 10 percent year over year
+  dimension: arr
+  label: contradiction
+  source_scenario: s1
+  source_doc: test/fixtures/nli-gold-set.yaml
+  lang: en
+  train_only: true
+  source: gold_failure_mined
+  gold_pair_id: s1-arr-contradiction-01
+  gold_category: contradiction
+  failure_kind: missed_block
+  eval_expected: block_contradiction
+  eval_resolved: no_merge
+  eval_nli_label: contradiction
+  eval_nli_confidence: 0.9662809617795067
+- id: gf-s2-scr-paraphrase-01
+  a: Group SCR ratio 142% at Q4 2025
+  b: Solvency Capital Requirement ratio of 142% for the group at Q4 2025
+  dimension: scr_ratio
+  label: equivalent
+  source_scenario: s2
+  source_doc: test/fixtures/nli-gold-set.yaml
+  lang: en
+  train_only: true
+  source: gold_failure_mined
+  gold_pair_id: s2-scr-paraphrase-01
+  gold_category: paraphrase
+  failure_kind: routing_miss
+  eval_expected: auto_merge
+  eval_resolved: no_merge
+  eval_nli_label: equivalent
+  eval_nli_confidence: 0.6772180983433093
+- id: gf-s2-funds-paraphrase-01
+  a: Total eligible own funds EUR 890M
+  b: Eligible own funds total EUR 890 million
+  dimension: own_funds
+  label: equivalent
+  source_scenario: s2
+  source_doc: test/fixtures/nli-gold-set.yaml
+  lang: en
+  train_only: true
+  source: gold_failure_mined
+  gold_pair_id: s2-funds-paraphrase-01
+  gold_category: paraphrase
+  failure_kind: routing_miss
+  eval_expected: auto_merge
+  eval_resolved: no_merge
+  eval_nli_label: equivalent
+  eval_nli_confidence: 0.9399398823343982
+- id: gf-s2-scr-contradiction-01
+  a: SCR ratio exceeds regulatory minimum of 100%
+  b: SCR ratio falls below 100% regulatory minimum
+  dimension: scr_ratio
+  label: contradiction
+  source_scenario: s2
+  source_doc: test/fixtures/nli-gold-set.yaml
+  lang: en
+  train_only: true
+  source: gold_failure_mined
+  gold_pair_id: s2-scr-contradiction-01
+  gold_category: contradiction
+  failure_kind: missed_block
+  eval_expected: block_contradiction
+  eval_resolved: no_merge
+  eval_nli_label: contradiction
+  eval_nli_confidence: 0.8223298776288079
+- id: gf-s2-guideline-hitl-01
+  a: Regulatory framework unchanged from prior quarter
+  b: EIOPA Q&A affects matching adjustment eligibility
+  dimension: guideline_update
+  label: neutral
+  source_scenario: s2
+  source_doc: test/fixtures/nli-gold-set.yaml
+  lang: en
+  train_only: true
+  source: gold_failure_mined
+  gold_pair_id: s2-guideline-hitl-01
+  gold_category: ambiguous_hitl
+  failure_kind: routing_miss
+  eval_expected: hitl
+  eval_resolved: block_contradiction
+  eval_nli_label: contradiction
+  eval_nli_confidence: 0.4335490663004293
+- id: gf-s3-protocol-paraphrase-01
+  a: Phase II/III oncology protocol v3.1 approved
+  b: Oncology trial protocol version 3.1 approved for Phase II/III
+  dimension: protocol_version
+  label: equivalent
+  source_scenario: s3
+  source_doc: test/fixtures/nli-gold-set.yaml
+  lang: en
+  train_only: true
+  source: gold_failure_mined
+  gold_pair_id: s3-protocol-paraphrase-01
+  gold_category: paraphrase
+  failure_kind: routing_miss
+  eval_expected: auto_merge
+  eval_resolved: hitl
+  eval_nli_label: equivalent
+  eval_nli_confidence: 0.6679280286515815
+- id: gf-s3-ae-hitl-01
+  a: Adverse event rate within expected range
+  b: Grade 2 adverse event rate elevated at one site pending review
+  dimension: ae_rate
+  label: neutral
+  source_scenario: s3
+  source_doc: test/fixtures/nli-gold-set.yaml
+  lang: en
+  train_only: true
+  source: gold_failure_mined
+  gold_pair_id: s3-ae-hitl-01
+  gold_category: ambiguous_hitl
+  failure_kind: routing_miss
+  eval_expected: hitl
+  eval_resolved: block_contradiction
+  eval_nli_label: contradiction
+  eval_nli_confidence: 0.5652482628240248
+- id: gf-s4-cdd-paraphrase-01
+  a: Standard CDD completed for corporate entity
+  b: Standard Customer Due Diligence completed for the corporate client
+  dimension: cdd_level
+  label: equivalent
+  source_scenario: s4
+  source_doc: test/fixtures/nli-gold-set.yaml
+  lang: en
+  train_only: true
+  source: gold_failure_mined
+  gold_pair_id: s4-cdd-paraphrase-01
+  gold_category: paraphrase
+  failure_kind: routing_miss
+  eval_expected: auto_merge
+  eval_resolved: hitl
+  eval_nli_label: equivalent
+  eval_nli_confidence: 0.6005646999866568
+- id: gf-s4-ubo-paraphrase-01
+  a: UBO identified to 25% threshold
+  b: Ultimate beneficial owner identified at 25 percent ownership threshold
+  dimension: ownership_chain
+  label: equivalent
+  source_scenario: s4
+  source_doc: test/fixtures/nli-gold-set.yaml
+  lang: en
+  train_only: true
+  source: gold_failure_mined
+  gold_pair_id: s4-ubo-paraphrase-01
+  gold_category: paraphrase
+  failure_kind: routing_miss
+  eval_expected: auto_merge
+  eval_resolved: hitl
+  eval_nli_label: equivalent
+  eval_nli_confidence: 0.7078835758083674
+- id: gf-s4-alias-hitl-01
+  a: Initial screening clear on primary entities
+  b: False positive cleared on secondary alias
+  dimension: sanctions_status
+  label: neutral
+  source_scenario: s4
+  source_doc: test/fixtures/nli-gold-set.yaml
+  lang: en
+  train_only: true
+  source: gold_failure_mined
+  gold_pair_id: s4-alias-hitl-01
+  gold_category: ambiguous_hitl
+  failure_kind: routing_miss
+  eval_expected: hitl
+  eval_resolved: block_contradiction
+  eval_nli_label: contradiction
+  eval_nli_confidence: 0.666243852501103
+- id: gf-s4-ownership-hitl-01
+  a: UBO identified to 25% threshold
+  b: Intermediate holding added in non-high-risk jurisdiction
+  dimension: ownership_chain
+  label: neutral
+  source_scenario: s4
+  source_doc: test/fixtures/nli-gold-set.yaml
+  lang: en
+  train_only: true
+  source: gold_failure_mined
+  gold_pair_id: s4-ownership-hitl-01
+  gold_category: ambiguous_hitl
+  failure_kind: routing_miss
+  eval_expected: hitl
+  eval_resolved: block_contradiction
+  eval_nli_label: contradiction
+  eval_nli_confidence: 0.461528468503185
+- id: gf-s5-cip-paraphrase-01
+  a: CIP-002 BES categorization current
+  b: NERC CIP-002 Bulk Electric System categorization is up to date
+  dimension: nerc_cip_ref
+  label: equivalent
+  source_scenario: s5
+  source_doc: test/fixtures/nli-gold-set.yaml
+  lang: en
+  train_only: true
+  source: gold_failure_mined
+  gold_pair_id: s5-cip-paraphrase-01
+  gold_category: paraphrase
+  failure_kind: routing_miss
+  eval_expected: auto_merge
+  eval_resolved: hitl
+  eval_nli_label: equivalent
+  eval_nli_confidence: 0.4702903918792866
+- id: gf-s5-patch-paraphrase-01
+  a: Critical patches applied within SLA
+  b: All critical security patches deployed within required SLA window
+  dimension: patch_status
+  label: equivalent
+  source_scenario: s5
+  source_doc: test/fixtures/nli-gold-set.yaml
+  lang: en
+  train_only: true
+  source: gold_failure_mined
+  gold_pair_id: s5-patch-paraphrase-01
+  gold_category: paraphrase
+  failure_kind: routing_miss
+  eval_expected: auto_merge
+  eval_resolved: hitl
+  eval_nli_label: equivalent
+  eval_nli_confidence: 0.5630743970576787
+- id: gf-generic-hitl-scope-01
+  a: Assessment covers core production systems
+  b: Assessment extended to include disaster recovery environment
+  dimension: scope
+  label: neutral
+  source_scenario: cross
+  source_doc: test/fixtures/nli-gold-set.yaml
+  lang: en
+  train_only: true
+  source: gold_failure_mined
+  gold_pair_id: generic-hitl-scope-01
+  gold_category: ambiguous_hitl
+  failure_kind: routing_miss
+  eval_expected: hitl
+  eval_resolved: block_contradiction
+  eval_nli_label: contradiction
+  eval_nli_confidence: 0.8232944404273084
+- id: gf-s3-dlt-hitl-01
+  a: No dose-limiting toxicities observed in cohort 1
+  b: One possible DLT under review at dose level 2
+  dimension: safety_signal
+  label: neutral
+  source_scenario: s3
+  source_doc: test/fixtures/nli-gold-set.yaml
+  lang: en
+  train_only: true
+  source: gold_failure_mined
+  gold_pair_id: s3-dlt-hitl-01
+  gold_category: ambiguous_hitl
+  failure_kind: routing_miss
+  eval_expected: hitl
+  eval_resolved: block_contradiction
+  eval_nli_label: contradiction
+  eval_nli_confidence: 0.649747248135182
+- id: gf-s4-pep-hitl-01
+  a: No PEP exposure identified in initial screening
+  b: Indirect PEP link identified via 15% shareholder
+  dimension: pep_exposure
+  label: neutral
+  source_scenario: s4
+  source_doc: test/fixtures/nli-gold-set.yaml
+  lang: en
+  train_only: true
+  source: gold_failure_mined
+  gold_pair_id: s4-pep-hitl-01
+  gold_category: ambiguous_hitl
+  failure_kind: routing_miss
+  eval_expected: hitl
+  eval_resolved: block_contradiction
+  eval_nli_label: contradiction
+  eval_nli_confidence: 0.55059259972623
+- id: gf-s4-cdd-paraphrase-02
+  a: Enhanced due diligence completed
+  b: EDD procedures completed for high-risk client segment
+  dimension: cdd_level
+  label: equivalent
+  source_scenario: s4
+  source_doc: test/fixtures/nli-gold-set.yaml
+  lang: en
+  train_only: true
+  source: gold_failure_mined
+  gold_pair_id: s4-cdd-paraphrase-02
+  gold_category: paraphrase
+  failure_kind: routing_miss
+  eval_expected: auto_merge
+  eval_resolved: hitl
+  eval_nli_label: equivalent
+  eval_nli_confidence: 0.7299482267563278
+- id: gf-s4-media-hitl-01
+  a: No adverse media identified
+  b: Unverified adverse media mention requires analyst confirmation
+  dimension: media_hit
+  label: neutral
+  source_scenario: s4
+  source_doc: test/fixtures/nli-gold-set.yaml
+  lang: en
+  train_only: true
+  source: gold_failure_mined
+  gold_pair_id: s4-media-hitl-01
+  gold_category: ambiguous_hitl
+  failure_kind: routing_miss
+  eval_expected: hitl
+  eval_resolved: block_contradiction
+  eval_nli_label: contradiction
+  eval_nli_confidence: 0.6922811276333528

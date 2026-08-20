@@ -1,0 +1,47 @@
+{
+  "schemaVersion": "1",
+  "issue": "liquidai-07-b5-hitl-nli-replay",
+  "generatedAt": "2026-08-20T17:16:31.201Z",
+  "challengerWorkerUrl": "http://127.0.0.1:8018",
+  "baselineWorkerUrl": null,
+  "pairs": [
+    {
+      "id": "hitl-contradiction-0-2",
+      "kind": "contradiction",
+      "a": "Budget is approved for Q4.",
+      "b": "We will hire 15 engineers by year-end.",
+      "note": "Budget approved vs hire 15 (stretch)",
+      "label": "neutral",
+      "confidence": 0.999947663769858,
+      "available": true
+    },
+    {
+      "id": "hitl-contradiction-1-4",
+      "kind": "contradiction",
+      "a": "Launch date is set to November 15.",
+      "b": "Nexus APAC rollout is delayed by 2 weeks.",
+      "note": "Launch Nov 15 vs APAC delayed",
+      "label": "neutral",
+      "confidence": 0.997284907877774,
+      "available": true
+    },
+    {
+      "id": "hitl-resolution-0-2",
+      "kind": "resolution",
+      "a": "Budget is approved for Q4.",
+      "b": "We will hire 15 engineers by year-end.",
+      "note": "Resolution: budget supports 15 stretch target",
+      "label": "neutral",
+      "confidence": 0.999947663769858,
+      "available": true
+    }
+  ],
+  "baselinePairs": null,
+  "diffs": [],
+  "summary": {
+    "pairCount": 3,
+    "challengerUnavailable": 0,
+    "baselineUnavailable": null,
+    "labelDiffCount": 0
+  }
+}

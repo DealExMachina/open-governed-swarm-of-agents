@@ -20,16 +20,14 @@ def main() -> None:
     args = parser.parse_args()
 
     import torch
-    from transformers import AutoModelForSequenceClassification, AutoTokenizer
+    from lfm2_nli_classifier import load_nli_model_for_training
 
     device = resolve_device(args.device)
     ckpt = Path(args.checkpoint)
     eval_raw = load_jsonl(Path(args.eval_jsonl))
     examples = domain_rows_to_examples(eval_raw, bidirectional_equivalent=False)
 
-    tokenizer = AutoTokenizer.from_pretrained(str(ckpt), trust_remote_code=True)
-    model = AutoModelForSequenceClassification.from_pretrained(str(ckpt), trust_remote_code=True)
-    model.to(device)
+    model, tokenizer, _meta = load_nli_model_for_training(ckpt, "LiquidAI/LFM2.5-Encoder-230M", device)
     model.eval()
 
     y_true: list[int] = []

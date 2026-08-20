@@ -1,0 +1,10 @@
+{
+  "f1_contradiction": 0.03883495145631067,
+  "f1_entailment": 0.26804123711340205,
+  "f1_neutral": 0.5597269624573379,
+  "macro_f1": 0.28886771700901687,
+  "accuracy": 0.3728813559322034,
+  "checkpoint": "../workers/facts-worker/checkpoints/nli-domain-v3-calibrated",
+  "eval_rows": 295,
+  "device": "cpu"
+}

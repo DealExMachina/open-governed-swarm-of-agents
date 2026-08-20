@@ -102,3 +102,33 @@ def test_empty_inputs_return_none(monkeypatch):
     monkeypatch.setattr(rlm_facts, "_get_nli", lambda: _FakeModel([[0.05, 0.9, 0.05], [0.05, 0.9, 0.05]]))
     assert rlm_facts.nli_entailment("", "b") is None
     assert rlm_facts.nli_entailment("a", "   ") is None
+
+
+def test_liquid_backend_uses_same_entailment_contract(monkeypatch):
+    """Liquid backend must expose CrossEncoder-compatible predict() rows."""
+    monkeypatch.setenv("SKIP_NLI", "0")
+    monkeypatch.setenv("NLI_BACKEND", "liquidai")
+
+    class _LiquidStub:
+        def predict(self, pairs):
+            return [[0.05, 0.90, 0.05], [0.06, 0.88, 0.06]]
+
+    import nli_liquid
+
+    monkeypatch.setattr(nli_liquid, "get_liquid_nli_model", lambda: _LiquidStub())
+    rlm_facts._nli_model = None
+    r = rlm_facts.nli_entailment("ARR is EUR 50M", "annual recurring revenue of fifty million euros")
+    assert r is not None
+    assert r["label"] == "equivalent"
+    assert set(r.keys()) == {"label", "confidence"}
+
+
+def test_liquid_backend_fail_closed_on_load_error(monkeypatch):
+    monkeypatch.setenv("SKIP_NLI", "0")
+    monkeypatch.setenv("NLI_BACKEND", "liquidai")
+
+    import nli_liquid
+
+    monkeypatch.setattr(nli_liquid, "get_liquid_nli_model", lambda: None)
+    rlm_facts._nli_model = None
+    assert rlm_facts.nli_entailment("a", "b") is None

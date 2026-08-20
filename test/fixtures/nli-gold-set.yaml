@@ -16,7 +16,7 @@
 # should not be the primary resolver — canonical parsers handle them first.
 
 schemaVersion: "1"
-minConfidenceDefault: 0.7
+minConfidenceDefault: 0.77
 
 pairs:
   # ── S1 M&A — paraphrase (auto_merge) ──────────────────────────────────────

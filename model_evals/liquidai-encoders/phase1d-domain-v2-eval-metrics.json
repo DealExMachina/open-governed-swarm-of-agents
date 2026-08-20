@@ -1,0 +1,10 @@
+{
+  "f1_contradiction": 0.6666666666666665,
+  "f1_entailment": 0.75,
+  "f1_neutral": 0.4000000000000001,
+  "macro_f1": 0.6055555555555555,
+  "accuracy": 0.6122448979591837,
+  "checkpoint": "../../workers/facts-worker/checkpoints/nli-domain-v2",
+  "eval_rows": 49,
+  "device": "mps"
+}

@@ -1,0 +1,128 @@
+{
+  "generatedAt": "2026-08-20T10:16:48.906Z",
+  "sourceEval": "model_evals/liquidai-encoders/phase1b-domain-v1-gold.json",
+  "pairCount": 57,
+  "thresholds": [
+    0.75,
+    0.76,
+    0.77,
+    0.78,
+    0.79,
+    0.8,
+    0.81,
+    0.82,
+    0.83,
+    0.84,
+    0.85
+  ],
+  "confidenceSweep": [
+    {
+      "minConfidence": 0.75,
+      "accuracy": 0.543859649122807,
+      "falseMergeRate": 0.023809523809523808,
+      "missedMergeRate": 0.9333333333333333,
+      "hitlRoutingAccuracy": 0.5,
+      "accrualOverBlockRate": 0.46153846153846156,
+      "blockRecall": 0.6470588235294118
+    },
+    {
+      "minConfidence": 0.76,
+      "accuracy": 0.5263157894736842,
+      "falseMergeRate": 0.023809523809523808,
+      "missedMergeRate": 1,
+      "hitlRoutingAccuracy": 0.5,
+      "accrualOverBlockRate": 0.46153846153846156,
+      "blockRecall": 0.6470588235294118
+    },
+    {
+      "minConfidence": 0.77,
+      "accuracy": 0.5263157894736842,
+      "falseMergeRate": 0,
+      "missedMergeRate": 1,
+      "hitlRoutingAccuracy": 0.5,
+      "accrualOverBlockRate": 0.46153846153846156,
+      "blockRecall": 0.6470588235294118
+    },
+    {
+      "minConfidence": 0.78,
+      "accuracy": 0.5263157894736842,
+      "falseMergeRate": 0,
+      "missedMergeRate": 1,
+      "hitlRoutingAccuracy": 0.5,
+      "accrualOverBlockRate": 0.46153846153846156,
+      "blockRecall": 0.6470588235294118
+    },
+    {
+      "minConfidence": 0.79,
+      "accuracy": 0.5263157894736842,
+      "falseMergeRate": 0,
+      "missedMergeRate": 1,
+      "hitlRoutingAccuracy": 0.5,
+      "accrualOverBlockRate": 0.46153846153846156,
+      "blockRecall": 0.6470588235294118
+    },
+    {
+      "minConfidence": 0.8,
+      "accuracy": 0.5263157894736842,
+      "falseMergeRate": 0,
+      "missedMergeRate": 1,
+      "hitlRoutingAccuracy": 0.5,
+      "accrualOverBlockRate": 0.46153846153846156,
+      "blockRecall": 0.6470588235294118
+    },
+    {
+      "minConfidence": 0.81,
+      "accuracy": 0.5263157894736842,
+      "falseMergeRate": 0,
+      "missedMergeRate": 1,
+      "hitlRoutingAccuracy": 0.5,
+      "accrualOverBlockRate": 0.46153846153846156,
+      "blockRecall": 0.6470588235294118
+    },
+    {
+      "minConfidence": 0.82,
+      "accuracy": 0.5263157894736842,
+      "falseMergeRate": 0,
+      "missedMergeRate": 1,
+      "hitlRoutingAccuracy": 0.5,
+      "accrualOverBlockRate": 0.46153846153846156,
+      "blockRecall": 0.6470588235294118
+    },
+    {
+      "minConfidence": 0.83,
+      "accuracy": 0.5263157894736842,
+      "falseMergeRate": 0,
+      "missedMergeRate": 1,
+      "hitlRoutingAccuracy": 0.5,
+      "accrualOverBlockRate": 0.46153846153846156,
+      "blockRecall": 0.6470588235294118
+    },
+    {
+      "minConfidence": 0.84,
+      "accuracy": 0.5263157894736842,
+      "falseMergeRate": 0,
+      "missedMergeRate": 1,
+      "hitlRoutingAccuracy": 0.5,
+      "accrualOverBlockRate": 0.46153846153846156,
+      "blockRecall": 0.6470588235294118
+    },
+    {
+      "minConfidence": 0.85,
+      "accuracy": 0.5263157894736842,
+      "falseMergeRate": 0,
+      "missedMergeRate": 1,
+      "hitlRoutingAccuracy": 0.5,
+      "accrualOverBlockRate": 0.46153846153846156,
+      "blockRecall": 0.6470588235294118
+    }
+  ],
+  "bestZeroFalseMerge": {
+    "minConfidence": 0.77,
+    "accuracy": 0.5263157894736842,
+    "falseMergeRate": 0,
+    "missedMergeRate": 1,
+    "hitlRoutingAccuracy": 0.5,
+    "accrualOverBlockRate": 0.46153846153846156,
+    "blockRecall": 0.6470588235294118
+  }
+}

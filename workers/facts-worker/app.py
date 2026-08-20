@@ -77,6 +77,13 @@ def health():
     if nli_backend == "liquidai":
         payload["liquid_nli_mode"] = os.getenv("LIQUID_NLI_MODE", "zero_shot").strip().lower()
         payload["liquid_nli_model"] = os.getenv("LIQUID_NLI_MODEL", "LiquidAI/LFM2.5-Encoder-230M").strip()
+        if payload["liquid_nli_mode"] == "finetuned":
+            try:
+                from nli_liquid import _resolve_checkpoint
+
+                payload["liquid_nli_checkpoint"] = _resolve_checkpoint()
+            except Exception:
+                pass
     return payload
 
 

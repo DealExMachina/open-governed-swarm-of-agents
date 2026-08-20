@@ -72,6 +72,12 @@ def build_trainer(model, tokenizer, train_rows, eval_rows, args, device: str):
             loss = loss_fct(outputs.logits.view(-1, 3), labels.view(-1))
             return (loss, outputs) if return_outputs else loss
 
+    total_steps = max(1, (len(train_rows) // (args.batch_size * args.grad_accum)) * args.epochs)
+    if args.warmup_ratio > 0:
+        warmup_steps = max(1, int(total_steps * args.warmup_ratio))
+    else:
+        warmup_steps = 0
+
     training_args = TrainingArguments(
         output_dir=str(Path(args.out) / "runs"),
         num_train_epochs=args.epochs,
@@ -79,8 +85,9 @@ def build_trainer(model, tokenizer, train_rows, eval_rows, args, device: str):
         per_device_eval_batch_size=args.batch_size,
         gradient_accumulation_steps=args.grad_accum,
         learning_rate=args.lr,
-        weight_decay=0.01,
-        warmup_ratio=0.05 if args.stage == "domain" else 0.0,
+        weight_decay=args.weight_decay,
+        warmup_steps=warmup_steps,
+        adam_beta2=args.adam_beta2,
         eval_strategy="epoch",
         save_strategy="no",
         logging_steps=10,
@@ -109,17 +116,20 @@ def build_trainer(model, tokenizer, train_rows, eval_rows, args, device: str):
 
 
 def load_model_and_tokenizer(model_id: str, init_checkpoint: Path | None, device: str):
-    from transformers import AutoModelForSequenceClassification, AutoTokenizer
+    from lfm2_nli_classifier import load_nli_model_for_training
+    from nli_train_utils import repo_root
 
-    if init_checkpoint and init_checkpoint.is_dir() and (init_checkpoint / "config.json").exists():
-        print(f"Loading checkpoint {init_checkpoint}")
-        tokenizer = AutoTokenizer.from_pretrained(str(init_checkpoint), trust_remote_code=True)
-        model = AutoModelForSequenceClassification.from_pretrained(str(init_checkpoint), trust_remote_code=True)
+    if init_checkpoint is not None and not init_checkpoint.is_absolute():
+        candidate = (Path.cwd() / init_checkpoint).resolve()
+        if not (candidate / "nli_config.json").exists():
+            candidate = (repo_root() / init_checkpoint).resolve()
+        init_checkpoint = candidate
+
+    model, tokenizer, _meta = load_nli_model_for_training(init_checkpoint, model_id, device)
+    if init_checkpoint and (init_checkpoint / "nli_config.json").exists():
+        print(f"Loaded checkpoint {init_checkpoint}")
     else:
-        print(f"Loading base model {model_id} (no probe checkpoint found)")
-        tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
-        model = AutoModelForSequenceClassification.from_pretrained(model_id, num_labels=3, trust_remote_code=True)
-    model.to(device)
+        print(f"Initialized from base model {model_id}")
     return model, tokenizer
 
 
@@ -140,7 +150,28 @@ def main() -> None:
     parser.add_argument("--snli-cap", type=int, default=500)
     parser.add_argument("--device", default="auto")
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument(
+        "--weight-decay",
+        type=float,
+        default=0.01,
+        help="Default 0.01. Liquid recipe wd=0.1 applies to Stage 2 domain (full tri-class); avoid on refine.",
+    )
+    parser.add_argument(
+        "--warmup-ratio",
+        type=float,
+        default=-1.0,
+        help="Linear warmup fraction of total steps; default 0.05 for domain, 0 for refine",
+    )
+    parser.add_argument(
+        "--adam-beta2",
+        type=float,
+        default=0.999,
+        help="AdamW beta2; Liquid encoder_eval uses 0.95",
+    )
     args = parser.parse_args()
+
+    if args.warmup_ratio < 0:
+        args.warmup_ratio = 0.05 if args.stage == "domain" else 0.0
 
     if not args.out:
         args.out = str(default_refine_ckpt() if args.stage == "refine" else default_domain_ckpt())
@@ -152,7 +183,7 @@ def main() -> None:
     init_ckpt = Path(args.init_checkpoint) if args.init_checkpoint else None
     if init_ckpt is None:
         init_ckpt = default_domain_ckpt() if args.stage == "refine" else default_probe_ckpt()
-        if args.stage == "domain" and not (init_ckpt / "config.json").exists():
+        if args.stage == "domain" and not (init_ckpt / "nli_config.json").exists():
             init_ckpt = None
 
     device = resolve_device(args.device)
@@ -184,9 +215,16 @@ def main() -> None:
     print("Eval:", metrics)
 
     out_dir = Path(args.out)
-    out_dir.mkdir(parents=True, exist_ok=True)
-    model.save_pretrained(out_dir)
-    tokenizer.save_pretrained(out_dir)
+    from lfm2_nli_classifier import NliCheckpointMeta, save_nli_checkpoint
+
+    hidden = int(model.classifier.in_features)
+    save_nli_checkpoint(
+        out_dir,
+        model,
+        tokenizer,
+        NliCheckpointMeta(base_model=args.model_id, hidden_size=hidden),
+        extra={"stage": args.stage, "metrics": metrics},
+    )
 
     save_training_meta(
         out_dir,
@@ -202,6 +240,9 @@ def main() -> None:
             "grad_accum": args.grad_accum,
             "effective_batch": args.batch_size * args.grad_accum,
             "lr": args.lr,
+            "weight_decay": args.weight_decay,
+            "warmup_ratio": args.warmup_ratio,
+            "adam_beta2": args.adam_beta2,
             "label_order": list(LABEL_NAMES),
             "metrics": metrics,
         },

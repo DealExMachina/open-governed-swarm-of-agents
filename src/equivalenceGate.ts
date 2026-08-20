@@ -63,14 +63,14 @@ export interface EquivalenceDecisionResult {
 }
 
 export interface DecideEquivalenceOptions {
-  /** Minimum NLI confidence to auto-approve an equivalence. Default env EQUIV_MIN_CONFIDENCE or 0.7. */
+  /** Minimum NLI confidence to auto-approve an equivalence. Default env EQUIV_MIN_CONFIDENCE or 0.77. */
   minConfidence?: number;
 }
 
 function resolveMinConfidence(explicit?: number): number {
   if (typeof explicit === "number") return explicit;
   const env = Number(process.env.EQUIV_MIN_CONFIDENCE);
-  return Number.isFinite(env) && env > 0 ? env : 0.7;
+  return Number.isFinite(env) && env > 0 ? env : 0.77;
 }
 
 /**

@@ -88,7 +88,7 @@ def domain_rows_to_examples(rows: list[dict[str, Any]], bidirectional_equivalent
 def load_snli_subset(max_samples: int, seed: int = 42) -> list[dict[str, Any]]:
     from datasets import load_dataset
 
-    ds = load_dataset("snli", split="train")
+    ds = load_dataset("stanfordnlp/snli", split="train")
     ds = ds.filter(lambda x: x["label"] != -1)
     if len(ds) > max_samples:
         ds = ds.shuffle(seed=seed).select(range(max_samples))

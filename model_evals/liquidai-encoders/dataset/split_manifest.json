@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-19T16:03:27Z",
+  "generated_at": "2026-08-20T15:40:24Z",
   "issue": "liquidai-01-dataset",
   "schema": {
     "fields": [
@@ -18,7 +18,11 @@
       "neutral"
     ]
   },
-  "seeds_file": "model_evals/liquidai-encoders/dataset/seeds/domain-pairs.yaml",
+  "seeds_files": [
+    "model_evals/liquidai-encoders/dataset/seeds/domain-pairs.yaml",
+    "model_evals/liquidai-encoders/dataset/seeds/synthetic-domain-pairs.yaml",
+    "model_evals/liquidai-encoders/dataset/seeds/gold-failures-mined.yaml"
+  ],
   "split_seed": 42,
   "train_ratio": 0.7,
   "excluded_regression_pairs": 63,
@@ -84,36 +88,42 @@
       "reason": "matches frozen regression fixture"
     }
   ],
+  "train_only_rows": 21,
+  "train_only_by_failure_kind": {
+    "routing_miss": 19,
+    "missed_block": 2
+  },
   "counts": {
-    "total": 162,
+    "total": 1006,
     "by_label": {
-      "equivalent": 52,
-      "neutral": 56,
-      "contradiction": 54
+      "equivalent": 338,
+      "neutral": 338,
+      "contradiction": 330
     },
     "by_lang": {
-      "en": 135,
-      "fr": 16,
+      "en": 580,
+      "fr": 415,
       "de": 11
     },
-    "multilingual": 27,
+    "multilingual": 426,
+    "french": 415,
     "issues": [],
     "ok": true
   },
   "split": {
-    "train": 113,
-    "eval": 49,
+    "train": 711,
+    "eval": 295,
     "train_by_label": {
-      "contradiction": 38,
-      "equivalent": 36,
-      "neutral": 39
+      "neutral": 239,
+      "equivalent": 240,
+      "contradiction": 232
     },
     "eval_by_label": {
-      "neutral": 17,
-      "contradiction": 16,
-      "equivalent": 16
+      "equivalent": 98,
+      "neutral": 99,
+      "contradiction": 98
     }
   },
   "spot_check_fraction": 0.2,
-  "spot_check_count": 32
+  "spot_check_count": 201
 }

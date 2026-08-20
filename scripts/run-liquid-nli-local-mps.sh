@@ -26,7 +26,7 @@ fi
 
 python -c "from nli_train_utils import resolve_device; print('Using device:', resolve_device('${DEVICE}'))"
 
-if [[ "$SKIP_PROBE" != "1" ]] && [[ ! -f "$PROBE_CKPT/config.json" ]]; then
+if [[ "$SKIP_PROBE" != "1" ]] && [[ ! -f "$PROBE_CKPT/nli_config.json" ]]; then
   echo "== Stage 1 bootstrap probe (${PROBE_SAMPLES} SNLI samples) =="
   python train_mnli_probe.py \
     --max-samples "$PROBE_SAMPLES" \

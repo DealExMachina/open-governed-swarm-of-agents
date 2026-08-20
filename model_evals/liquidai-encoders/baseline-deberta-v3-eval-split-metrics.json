@@ -1,0 +1,16 @@
+{
+  "f1_contradiction": 0.7593582887700534,
+  "f1_entailment": 0.7625,
+  "f1_neutral": 0.6666666666666666,
+  "macro_f1": 0.7295083184789067,
+  "accuracy": 0.7220338983050848,
+  "model_id": "cross-encoder/nli-deberta-v3-large",
+  "eval_rows": 295,
+  "eval_jsonl": "/Users/jeanbapt/GitHub/agents-swarm-governed/model_evals/liquidai-encoders/dataset/eval.jsonl",
+  "label_order": [
+    "contradiction",
+    "entailment",
+    "neutral"
+  ],
+  "direction": "single (premise\u2192hypothesis)"
+}

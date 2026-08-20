@@ -55,6 +55,9 @@ docs/experiments/*/results/
 # Business documents (local only)
 docs/business/
 
+# Fine-tuned NLI checkpoints (large binaries; pull from Hub or train locally)
+workers/facts-worker/checkpoints/
+
 # Rust / sgrs-core build artifacts
 sgrs-core/target/
 sgrs-core/*.node

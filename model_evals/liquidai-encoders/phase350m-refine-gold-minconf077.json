@@ -1,0 +1,950 @@
+{
+  "total": 57,
+  "correct": 39,
+  "accuracy": 0.6842105263157895,
+  "falseMergeRate": 0,
+  "missedMergeRate": 0.6,
+  "hitlRoutingAccuracy": 0.7857142857142857,
+  "accrualOverBlockRate": 0.23076923076923078,
+  "blockRecall": 0.7647058823529411,
+  "byCategory": [
+    {
+      "category": "paraphrase",
+      "count": 15,
+      "correct": 6,
+      "accuracy": 0.4
+    },
+    {
+      "category": "false_positive_trap",
+      "count": 11,
+      "correct": 10,
+      "accuracy": 0.9090909090909091
+    },
+    {
+      "category": "contradiction",
+      "count": 9,
+      "correct": 4,
+      "accuracy": 0.4444444444444444
+    },
+    {
+      "category": "refutation",
+      "count": 8,
+      "correct": 8,
+      "accuracy": 1
+    },
+    {
+      "category": "ambiguous_hitl",
+      "count": 14,
+      "correct": 11,
+      "accuracy": 0.7857142857142857
+    }
+  ],
+  "byScenario": [
+    {
+      "scenario": "cross",
+      "count": 5,
+      "correct": 5,
+      "accuracy": 1
+    },
+    {
+      "scenario": "s1",
+      "count": 16,
+      "correct": 9,
+      "accuracy": 0.5625
+    },
+    {
+      "scenario": "s2",
+      "count": 6,
+      "correct": 2,
+      "accuracy": 0.3333333333333333
+    },
+    {
+      "scenario": "s3",
+      "count": 10,
+      "correct": 8,
+      "accuracy": 0.8
+    },
+    {
+      "scenario": "s4",
+      "count": 14,
+      "correct": 12,
+      "accuracy": 0.8571428571428571
+    },
+    {
+      "scenario": "s5",
+      "count": 6,
+      "correct": 3,
+      "accuracy": 0.5
+    }
+  ],
+  "results": [
+    {
+      "id": "s1-arr-paraphrase-01",
+      "scenario": "s1",
+      "dimension": "arr",
+      "category": "paraphrase",
+      "expected": "auto_merge",
+      "resolved": "no_merge",
+      "correct": false,
+      "nli": {
+        "label": "equivalent",
+        "confidence": 0.6454420539445339,
+        "available": true
+      },
+      "governanceReason": "canonical_equal_skip"
+    },
+    {
+      "id": "s1-valuation-paraphrase-01",
+      "scenario": "s1",
+      "dimension": "valuation",
+      "category": "paraphrase",
+      "expected": "auto_merge",
+      "resolved": "no_merge",
+      "correct": false,
+      "nli": {
+        "label": "equivalent",
+        "confidence": 0.5833894126583273,
+        "available": true
+      },
+      "governanceReason": "canonical_equal_skip"
+    },
+    {
+      "id": "s1-margin-paraphrase-01",
+      "scenario": "s1",
+      "dimension": "gross_margin",
+      "category": "paraphrase",
+      "expected": "auto_merge",
+      "resolved": "hitl",
+      "correct": false,
+      "nli": {
+        "label": "equivalent",
+        "confidence": 0.8689187845357979,
+        "available": true
+      },
+      "governanceReason": "typed_diff_hitl"
+    },
+    {
+      "id": "s1-patents-paraphrase-01",
+      "scenario": "s1",
+      "dimension": "patents",
+      "category": "paraphrase",
+      "expected": "auto_merge",
+      "resolved": "hitl",
+      "correct": false,
+      "nli": {
+        "label": "equivalent",
+        "confidence": 0.7059127715822339,
+        "available": true
+      },
+      "governanceReason": "nli_equivalent_low_confidence:0.71"
+    },
+    {
+      "id": "s1-arr-fp-trap-01",
+      "scenario": "s1",
+      "dimension": "arr",
+      "category": "false_positive_trap",
+      "expected": "no_merge",
+      "resolved": "hitl",
+      "correct": true,
+      "nli": {
+        "label": "neutral",
+        "confidence": 0.395062622957201,
+        "available": true
+      },
+      "governanceReason": "typed_diff_hitl"
+    },
+    {
+      "id": "s1-valuation-fp-trap-01",
+      "scenario": "s1",
+      "dimension": "valuation",
+      "category": "false_positive_trap",
+      "expected": "no_merge",
+      "resolved": "hitl",
+      "correct": true,
+      "nli": {
+        "label": "neutral",
+        "confidence": 0.4080104262027762,
+        "available": true
+      },
+      "governanceReason": "typed_diff_hitl"
+    },
+    {
+      "id": "s1-clients-fp-trap-01",
+      "scenario": "s1",
+      "dimension": "clients",
+      "category": "false_positive_trap",
+      "expected": "no_merge",
+      "resolved": "hitl",
+      "correct": true,
+      "nli": {
+        "label": "equivalent",
+        "confidence": 0.5395487114692121,
+        "available": true
+      },
+      "governanceReason": "typed_diff_hitl"
+    },
+    {
+      "id": "s1-margin-fp-trap-01",
+      "scenario": "s1",
+      "dimension": "gross_margin",
+      "category": "false_positive_trap",
+      "expected": "no_merge",
+      "resolved": "hitl",
+      "correct": true,
+      "nli": {
+        "label": "neutral",
+        "confidence": 0.49508555859300046,
+        "available": true
+      },
+      "governanceReason": "typed_diff_hitl"
+    },
+    {
+      "id": "s1-concerns-contradiction-01",
+      "scenario": "s1",
+      "dimension": "key_person_risk",
+      "category": "contradiction",
+      "expected": "block_contradiction",
+      "resolved": "hitl",
+      "correct": false,
+      "nli": {
+        "label": "neutral",
+        "confidence": 0.5533789236941449,
+        "available": true
+      },
+      "governanceReason": "free_text_hitl"
+    },
+    {
+      "id": "s1-arr-contradiction-01",
+      "scenario": "s1",
+      "dimension": "arr",
+      "category": "contradiction",
+      "expected": "block_contradiction",
+      "resolved": "no_merge",
+      "correct": false,
+      "nli": {
+        "label": "contradiction",
+        "confidence": 0.9163656375549537,
+        "available": true
+      },
+      "governanceReason": "canonical_equal_skip"
+    },
+    {
+      "id": "s1-litigation-contradiction-01",
+      "scenario": "s1",
+      "dimension": "patent_litigation",
+      "category": "contradiction",
+      "expected": "block_contradiction",
+      "resolved": "block_contradiction",
+      "correct": true,
+      "nli": {
+        "label": "contradiction",
+        "confidence": 0.5874256596356858,
+        "available": true
+      },
+      "governanceReason": "nli_contradiction:0.59"
+    },
+    {
+      "id": "s1-arr-refutation-01",
+      "scenario": "s1",
+      "dimension": "arr",
+      "category": "refutation",
+      "expected": "block_refutation",
+      "resolved": "hitl",
+      "correct": true,
+      "nli": {
+        "label": "neutral",
+        "confidence": 0.2935861674735433,
+        "available": true
+      },
+      "governanceReason": "typed_diff_hitl"
+    },
+    {
+      "id": "s1-ip-refutation-01",
+      "scenario": "s1",
+      "dimension": "ip_dispute",
+      "category": "refutation",
+      "expected": "block_refutation",
+      "resolved": "block_contradiction",
+      "correct": true,
+      "nli": {
+        "label": "contradiction",
+        "confidence": 0.40413021766411217,
+        "available": true
+      },
+      "governanceReason": "nli_contradiction:0.40"
+    },
+    {
+      "id": "s1-keyperson-hitl-01",
+      "scenario": "s1",
+      "dimension": "key_person_risk",
+      "category": "ambiguous_hitl",
+      "hitlSubtype": "accrual",
+      "expected": "hitl",
+      "resolved": "hitl",
+      "correct": true,
+      "nli": {
+        "label": "neutral",
+        "confidence": 0.09998701927663849,
+        "available": true
+      },
+      "governanceReason": "free_text_hitl"
+    },
+    {
+      "id": "s1-customer-hitl-01",
+      "scenario": "s1",
+      "dimension": "customer_concentration",
+      "category": "ambiguous_hitl",
+      "hitlSubtype": "accrual",
+      "expected": "hitl",
+      "resolved": "hitl",
+      "correct": true,
+      "nli": {
+        "label": "neutral",
+        "confidence": 0.4132693689339724,
+        "available": true
+      },
+      "governanceReason": "free_text_hitl"
+    },
+    {
+      "id": "s1-ip-resolution-hitl-01",
+      "scenario": "s1",
+      "dimension": "ip_resolution",
+      "category": "ambiguous_hitl",
+      "hitlSubtype": "refinement",
+      "expected": "hitl",
+      "resolved": "block_contradiction",
+      "correct": false,
+      "nli": {
+        "label": "contradiction",
+        "confidence": 0.5751373726013345,
+        "available": true
+      },
+      "governanceReason": "nli_contradiction:0.58"
+    },
+    {
+      "id": "s2-scr-paraphrase-01",
+      "scenario": "s2",
+      "dimension": "scr_ratio",
+      "category": "paraphrase",
+      "expected": "auto_merge",
+      "resolved": "no_merge",
+      "correct": false,
+      "nli": {
+        "label": "equivalent",
+        "confidence": 0.7652249529978133,
+        "available": true
+      },
+      "governanceReason": "canonical_equal_skip"
+    },
+    {
+      "id": "s2-funds-paraphrase-01",
+      "scenario": "s2",
+      "dimension": "own_funds",
+      "category": "paraphrase",
+      "expected": "auto_merge",
+      "resolved": "no_merge",
+      "correct": false,
+      "nli": {
+        "label": "equivalent",
+        "confidence": 0.6623625933957097,
+        "available": true
+      },
+      "governanceReason": "canonical_equal_skip"
+    },
+    {
+      "id": "s2-scr-fp-trap-01",
+      "scenario": "s2",
+      "dimension": "scr_ratio",
+      "category": "false_positive_trap",
+      "expected": "no_merge",
+      "resolved": "unavailable",
+      "correct": false,
+      "nli": {
+        "label": "neutral",
+        "confidence": 0,
+        "available": false
+      }
+    },
+    {
+      "id": "s2-scr-contradiction-01",
+      "scenario": "s2",
+      "dimension": "scr_ratio",
+      "category": "contradiction",
+      "expected": "block_contradiction",
+      "resolved": "no_merge",
+      "correct": false,
+      "nli": {
+        "label": "contradiction",
+        "confidence": 0.8367172861278828,
+        "available": true
+      },
+      "governanceReason": "canonical_equal_skip"
+    },
+    {
+      "id": "s2-orsa-refutation-01",
+      "scenario": "s2",
+      "dimension": "orsa_summary",
+      "category": "refutation",
+      "expected": "block_refutation",
+      "resolved": "block_contradiction",
+      "correct": true,
+      "nli": {
+        "label": "contradiction",
+        "confidence": 0.5405237881213678,
+        "available": true
+      },
+      "governanceReason": "nli_contradiction:0.54"
+    },
+    {
+      "id": "s2-guideline-hitl-01",
+      "scenario": "s2",
+      "dimension": "guideline_update",
+      "category": "ambiguous_hitl",
+      "hitlSubtype": "refinement",
+      "expected": "hitl",
+      "resolved": "hitl",
+      "correct": true,
+      "nli": {
+        "label": "neutral",
+        "confidence": 0.4976552372146159,
+        "available": true
+      },
+      "governanceReason": "free_text_hitl"
+    },
+    {
+      "id": "s3-protocol-paraphrase-01",
+      "scenario": "s3",
+      "dimension": "protocol_version",
+      "category": "paraphrase",
+      "expected": "auto_merge",
+      "resolved": "auto_merge",
+      "correct": true,
+      "nli": {
+        "label": "equivalent",
+        "confidence": 0.856976112032481,
+        "available": true
+      },
+      "governanceReason": "nli_equivalent:0.86"
+    },
+    {
+      "id": "s3-gcp-paraphrase-01",
+      "scenario": "s3",
+      "dimension": "gcp_status",
+      "category": "paraphrase",
+      "expected": "auto_merge",
+      "resolved": "auto_merge",
+      "correct": true,
+      "nli": {
+        "label": "equivalent",
+        "confidence": 0.8799970022348497,
+        "available": true
+      },
+      "governanceReason": "nli_equivalent:0.88"
+    },
+    {
+      "id": "s3-enrollment-fp-trap-01",
+      "scenario": "s3",
+      "dimension": "enrollment_stats",
+      "category": "false_positive_trap",
+      "expected": "no_merge",
+      "resolved": "hitl",
+      "correct": true,
+      "nli": {
+        "label": "neutral",
+        "confidence": 0.4107915955926836,
+        "available": true
+      },
+      "governanceReason": "typed_diff_hitl"
+    },
+    {
+      "id": "s3-safety-contradiction-01",
+      "scenario": "s3",
+      "dimension": "safety_signal",
+      "category": "contradiction",
+      "expected": "block_contradiction",
+      "resolved": "block_contradiction",
+      "correct": true,
+      "nli": {
+        "label": "contradiction",
+        "confidence": 0.7032332902572429,
+        "available": true
+      },
+      "governanceReason": "nli_contradiction:0.70"
+    },
+    {
+      "id": "s3-endpoint-refutation-01",
+      "scenario": "s3",
+      "dimension": "endpoint_metrics",
+      "category": "refutation",
+      "expected": "block_refutation",
+      "resolved": "block_contradiction",
+      "correct": true,
+      "nli": {
+        "label": "contradiction",
+        "confidence": 0.6402621614716785,
+        "available": true
+      },
+      "governanceReason": "nli_contradiction:0.64"
+    },
+    {
+      "id": "s3-ae-hitl-01",
+      "scenario": "s3",
+      "dimension": "ae_rate",
+      "category": "ambiguous_hitl",
+      "hitlSubtype": "accrual",
+      "expected": "hitl",
+      "resolved": "block_contradiction",
+      "correct": false,
+      "nli": {
+        "label": "contradiction",
+        "confidence": 0.6237912917002396,
+        "available": true
+      },
+      "governanceReason": "nli_contradiction:0.62"
+    },
+    {
+      "id": "s4-cdd-paraphrase-01",
+      "scenario": "s4",
+      "dimension": "cdd_level",
+      "category": "paraphrase",
+      "expected": "auto_merge",
+      "resolved": "auto_merge",
+      "correct": true,
+      "nli": {
+        "label": "equivalent",
+        "confidence": 0.8259080311026441,
+        "available": true
+      },
+      "governanceReason": "nli_equivalent:0.83"
+    },
+    {
+      "id": "s4-ubo-paraphrase-01",
+      "scenario": "s4",
+      "dimension": "ownership_chain",
+      "category": "paraphrase",
+      "expected": "auto_merge",
+      "resolved": "auto_merge",
+      "correct": true,
+      "nli": {
+        "label": "equivalent",
+        "confidence": 0.8979777247946686,
+        "available": true
+      },
+      "governanceReason": "nli_equivalent:0.90"
+    },
+    {
+      "id": "s4-sanctions-fp-trap-01",
+      "scenario": "s4",
+      "dimension": "sanctions_status",
+      "category": "false_positive_trap",
+      "expected": "no_merge",
+      "resolved": "hitl",
+      "correct": true,
+      "nli": {
+        "label": "neutral",
+        "confidence": 0.5969836895723339,
+        "available": true
+      },
+      "governanceReason": "free_text_hitl"
+    },
+    {
+      "id": "s4-risk-fp-trap-01",
+      "scenario": "s4",
+      "dimension": "risk_rating",
+      "category": "false_positive_trap",
+      "expected": "no_merge",
+      "resolved": "block_contradiction",
+      "correct": true,
+      "nli": {
+        "label": "contradiction",
+        "confidence": 0.6869733539760446,
+        "available": true
+      },
+      "governanceReason": "nli_contradiction:0.69"
+    },
+    {
+      "id": "s4-sanctions-contradiction-01",
+      "scenario": "s4",
+      "dimension": "sanctions_status",
+      "category": "contradiction",
+      "expected": "block_contradiction",
+      "resolved": "block_contradiction",
+      "correct": true,
+      "nli": {
+        "label": "contradiction",
+        "confidence": 0.8131919115830968,
+        "available": true
+      },
+      "governanceReason": "nli_contradiction:0.81"
+    },
+    {
+      "id": "s4-edd-refutation-01",
+      "scenario": "s4",
+      "dimension": "edd_trigger",
+      "category": "refutation",
+      "expected": "block_refutation",
+      "resolved": "block_contradiction",
+      "correct": true,
+      "nli": {
+        "label": "contradiction",
+        "confidence": 0.574089941792121,
+        "available": true
+      },
+      "governanceReason": "nli_contradiction:0.57"
+    },
+    {
+      "id": "s4-alias-hitl-01",
+      "scenario": "s4",
+      "dimension": "sanctions_status",
+      "category": "ambiguous_hitl",
+      "hitlSubtype": "refinement",
+      "expected": "hitl",
+      "resolved": "hitl",
+      "correct": true,
+      "nli": {
+        "label": "neutral",
+        "confidence": 0.6948845452029099,
+        "available": true
+      },
+      "governanceReason": "free_text_hitl"
+    },
+    {
+      "id": "s4-ownership-hitl-01",
+      "scenario": "s4",
+      "dimension": "ownership_chain",
+      "category": "ambiguous_hitl",
+      "hitlSubtype": "accrual",
+      "expected": "hitl",
+      "resolved": "hitl",
+      "correct": true,
+      "nli": {
+        "label": "neutral",
+        "confidence": 0.7871156449675978,
+        "available": true
+      },
+      "governanceReason": "free_text_hitl"
+    },
+    {
+      "id": "s5-cip-paraphrase-01",
+      "scenario": "s5",
+      "dimension": "nerc_cip_ref",
+      "category": "paraphrase",
+      "expected": "auto_merge",
+      "resolved": "hitl",
+      "correct": false,
+      "nli": {
+        "label": "equivalent",
+        "confidence": 0.6839192646499838,
+        "available": true
+      },
+      "governanceReason": "nli_equivalent_low_confidence:0.68"
+    },
+    {
+      "id": "s5-patch-paraphrase-01",
+      "scenario": "s5",
+      "dimension": "patch_status",
+      "category": "paraphrase",
+      "expected": "auto_merge",
+      "resolved": "hitl",
+      "correct": false,
+      "nli": {
+        "label": "equivalent",
+        "confidence": 0.7335042374756853,
+        "available": true
+      },
+      "governanceReason": "nli_equivalent_low_confidence:0.73"
+    },
+    {
+      "id": "s5-frequency-fp-trap-01",
+      "scenario": "s5",
+      "dimension": "frequency_stability",
+      "category": "false_positive_trap",
+      "expected": "no_merge",
+      "resolved": "block_contradiction",
+      "correct": true,
+      "nli": {
+        "label": "contradiction",
+        "confidence": 0.5844988557826837,
+        "available": true
+      },
+      "governanceReason": "nli_contradiction:0.58"
+    },
+    {
+      "id": "s5-patch-contradiction-01",
+      "scenario": "s5",
+      "dimension": "patch_status",
+      "category": "contradiction",
+      "expected": "block_contradiction",
+      "resolved": "hitl",
+      "correct": false,
+      "nli": {
+        "label": "neutral",
+        "confidence": 0.4242021492819968,
+        "available": true
+      },
+      "governanceReason": "free_text_hitl"
+    },
+    {
+      "id": "s5-settlement-refutation-01",
+      "scenario": "s5",
+      "dimension": "settlement_exposure",
+      "category": "refutation",
+      "expected": "block_refutation",
+      "resolved": "block_contradiction",
+      "correct": true,
+      "nli": {
+        "label": "contradiction",
+        "confidence": 0.8562175282578919,
+        "available": true
+      },
+      "governanceReason": "nli_contradiction:0.86"
+    },
+    {
+      "id": "s5-retention-hitl-01",
+      "scenario": "s5",
+      "dimension": "evidence_retention",
+      "category": "ambiguous_hitl",
+      "hitlSubtype": "refinement",
+      "expected": "hitl",
+      "resolved": "hitl",
+      "correct": true,
+      "nli": {
+        "label": "neutral",
+        "confidence": 0.2622014804302602,
+        "available": true
+      },
+      "governanceReason": "free_text_hitl"
+    },
+    {
+      "id": "generic-paraphrase-pct-01",
+      "scenario": "cross",
+      "dimension": "metric",
+      "category": "paraphrase",
+      "expected": "auto_merge",
+      "resolved": "auto_merge",
+      "correct": true,
+      "nli": {
+        "label": "equivalent",
+        "confidence": 0.784967352422746,
+        "available": true
+      },
+      "governanceReason": "nli_equivalent:0.78"
+    },
+    {
+      "id": "generic-fp-same-subject-01",
+      "scenario": "cross",
+      "dimension": "status",
+      "category": "false_positive_trap",
+      "expected": "no_merge",
+      "resolved": "block_contradiction",
+      "correct": true,
+      "nli": {
+        "label": "contradiction",
+        "confidence": 0.5601597034725602,
+        "available": true
+      },
+      "governanceReason": "nli_contradiction:0.56"
+    },
+    {
+      "id": "generic-contradiction-01",
+      "scenario": "cross",
+      "dimension": "status",
+      "category": "contradiction",
+      "expected": "block_contradiction",
+      "resolved": "block_contradiction",
+      "correct": true,
+      "nli": {
+        "label": "contradiction",
+        "confidence": 0.6377262872190013,
+        "available": true
+      },
+      "governanceReason": "nli_contradiction:0.64"
+    },
+    {
+      "id": "generic-refutation-01",
+      "scenario": "cross",
+      "dimension": "finding",
+      "category": "refutation",
+      "expected": "block_refutation",
+      "resolved": "block_contradiction",
+      "correct": true,
+      "nli": {
+        "label": "contradiction",
+        "confidence": 0.5806787201346574,
+        "available": true
+      },
+      "governanceReason": "nli_contradiction:0.58"
+    },
+    {
+      "id": "generic-hitl-scope-01",
+      "scenario": "cross",
+      "dimension": "scope",
+      "category": "ambiguous_hitl",
+      "hitlSubtype": "accrual",
+      "expected": "hitl",
+      "resolved": "hitl",
+      "correct": true,
+      "nli": {
+        "label": "neutral",
+        "confidence": 0.7555525168716998,
+        "available": true
+      },
+      "governanceReason": "free_text_hitl"
+    },
+    {
+      "id": "s3-enrollment-accrual-01",
+      "scenario": "s3",
+      "dimension": "enrollment_stats",
+      "category": "ambiguous_hitl",
+      "hitlSubtype": "accrual",
+      "expected": "hitl",
+      "resolved": "hitl",
+      "correct": true,
+      "nli": {
+        "label": "neutral",
+        "confidence": 0.38552100152686636,
+        "available": true
+      },
+      "governanceReason": "typed_diff_hitl"
+    },
+    {
+      "id": "s3-dlt-hitl-01",
+      "scenario": "s3",
+      "dimension": "safety_signal",
+      "category": "ambiguous_hitl",
+      "hitlSubtype": "refinement",
+      "expected": "hitl",
+      "resolved": "block_contradiction",
+      "correct": false,
+      "nli": {
+        "label": "contradiction",
+        "confidence": 0.38797039895281776,
+        "available": true
+      },
+      "governanceReason": "nli_contradiction:0.39"
+    },
+    {
+      "id": "s3-endpoint-paraphrase-01",
+      "scenario": "s3",
+      "dimension": "endpoint_metrics",
+      "category": "paraphrase",
+      "expected": "auto_merge",
+      "resolved": "auto_merge",
+      "correct": true,
+      "nli": {
+        "label": "equivalent",
+        "confidence": 0.852063021311692,
+        "available": true
+      },
+      "governanceReason": "nli_equivalent:0.85"
+    },
+    {
+      "id": "s3-protocol-fp-trap-01",
+      "scenario": "s3",
+      "dimension": "protocol_version",
+      "category": "false_positive_trap",
+      "expected": "no_merge",
+      "resolved": "block_contradiction",
+      "correct": true,
+      "nli": {
+        "label": "contradiction",
+        "confidence": 0.5436380961857087,
+        "available": true
+      },
+      "governanceReason": "nli_contradiction:0.54"
+    },
+    {
+      "id": "s4-pep-hitl-01",
+      "scenario": "s4",
+      "dimension": "pep_exposure",
+      "category": "ambiguous_hitl",
+      "hitlSubtype": "accrual",
+      "expected": "hitl",
+      "resolved": "hitl",
+      "correct": true,
+      "nli": {
+        "label": "neutral",
+        "confidence": 0.5962623985821943,
+        "available": true
+      },
+      "governanceReason": "free_text_hitl"
+    },
+    {
+      "id": "s4-velocity-hitl-01",
+      "scenario": "s4",
+      "dimension": "transaction_profile",
+      "category": "ambiguous_hitl",
+      "hitlSubtype": "refinement",
+      "expected": "hitl",
+      "resolved": "hitl",
+      "correct": true,
+      "nli": {
+        "label": "neutral",
+        "confidence": 0.5415321255820862,
+        "available": true
+      },
+      "governanceReason": "free_text_hitl"
+    },
+    {
+      "id": "s4-cdd-paraphrase-02",
+      "scenario": "s4",
+      "dimension": "cdd_level",
+      "category": "paraphrase",
+      "expected": "auto_merge",
+      "resolved": "hitl",
+      "correct": false,
+      "nli": {
+        "label": "neutral",
+        "confidence": 0.15907489749891882,
+        "available": true
+      },
+      "governanceReason": "free_text_hitl"
+    },
+    {
+      "id": "s4-sar-refutation-01",
+      "scenario": "s4",
+      "dimension": "sar_decision",
+      "category": "refutation",
+      "expected": "block_refutation",
+      "resolved": "block_contradiction",
+      "correct": true,
+      "nli": {
+        "label": "contradiction",
+        "confidence": 0.575299810235467,
+        "available": true
+      },
+      "governanceReason": "nli_contradiction:0.58"
+    },
+    {
+      "id": "s4-geographic-contradiction-01",
+      "scenario": "s4",
+      "dimension": "geographic_risk",
+      "category": "contradiction",
+      "expected": "block_contradiction",
+      "resolved": "hitl",
+      "correct": false,
+      "nli": {
+        "label": "neutral",
+        "confidence": 0.5060813318157122,
+        "available": true
+      },
+      "governanceReason": "free_text_hitl"
+    },
+    {
+      "id": "s4-media-hitl-01",
+      "scenario": "s4",
+      "dimension": "media_hit",
+      "category": "ambiguous_hitl",
+      "hitlSubtype": "neutral_only",
+      "expected": "hitl",
+      "resolved": "hitl",
+      "correct": true,
+      "nli": {
+        "label": "neutral",
+        "confidence": 0.5765714019996528,
+        "available": true
+      },
+      "governanceReason": "free_text_hitl"
+    }
+  ]
+}

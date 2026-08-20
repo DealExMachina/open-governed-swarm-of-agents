@@ -3,6 +3,7 @@
 
 Reads:
   dataset/seeds/domain-pairs.yaml
+  dataset/seeds/gold-failures-mined.yaml  (optional, train-only hard negatives)
 
 Writes:
   dataset/pairs.jsonl       — full labeled corpus
@@ -84,19 +85,36 @@ def load_seeds(seeds_path: Path) -> list[dict[str, Any]]:
         label = str(raw["label"]).strip()
         if label not in LABELS:
             raise ValueError(f"Invalid label {label!r} on {raw.get('id')}")
-        rows.append(
-            {
-                "id": raw["id"],
-                "a": raw["a"].strip(),
-                "b": raw["b"].strip(),
-                "dimension": raw.get("dimension", ""),
-                "label": label,
-                "source_scenario": raw.get("source_scenario", ""),
-                "source_doc": raw.get("source_doc", ""),
-                "lang": raw.get("lang", "en"),
-            }
-        )
+        row = {
+            "id": raw["id"],
+            "a": raw["a"].strip(),
+            "b": raw["b"].strip(),
+            "dimension": raw.get("dimension", ""),
+            "label": label,
+            "source_scenario": raw.get("source_scenario", ""),
+            "source_doc": raw.get("source_doc", ""),
+            "lang": raw.get("lang", "en"),
+        }
+        if raw.get("train_only") or raw.get("source") == "gold_failure_mined":
+            row["train_only"] = True
+            row["source"] = raw.get("source", "gold_failure_mined")
+            if raw.get("gold_pair_id"):
+                row["gold_pair_id"] = raw["gold_pair_id"]
+            if raw.get("failure_kind"):
+                row["failure_kind"] = raw["failure_kind"]
+        rows.append(row)
     return rows
+
+
+def default_seed_paths(seeds_path: Path) -> list[Path]:
+    paths = [seeds_path]
+    for extra in (
+        dataset_dir() / "seeds" / "synthetic-domain-pairs.yaml",
+        dataset_dir() / "seeds" / "gold-failures-mined.yaml",
+    ):
+        if extra.exists() and extra not in paths and extra != seeds_path:
+            paths.append(extra)
+    return paths
 
 
 def stratified_split(
@@ -143,23 +161,31 @@ def spot_check_sample(rows: list[dict[str, Any]], fraction: float, seed: int) ->
     return sorted(sample, key=lambda r: r["id"])
 
 
-def validate_counts(rows: list[dict[str, Any]]) -> dict[str, Any]:
+def validate_counts(
+    rows: list[dict[str, Any]],
+    *,
+    min_total: int = 150,
+    min_per_label: int = 30,
+    min_multilingual: int = 20,
+) -> dict[str, Any]:
     label_counts = Counter(r["label"] for r in rows)
     lang_counts = Counter(r.get("lang", "en") for r in rows)
     ml_count = sum(1 for r in rows if r.get("lang", "en") != "en")
+    fr_count = lang_counts.get("fr", 0)
     issues: list[str] = []
-    if len(rows) < 150:
-        issues.append(f"total pairs {len(rows)} < 150 minimum")
+    if len(rows) < min_total:
+        issues.append(f"total pairs {len(rows)} < {min_total} minimum")
     for label in sorted(LABELS):
-        if label_counts[label] < 30:
-            issues.append(f"{label} count {label_counts[label]} < 30 minimum")
-    if ml_count < 20:
-        issues.append(f"multilingual pairs {ml_count} < 20 minimum")
+        if label_counts[label] < min_per_label:
+            issues.append(f"{label} count {label_counts[label]} < {min_per_label} minimum")
+    if ml_count < min_multilingual:
+        issues.append(f"multilingual pairs {ml_count} < {min_multilingual} minimum")
     return {
         "total": len(rows),
         "by_label": dict(label_counts),
         "by_lang": dict(lang_counts),
         "multilingual": ml_count,
+        "french": fr_count,
         "issues": issues,
         "ok": len(issues) == 0,
     }
@@ -175,6 +201,9 @@ def main() -> None:
     parser.add_argument("--train-ratio", type=float, default=0.7)
     parser.add_argument("--seed", type=int, default=SPLIT_SEED)
     parser.add_argument("--check-only", action="store_true", help="Validate without writing")
+    parser.add_argument("--min-total", type=int, default=150, help="Minimum corpus size (use 1000 for expanded track)")
+    parser.add_argument("--min-per-label", type=int, default=30)
+    parser.add_argument("--min-multilingual", type=int, default=20)
     args = parser.parse_args()
 
     root = repo_root()
@@ -182,20 +211,34 @@ def main() -> None:
     out_dir = dataset_dir()
 
     excluded = load_regression_pairs(root)
-    seeds = load_seeds(seeds_path)
+    seed_paths = default_seed_paths(seeds_path)
+    seeds: list[dict[str, Any]] = []
+    for path in seed_paths:
+        seeds.extend(load_seeds(path))
 
     kept: list[dict[str, Any]] = []
+    train_only: list[dict[str, Any]] = []
     skipped: list[dict[str, str]] = []
     for row in seeds:
         key = normalize_pair(row["a"], row["b"])
-        if key in excluded:
+        if key in excluded and not row.get("train_only"):
             skipped.append({"id": row["id"], "reason": "matches frozen regression fixture"})
             continue
-        kept.append(row)
+        if row.get("train_only"):
+            train_only.append(row)
+        else:
+            kept.append(row)
 
-    stats = validate_counts(kept)
+    corpus = kept + train_only
+    stats = validate_counts(
+        corpus,
+        min_total=args.min_total,
+        min_per_label=args.min_per_label,
+        min_multilingual=args.min_multilingual,
+    )
     train, eval_rows = stratified_split(kept, args.train_ratio, args.seed)
-    sample = spot_check_sample(kept, SPOT_CHECK_FRACTION, args.seed)
+    train.extend(train_only)
+    sample = spot_check_sample(corpus, SPOT_CHECK_FRACTION, args.seed)
 
     manifest = {
         "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
@@ -204,11 +247,15 @@ def main() -> None:
             "fields": ["id", "a", "b", "dimension", "label", "source_scenario", "source_doc", "lang"],
             "label_values": sorted(LABELS),
         },
-        "seeds_file": str(seeds_path.relative_to(root)) if seeds_path.is_relative_to(root) else str(seeds_path),
+        "seeds_files": [
+            str(p.relative_to(root)) if p.is_relative_to(root) else str(p) for p in seed_paths
+        ],
         "split_seed": args.seed,
         "train_ratio": args.train_ratio,
         "excluded_regression_pairs": len(excluded),
         "skipped_seed_rows": skipped,
+        "train_only_rows": len(train_only),
+        "train_only_by_failure_kind": dict(Counter(r.get("failure_kind", "unknown") for r in train_only)),
         "counts": stats,
         "split": {
             "train": len(train),
@@ -229,12 +276,12 @@ def main() -> None:
     if args.check_only:
         return
 
-    write_jsonl(out_dir / "pairs.jsonl", kept)
+    write_jsonl(out_dir / "pairs.jsonl", corpus)
     write_jsonl(out_dir / "train.jsonl", train)
     write_jsonl(out_dir / "eval.jsonl", eval_rows)
     write_jsonl(out_dir / "spot-check-sample.jsonl", sample)
     (out_dir / "split_manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
-    print(f"\nWrote {out_dir}/pairs.jsonl ({len(kept)} rows)")
+    print(f"\nWrote {out_dir}/pairs.jsonl ({len(corpus)} rows, {len(train_only)} train-only)")
     print(f"Wrote {out_dir}/train.jsonl ({len(train)} rows)")
     print(f"Wrote {out_dir}/eval.jsonl ({len(eval_rows)} rows)")
 

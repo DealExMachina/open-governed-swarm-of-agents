@@ -1,0 +1,10 @@
+{
+  "f1_contradiction": 0.9430051813471502,
+  "f1_entailment": 0.9948717948717948,
+  "f1_neutral": 0.9405940594059405,
+  "macro_f1": 0.9594903452082951,
+  "accuracy": 0.9593220338983051,
+  "checkpoint": "/Users/jeanbapt/GitHub/agents-swarm-governed/workers/facts-worker/checkpoints/nli-domain-350m-v1-calibrated",
+  "eval_rows": 295,
+  "device": "mps"
+}
