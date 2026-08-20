@@ -23,7 +23,7 @@ from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import Any, Dict, List, Optional
-from rlm_facts import extract_facts_and_drift, _get_model_info, nli_entailment
+from rlm_facts import extract_facts_and_drift, _get_model_info, nli_entailment, _get_nli
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -54,19 +54,30 @@ def health():
             capabilities.append("ner")
     except ImportError:
         pass
-    try:
-        from sentence_transformers import CrossEncoder  # noqa: F401
-        if os.getenv("SKIP_NLI", "1").lower() not in ("1", "true", "yes") and os.getenv("NLI_MODEL", "").strip():
-            capabilities.append("nli")
-    except ImportError:
-        pass
-    return {
+    nli_backend = os.getenv("NLI_BACKEND", "crossencoder").strip().lower()
+    if os.getenv("SKIP_NLI", "1").lower() not in ("1", "true", "yes"):
+        if nli_backend == "liquidai":
+            if _get_nli() is not None:
+                capabilities.append("nli")
+        else:
+            try:
+                from sentence_transformers import CrossEncoder  # noqa: F401
+                if os.getenv("NLI_MODEL", "").strip():
+                    capabilities.append("nli")
+            except ImportError:
+                pass
+    payload = {
         "status": "ok",
         "model": model_name,
         "backend": backend,
+        "nli_backend": nli_backend,
         "capabilities": capabilities,
         "busy": _busy,
     }
+    if nli_backend == "liquidai":
+        payload["liquid_nli_mode"] = os.getenv("LIQUID_NLI_MODE", "zero_shot").strip().lower()
+        payload["liquid_nli_model"] = os.getenv("LIQUID_NLI_MODEL", "LiquidAI/LFM2.5-Encoder-230M").strip()
+    return payload
 
 
 @app.post("/nli")

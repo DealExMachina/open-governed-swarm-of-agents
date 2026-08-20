@@ -349,6 +349,17 @@ def _get_nli():
         return _nli_model
     if os.getenv("SKIP_NLI", "1").lower() in ("1", "true", "yes"):
         return None
+
+    backend = os.getenv("NLI_BACKEND", "crossencoder").strip().lower()
+    if backend == "liquidai":
+        try:
+            from nli_liquid import get_liquid_nli_model
+
+            _nli_model = get_liquid_nli_model()
+            return _nli_model
+        except Exception:
+            return None
+
     nli_id = os.getenv("NLI_MODEL", "").strip()
     if not nli_id:
         return None

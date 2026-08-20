@@ -1,0 +1,149 @@
+{
+  "total": 6,
+  "correct": 3,
+  "accuracy": 0.5,
+  "falseMergeRate": 0,
+  "missedMergeRate": 1,
+  "hitlRoutingAccuracy": 1,
+  "accrualOverBlockRate": 0,
+  "blockRecall": 1,
+  "byCategory": [
+    {
+      "category": "paraphrase",
+      "count": 2,
+      "correct": 0,
+      "accuracy": 0
+    },
+    {
+      "category": "false_positive_trap",
+      "count": 1,
+      "correct": 1,
+      "accuracy": 1
+    },
+    {
+      "category": "contradiction",
+      "count": 1,
+      "correct": 0,
+      "accuracy": 0
+    },
+    {
+      "category": "refutation",
+      "count": 1,
+      "correct": 1,
+      "accuracy": 1
+    },
+    {
+      "category": "ambiguous_hitl",
+      "count": 1,
+      "correct": 1,
+      "accuracy": 1
+    }
+  ],
+  "byScenario": [
+    {
+      "scenario": "s2",
+      "count": 3,
+      "correct": 1,
+      "accuracy": 0.3333333333333333
+    },
+    {
+      "scenario": "s5",
+      "count": 3,
+      "correct": 2,
+      "accuracy": 0.6666666666666666
+    }
+  ],
+  "results": [
+    {
+      "id": "held-s2-scr-paraphrase-01",
+      "scenario": "s2",
+      "dimension": "scr_ratio",
+      "category": "paraphrase",
+      "expected": "auto_merge",
+      "resolved": "hitl",
+      "correct": false,
+      "nli": {
+        "label": "neutral",
+        "confidence": 0.914267332374885,
+        "available": true
+      },
+      "governanceReason": "typed_diff_hitl"
+    },
+    {
+      "id": "held-s2-scr-contradiction-01",
+      "scenario": "s2",
+      "dimension": "scr_ratio",
+      "category": "contradiction",
+      "expected": "block_contradiction",
+      "resolved": "hitl",
+      "correct": false,
+      "nli": {
+        "label": "contradiction",
+        "confidence": 0.999852588125053,
+        "available": true
+      },
+      "governanceReason": "typed_diff_hitl"
+    },
+    {
+      "id": "held-s2-ownfunds-hitl-01",
+      "scenario": "s2",
+      "dimension": "own_funds",
+      "category": "ambiguous_hitl",
+      "hitlSubtype": "refinement",
+      "expected": "hitl",
+      "resolved": "no_merge",
+      "correct": true,
+      "nli": {
+        "label": "neutral",
+        "confidence": 0.01585621791637132,
+        "available": true
+      },
+      "governanceReason": "canonical_equal_skip"
+    },
+    {
+      "id": "held-s5-patch-paraphrase-01",
+      "scenario": "s5",
+      "dimension": "patch_status",
+      "category": "paraphrase",
+      "expected": "auto_merge",
+      "resolved": "hitl",
+      "correct": false,
+      "nli": {
+        "label": "neutral",
+        "confidence": 0.009057844877421764,
+        "available": true
+      },
+      "governanceReason": "free_text_hitl"
+    },
+    {
+      "id": "held-s5-frequency-fp-trap-01",
+      "scenario": "s5",
+      "dimension": "frequency_stability",
+      "category": "false_positive_trap",
+      "expected": "no_merge",
+      "resolved": "block_contradiction",
+      "correct": true,
+      "nli": {
+        "label": "contradiction",
+        "confidence": 0.9890631810829337,
+        "available": true
+      },
+      "governanceReason": "nli_contradiction:0.99"
+    },
+    {
+      "id": "held-s5-settlement-refutation-01",
+      "scenario": "s5",
+      "dimension": "settlement_exposure",
+      "category": "refutation",
+      "expected": "block_refutation",
+      "resolved": "block_contradiction",
+      "correct": true,
+      "nli": {
+        "label": "contradiction",
+        "confidence": 0.999968496657909,
+        "available": true
+      },
+      "governanceReason": "nli_contradiction:1.00"
+    }
+  ]
+}

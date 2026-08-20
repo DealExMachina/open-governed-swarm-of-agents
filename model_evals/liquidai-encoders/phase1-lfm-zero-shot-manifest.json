@@ -1,0 +1,57 @@
+{
+  "phase": "1a-zero-shot",
+  "generated_at": "2026-08-19T15:55:00Z",
+  "challenger_model": "LiquidAI/LFM2.5-Encoder-230M",
+  "challenger_mode": "zero_shot",
+  "challenger_method": "encoder mean-pool + cosine vs 3 NL class anchors → pseudo-logits",
+  "reference_baseline": "cross-encoder/nli-deberta-v3-large",
+  "baseline_artifact": "baseline-deberta-v3-large-gold.json",
+  "worker_url": "http://127.0.0.1:8011",
+  "worker_env": {
+    "SKIP_NLI": "0",
+    "NLI_BACKEND": "liquidai",
+    "LIQUID_NLI_MODE": "zero_shot",
+    "LIQUID_NLI_MODEL": "LiquidAI/LFM2.5-Encoder-230M"
+  },
+  "min_confidence": 0.7,
+  "harness": "scripts/eval-nli-gold-set.ts",
+  "pipeline": "nliEntailment → shouldProposeEquivalence → decideEquivalence",
+  "artifacts": {
+    "gold_json": "phase1-lfm-zero-shot-gold.json",
+    "held_out_json": "phase1-lfm-zero-shot-held-out.json",
+    "comparison_md": "phase1-zero-shot-vs-deberta.md",
+    "report_md": "phase1-lfm-zero-shot-report.md"
+  },
+  "latency": {
+    "gold_pairs": 57,
+    "wall_clock_sec": 17,
+    "mean_sec_per_pair": 0.3,
+    "note": "CPU inference via facts-worker Docker; bidirectional /nli per pair; first run includes model load"
+  },
+  "gold_summary": {
+    "total": 57,
+    "accuracy": 0.421,
+    "false_merge_rate": 0.143,
+    "missed_merge_rate": 1.0,
+    "hitl_routing_accuracy": 0.5,
+    "accrual_over_block_rate": 0.308,
+    "block_recall": 0.176
+  },
+  "held_out_summary": {
+    "total": 6,
+    "accuracy": 0.5,
+    "false_merge_rate": 0.0,
+    "block_recall": 0.5
+  },
+  "vs_baseline_gold": {
+    "false_merge_rate_delta_pp": 14.3,
+    "block_recall_delta_pp": -76.5,
+    "accuracy_delta_pp": -24.6
+  },
+  "gate_verdict": {
+    "false_merge_rate": "FAIL",
+    "block_recall": "FAIL",
+    "note": "Expected for zero-shot MLM encoder without NLI head; harness + integration validated"
+  },
+  "next_step": "Phase 1B: MNLI probe fine-tune (train_mnli_probe.py), LIQUID_NLI_MODE=finetuned"
+}

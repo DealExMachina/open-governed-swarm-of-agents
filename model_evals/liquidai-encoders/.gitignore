@@ -1,0 +1,3 @@
+# Liquid encoder NLI checkpoints (large; reproduce via train_mnli_probe.py)
+workers/facts-worker/checkpoints/
+.venv/

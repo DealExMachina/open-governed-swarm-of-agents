@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LiquidAI domain NLI pair",
+  "type": "object",
+  "required": ["a", "b", "dimension", "label", "source_scenario", "source_doc"],
+  "properties": {
+    "id": { "type": "string", "description": "Stable pair identifier" },
+    "a": { "type": "string", "description": "Prior / premise claim text" },
+    "b": { "type": "string", "description": "Next / hypothesis claim text" },
+    "dimension": { "type": "string", "description": "Typed dimension slug (e.g. arr, scr_ratio)" },
+    "label": {
+      "type": "string",
+      "enum": ["equivalent", "contradiction", "neutral"],
+      "description": "Tri-class NLI label matching src/nliGate.ts NliLabel"
+    },
+    "source_scenario": {
+      "type": "string",
+      "description": "Benchmark scenario id: s1|s2|s3|s4|s5"
+    },
+    "source_doc": {
+      "type": "string",
+      "description": "Repo-relative path to source scenario document"
+    },
+    "lang": {
+      "type": "string",
+      "enum": ["en", "fr", "de"],
+      "default": "en",
+      "description": "Language of claim texts"
+    }
+  },
+  "additionalProperties": false
+}

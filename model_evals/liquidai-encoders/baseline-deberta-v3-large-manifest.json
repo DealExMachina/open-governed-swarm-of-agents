@@ -1,0 +1,43 @@
+{
+  "phase": "0-baseline",
+  "generated_at": "2026-08-19T15:30:00Z",
+  "reference_model": "cross-encoder/nli-deberta-v3-large",
+  "worker_url": "http://127.0.0.1:8010",
+  "min_confidence": 0.7,
+  "harness": "scripts/eval-nli-gold-set.ts",
+  "pipeline": "nliEntailment → shouldProposeEquivalence → decideEquivalence",
+  "artifacts": {
+    "gold_json": "baseline-deberta-v3-large-gold.json",
+    "held_out_json": "baseline-deberta-v3-large-held-out.json",
+    "report_md": "baseline-deberta-v3-large-report.md"
+  },
+  "latency": {
+    "gold_pairs": 57,
+    "wall_clock_sec": 136,
+    "mean_sec_per_pair": 2.39,
+    "note": "CPU inference via facts-worker Docker; bidirectional /nli per pair"
+  },
+  "gold_summary": {
+    "total": 57,
+    "accuracy": 0.667,
+    "false_merge_rate": 0.0,
+    "missed_merge_rate": 0.6,
+    "hitl_routing_accuracy": 0.5,
+    "accrual_over_block_rate": 0.462,
+    "block_recall": 0.941
+  },
+  "held_out_summary": {
+    "total": 6,
+    "accuracy": 0.5,
+    "false_merge_rate": 0.0,
+    "missed_merge_rate": 1.0,
+    "hitl_routing_accuracy": 1.0,
+    "block_recall": 1.0
+  },
+  "liquid_challenger_gates": {
+    "false_merge_rate_max": 0.0,
+    "block_recall_min": 0.941,
+    "macro_f1_tolerance_vs_baseline": 0.02,
+    "note": "Challenger must not increase false merges; block recall within tolerance"
+  }
+}

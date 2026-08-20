@@ -1,0 +1,119 @@
+{
+  "generated_at": "2026-08-19T16:03:27Z",
+  "issue": "liquidai-01-dataset",
+  "schema": {
+    "fields": [
+      "id",
+      "a",
+      "b",
+      "dimension",
+      "label",
+      "source_scenario",
+      "source_doc",
+      "lang"
+    ],
+    "label_values": [
+      "contradiction",
+      "equivalent",
+      "neutral"
+    ]
+  },
+  "seeds_file": "model_evals/liquidai-encoders/dataset/seeds/domain-pairs.yaml",
+  "split_seed": 42,
+  "train_ratio": 0.7,
+  "excluded_regression_pairs": 63,
+  "skipped_seed_rows": [
+    {
+      "id": "ds1-margin-paraphrase-01",
+      "reason": "matches frozen regression fixture"
+    },
+    {
+      "id": "ds1-valuation-paraphrase-01",
+      "reason": "matches frozen regression fixture"
+    },
+    {
+      "id": "ds2-scr-paraphrase-01",
+      "reason": "matches frozen regression fixture"
+    },
+    {
+      "id": "ds2-ownfunds-paraphrase-01",
+      "reason": "matches frozen regression fixture"
+    },
+    {
+      "id": "ds2-guideline-hitl-01",
+      "reason": "matches frozen regression fixture"
+    },
+    {
+      "id": "ds2-orsa-refutation-01",
+      "reason": "matches frozen regression fixture"
+    },
+    {
+      "id": "ds3-protocol-paraphrase-01",
+      "reason": "matches frozen regression fixture"
+    },
+    {
+      "id": "ds3-gcp-paraphrase-01",
+      "reason": "matches frozen regression fixture"
+    },
+    {
+      "id": "ds3-safety-contradiction-01",
+      "reason": "matches frozen regression fixture"
+    },
+    {
+      "id": "ds3-endpoint-refutation-01",
+      "reason": "matches frozen regression fixture"
+    },
+    {
+      "id": "ds4-cdd-paraphrase-01",
+      "reason": "matches frozen regression fixture"
+    },
+    {
+      "id": "ds4-sanctions-contradiction-01",
+      "reason": "matches frozen regression fixture"
+    },
+    {
+      "id": "ds4-edd-refutation-01",
+      "reason": "matches frozen regression fixture"
+    },
+    {
+      "id": "ds5-patch-paraphrase-01",
+      "reason": "matches frozen regression fixture"
+    },
+    {
+      "id": "ds5-frequency-fp-trap-01",
+      "reason": "matches frozen regression fixture"
+    }
+  ],
+  "counts": {
+    "total": 162,
+    "by_label": {
+      "equivalent": 52,
+      "neutral": 56,
+      "contradiction": 54
+    },
+    "by_lang": {
+      "en": 135,
+      "fr": 16,
+      "de": 11
+    },
+    "multilingual": 27,
+    "issues": [],
+    "ok": true
+  },
+  "split": {
+    "train": 113,
+    "eval": 49,
+    "train_by_label": {
+      "contradiction": 38,
+      "equivalent": 36,
+      "neutral": 39
+    },
+    "eval_by_label": {
+      "neutral": 17,
+      "contradiction": 16,
+      "equivalent": 16
+    }
+  },
+  "spot_check_fraction": 0.2,
+  "spot_check_count": 32
+}
