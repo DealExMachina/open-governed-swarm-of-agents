@@ -81,7 +81,7 @@ Postgres with pgvector. Claims, goals, risks, and assessments are nodes. Contrad
 ## Prerequisites
 
 - Docker and Docker Compose installed
-- Node.js 20+ and pnpm (or npm; lockfile is pnpm-lock.yaml)
+- Node.js 24+ and pnpm (or npm; lockfile is pnpm-lock.yaml)
 - Either an OpenAI API key or Ollama running locally with a compatible model
 
 For local Ollama, you need the extraction model:

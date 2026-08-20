@@ -1,6 +1,6 @@
 # Standalone feed image: code copied into the image (no host bind mount).
 # Built by CI and pushed to GHCR. For dev with live reload, use Dockerfile.feed + compose volumes.
-FROM node:20-alpine
+FROM node:24-alpine
 
 RUN apk add --no-cache curl build-base musl-dev \
   && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable --profile minimal

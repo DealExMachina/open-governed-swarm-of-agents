@@ -1,7 +1,7 @@
 # Feed service: Node + Rust so sgrs-core native addon can be built for container platform (linux-musl).
 # At container start, run: pnpm install && pnpm run build:rust && pnpm run feed.
 # build:rust produces the correct .node for this image (e.g. sgrs-core.linux-arm64-musl.node).
-FROM node:20-alpine
+FROM node:24-alpine
 
 # Rust toolchain for building sgrs-core (napi-rs) at container start
 RUN apk add --no-cache curl build-base musl-dev \
