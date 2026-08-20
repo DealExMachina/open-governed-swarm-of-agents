@@ -10,7 +10,7 @@ This project adheres to the Contributor Covenant [Code of Conduct](CODE_OF_CONDU
 
 ### Prerequisites
 
-- **Node.js 20+** (required for `@napi-rs/cli` / CI; `package.json` declares `engines.node`)
+- **Node.js 24+** (required for CI / `@napi-rs/cli`; `package.json` declares `engines.node`)
 - pnpm 10.30.1+ (see `packageManager` in `package.json`)
 - Docker & Docker Compose (for local development)
 - Rust stable (for `sgrs-core`; CI uses `dtolnay/rust-toolchain`)
