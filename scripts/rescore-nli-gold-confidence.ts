@@ -4,7 +4,7 @@
  *
  * Usage:
  *   npx tsx scripts/rescore-nli-gold-confidence.ts \
- *     --from=model_evals/liquidai-encoders/phase1b-domain-v1-gold.json \
+ *     --from=model_evals/liquidai-encoders/phase2g-refine-v3-gold-minconf077.json \
  *     --thresholds=0.75,0.78,0.80,0.82,0.85
  */
 
@@ -34,7 +34,7 @@ function parseArgs(): {
   thresholds: number[];
 } {
   const args = process.argv.slice(2);
-  let fromPath = "model_evals/liquidai-encoders/phase1b-domain-v1-gold.json";
+  let fromPath = "model_evals/liquidai-encoders/phase2g-refine-v3-gold-minconf077.json";
   let goldPath: string | undefined;
   let outPath: string | undefined;
   let thresholds = [0.75, 0.76, 0.77, 0.78, 0.79, 0.8, 0.81, 0.82, 0.83, 0.84, 0.85];

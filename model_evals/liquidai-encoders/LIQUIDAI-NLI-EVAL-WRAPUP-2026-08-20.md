@@ -84,6 +84,11 @@ In the **gold harness**, contradiction pairs are labeled `block_contradiction` â
 
 Hub dataset: [`jeanbaptdzd/liquid-nli-domain-1k`](https://huggingface.co/datasets/jeanbaptdzd/liquid-nli-domain-1k)
 
+```bash
+bash scripts/download-liquid-nli-dataset.sh
+# or rebuild: python model_evals/liquidai-encoders/build_domain_dataset.py
+```
+
 ---
 
 ## Gold harness results (n=57, minConf 0.77)

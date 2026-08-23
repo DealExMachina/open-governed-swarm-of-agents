@@ -2,6 +2,13 @@
 
 Hand-labeled claim pairs for Liquid AI Track A NLI fine-tune (PRD benchmark B4).
 
+**Canonical copy on Hugging Face:** [jeanbaptdzd/liquid-nli-domain-1k](https://huggingface.co/datasets/jeanbaptdzd/liquid-nli-domain-1k)
+
+```bash
+bash scripts/download-liquid-nli-dataset.sh
+# or: python build_domain_dataset.py  (from seeds/)
+```
+
 **Issue:** `.github/issue-liquidai-01-dataset-body.md`  
 **Builder:** `../build_domain_dataset.py`  
 **Training plan:** `../TRAINING-PLAN.md` Stage 2
@@ -12,9 +19,9 @@ Hand-labeled claim pairs for Liquid AI Track A NLI fine-tune (PRD benchmark B4).
 
 | File | Purpose |
 |------|---------|
-| `pairs.jsonl` | Full corpus (generated) |
-| `train.jsonl` | 70% train split — **fixed seed 42** |
-| `eval.jsonl` | 30% eval split — use for macro-F1 / B4 gate |
+| `pairs.jsonl` | Full corpus (generated) — **download from HF or rebuild** |
+| `train.jsonl` | 70% train split — **download from HF or rebuild** |
+| `eval.jsonl` | 30% eval split — **download from HF or rebuild** |
 | `split_manifest.json` | Counts, split metadata, validation status |
 | `spot-check-sample.jsonl` | 20% random sample for label review |
 | `seeds/domain-pairs.yaml` | Hand-labeled source of truth (edit here) |

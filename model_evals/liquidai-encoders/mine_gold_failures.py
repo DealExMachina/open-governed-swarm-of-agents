@@ -68,7 +68,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Mine gold harness failures into train seeds")
     parser.add_argument(
         "--gold-json",
-        default=str(Path(__file__).resolve().parent / "phase1b-domain-v1-gold.json"),
+        default=str(Path(__file__).resolve().parent / "phase2g-refine-v3-gold-minconf077.json"),
         help="Gold eval JSON with per-pair results",
     )
     parser.add_argument(

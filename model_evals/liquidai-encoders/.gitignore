@@ -1,3 +1,15 @@
-# Liquid encoder NLI checkpoints (large; reproduce via train_mnli_probe.py)
-workers/facts-worker/checkpoints/
+# Local Python env (torch/transformers — ~1 GB+)
 .venv/
+
+# Run logs and partner memos (not versioned)
+*.log
+*.docx
+
+# Generated JSONL — rebuild from seeds/ or download from Hugging Face
+dataset/train.jsonl
+dataset/eval.jsonl
+dataset/pairs.jsonl
+dataset/spot-check-sample.jsonl
+
+# Internal docx generator (partner memo is sent out-of-band)
+generate_liquidai_nli_wrapup_docx.py
