@@ -7,7 +7,9 @@ node_modules
 publications
 seed-docs
 docs/demos
-demo
+demo/*
+# Re-include the scenario corpora read at runtime by the feed (src/studio/corpora.ts)
+!demo/scenario
 test
 observability
 workers

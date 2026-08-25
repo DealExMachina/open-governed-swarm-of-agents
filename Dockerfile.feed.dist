@@ -24,6 +24,13 @@ RUN corepack enable && corepack prepare pnpm@10.30.1 --activate \
   && cd sgrs-core && pnpm install --frozen-lockfile \
   && pnpm exec napi build --release --platform
 
+# Scenario manifests + corpora read at runtime by the feed's scenario loaders:
+#   - src/baselines/scenario/ma-scenario.ts loads docs/benchmarks/manifests/*.yaml at boot
+#   - src/studio/corpora.ts reads demo/scenario/* for Studio "load scenario"
+# Placed after the build so changing these assets does not invalidate the Rust build cache.
+COPY docs/benchmarks/manifests ./docs/benchmarks/manifests
+COPY demo/scenario ./demo/scenario
+
 EXPOSE 3002
 ENV FEED_PORT=3002
 
