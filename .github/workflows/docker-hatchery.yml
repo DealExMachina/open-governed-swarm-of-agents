@@ -1,29 +1,21 @@
-name: Publish swarm-feed (GHCR)
+name: Publish swarm-hatchery (GHCR)
 
 on:
   push:
     branches: [main]
     paths:
       - "Dockerfile.kernel.dist"
-      - "Dockerfile.feed.dist"
+      - "Dockerfile.hatchery.dist"
       - ".dockerignore"
       - "src/**"
       - "sgrs-core/**"
       - "docs/benchmarks/manifests/**"
       - "demo/scenario/**"
-      - "public/**"
       - "package.json"
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
-      - "sgrs-core/pnpm-lock.yaml"
       - "tsconfig.json"
-      - "governance.yaml"
-      - "finality.yaml"
-      - "evidence_schemas.yaml"
-      - "propagation.yaml"
-      - ".github/workflows/docker-feed.yml"
-  release:
-    types: [published]
+      - ".github/workflows/docker-hatchery.yml"
   workflow_dispatch:
 
 permissions:
@@ -31,12 +23,10 @@ permissions:
   packages: write
 
 concurrency:
-  group: docker-feed-${{ github.ref }}
+  group: docker-hatchery-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  # Native per-arch builds: compiling sgrs-core (Rust/NAPI) under QEMU arm64
-  # hits SIGILL. Use ubuntu-24.04-arm for linux/arm64 instead of qemu-user.
   build:
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 45
@@ -55,9 +45,8 @@ jobs:
         run: |
           platform=${{ matrix.platform }}
           echo "PLATFORM_PAIR=${platform//\//-}" >> "$GITHUB_ENV"
-          # GHCR requires lowercase image paths; repository_owner may be mixed-case.
           owner="$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')"
-          echo "REGISTRY_IMAGE=ghcr.io/${owner}/swarm-feed" >> "$GITHUB_ENV"
+          echo "REGISTRY_IMAGE=ghcr.io/${owner}/swarm-hatchery" >> "$GITHUB_ENV"
 
       - name: Docker metadata
         id: meta
@@ -81,12 +70,12 @@ jobs:
         with:
           context: .
           file: Dockerfile.kernel.dist
-          target: feed
+          target: hatchery
           platforms: ${{ matrix.platform }}
           labels: ${{ steps.meta.outputs.labels }}
           outputs: type=image,name=${{ env.REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=true
-          cache-from: type=gha,scope=feed-${{ env.PLATFORM_PAIR }}
-          cache-to: type=gha,mode=max,scope=feed-${{ env.PLATFORM_PAIR }}
+          cache-from: type=gha,scope=hatchery-${{ env.PLATFORM_PAIR }}
+          cache-to: type=gha,mode=max,scope=hatchery-${{ env.PLATFORM_PAIR }}
 
       - name: Export digest
         run: |
@@ -110,7 +99,7 @@ jobs:
       - name: Normalize image name
         run: |
           owner="$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')"
-          echo "REGISTRY_IMAGE=ghcr.io/${owner}/swarm-feed" >> "$GITHUB_ENV"
+          echo "REGISTRY_IMAGE=ghcr.io/${owner}/swarm-hatchery" >> "$GITHUB_ENV"
 
       - name: Download digests
         uses: actions/download-artifact@v4
@@ -145,15 +134,11 @@ jobs:
           docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
             $(printf '${{ env.REGISTRY_IMAGE }}@sha256:%s ' *)
 
-      - name: Inspect image
-        run: |
-          docker buildx imagetools inspect ${{ env.REGISTRY_IMAGE }}:${{ steps.meta.outputs.version }}
-
   smoke:
     runs-on: ubuntu-latest
     needs: [merge]
     if: github.event_name != 'pull_request'
-    timeout-minutes: 20
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
 
@@ -164,10 +149,11 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Pull and smoke-test feed image
+      - name: Pull and smoke-test hatchery module boot
         run: |
           owner="$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')"
-          image="ghcr.io/${owner}/swarm-feed:latest"
+          image="ghcr.io/${owner}/swarm-hatchery:latest"
           docker pull "$image"
-          chmod +x scripts/docker/smoke-feed-image.sh
-          SMOKE_SKIP_HEALTH=1 scripts/docker/smoke-feed-image.sh "$image"
+          docker run --rm "$image" node -e "
+            import('./dist/swarm.js').then(() => console.log('hatchery module ok')).catch(e => { console.error(e); process.exit(1); });
+          "

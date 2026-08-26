@@ -1,0 +1,7 @@
+# Builds the hatchery image from Dockerfile.kernel.dist.
+#
+#   docker build -f Dockerfile.kernel.dist --target hatchery -t swarm-hatchery .
+#
+# syntax=docker/dockerfile:1
+FROM scratch
+LABEL org.opencontainers.image.description="Use: docker build -f Dockerfile.kernel.dist --target hatchery ."
