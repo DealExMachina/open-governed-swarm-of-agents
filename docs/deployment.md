@@ -52,10 +52,22 @@ Follow the **Quick start** in [README.md](../README.md) for `pnpm install`, `ens
 
 ## Self-host with a prebuilt feed image (GHCR)
 
-Maintainers publish a **standalone** feed image (code baked in at build time) to GitHub Container Registry:
+Maintainers publish **standalone** kernel images (code baked in at build time) to GitHub Container Registry:
 
-- Image: `ghcr.io/dealexmachina/swarm-feed` (tags: `latest`, or semver / `main` as configured in CI).
-- Override env: `SWARM_FEED_IMAGE` (optional) to pin a digest or tag.
+| Image | Target | Purpose |
+|-------|--------|---------|
+| `ghcr.io/dealexmachina/swarm-feed` | `Dockerfile.kernel.dist --target feed` | HTTP API + Studio + `/v1` (port 3002) |
+| `ghcr.io/dealexmachina/swarm-hatchery` | `Dockerfile.kernel.dist --target hatchery` | Agent engine (NATS consumer) |
+
+Build locally:
+
+```bash
+docker build -f Dockerfile.kernel.dist --target feed -t swarm-feed .
+docker build -f Dockerfile.kernel.dist --target hatchery -t swarm-hatchery .
+scripts/docker/smoke-feed-image.sh swarm-feed:local
+```
+
+Override env: `SWARM_FEED_IMAGE`, `SWARM_HATCHERY_IMAGE` (optional) to pin a digest or tag.
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.public-images.yml up -d
@@ -79,7 +91,68 @@ docker compose -f docker-compose.yml -f docker-compose.public-images.yml up -d -
 
 ## Public base images
 
-Compose already relies on upstream images (e.g. Postgres + pgvector, NATS, MinIO, Grafana). Custom images in the public-images workflow: **feed** (GHCR) and **facts-worker** (local Dockerfile or `FACTS_WORKER_IMAGE`).
+Compose already relies on upstream images (e.g. Postgres + pgvector, NATS, MinIO, Grafana). Custom images: **feed**, **hatchery** (GHCR), and **facts-worker** (local Dockerfile or `FACTS_WORKER_IMAGE`).
+
+---
+
+## Koyeb demo stack (sgrs product + kernel)
+
+The hosted demo runs on [Koyeb](https://www.koyeb.com) with the **sgrs product API + Studio** as the only public door ([DealExMachina/sgrs](https://github.com/DealExMachina/sgrs)). The kernel feed stays private; user auth is **Clerk** (Google / Apple / email); SGRS client libs use **product API keys** (`Authorization: Bearer sk_…`).
+
+### Service matrix
+
+| Service | Image / source | Instance (demo) | Port | Public |
+|---------|----------------|-----------------|------|--------|
+| Postgres | Koyeb managed | `small` | 5432 | No |
+| NATS | `nats:2-alpine` + Volume | Standard `nano` | 4222 | No |
+| MinIO | `minio/minio` + Volume | Standard `nano` | 9000 | No |
+| facts-worker | `workers/facts-worker/Dockerfile` | Eco `eco-small` | 8010 | No |
+| feed | `ghcr.io/.../swarm-feed` | Standard `small` | 3002 | No |
+| hatchery | `ghcr.io/.../swarm-hatchery` | Standard `small` | — | No |
+| api | sgrs `apps/api` | Standard `small` | 3003 | Yes |
+| studio | sgrs `apps/studio` | Eco `eco-small` | 3001 | Yes |
+
+Region: `fra` or `was` (Volumes). Pause NATS/MinIO/hatchery between demos to save cost (~$5–15/mo vs ~$35–50/mo always-on).
+
+### Kernel environment (feed + hatchery)
+
+| Variable | Required | Notes |
+|----------|----------|-------|
+| `DATABASE_URL` | Yes | Koyeb Postgres connection string |
+| `NATS_URL` | Yes | Internal `nats://nats:4222` |
+| `NATS_STREAM` | No | Default `SWARM_JOBS` |
+| `S3_ENDPOINT` | Yes | MinIO internal URL |
+| `S3_ACCESS_KEY` / `S3_SECRET_KEY` | Yes | MinIO credentials |
+| `S3_BUCKET` | Yes | Default `swarm` |
+| `FACTS_WORKER_URL` | Yes | Internal `http://facts-worker:8010` |
+| `OPENAI_API_KEY` | Yes* | Or Ollama via env |
+| `SWARM_API_TOKEN` | Yes (prod) | Shared secret: product API → feed |
+| `FEED_HOST` | No | `0.0.0.0` in container |
+| `DISABLE_FEED_AUTH` | No | Must be unset in production |
+
+### Product environment (api + studio)
+
+See sgrs `.env.example`: `FEED_SERVER_URL`, `CLERK_*`, `API_KEY_PEPPER`, `DATABASE_URL` (product DB).
+
+Provisioning scripts: [`scripts/koyeb/`](../scripts/koyeb/) (see README there).
+
+### Ops — pause and upgrades
+
+Between demos, pause always-on infra to save cost:
+
+```bash
+source scripts/koyeb/env.local
+./scripts/koyeb/pause-demo.sh   # NATS, MinIO, hatchery, feed, facts-worker
+./scripts/koyeb/resume-demo.sh  # before the next demo
+```
+
+**Upgrade path (when traction warrants it):**
+
+| Demo | Upgrade |
+|------|---------|
+| MinIO on Koyeb Volume | Cloudflare R2 (`S3_ENDPOINT` → R2; drop MinIO service) |
+| NATS on Koyeb | Managed NATS or dedicated VM |
+| Eco/small hatchery | Standard medium+ |
 
 ---
 

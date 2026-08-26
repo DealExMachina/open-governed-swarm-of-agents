@@ -1,0 +1,75 @@
+# Multi-stage production images for the SGRS kernel (feed + hatchery).
+#
+#   docker build -f Dockerfile.kernel.dist --target feed -t swarm-feed .
+#   docker build -f Dockerfile.kernel.dist --target hatchery -t swarm-hatchery .
+#
+# Runtime uses compiled dist/ + napi .node (no Rust toolchain, no ts-node).
+
+FROM node:24-alpine AS builder
+
+RUN apk add --no-cache curl build-base musl-dev \
+  && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable --profile minimal
+
+ENV PATH="/root/.cargo/bin:${PATH}"
+ENV CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER=gcc
+ENV CARGO_TARGET_X86_64_UNKNOWN_LINUX_MUSL_LINKER=gcc
+
+WORKDIR /app
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY tsconfig.json ./
+COPY governance.yaml finality.yaml evidence_schemas.yaml propagation.yaml ./
+COPY src ./src
+COPY sgrs-core ./sgrs-core
+
+RUN corepack enable && corepack prepare pnpm@10.30.1 --activate \
+  && pnpm install --frozen-lockfile \
+  && pnpm build:rust \
+  && pnpm build
+
+# Scenario assets (after build so manifest/corpus edits do not bust Rust cache).
+COPY docs/benchmarks/manifests ./docs/benchmarks/manifests
+COPY demo/scenario ./demo/scenario
+COPY public ./public
+
+# ── Runtime base (shared by feed + hatchery) ────────────────────────────────
+FROM node:24-alpine AS runtime
+
+WORKDIR /app
+
+ENV NODE_ENV=production
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY sgrs-core/package.json ./sgrs-core/
+COPY --from=builder /app/sgrs-core/index.js ./sgrs-core/
+COPY --from=builder /app/sgrs-core/*.node ./sgrs-core/
+
+RUN corepack enable && corepack prepare pnpm@10.30.1 --activate \
+  && pnpm install --frozen-lockfile --prod
+
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/governance.yaml /app/finality.yaml /app/evidence_schemas.yaml /app/propagation.yaml ./
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/docs/benchmarks/manifests ./docs/benchmarks/manifests
+COPY --from=builder /app/demo/scenario ./demo/scenario
+
+# ── Feed: HTTP API + Studio + /v1 control plane (port 3002) ─────────────────
+FROM runtime AS feed
+
+EXPOSE 3002
+ENV FEED_PORT=3002
+ENV FEED_HOST=0.0.0.0
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+  CMD wget -qO- http://127.0.0.1:${FEED_PORT}/health || exit 1
+
+CMD ["node", "dist/feed.js"]
+
+# ── Hatchery: agent engine (NATS consumer; MITL on 3001 when governance runs) ─
+FROM runtime AS hatchery
+
+ENV AGENT_ROLE=hatchery
+ENV AGENT_ID=hatchery-1
+ENV SCOPE_ID=default
+
+CMD ["node", "dist/swarm.js"]
