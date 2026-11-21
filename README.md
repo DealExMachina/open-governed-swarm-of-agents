@@ -440,14 +440,14 @@ For current status, verified functionality, and next steps, see **STATUS.md**.
 1. **Olfati-Saber, R. & Murray, R. M.** (2004). Consensus Problems in Networks of Agents With Switching Topology and Time-Delays. *IEEE Transactions on Automatic Control*, 49(9), 1520--1533. doi:[10.1109/TAC.2004.834113](https://doi.org/10.1109/TAC.2004.834113)
    — Lyapunov stability framework for multi-agent consensus; foundation for the disagreement function V(t).
 
-2. **Duan, S., Reiter, M. K., & Zhang, H.** (2025). Aegean: Making State Machine Replication Fast without Compromise. *arXiv preprint* arXiv:[2512.20184](https://arxiv.org/abs/2512.20184)
-   — Monotonicity gates and coordination invariants for state machine replication.
+2. **Ruan, C., Wang, Y., Shi, Z., & Li, J.** (2025). Reaching Agreement Among Reasoning LLM Agents. *arXiv preprint* arXiv:[2512.20184](https://arxiv.org/abs/2512.20184)
+   — Aegean consensus protocol; monotonicity gate adapts their no-regression requirement.
 
-3. **Camacho, D. et al.** (2024). MACI: Multi-Agent Collective Intelligence. *arXiv preprint* arXiv:[2510.04488](https://arxiv.org/abs/2510.04488)
-   — EMA-based plateau detection for multi-agent stagnation.
+3. **Chang, E. Y., & Chang, E. Y.** (2025). Multi-Agent Collaborative Intelligence: Dual-Dial Control for Reliable LLM Reasoning. *arXiv preprint* arXiv:[2510.04488](https://arxiv.org/abs/2510.04488)
+   — MACI; plateau detection adapts their moderator halting when gains plateau.
 
-4. **Laddad, S. et al.** (2024). CodeCRDT: A Conflict-Free Replicated Data Type for Collaborative Code Editing. *arXiv preprint* arXiv:[2510.18893](https://arxiv.org/abs/2510.18893)
-   — CRDT monotonic upserts for irreversible semantic graph operations.
+4. **Pugachev, S.** (2025). CodeCRDT: Observation-Driven Coordination for Multi-Agent LLM Code Generation. *arXiv preprint* arXiv:[2510.18893](https://arxiv.org/abs/2510.18893)
+   — CRDT-based shared state and monotonic progress; basis for our monotonic graph upserts.
 
 5. **Dorigo, M., Theraulaz, G., & Trianni, V.** (2024). Swarm Intelligence: Past, Present, and Future. *Proceedings of the Royal Society B*, 291(2024). doi:[10.1098/rspb.2024.0856](https://doi.org/10.1098/rspb.2024.0856)
    — Stigmergic coordination; basis for pressure-directed agent activation.
@@ -464,9 +464,9 @@ If you use this project in academic research or technical writing, please cite:
 ```bibtex
 @software{governed_agent_swarm_2026,
   author       = {Jean-Baptiste D\'ezard},
-  title        = {Swarm of Governed Agents: Declarative Governance, Bitemporal State, and Formal Convergence for Multi-Agent Coordination},
+  title        = {Open Governed Swarm of Agents: Declarative Governance, Bitemporal State, and Formal Convergence for Multi-Agent Coordination},
   year         = {2026},
-  url          = {https://github.com/DealExMachina/swarm-of-governed-agents},
+  url          = {https://github.com/DealExMachina/open-governed-swarm-of-agents},
   note         = {Event-driven agent swarm with Lyapunov convergence, bitemporal CRDT semantic graph, pluggable policy engines, Ed25519 finality certificates, and perpetual compliance lifecycle}
 }
 ```

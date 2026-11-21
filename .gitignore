@@ -29,6 +29,9 @@ publication/*.blg
 publication/*.log
 publication/*.out
 publication/*.synctex.gz
+publication/tmp/
+publication/ax.tar
+publication/swarm-governed-agents-arxiv-preview.pdf
 
 # Experiment results (generated)
 docs/experiments/*/results/

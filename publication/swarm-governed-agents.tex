@@ -152,7 +152,7 @@ Ruan et al.\ \cite{ruan2025} introduced the Aegean consensus protocol for multi-
 
 \subsection{CRDT Semantics and Monotonic State}
 
-Laddad et al. \cite{laddad2024} demonstrated CRDT monotonic merge operations (CodeCRDT) that prevent state regression in distributed systems. Our semantic graph adopts this principle: confidence scores ratchet upward only, contradictions once marked are irreversible, and nodes are staled rather than deleted.
+Laddad et al.\ \cite{laddad2024} demonstrated CRDT monotonic merge operations that prevent state regression; Pugachev \cite{pugachev2025} applied CRDTs to multi-agent coordination (CodeCRDT). Our semantic graph adopts this principle: confidence scores ratchet upward only, contradictions once marked are irreversible, and nodes are staled rather than deleted.
 
 \subsection{Stigmergic Coordination}
 
@@ -1585,12 +1585,19 @@ As LLM agents become increasingly capable of reasoning, planning, and hypothesis
 %% ============================================================
 \section*{Acknowledgments}
 %% ============================================================
-This work was supported by Deal ex Machina SAS. We thank Jean-Christophe Jardinier for critical review of earlier drafts and detailed feedback on the formal convergence arguments. We also thank the communities behind PostgreSQL, NATS, OpenFGA, napi-rs, DSPy, and Mastra for foundational infrastructure.
+This work was supported by Deal ex Machina SAS. We thank Jean-Christophe Jardinier for critical review of earlier drafts and detailed feedback on the formal convergence arguments. We also thank the communities behind PostgreSQL, NATS, OpenFGA, napi-rs, DSPy, and Mastra for foundational infrastructure. A reference and citation audit was conducted in March 2026; all citations were verified against primary sources (arXiv, DOIs), and author/title attributions were corrected where needed (see Appendix~\ref{sec:ref-verification}).
 
 \bibliographystyle{plainnat}
 \bibliography{references}
 
 \appendix
+
+%% ============================================================
+\section{Reference and Citation Verification}
+\label{sec:ref-verification}
+%% ============================================================
+
+All references cited in this paper were verified against primary sources (arXiv, publisher DOIs, or official repositories) in March 2026. Corrections were applied where author, title, or venue did not match the primary source: Aegean (arXiv:2512.20184) is attributed to Ruan et al.\ (2025); MACI (arXiv:2510.04488) to Chang and Chang (2025); CodeCRDT (arXiv:2510.18893) to Pugachev (2025). The CRDT-related narrative cites Laddad et al.\ (Keep CALM and CRDT On) for monotonic merge foundations and Pugachev (CodeCRDT) for multi-agent coordination. The repository contains a full audit report (\texttt{docs/qa-references-audit.md}), verified reference list with summaries (\texttt{docs/formal-hardening.md} Section~9), and a note on Dorigo~2000 vs.\ 2024 (\texttt{docs/dorigo-2000-vs-2024.md}).
 
 %% ============================================================
 \section{Enterprise and Regulatory Fitness}

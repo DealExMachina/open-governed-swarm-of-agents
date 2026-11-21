@@ -1,5 +1,5 @@
 {
-  "name": "swarm-of-governed-agents",
+  "name": "open-governed-swarm-of-agents",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@10.30.1",

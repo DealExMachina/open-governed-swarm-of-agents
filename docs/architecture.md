@@ -233,7 +233,7 @@ A `pg_notify` trigger (`nodes_notify`) fires on every insert or update to the
 **Source:** `src/factsToSemanticGraph.ts`
 
 The facts-to-graph synchronization layer uses a CRDT-inspired monotonic upsert
-strategy (citing CodeCRDT, arXiv:2510.18893) to guarantee that the graph's
+strategy (citing Pugachev's CodeCRDT, arXiv:2510.18893) to guarantee that the graph's
 state only moves forward, never regresses.
 
 ### Three invariants

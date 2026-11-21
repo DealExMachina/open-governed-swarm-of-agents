@@ -147,11 +147,7 @@
 
 % ── Distributed Data Structures ─────────────────────────────────────────────
 
-% TODO: Cite key references "Laddad" but Laddad's actual CRDT work is
-% "Keep CALM and CRDT On" (VLDB 2023, arXiv:2210.12605). The title
-% "CodeCRDT: Monotonic Merge Operations" does not match any Laddad paper.
-% A CodeCRDT paper exists (arXiv:2510.18893) but by Pugachev (2025).
-% The .tex text references "Laddad et al." -- verify the intended source.
+% Laddad et al. = Keep CALM and CRDT On (CRDT foundations). Pugachev = CodeCRDT (multi-agent LLM coordination).
 @misc{laddad2024,
   author        = {Laddad, Shadaj and Cheung, Alvin and Hellerstein, Joseph M.},
   title         = {Keep {CALM} and {CRDT} On},
@@ -160,6 +156,24 @@
   archiveprefix = {arXiv},
   primaryclass  = {cs.DB},
   note          = {Published in Proceedings of the VLDB Endowment, 2023}
+}
+
+@misc{pugachev2025,
+  author        = {Pugachev, Sergey},
+  title         = {{CodeCRDT}: Observation-Driven Coordination for Multi-Agent {LLM} Code Generation},
+  year          = {2025},
+  eprint        = {2510.18893},
+  archiveprefix = {arXiv},
+  primaryclass  = {cs.DC}
+}
+
+@misc{chang2025maci,
+  author        = {Chang, Edward Y. and Chang, Ethan Y.},
+  title         = {Multi-Agent Collaborative Intelligence: Dual-Dial Control for Reliable {LLM} Reasoning},
+  year          = {2025},
+  eprint        = {2510.04488},
+  archiveprefix = {arXiv},
+  primaryclass  = {cs.AI}
 }
 
 @book{snodgrass2000,
@@ -251,6 +265,6 @@
   author    = {D\'{e}zard, Jean-Baptiste},
   title     = {Formal Hardening: Per-Dimension Finality, Proof Obligations, and Assumption Validation},
   year      = {2025},
-  url       = {https://github.com/DealExMachina/swarm-of-governed-agents/blob/main/docs/formal-hardening.md},
+  url       = {https://github.com/DealExMachina/open-governed-swarm-of-agents/blob/main/docs/formal-hardening.md},
   note      = {Issue \#18 implementation}
 }

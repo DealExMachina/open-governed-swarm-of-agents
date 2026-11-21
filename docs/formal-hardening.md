@@ -304,15 +304,62 @@ machine-checked proofs are developed.
 
 ## 9. References
 
-- Abbas et al. (2020). "Resilient multi-dimensional consensus." *Automatica*.
-- Anceaume et al. (2021). "Abstract data types for blockchain finality." *OPODIS*.
-- Baader & Nipkow (1998). *Term Rewriting and All That*. Cambridge UP.
-- Conway et al. (2012). "Logic and Lattices for Distributed Programming." *SoCC*.
-- de la Chica Rodriguez & Vera Diaz (2026). "Self-Evolving Coordination Protocols."
-- Hellerstein & Alvaro (2019). "Keeping CALM: When Distributed Consistency is Easy." *CACM*.
-- Ivanov (2023). "Non-terminating confluence." *FSCD*.
-- Kozen (1983). "Results on the propositional mu-calculus." *TCS*.
-- Newman (1942). "On theories with a combinatorial definition of equivalence." *Annals*.
-- Olfati-Saber & Murray (2004). "Consensus problems in networks of agents." *TAC*.
-- Shapiro et al. (2011). "Conflict-free replicated data types." *SSS*.
-- Tarski (1955). "A lattice-theoretical fixpoint theorem." *Pacific J. Math*.
+Verified references with DOIs or URLs where available. Short summaries support traceability to the formal-hardening narrative (lattices, confluence, finality, CALM, CRDTs).
+
+---
+
+**Resilient multi-dimensional consensus**
+
+- Yan, J., Li, X., Mo, Y., & Wen, C. (2022). Resilient multi-dimensional consensus in adversarial environment. *Automatica*, 145. doi:[10.1016/j.automatica.2022.110530](https://doi.org/10.1016/j.automatica.2022.110530)  
+  *Summary:* Algorithms for consensus when some agents are faulty or adversarial; benign agents reach agreement inside the convex hull of initial states. Uses sorting and “middle points” per dimension. Relevant to robust convergence under Byzantine-like failures. (Note: An “Abbas et al. 2020” Automatica reference was not uniquely identified; this is the closest verified match.)
+
+**Blockchain finality**
+
+- Anceaume, E., Del Pozzo, A., Rieutord, T., & Tucci-Piergiovanni, S. (2021). On finality in blockchains. In *Proc. OPODIS 2021* (LIPIcs, Vol. 217). Schloss Dagstuhl. doi:[10.4230/LIPIcs.OPODIS.2021.6](https://drops.dagstuhl.de/entities/document/10.4230/LIPIcs.OPODIS.2021.6)  
+  *Summary:* Formalizes finality (deterministic vs probabilistic, immediate vs eventual), bounded revocation, and reductions between finality and consensus. Connects blockchain design to classical distributed agreement; relevant to certifying “no rollback” in our setting.
+
+**Term rewriting and termination**
+
+- Baader, F., & Nipkow, T. (1998). *Term Rewriting and All That*. Cambridge University Press. ISBN 978-0521779203.  
+  *Summary:* Standard reference for rewrite systems, termination, and confluence. Used for well-founded descent and reduction semantics.
+
+**Logic, lattices, and distributed programming (CALM)**
+
+- Conway, N., Marczak, W. R., Alvaro, P., Hellerstein, J. M., & Maier, D. (2012). Logic and lattices for distributed programming. In *Proc. SoCC 2012*. ACM. doi:[10.1145/2391229.2391230](https://dl.acm.org/doi/10.1145/2391229.2391230)  
+  *Summary:* Bloom^L: logic programming plus lattice-based data; CALM (consistency as logical monotonicity) and automatic verification of coordination-free consistency. Direct precursor to CALM theorem and lattice-based coordination.
+
+- Hellerstein, J. M., & Alvaro, P. (2019). Keeping CALM: when distributed consistency is easy. *arXiv* [cs.DC] 1901.01930. [arXiv:1901.01930](https://arxiv.org/abs/1901.01930)  
+  *Summary:* CALM theorem: programs achieve distributed consistency without coordination iff they are expressible in monotonic logic. Constructive counterpart to CAP; guides when coordination is necessary.
+
+**Self-evolving coordination**
+
+- de la Chica Rodriguez, J. M., & Vera Díaz, J. M. (2026). Self-evolving coordination protocol in multi-agent AI systems: an exploratory systems feasibility study. *arXiv* 2602.02170. [arXiv:2602.02170](https://arxiv.org/abs/2602.02170)  
+  *Summary:* SECP: coordination protocols with bounded, auditable self-modification under fixed invariants. Aligns with our formal boundaries and coverage–autonomy trade-off.
+
+**Confluence (non-terminating / generalized Newman)**
+
+- Ivanov, I. (2023). Generalized Newman’s lemma for discrete and continuous systems. In *Proc. FSCD 2023* (LIPIcs, Vol. 260). Schloss Dagstuhl. doi:[10.4230/LIPIcs.FSCD.2023.9](https://doi.org/10.4230/LIPIcs.FSCD.2023.9)  
+  *Summary:* Confluence criterion for not-necessarily-terminating abstract rewrite systems; classical Newman’s lemma as a corollary. Formalized in Isabelle/HOL. Relevant to partial confluence and non-terminating dynamics.
+
+**Modal logic and fixed points**
+
+- Kozen, D. (1983). Results on the propositional mu-calculus. *Theoretical Computer Science*, 27(3), 333–354. doi:[10.1016/0304-3975(82)90125-6](https://doi.org/10.1016/0304-3975(82)90125-6)  
+  *Summary:* Propositional mu-calculus; used for fixed-point reasoning in reduction semantics.
+
+- Newman, M. H. A. (1942). On theories with a combinatorial definition of “equivalence”. *Annals of Mathematics*, 43(2), 223–243. doi:[10.2307/1968867](https://doi.org/10.2307/1968867)  
+  *Summary:* Newman’s lemma: local confluence + termination imply global confluence. Basis for our partial-confluence discussion.
+
+**Consensus and Lyapunov**
+
+- Olfati-Saber, R., & Murray, R. M. (2004). Consensus problems in networks of agents with switching topology and time-delays. *IEEE Transactions on Automatic Control*, 49(9), 1520–1533. doi:[10.1109/TAC.2004.834113](https://doi.org/10.1109/TAC.2004.834113)  
+  *Summary:* Lyapunov-based consensus; monotonically decreasing disagreement functions and convergence. Foundation for our V(t) and finality gates.
+
+**CRDTs**
+
+- Shapiro, M., Preguiça, N., Baquero, C., & Zawirski, M. (2011). Conflict-free replicated data types. In *Proc. SSS 2011* (LNCS 6976). Springer. doi:[10.1007/978-3-642-24550-3_29](https://doi.org/10.1007/978-3-642-24550-3_29)  
+  *Summary:* CRDTs and strong eventual consistency; state- and operation-based CRDTs, monotonicity and commutativity. Foundational for our semantic graph and monotonic guarantees.
+
+**Lattice fixpoints**
+
+- Tarski, A. (1955). A lattice-theoretical fixpoint theorem and its applications. *Pacific Journal of Mathematics*, 5(2), 285–309. [msp.org/pjm/1955/5-2](https://msp.org/pjm/1955/5-2/p11.xhtml)  
+  *Summary:* Fixed points of monotone functions on complete lattices form a complete lattice (least and greatest fixpoints). Used for well-founded ordering and product lattice.

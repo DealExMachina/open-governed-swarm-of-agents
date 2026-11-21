@@ -129,7 +129,7 @@ where epsilon = 0.001 (tolerance for floating-point noise). The default beta is 
 - The gate requires at least beta data points; with fewer, `is_monotonic` is false.
 - This is a purely local property: it only examines the last beta rounds, not the entire history.
 
-**Literature.** Duan et al. (2025) describe coordination invariants for state machine replication in the Aegean protocol. The monotonicity gate adapts their requirement that committed state must not regress -- applied here to the goal score rather than a replicated log.
+**Literature.** Ruan et al. (2025) introduce the Aegean consensus protocol for multi-agent reasoning; the monotonicity gate adapts their requirement that committed state must not regress, applied here to the goal score rather than a replicated log.
 
 ### 2.4 Plateau detection
 
@@ -161,7 +161,7 @@ with `plateau_threshold` = 0.01 and `tau` = 3 (defaults).
 - The EMA provides smoothing: a single good round does not instantly clear a plateau.
 - During divergence, progress ratio is 0 (deltas are negative, clamped to 0), so plateau is also detected. This is correct: the system is both diverging and stalled. The divergence rate (alpha < -0.05) is the primary signal; plateau is secondary.
 
-**Literature.** Camacho et al. (2024) describe EMA-based stagnation detection in their MACI framework for multi-agent collective intelligence. The progress ratio formulation adapts their approach to the finality gradient domain.
+**Literature.** Chang and Chang (2025) describe MACI (Multi-Agent Collaborative Intelligence) with a moderator that halts when gains plateau; the progress ratio formulation adapts their approach for plateau detection in the finality gradient.
 
 ### 2.5 Pressure-directed activation
 
@@ -401,14 +401,14 @@ Each scenario validates a specific failure mode or edge case. Together they cove
 1. **Olfati-Saber, R. & Murray, R. M.** (2004). Consensus Problems in Networks of Agents With Switching Topology and Time-Delays. *IEEE Transactions on Automatic Control*, 49(9), 1520--1533. doi:[10.1109/TAC.2004.834113](https://doi.org/10.1109/TAC.2004.834113)
    -- Lyapunov stability framework for multi-agent consensus. Foundation for the disagreement function V(t) and the convergence guarantee: if V is a common Lyapunov function that decreases along system trajectories, the system converges to consensus.
 
-2. **Duan, S., Reiter, M. K., & Zhang, H.** (2025). Aegean: Making State Machine Replication Fast without Compromise. *arXiv preprint* arXiv:[2512.20184](https://arxiv.org/abs/2512.20184)
-   -- Monotonicity gates and coordination invariants for state machine replication. The Aegean protocol requires that committed state does not regress; we adapt this as the monotonicity gate for the goal score.
+2. **Ruan, C., Wang, Y., Shi, Z., & Li, J.** (2025). Reaching Agreement Among Reasoning LLM Agents. *arXiv preprint* arXiv:[2512.20184](https://arxiv.org/abs/2512.20184)
+   -- They introduce the Aegean consensus protocol; the monotonicity gate adapts their requirement that committed state does not regress to the goal score.
 
-3. **Camacho, D. et al.** (2024). MACI: Multi-Agent Collective Intelligence. *arXiv preprint* arXiv:[2510.04488](https://arxiv.org/abs/2510.04488)
-   -- EMA-based stagnation detection for multi-agent systems. The MACI framework uses progress ratio monitoring to detect when collective improvement has stalled; we adapt their approach for plateau detection in the finality gradient.
+3. **Chang, E. Y., & Chang, E. Y.** (2025). Multi-Agent Collaborative Intelligence: Dual-Dial Control for Reliable LLM Reasoning. *arXiv preprint* arXiv:[2510.04488](https://arxiv.org/abs/2510.04488)
+   -- MACI uses a moderator that halts when gains plateau; we adapt their approach for plateau detection in the finality gradient.
 
-4. **Laddad, S. et al.** (2024). CodeCRDT: A Conflict-Free Replicated Data Type for Collaborative Code Editing. *arXiv preprint* arXiv:[2510.18893](https://arxiv.org/abs/2510.18893)
-   -- CRDT monotonic merge operations. The principle that merge must be commutative, associative, and idempotent underlies our monotonic graph upserts.
+4. **Pugachev, S.** (2025). CodeCRDT: Observation-Driven Coordination for Multi-Agent LLM Code Generation. *arXiv preprint* arXiv:[2510.18893](https://arxiv.org/abs/2510.18893)
+   -- CRDT-based shared state with observable updates and monotonic progress; our monotonic graph upserts follow the same principle.
 
 5. **Dorigo, M., Theraulaz, G., & Trianni, V.** (2024). Swarm Intelligence: Past, Present, and Future. *Proceedings of the Royal Society B*, 291(2024). doi:[10.1098/rspb.2024.0856](https://doi.org/10.1098/rspb.2024.0856)
    -- Stigmergic coordination in biological and artificial swarms. Agents respond to environmental gradients (pheromone trails) rather than direct communication. Pressure-directed activation adapts this: the convergence pressure map serves as the gradient signal.

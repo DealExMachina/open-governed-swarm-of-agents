@@ -18,6 +18,8 @@ The paper defines five experimental protocols designed to address open questions
 | 8. Cooperative agent model (Assumption 5) | [#22](https://github.com/DealExMachina/swarm-of-governed-agents/issues/22) |
 | 9. Local confluence (Assumption 2) | [#23](https://github.com/DealExMachina/swarm-of-governed-agents/issues/23) |
 
+Issue tracking for these experiments lives in the development repo (DealExMachina/swarm-of-governed-agents).
+
 **Domain demos (use cases):** M&A (Project Horizon), Financial consolidation, Insurance onboarding and pricing are documented in [docs/demos/](demos/README.md). They use the same driver and run via `run-experiment.sh financial`, `insurance`, `demo-baseline`; they are not assertion-validation experiments.
 
 ---
